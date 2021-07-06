@@ -22,7 +22,10 @@ class Candle:
     timestamp: UNIXTimestamp  # UNIX timestamp as seconds
 
     #: USD exchange rate of the quote token used to
-    #: generate any dollar amount
+    #: convert to dollar amounts in this candle.
+    #: Note that currently any USD stablecoin is
+    #: assumed to be 1:1 and the candle server cannot
+    #: handle exchange rate difference among stablecoins.
     exchange_rate: float
 
     #: OHLCV core data
@@ -32,7 +35,7 @@ class Candle:
     low: USDollarAmount
 
     #: Number of buys happened during the candle period
-    buys: int  # Numb
+    buys: int
 
     #: Number of sells happened during the candle period
     sells: int
@@ -48,6 +51,9 @@ class Candle:
     #: Blockchain tracking information
     start_block: BlockNumber
     end_block: BlockNumber
+
+    def __repr__(self):
+        return f"@{self.timestamp} O:{self.open} H:{self.high} L:{self.low} C:{self.close} V:{self.volume} B:{self.buys} S:{self.sells} SB:{self.start_block} EB:{self.end_block}"
 
     @property
     def caip(self) -> ChainAddressTuple:

@@ -12,7 +12,7 @@ Capitalgram is a Python library for on-chain quantative trading
 
 * Integration with [Jupyter Notebook](https://jupyter.org/) for easy manipulation of data 
 
-* Use Python quant toolkits like [Zipline](https://jupyter.org/) to create, analyse and backtest algorithms
+* Use Python quant toolkits like [Zipline](https://github.com/stefan-jansen/zipline-reloaded) to create, analyse and backtest algorithms
 
 * (*soon*) Decentralised execution of trading algorithms through smart contracts
 
@@ -24,7 +24,7 @@ Capitalgram is a Python library for on-chain quantative trading
 
 # Installation
 
-## *Prerequisites
+## Prerequisites
 
 Python 3.7+
 

@@ -21,8 +21,12 @@ class InvalidChecksum(BadChainAddressTuple):
 
 @dataclass
 class ChainAddressTuple:
-    """Present one chain-agnostic address"""
+    """Present one chain-agnostic address."""
+
+    #: See ChainId for more information - here we have just the raw int value
     chain_id: int
+
+    #: Could be checksummed or non-checksummed address
     address: str
 
     @staticmethod

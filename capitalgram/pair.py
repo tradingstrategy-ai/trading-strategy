@@ -7,6 +7,10 @@ from capitalgram.chain import ChainId
 from capitalgram.units import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint
 
 
+class DuplicatePair(Exception):
+    """Found multiple trading pairs for the same naive lookup."""
+
+
 class PairType(enum.Enum):
     """What different DEX, AMM or other on-chain exchanges kinds we support.
 
@@ -16,6 +20,12 @@ class PairType(enum.Enum):
     uniswap_v2 = "uni_v2"
 
     uniswap_v3 = "uni_v3"
+
+
+
+class PairUniverse(enum.Enum):
+    """Different pair universes available to download"""
+    all = "all"
 
 
 @dataclass
@@ -37,12 +47,25 @@ class SwapPair:
     chain_id: ChainId  # 1 for Ethereum
     address: NonChecksummedAddress  # Pair contract address
     pair_type: PairType
-    exchange: Optional[str]  # Exchange name (if known)
+
+    #: Naturalised base and quote token.
+    #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
+    #: However we humans always want the quote token to be USD, or ETH or BTC.
+    #: For the reverse token orders, the candle serve swaps the token order
+    #: so that the quote token is the more natural token of the pair (in the above case USD)
     base_token_symbol: str
-    quote_token_symbol: str  # Naturalised quote token
+    quote_token_symbol: str
+
+    #: token0 as in raw Uniswap data
     token0_symbol: str
+
+    #: token1 as in raw Uniswap data
     token1_symbol: str
+
+    #: Token pair contract address on-chain
     token0_address: str
+
+    #: Token pair contract address on-chain
     token1_address: str
 
     first_swap_at_block_number: BlockNumber
@@ -63,6 +86,12 @@ class SwapPair:
     #: we cannot create candles for the pair.
     flag_unsupported_quote_token: bool
 
+    #: Pair is listed on an exchange we do not if it is good or not
+    flag_unknown_exchange: bool
+
+    exchange_name: Optional[str] = None  # Exchange name (if known)
+    exchange_address: NonChecksummedAddress = None  # Router address in the case of Uniswap v2
+
     #: Various risk analyis flags
     flag_not_enough_swaps: Optional[bool] = None
     flag_on_trustwallet: Optional[bool] = None
@@ -80,9 +109,10 @@ class SwapPair:
     trustwallet_info: Optional[dict] = None  # TrustWallet database data, as direct dump
     etherscan_info: Optional[dict] = None  # Etherscan pro database data, as direct dump
 
-    # Lifetime stats for this pair calculated from daily candles
-    # Only available for active tokens
-    # Useful mostly for risk assessment
+    # Lifetime stats for this pair calculated from daily candles.
+    # Only available for active tokens.
+    # Useful mostly for risk assessment, as this data is **not** accurate,
+    # but gives some reference information about the popularity of the token.
     buy_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
     sell_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
     buy_volume_all_time: Optional[float] = None
@@ -98,6 +128,11 @@ class SwapPair:
 
     # Trading pairs with same token symbol combinations, but no notable volume
     fake_pairs: Optional[list] = None
+
+    def __repr__(self):
+        chain_name = ChainId[self.chain_id.value]
+        exchange_name = self.exchange_name or "<unknown>"
+        return f"Pair {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name} on {chain_name}"
 
 
 @dataclass
@@ -131,3 +166,23 @@ class PairUniverse:
 
     #: Pair info for this universe
     pairs: List[SwapPair]
+
+    def get_pair_by_ticker(self, base_token, quote_token) -> Optional[SwapPair]:
+        """Get a trading pair by its ticker symbols.
+
+        Note that this method works only very simple universes, as any given pair
+        is poised to have multiple tokens and multiple trading pairs on different exchanges.
+
+        :raise DuplicatePair: If the universe contains more than single entry for the pair.
+
+        :return: None if there is no match
+        """
+        pairs = [p for p in self.pairs if p.base_token_symbol == base_token and p.quote_token_symbol == quote_token]
+
+        if len(pairs) > 1:
+            raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
+
+        if pairs:
+            return pairs[0]
+
+        return None
