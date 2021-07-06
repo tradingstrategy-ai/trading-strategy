@@ -1,0 +1,133 @@
+"""Trading pair information."""
+import enum
+from dataclasses import dataclass
+from typing import Optional, List
+
+from capitalgram.chain import ChainId
+from capitalgram.units import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint
+
+
+class PairType(enum.Enum):
+    """What different DEX, AMM or other on-chain exchanges kinds we support.
+
+    Note that each type can have multiple implementations.
+    For example QuickSwap, Sushi and Pancake are all Uniswap v2 types.
+    """
+    uniswap_v2 = "uni_v2"
+
+    uniswap_v3 = "uni_v3"
+
+
+@dataclass
+class SwapPair:
+    """Pair information with risk and diagnostics data attached.
+
+    The candle server maintains token information.
+    Some tokens may have more information available than others,
+    as due to the high number of pairs it is impractical to get full information
+    for all pairs.
+
+    * Non-optional fields are always available
+
+    * Optional fields may be available if the candle server 1) detected the pair popular enough 2) managed to fetch the third party service information related to the token
+
+    Swap pair can be Uniwap v2 like exchange or Uniswap v3 like exchange.
+    More pair types coming in the future.
+    """
+    chain_id: ChainId  # 1 for Ethereum
+    address: NonChecksummedAddress  # Pair contract address
+    pair_type: PairType
+    exchange: Optional[str]  # Exchange name (if known)
+    base_token_symbol: str
+    quote_token_symbol: str  # Naturalised quote token
+    token0_symbol: str
+    token1_symbol: str
+    token0_address: str
+    token1_address: str
+
+    first_swap_at_block_number: BlockNumber
+    last_swap_at_block_number: BlockNumber
+    first_swap_at: UNIXTimestamp
+    last_swap_at: UNIXTimestamp
+
+    #: Pair has been flagged inactive, because it has not traded at least once during the last 30 days.
+    flag_inactive: bool
+
+    #: Pair is blacklisted by operators.
+    #: Current there is no blacklist process so this is always false.
+    flag_blacklisted_manually: bool
+
+    #: Quote token is one of USD, ETH, BTC, MATIC or similar popular token variants.
+    #: Because all candle data is outputted in the USD, if we have a quote token
+    #: for which we do not have an USD conversation rate reference price source,
+    #: we cannot create candles for the pair.
+    flag_unsupported_quote_token: bool
+
+    #: Various risk analyis flags
+    flag_not_enough_swaps: Optional[bool] = None
+    flag_on_trustwallet: Optional[bool] = None
+    flag_on_etherscan: Optional[bool] = None
+    flag_code_verified: Optional[bool] = None
+
+    #: Swap fee in basis points if known
+    fee: Optional[BasisPoint] = None
+
+    trustwallet_info_checked_at: Optional[UNIXTimestamp] = None
+    etherscan_info_checked_at: Optional[UNIXTimestamp] = None
+    etherscan_code_verified_checked_at: Optional[UNIXTimestamp] = None
+
+    blacklist_reason: Optional[str] = None
+    trustwallet_info: Optional[dict] = None  # TrustWallet database data, as direct dump
+    etherscan_info: Optional[dict] = None  # Etherscan pro database data, as direct dump
+
+    # Lifetime stats for this pair calculated from daily candles
+    # Only available for active tokens
+    # Useful mostly for risk assessment
+    buy_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
+    sell_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
+    buy_volume_all_time: Optional[float] = None
+    sell_volume_all_time: Optional[float] = None
+    buy_volume_30d: Optional[float] = None
+    sell_volume_30d: Optional[float] = None
+
+    # Uniswap pair on Sushiswap etc.
+    same_pair_on_other_exchanges: Optional[list] = None
+
+    # ETH-USDC pair on QuickSwap, PancakeSwap, etc.
+    bridged_pair_on_other_exchanges: Optional[list] = None
+
+    # Trading pairs with same token symbol combinations, but no notable volume
+    fake_pairs: Optional[list] = None
+
+
+@dataclass
+class PairUniverse:
+    """The queries universe, as returned by the server.
+
+    The universe presents tradeable token pairs that
+    fulfill certain criteria.
+
+    The server supports different token pair universes
+    depending on the risk appetite. As generating the universe
+    data is heavy process, the data is generated as a scheduled
+    job and cached.
+
+    Risks include
+
+    * Fake tokens designed to fool bots
+
+    * Tokens that may be rug pulls
+
+    * Legit tokens that may have high volatility due to a hack
+
+    * Legit tokens that may stop working in some point
+
+    Depending on your risk apetite, you might want to choose
+    between safe and wild west universes.
+    """
+
+    #: When this universe was last refreshed
+    last_updated_at: UNIXTimestamp
+
+    #: Pair info for this universe
+    pairs: List[SwapPair]
