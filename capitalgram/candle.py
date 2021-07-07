@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-
+from dataclasses_json import dataclass_json
 
 from capitalgram.caip import ChainAddressTuple
 from capitalgram.chain import ChainId
 from capitalgram.units import NonChecksummedAddress, UNIXTimestamp, USDollarAmount, BlockNumber
 
 
+@dataclass_json
 @dataclass
 class Candle:
     """DEX trade candle.

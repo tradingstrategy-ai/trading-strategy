@@ -1,7 +1,10 @@
 """Trading pair information."""
 import enum
+import json
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Iterable
+
+from dataclasses_json import dataclass_json
 
 from capitalgram.chain import ChainId
 from capitalgram.units import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint
@@ -22,12 +25,12 @@ class PairType(enum.Enum):
     uniswap_v3 = "uni_v3"
 
 
-
 class PairUniverse(enum.Enum):
     """Different pair universes available to download"""
     all = "all"
 
 
+@dataclass_json
 @dataclass
 class SwapPair:
     """Pair information with risk and diagnostics data attached.
@@ -130,11 +133,15 @@ class SwapPair:
     fake_pairs: Optional[list] = None
 
     def __repr__(self):
-        chain_name = ChainId[self.chain_id.value]
+        chain_name = self.chain_id.name.capitalize()
         exchange_name = self.exchange_name or "<unknown>"
-        return f"Pair {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name} on {chain_name}"
+        return f"<Pair {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name} on {chain_name}>"
 
+    def __json__(self, request):
+        """Pyramid JSON renderer compatibility"""
+        return self.__dict__
 
+@dataclass_json
 @dataclass
 class PairUniverse:
     """The queries universe, as returned by the server.
@@ -186,3 +193,19 @@ class PairUniverse:
             return pairs[0]
 
         return None
+
+    def get_active_pairs(self) -> Iterable["SwapPair"]:
+        """Filter for pairs that have see a trade for the last 30 days"""
+        return filter(lambda p: not p.flag_inactive, self.pairs)
+
+    def get_inactive_pairs(self) -> Iterable["SwapPair"]:
+        """Filter for pairs that have not see a trade for the last 30 days"""
+        return filter(lambda p: p.flag_inactive, self.pairs)
+
+    def from_json_string(self, value):
+        decoded = json.loads(value)
+        return PairUniverse(last_updated_at=decoded["last_updated_at"], pairs=decoded["pairs"])
+
+    def __json__(self, request):
+        """Pyramid JSON renderer compatibility"""
+        return self.__dict__

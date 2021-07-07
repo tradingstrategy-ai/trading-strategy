@@ -14,7 +14,7 @@ NonChecksummedAddress = str
 #: this is ok.
 USDollarAmount = float
 
-#: Seconds since 1.1.1970 as UTC time as float
+#: Seconds since 1.1.1970 as UTC time as float. Floats used to compress the wire protocol a bit.
 UNIXTimestamp = float
 
 #: EVM block number from 1 to infinity
