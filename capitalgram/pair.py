@@ -14,7 +14,7 @@ class DuplicatePair(Exception):
     """Found multiple trading pairs for the same naive lookup."""
 
 
-class PairType(enum.Enum):
+class DEXType(enum.Enum):
     """What different DEX, AMM or other on-chain exchanges kinds we support.
 
     Note that each type can have multiple implementations.
@@ -49,7 +49,7 @@ class SwapPair:
     """
     chain_id: ChainId  # 1 for Ethereum
     address: NonChecksummedAddress  # Pair contract address
-    pair_type: PairType
+    dex_type: DEXType
 
     #: Naturalised base and quote token.
     #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
@@ -201,11 +201,3 @@ class PairUniverse:
     def get_inactive_pairs(self) -> Iterable["SwapPair"]:
         """Filter for pairs that have not see a trade for the last 30 days"""
         return filter(lambda p: p.flag_inactive, self.pairs)
-
-    def from_json_string(self, value):
-        decoded = json.loads(value)
-        return PairUniverse(last_updated_at=decoded["last_updated_at"], pairs=decoded["pairs"])
-
-    def __json__(self, request):
-        """Pyramid JSON renderer compatibility"""
-        return self.__dict__
