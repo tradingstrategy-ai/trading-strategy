@@ -7,7 +7,7 @@ from capitalgram.pair import PairUniverse
 
 
 class Capitalgram:
-    """Main entry point for candle server data API.
+    """An API client for Capitalgram quant service.
 
     """
 

@@ -1,6 +1,5 @@
 """Trading pair information."""
 import enum
-import json
 from dataclasses import dataclass
 from typing import Optional, List, Iterable
 
@@ -140,6 +139,7 @@ class SwapPair:
     def __json__(self, request):
         """Pyramid JSON renderer compatibility"""
         return self.__dict__
+
 
 @dataclass_json
 @dataclass

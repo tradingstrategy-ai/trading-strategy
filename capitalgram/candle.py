@@ -1,9 +1,28 @@
+import enum
 from dataclasses import dataclass
+from typing import List
+
 from dataclasses_json import dataclass_json
 
 from capitalgram.caip import ChainAddressTuple
 from capitalgram.chain import ChainId
 from capitalgram.units import NonChecksummedAddress, UNIXTimestamp, USDollarAmount, BlockNumber
+
+
+class CandleBucket(enum.Enum):
+    """Available time windows for candle generation..
+
+    All candles are upsampled from 1m data.
+    """
+
+    m1 = "1m"
+    m5 = "5m"
+    m15 = "15m"
+    h1 = "1h"
+    h4 = "4h"
+    h24 = "24h"
+    d7 = "7d"
+    d30 = "30d"
 
 
 @dataclass_json
@@ -62,16 +81,30 @@ class Candle:
         return ChainAddressTuple(self.chain_id.value, self.address)
 
     @property
-    def trades(self):
+    def trades(self) -> int:
         """Amount of all trades during the candle period."""
         return self.buys + self.sells
 
     @property
-    def volume(self):
-        """Total volume during the candle period."""
+    def volume(self) -> USDollarAmount:
+        """Total volume during the candle period.
+
+        Unline in traditional CEX trading, we can separate buy volume and sell volume from each other,
+        becauase liquidity provider is a special role.
+        """
         return self.buy_volume + self.sell_volume
 
-    def __json__(self):
-        """Pyramid JSON renderer compatible transformer."""
-        return self.__dict__
 
+@dataclass_json
+@dataclass
+class CandleResult:
+    """Server-reply for candle data."""
+
+    #: A bunch of candles.
+    #: Candles are unordered and subject to client side sorting.
+    #: Multiple pairs and chains may be present in candles.
+    candles: List[Candle]
+
+    def sort_by_timestamp(self):
+        """In-place sorting of candles by their timestamp."""
+        self.candles.sort(key=lambda c: c.timestamp)
