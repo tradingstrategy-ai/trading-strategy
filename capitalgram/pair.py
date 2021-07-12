@@ -72,6 +72,7 @@ class SwapPair:
 
     first_swap_at_block_number: BlockNumber
     last_swap_at_block_number: BlockNumber
+
     first_swap_at: UNIXTimestamp
     last_swap_at: UNIXTimestamp
 
@@ -119,6 +120,8 @@ class SwapPair:
     sell_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
     buy_volume_all_time: Optional[float] = None
     sell_volume_all_time: Optional[float] = None
+    buy_count_30d: Optional[int] = None
+    sell_count_30d: Optional[int] = None
     buy_volume_30d: Optional[float] = None
     sell_volume_30d: Optional[float] = None
 
