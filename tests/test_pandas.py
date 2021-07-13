@@ -1,8 +1,5 @@
 import datetime
 
-import pytest
-
-from capitalgram.caip import ChainAddressTuple, InvalidChecksum
 from capitalgram.candle import Candle
 from capitalgram.chain import ChainId
 
