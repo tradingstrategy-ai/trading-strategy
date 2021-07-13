@@ -1,7 +1,10 @@
 import enum
-from dataclasses import dataclass
+import typing
+from dataclasses import dataclass, fields
 from typing import List
 
+import numpy
+import pandas as pd
 from dataclasses_json import dataclass_json
 
 from capitalgram.caip import ChainAddressTuple
@@ -94,11 +97,46 @@ class Candle:
         """
         return self.buy_volume + self.sell_volume
 
+    @classmethod
+    def to_dataframe(cls) -> pd.DataFrame:
+        """Return emptry Pandas dataframe presenting candle data."""
+
+        # https://stackoverflow.com/a/51953411/315168
+        _fields = {field.name: field.type for field in fields(cls)}
+
+        resolved_hints = typing.get_type_hints(cls)
+        field_names = [field.name for field in fields(cls)]
+        resolved_field_types = {name: resolved_hints[name] for name in field_names}
+
+        df = pd.DataFrame(index=None)
+        for name, fdesc in resolved_field_types.items():
+            if name == "timestamp":
+                pf = "datetime64[s]"
+            elif name == "chain_id":
+                # https://stackoverflow.com/a/29503414/315168
+                # pf = pd.Categorical([str(f.value) for f in ChainId])
+                # Setting up categories much pain...
+                # Pandas API such horrible
+                pf = "int"
+            elif fdesc == int:
+                pf = "int"
+            elif fdesc == float:
+                pf = "float"
+            elif fdesc == str:
+                # Address
+                pf = "string_"
+            else:
+                raise RuntimeError(f"Cannot handle {name}: {fdesc}")
+
+            df[name] = pd.Series(dtype=pf)
+
+        return df
+
 
 @dataclass_json
 @dataclass
 class CandleResult:
-    """Server-reply for candle data."""
+    """Server-reply for live queried candle data."""
 
     #: A bunch of candles.
     #: Candles are unordered and subject to client side sorting.
@@ -108,3 +146,5 @@ class CandleResult:
     def sort_by_timestamp(self):
         """In-place sorting of candles by their timestamp."""
         self.candles.sort(key=lambda c: c.timestamp)
+
+
