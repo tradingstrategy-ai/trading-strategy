@@ -1,12 +1,12 @@
 """Trading pair information."""
 import enum
 from dataclasses import dataclass
-from typing import Optional, List, Iterable
+from typing import Optional, List, Iterable, Dict
 
 from dataclasses_json import dataclass_json
 
 from capitalgram.chain import ChainId
-from capitalgram.units import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint
+from capitalgram.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
 
 
 class DuplicatePair(Exception):
@@ -46,8 +46,18 @@ class SwapPair:
     Swap pair can be Uniwap v2 like exchange or Uniswap v3 like exchange.
     More pair types coming in the future.
     """
-    chain_id: ChainId  # 1 for Ethereum
-    address: NonChecksummedAddress  # Pair contract address
+
+    #: Internal primary key for any trading pair
+    pair_id: PrimaryKey
+
+    #: The chain id on which chain this pair is trading. 1 for Ethereum.
+    chain_id: ChainId
+
+    #: Smart contract address for the pair.
+    #: In the case of Uniswap this is the pair (pool) address
+    address: NonChecksummedAddress
+
+    #: What kind of exchange this pair is on
     dex_type: DEXType
 
     #: Naturalised base and quote token.
@@ -175,7 +185,14 @@ class PairUniverse:
     last_updated_at: UNIXTimestamp
 
     #: Pair info for this universe
-    pairs: List[SwapPair]
+    pairs: Dict[int, SwapPair]
+
+    def get_pair_by_id(self, pair_id: int) -> Optional[SwapPair]:
+        """Resolve pair by its id.
+
+        Only useful for debugging. Does a slow look
+        """
+        return self.pairs[pair_id]
 
     def get_pair_by_ticker(self, base_token, quote_token) -> Optional[SwapPair]:
         """Get a trading pair by its ticker symbols.
@@ -187,7 +204,7 @@ class PairUniverse:
 
         :return: None if there is no match
         """
-        pairs = [p for p in self.pairs if p.base_token_symbol == base_token and p.quote_token_symbol == quote_token]
+        pairs = [p for p in self.pairs.values() if p.base_token_symbol == base_token and p.quote_token_symbol == quote_token]
 
         if len(pairs) > 1:
             raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
@@ -199,8 +216,8 @@ class PairUniverse:
 
     def get_active_pairs(self) -> Iterable["SwapPair"]:
         """Filter for pairs that have see a trade for the last 30 days"""
-        return filter(lambda p: not p.flag_inactive, self.pairs)
+        return filter(lambda p: not p.flag_inactive, self.pairs.values())
 
     def get_inactive_pairs(self) -> Iterable["SwapPair"]:
         """Filter for pairs that have not see a trade for the last 30 days"""
-        return filter(lambda p: p.flag_inactive, self.pairs)
+        return filter(lambda p: p.flag_inactive, self.pairs.values())

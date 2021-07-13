@@ -12,7 +12,7 @@ from pyarrow import feather
 
 from capitalgram.caip import ChainAddressTuple
 from capitalgram.chain import ChainId
-from capitalgram.units import NonChecksummedAddress, UNIXTimestamp, USDollarAmount, BlockNumber
+from capitalgram.types import NonChecksummedAddress, UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
 
 
 class CandleBucket(enum.Enum):
@@ -40,8 +40,10 @@ class Candle:
     as our chain analysis allows deeper visibility that you would
     get with traditional exchanges.
     """
-    chain_id: ChainId  # 1 for Ethereum
-    address: NonChecksummedAddress  # Pair contract address
+
+    #: Primary key to identity the trading pair
+    #: Use pair universe to map this to chain id and a smart contract address
+    pair_id: PrimaryKey
 
     #: Open timestamp for this candle.
     #: Note that the close timestamp you need to supply yourself based on the context.

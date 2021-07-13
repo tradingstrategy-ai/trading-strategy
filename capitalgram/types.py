@@ -4,6 +4,10 @@ The main purpose is to educate readers about blockchain primitives and make
 understanding data models easier.
 """
 
+
+#: 64-bit integer based primary key
+PrimaryKey = int
+
 #: Ethereum address that does *not* use EIP-55 checksumming https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md
 NonChecksummedAddress = str
 
@@ -14,8 +18,8 @@ NonChecksummedAddress = str
 #: this is ok.
 USDollarAmount = float
 
-#: Seconds since 1.1.1970 as UTC time as float. Floats used to compress the wire protocol a bit.
-UNIXTimestamp = float
+#: Seconds since 1.1.1970 as UTC time as integer.
+UNIXTimestamp = int
 
 #: EVM block number from 1 to infinity
 BlockNumber = int
