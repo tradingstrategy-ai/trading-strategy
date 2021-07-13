@@ -1,11 +1,14 @@
 import enum
+import io
 import typing
 from dataclasses import dataclass, fields
 from typing import List
 
 import numpy
 import pandas as pd
+import pyarrow
 from dataclasses_json import dataclass_json
+from pyarrow import feather
 
 from capitalgram.caip import ChainAddressTuple
 from capitalgram.chain import ChainId
@@ -148,3 +151,10 @@ class CandleResult:
         self.candles.sort(key=lambda c: c.timestamp)
 
 
+def read_feather(stream: io.BytesIO) -> pd.DataFrame:
+    """Reads compressed Feather file of candles to memory.
+
+    :param stream: A file input that must support seeking.
+    """
+    df = feather.read_feather(stream)
+    return df
