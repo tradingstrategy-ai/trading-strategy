@@ -1,11 +1,7 @@
-import datetime
-from typing import List
-
-import pandas as pd
+import pyarrow as pa
 import zstandard as zstd
 
-from capitalgram.caip import ChainAddressTuple
-from capitalgram.candle import CandleBucket, read_feather
+from capitalgram.candle import CandleBucket, read_parquet
 from capitalgram.chain import ChainId
 from capitalgram.environment.base import Environment
 from capitalgram.environment.jupyter import JupyterEnvironment
@@ -49,7 +45,7 @@ class Capitalgram:
         universe = PairUniverse.from_json(decompressed)
         return universe
 
-    def fetch_all_candles(self, bucket: CandleBucket) -> pd.DataFrame:
+    def fetch_all_candles(self, bucket: CandleBucket) -> pa.Table:
         """Get cached blob of candle data of a certain candle width.
 
         The returned data can be between several hundreds of megabytes to several gigabytes
@@ -58,7 +54,7 @@ class Capitalgram:
         The returned data is saved in Pyarror Feather format.
         """
         stream = self.transport.fetch_candles_all_time(bucket)
-        return read_feather(stream)
+        return read_parquet(stream)
 
     def fetch_chain_status(self, chain_id: ChainId) -> dict:
         """Get live information about how a certain blockchain indexing and candle creation is doing."""

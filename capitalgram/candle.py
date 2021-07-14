@@ -6,7 +6,8 @@ from typing import List
 
 import numpy
 import pandas as pd
-import pyarrow
+import pyarrow.parquet as pq
+import pyarrow as pa
 from dataclasses_json import dataclass_json
 from pyarrow import feather
 
@@ -137,6 +138,31 @@ class Candle:
 
         return df
 
+    @classmethod
+    def to_pyarrow_schema(cls, small_candles=False) -> pa.Schema:
+        """Construct schema for writing Parquet filess for these candles.
+
+        :param small_candles: Use even smaller word sizes for frequent (1m) candles.
+        """
+        schema = pa.schema([
+            ("pair_id", pa.uint32()),
+            ("timestamp", pa.time32("s")),
+            ("exchange_rate", pa.float32()),
+            ("open", pa.float32()),
+            ("close", pa.float32()),
+            ("high", pa.float32()),
+            ("low", pa.float32()),
+            ("buys", pa.uint16() if small_candles else pa.uint32()),
+            ("sells", pa.uint16() if small_candles else pa.uint32()),
+            ("buy_volume", pa.float32()),
+            ("sell_volume", pa.float32()),
+            ("avg", pa.float32()),
+            ("start_block", pa.uint32()),   # Should we good for 4B blocks
+            ("end_block", pa.uint32()),
+        ])
+        return schema
+
+
 
 @dataclass_json
 @dataclass
@@ -160,3 +186,13 @@ def read_feather(stream: io.BytesIO) -> pd.DataFrame:
     """
     df = feather.read_feather(stream)
     return df
+
+
+def read_parquet(stream: io.BytesIO) -> pa.Table:
+    """Reads compressed Parquet file of candles to memory.
+
+    :param stream: A file input that must support seeking.
+    """
+    # https://arrow.apache.org/docs/python/parquet.html
+    table = pq.read_table(stream)
+    return table
