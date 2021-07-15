@@ -20,6 +20,11 @@
   {% endblock %}
 
   {# FAVICON #}
+
+  <link rel="icon" type="image/png" href="{{ pathto('_static/favicon_32.png', 1) }}" sizes="32x32">
+  <link rel="icon" type="image/png" href="{{ pathto('_static/favicon_96.png', 1) }}" sizes="96x96">
+  <link rel="icon" type="image/svg+xml" href="{{ pathto('_static/favicon.svg', 1) }}">
+
   {% if favicon %}
     <link rel="shortcut icon" href="{{ pathto('_static/' + favicon, 1) }}"/>
   {% endif %}
