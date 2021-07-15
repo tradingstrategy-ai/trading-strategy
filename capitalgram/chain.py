@@ -1,4 +1,4 @@
-"""Information on EVM based blockchains."""
+"""Data structures and information about EVM based blockchains."""
 
 import enum
 
