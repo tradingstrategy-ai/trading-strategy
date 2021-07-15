@@ -1,5 +1,5 @@
-Candle
-======
+Candles
+=======
 
  .. automodule:: capitalgram.candle
     :members:

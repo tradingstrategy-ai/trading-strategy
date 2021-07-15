@@ -6,7 +6,7 @@
 Capitalgram documentation
 =========================
 
-Capitalgram is a `Python programming language <https://www.python.org/>`_ based toolkit for :term:`on-chain` quantitative finance research and trade. You can developer and :term:`backtest` a trading strategy based on all trades ever happened on any blockchain. Live data is available to one minute accuracy.
+Capitalgram is a `Python programming language <https://www.python.org/>`_ based toolkit for :term:`on-chain` quantitative finance research and trade. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live data is available to one minute accuracy.
 
 The ready strategies, or trading bots, can be deployed as :term:`autonomous agents <autonomous agent>` running on :term:`smart contracts <smart contract>`. Strategies then trade on :term:`decentralised exchanges <decentralised exchange>`. After deployed, anyone can invest in and withdraw from the strategies in real time.
 
