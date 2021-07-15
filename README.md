@@ -1,4 +1,4 @@
-![CI status](https://github.com/miohtama/capitalgram-onchain-dex-quant-data/actions/workflows/python-app.yml/badge.svg)](https://github.com/miohtama/capitalgram-onchain-dex-quant-data/actions/workflows/python-app.yml)
+![CI status](https://github.com/miohtama/capitalgram-onchain-dex-quant-data/actions/workflows/python-app.yml/badge.svg)
 
 Capitalgram is a Python library for on-chain quantative trading.
 
