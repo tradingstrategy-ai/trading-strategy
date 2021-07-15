@@ -12,6 +12,8 @@ The ready strategies, or trading bots, can be deployed as :term:`autonomous agen
 
 Capitalgram integrates with :term:`Jupyter notebook`, :term:`Pandas` and other popular Python based quantative finance libraries.
 
+See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
+
 .. toctree::
    :maxdepth: 1
    :caption: Narrative documentation
