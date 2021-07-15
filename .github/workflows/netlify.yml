@@ -27,6 +27,9 @@ jobs:
     - name: Build documentation
       run: |
         cd docs && poetry run make html && mv build/html ../build
+    - name: Pre-check
+      run: |
+        ls -lha build
     - name: Deploy to Netlify
       uses: danakim/gh-action-deploy-netlify@master
       with:
