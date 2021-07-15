@@ -26,14 +26,14 @@ jobs:
         poetry install
     - name: Build documentation
       run: |
-        cd docs && poetry run make html && mv build/html ../build
+        cd docs && poetry run make html
     - name: Pre-check
       run: |
         ls -lha build
     - name: Deploy to Netlify
       uses: nwtgck/actions-netlify@v1.2
       with:
-        publish-dir: './build'
+        publish-dir: './build/html'
         production-branch: master
         deploy-message: "Deploy from GitHub Actions"
         enable-pull-request-comment: false
