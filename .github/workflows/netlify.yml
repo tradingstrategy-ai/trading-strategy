@@ -29,7 +29,7 @@ jobs:
         cd docs && poetry run make html
     - name: Pre-check
       run: |
-        ls -lha build
+        ls -lha build/html
     - name: Deploy to Netlify
       uses: nwtgck/actions-netlify@v1.2
       with:
