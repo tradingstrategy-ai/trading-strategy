@@ -10,16 +10,23 @@ from capitalgram.transport.cache import CachedHTTPTransport
 
 
 class Capitalgram:
-    """An API client for the Capitalgram quant service."""
+    """An API client for querying the Capitalgram candle server.
+
+    This client will download and manage cached datasets.
+    """
+
+    @classmethod
+    def create_jupyter_client(cls, cache_path=None) -> "Capitalgram":
+        """Create a new API client.
+
+        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
+        """
+        return Capitalgram(JupyterEnvironment(), CachedHTTPTransport("https://candlelightdinner.capitalgram.com", cache_path=cache_path))
 
     def __init__(self, env: Environment, transport: CachedHTTPTransport):
         """Do not call constructor directly, but use one of create methods. """
         self.env = env
         self.transport = transport
-
-    @classmethod
-    def create_jupyter_client(cls, cache_path=None) -> "Capitalgram":
-        return Capitalgram(JupyterEnvironment(), CachedHTTPTransport("https://candlelightdinner.capitalgram.com", cache_path=cache_path))
 
     def start(self):
         """Checks the API key validity and if the server is responsive.

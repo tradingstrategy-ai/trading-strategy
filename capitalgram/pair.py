@@ -1,4 +1,5 @@
-"""Trading pair information."""
+"""Trading pair information and analysis."""
+
 import enum
 from dataclasses import dataclass
 from typing import Optional, List, Iterable, Dict
@@ -14,27 +15,25 @@ class DuplicatePair(Exception):
 
 
 class DEXType(enum.Enum):
-    """What different DEX, AMM or other on-chain exchanges kinds we support.
+    """What kind of an decentralised exchange, AMM or other the pair is trading on.
 
     Note that each type can have multiple implementations.
     For example QuickSwap, Sushi and Pancake are all Uniswap v2 types.
     """
+
+    #: Uniswap v2 style exchange
     uniswap_v2 = "uni_v2"
 
+    #: Uniswap v3 style exchange
     uniswap_v3 = "uni_v3"
-
-
-class PairUniverse(enum.Enum):
-    """Different pair universes available to download"""
-    all = "all"
 
 
 @dataclass_json
 @dataclass
 class SwapPair:
-    """Pair information with risk and diagnostics data attached.
+    """A trading pair information.
 
-    The candle server maintains token information.
+    The candle server maintains trading pair and associated token information.
     Some tokens may have more information available than others,
     as due to the high number of pairs it is impractical to get full information
     for all pairs.

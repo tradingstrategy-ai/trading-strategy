@@ -1,3 +1,8 @@
+"""Tradind data candle data and manipulation.
+
+For more information about candles see :term:`candle`.
+"""
+
 import enum
 import io
 import typing
@@ -17,29 +22,46 @@ from capitalgram.types import NonChecksummedAddress, UNIXTimestamp, USDollarAmou
 
 
 class CandleBucket(enum.Enum):
-    """Available time windows for candle generation..
+    """Supported time windows for candle data.
 
     All candles are upsampled from 1m data.
     """
 
+    #: One minute candles
     m1 = "1m"
+
+    #: Five minute candles
     m5 = "5m"
+
+    #: Quarter candles
     m15 = "15m"
+
+    #: Hourly candles
     h1 = "1h"
+
+    #: Four hour candles
     h4 = "4h"
+
+    #: Daily candles
     h24 = "24h"
+
+    #: Weekly candles
     d7 = "7d"
+
+    #: Monthly candles
     d30 = "30d"
 
 
 @dataclass_json
 @dataclass
 class Candle:
-    """DEX trade candle.
+    """Data structure that presents one candle in Capitalgram.
 
-    OHLCV candle with some extra information available,
-    as our chain analysis allows deeper visibility that you would
-    get with traditional exchanges.
+    Based on the :term:`open-high-low-close-volume <OHLCV>` concept.
+
+    Capitalgram candles come with additional information available on the top of core OHLCV.
+    This is because our chain analysis has deeper visibility than one would
+    get on traditional exchanges.
     """
 
     #: Primary key to identity the trading pair

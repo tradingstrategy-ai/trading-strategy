@@ -1,22 +1,27 @@
-"""CAIP supports chain-agnosticaddress formats.
+"""Chain-agnostic address types.
 
-For more information please see https://github.com/ChainAgnostic/CAIPs
+When trading on multiple blockchains, we need to be able to uniquely identify the same smart contract address on multiple chains.
+
+There is an ongoing effort to standard cross-chain addresses.
+For more information see the `CAIP project <https://github.com/ChainAgnostic/CAIPs>_`.
 """
+
 from dataclasses import dataclass
 
 from eth_utils import is_checksum_address
 
 
 class BadChainAddressTuple(Exception):
+    """Something was wrong with the constructed chain - address tuple."""
     pass
 
 
 class InvalidChainId(BadChainAddressTuple):
-    pass
+    """Chain id was not an integer"""
 
 
 class InvalidChecksum(BadChainAddressTuple):
-    pass
+    """Ethereum checksum of the address is invalid"""
 
 
 @dataclass

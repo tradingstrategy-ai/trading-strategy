@@ -1,7 +1,6 @@
 """Generic units used in data models used in Capitalgram.
 
-The main purpose is to educate readers about blockchain primitives and make
-understanding data models easier.
+Types aliases are used to give human-readable meaning for various arguments and return values.
 """
 
 

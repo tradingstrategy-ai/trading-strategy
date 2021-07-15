@@ -8,18 +8,10 @@ Installation
 Jupyter notebook
 ----------------
 
-pip installation
-~~~~~~~~~~~~~~~~
-
 To install Capitalgram using pip do:
 
-```shell
-pip install -e "https://github.com/miohtama/capitalgram-onchain-dex-quant-data.git"
-```
+.. code-block:: shell
 
-Indices and tables
-==================
+    pip install -e "https://github.com/miohtama/capitalgram-onchain-dex-quant-data.git
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+

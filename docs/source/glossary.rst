@@ -45,7 +45,30 @@ Glossary
         The most popular :term:`AMM` based :term:`decentralised exchange`. Uniswap has two major versios.
         In version 2 (v2) the liquidity is evenly distributed across the bonding curve. In version 3, the
         liquidity providers can have liquidity on a partial curve, simulate order book and have better
-        capital efficiency.
+        capital efficiency. Most decentralised exchanges are Uniswap v2 :term:`clones <clone>`.
+
+    Clone
+
+        Also known as fork. A product launched based on the open source code of another existing product.
+        In the context of :term:`on-chain`, usually hostile to the original product and competes from the
+        same :term:`liquidity`.
+
+    Liquidity
+
+        Refers to the depth of tradeable asset on an exchange. More there is liquidity, larger trades you can do
+        without moving the price.
+
+    Candle
+
+        Candle, or a candlestick is a type of price chart used in technical analysis that displays the high, low, open, and closing prices of an asset for a specific time period, or :term:`bucket`. `More information <https://en.wikipedia.org/wiki/Candlestick_chart>`__.
+
+    Bucket
+
+        Refers to a time period for :term:`candle` data. For example, you can have one minute, one hour or daily buckets.
+
+    OHLCV
+
+        A typical :term:`candle` contains open, high, low and close price and trade volume for a :term:`time bucket <bucket>`. Because on-chain exposes more data than centralised exchanges, Capitalgram data also contains individual buys and sells, US dollar exchange rate and so forth.
 
 
 

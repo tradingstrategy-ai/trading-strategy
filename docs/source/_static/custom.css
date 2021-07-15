@@ -1,0 +1,64 @@
+body {
+    font-family:"Roboto",Arial,sans-serif;
+}
+
+h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
+ font-family:"Exo 2",Arial,sans-serif;
+}
+
+.wy-nav-content {
+    max-width: 1200px;
+}
+
+.wy-menu-vertical header, .wy-menu-vertical p.caption {
+    color: black
+}
+
+.wy-menu-vertical a,
+.wy-menu-vertical a:visited {
+    color: #666;
+}
+
+.wy-nav-side {
+    background: #eeb302;
+    color: white;
+}
+
+.wy-side-nav-search {
+    background: white;
+}
+
+.wy-side-nav-search,
+.wy-side-nav-search > div.version {
+    color: grey;
+}
+
+
+.wy-side-nav-search a {
+    color: #eeb302;
+}
+
+#doc-title {
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+a {
+  color: #b68300;
+  text-decoration: none;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+a:visited {
+  color: #b68300;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: #eeb302;
+}
+
+
