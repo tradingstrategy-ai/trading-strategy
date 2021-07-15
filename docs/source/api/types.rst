@@ -1,0 +1,6 @@
+Types
+=====
+
+ .. automodule:: capitalgram.types
+
+
