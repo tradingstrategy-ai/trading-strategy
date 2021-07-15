@@ -4,7 +4,7 @@ import tempfile
 import pytest
 
 from capitalgram.candle import CandleBucket
-from capitalgram.capitalgram import Capitalgram
+from capitalgram.client import Capitalgram
 from capitalgram.chain import ChainId
 
 
