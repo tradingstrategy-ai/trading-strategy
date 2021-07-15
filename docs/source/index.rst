@@ -30,5 +30,6 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    api/pair
    api/candle
    api/chain
+   api/caip
    api/types
 
