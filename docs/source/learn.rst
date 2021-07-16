@@ -57,9 +57,13 @@ Continued work of the famous ZipLine library that was created by now defunctiona
 AlphaPy
 -------
 
-AlphaPy is a machine learning framework for both speculators and data scientists. It is written in Python mainly with the scikit-learn and pandas libraries, as well as many other helpful packages for feature engineering and visualization.
+AlphaPy is a machine learning framework for both speculators and data scientists. It is written in Python mainly with the scikit-learn and pandas libraries, as well as many other helpful packages for feature engineering and visualization. `Read more <https://github.com/ScottFreeLLC/AlphaPy>`_.
 
-`Read more <https://github.com/ScottFreeLLC/AlphaPy>`_.
+bt
+--
+
+bt is a flexible backtesting framework for Python used to test quantitative trading strategies. The framework allows you to easily create strategies that mix and match different Algos. It aims to foster the creation of easily testable, re-usable and flexible blocks of strategy logic to facilitate the rapid development of complex trading strategies. `Read more <https://github.com/pmorissette/bt>`_.
+
 
 AlphaLens
 ---------
