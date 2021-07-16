@@ -71,6 +71,11 @@ PyFolio
 
 Performance and risk analysis for portfolios. `Read more <https://github.com/quantopian/pyfolio>`_.
 
+PyAlgoTrade
+-----------
+
+Was originally written for Bitstamp. Offers backtesting, paper trading, live trading. Looks abandon now. `Read more <https://github.com/gbeced/pyalgotrade>`_.
+
 Communities
 ~~~~~~~~~~~
 
