@@ -49,6 +49,20 @@ Zipline Reloaded
 
 Continued work of the famous ZipLine library that was created by now defunctional Quantopian. `Read more <https://pypi.org/project/zipline-reloaded/>`_.
 
+AlphaLens
+---------
+
+Alpha factor library for ZipLine. `Read more <https://github.com/quantopian/alphalens>`_.
+
+PyFolio
+-------
+
+Performance and risk analysis for portfolios. `Read more <https://github.com/quantopian/pyfolio>`_.
+
+
+
+
+
 
 
 
