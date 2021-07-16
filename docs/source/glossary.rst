@@ -70,5 +70,22 @@ Glossary
 
         A typical :term:`candle` contains open, high, low and close price and trade volume for a :term:`time bucket <bucket>`. Because on-chain exposes more data than centralised exchanges, Capitalgram data also contains individual buys and sells, US dollar exchange rate and so forth.
 
+    Parquet
 
+        A popular file format for large datasets from Apache Arrow project. `More information <https://parquet.apache.org/>`__.
 
+    Pyarrow
+
+        Python API for :term:`Arrow` library. `More information <https://arrow.apache.org/docs/python/>`__.
+
+    Arrow
+
+        Apache Arrow is a popular open source in-memory analytics technology kit. `More information <https://arrow.apache.org/docs/index.html>`__.
+
+    dataclass:
+
+        Standard Python way to annotate data structures. `More information <https://realpython.com/python-data-classes/>`__.
+
+    dataset server:
+
+        The server than indexes blockchains and creates :term:`candle` and other data for research, analysis and trade execution. Currently centralised and you need an API key to access.

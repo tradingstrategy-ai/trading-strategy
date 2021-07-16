@@ -2,12 +2,16 @@
 
 import enum
 from dataclasses import dataclass
+from functools import partial
 from typing import Optional, List, Iterable, Dict
 
+import pyarrow as pa
 from dataclasses_json import dataclass_json
 
 from capitalgram.chain import ChainId
 from capitalgram.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
+from capitalgram.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
+    append_to_columnar_work_buffer
 
 
 class DuplicatePair(Exception):
@@ -30,10 +34,15 @@ class DEXType(enum.Enum):
 
 @dataclass_json
 @dataclass
-class SwapPair:
+class DEXPair:
     """A trading pair information.
 
-    The candle server maintains trading pair and associated token information.
+    This :term:`dataclass` presents information we have available for a trading pair.
+    Note that you do not directly read or manipulate this class, but
+    instead use :py:class:`pyarrow.Table` in-memory analytic presentation
+    of the data.
+
+    The :term:`dataset server` maintains trading pair and associated token information.
     Some tokens may have more information available than others,
     as due to the high number of pairs it is impractical to get full information
     for all pairs.
@@ -42,8 +51,6 @@ class SwapPair:
 
     * Optional fields may be available if the candle server 1) detected the pair popular enough 2) managed to fetch the third party service information related to the token
 
-    Swap pair can be Uniwap v2 like exchange or Uniswap v3 like exchange.
-    More pair types coming in the future.
     """
 
     #: Internal primary key for any trading pair
@@ -51,6 +58,9 @@ class SwapPair:
 
     #: The chain id on which chain this pair is trading. 1 for Ethereum.
     chain_id: ChainId
+
+    #: The exchange where this token trades
+    exchange_id: PrimaryKey
 
     #: Smart contract address for the pair.
     #: In the case of Uniswap this is the pair (pool) address
@@ -101,9 +111,6 @@ class SwapPair:
     #: Pair is listed on an exchange we do not if it is good or not
     flag_unknown_exchange: bool
 
-    exchange_name: Optional[str] = None  # Exchange name (if known)
-    exchange_address: NonChecksummedAddress = None  # Router address in the case of Uniswap v2
-
     #: Various risk analyis flags
     flag_not_enough_swaps: Optional[bool] = None
     flag_on_trustwallet: Optional[bool] = None
@@ -118,8 +125,8 @@ class SwapPair:
     etherscan_code_verified_checked_at: Optional[UNIXTimestamp] = None
 
     blacklist_reason: Optional[str] = None
-    trustwallet_info: Optional[dict] = None  # TrustWallet database data, as direct dump
-    etherscan_info: Optional[dict] = None  # Etherscan pro database data, as direct dump
+    trustwallet_info: Optional[Dict[str, str]] = None  # TrustWallet database data, as direct dump
+    etherscan_info: Optional[Dict[str, str]] = None  # Etherscan pro database data, as direct dump
 
     # Lifetime stats for this pair calculated from daily candles.
     # Only available for active tokens.
@@ -135,22 +142,41 @@ class SwapPair:
     sell_volume_30d: Optional[float] = None
 
     # Uniswap pair on Sushiswap etc.
-    same_pair_on_other_exchanges: Optional[list] = None
+    same_pair_on_other_exchanges: Optional[List[PrimaryKey]] = None
 
     # ETH-USDC pair on QuickSwap, PancakeSwap, etc.
-    bridged_pair_on_other_exchanges: Optional[list] = None
+    bridged_pair_on_other_exchanges: Optional[List[PrimaryKey]] = None
 
     # Trading pairs with same token symbol combinations, but no notable volume
-    fake_pairs: Optional[list] = None
+    clone_pairs: Optional[List[PrimaryKey]] = None
 
     def __repr__(self):
         chain_name = self.chain_id.name.capitalize()
-        exchange_name = self.exchange_name or "<unknown>"
-        return f"<Pair {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name} on {chain_name}>"
+        return f"<Pair {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange #{self.exchange_id} on {chain_name}>"
 
     def __json__(self, request):
         """Pyramid JSON renderer compatibility"""
         return self.__dict__
+
+    @classmethod
+    def to_pyarrow_schema(cls) -> pa.Schema:
+        """Construct schema for reading writing :term:`Parquet` filss for pair information."""
+        return create_pyarrow_schema_for_dataclass(cls)
+
+    @classmethod
+    def convert_to_pyarrow_table(cls, pairs: List["DEXPair"]) -> pa.Table:
+        """Convert a list of Python instances to a columnar data.
+
+        :param pairs: The list wil be consumed in the process
+        """
+        buffer = create_columnar_work_buffer(cls)
+        # appender = partial(append_to_columnar_work_buffer, columnar_buffer)
+        # map(appender, pairs)
+        for p in pairs:
+            append_to_columnar_work_buffer(buffer, p)
+
+        print(buffer)
+        return pa.Table.from_pydict(buffer, cls.to_pyarrow_schema())
 
 
 @dataclass_json
@@ -184,16 +210,16 @@ class PairUniverse:
     last_updated_at: UNIXTimestamp
 
     #: Pair info for this universe
-    pairs: Dict[int, SwapPair]
+    pairs: Dict[int, DEXPair]
 
-    def get_pair_by_id(self, pair_id: int) -> Optional[SwapPair]:
+    def get_pair_by_id(self, pair_id: int) -> Optional[DEXPair]:
         """Resolve pair by its id.
 
         Only useful for debugging. Does a slow look
         """
         return self.pairs[pair_id]
 
-    def get_pair_by_ticker(self, base_token, quote_token) -> Optional[SwapPair]:
+    def get_pair_by_ticker(self, base_token, quote_token) -> Optional[DEXPair]:
         """Get a trading pair by its ticker symbols.
 
         Note that this method works only very simple universes, as any given pair
@@ -213,10 +239,10 @@ class PairUniverse:
 
         return None
 
-    def get_active_pairs(self) -> Iterable["SwapPair"]:
+    def get_active_pairs(self) -> Iterable["DEXPair"]:
         """Filter for pairs that have see a trade for the last 30 days"""
         return filter(lambda p: not p.flag_inactive, self.pairs.values())
 
-    def get_inactive_pairs(self) -> Iterable["SwapPair"]:
+    def get_inactive_pairs(self) -> Iterable["DEXPair"]:
         """Filter for pairs that have not see a trade for the last 30 days"""
         return filter(lambda p: p.flag_inactive, self.pairs.values())

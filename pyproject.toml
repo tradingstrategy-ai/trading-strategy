@@ -18,6 +18,7 @@ eth-hash = {extras = ["pycryptodome"], version = "^0.3.1"}
 pytest = "^5.2"
 Sphinx = "^4.1.1"
 nbsphinx = "^0.8.6"
+ipdb = "^0.13.9"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
