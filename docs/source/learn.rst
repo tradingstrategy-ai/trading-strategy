@@ -7,8 +7,13 @@ Learn
 
 Below are useful links to get started with :term:`Jupyter`, quantative finance and trading.
 
-Tutorials and courses
-~~~~~~~~~~~~~~~~~~~~~
+Books, Tutorials and courses
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Machine Learning for Algorihmic Trading
+---------------------------------------
+
+A book by Stefan Jansen alongside the ZipLine reloaded and community forum.  `Read more <https://ml4trading.io/>`_.
 
 Python For Finance: Algorithmic Trading
 ---------------------------------------
@@ -59,6 +64,13 @@ PyFolio
 
 Performance and risk analysis for portfolios. `Read more <https://github.com/quantopian/pyfolio>`_.
 
+Communities
+~~~~~~~~~~~
+
+Machine Learning for Trading
+----------------------------
+
+Managed by Stefan Jansen zalongside the ZipLine reloaded and his book Machine Learning for Algorithmic Trading.  `View forum <https://exchange.ml4trading.io/>`_.
 
 
 
