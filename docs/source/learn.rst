@@ -54,6 +54,13 @@ Zipline Reloaded
 
 Continued work of the famous ZipLine library that was created by now defunctional Quantopian. `Read more <https://pypi.org/project/zipline-reloaded/>`_.
 
+AlphaPy
+-------
+
+AlphaPy is a machine learning framework for both speculators and data scientists. It is written in Python mainly with the scikit-learn and pandas libraries, as well as many other helpful packages for feature engineering and visualization.
+
+`Read more <https://github.com/ScottFreeLLC/AlphaPy>`_.
+
 AlphaLens
 ---------
 
