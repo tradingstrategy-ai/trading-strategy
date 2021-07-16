@@ -9,16 +9,13 @@ import typing
 from dataclasses import dataclass, fields
 from typing import List
 
-import numpy
 import pandas as pd
-import pyarrow.parquet as pq
 import pyarrow as pa
 from dataclasses_json import dataclass_json
 from pyarrow import feather
 
 from capitalgram.caip import ChainAddressTuple
-from capitalgram.chain import ChainId
-from capitalgram.types import NonChecksummedAddress, UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
+from capitalgram.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
 
 
 class CandleBucket(enum.Enum):
@@ -210,11 +207,3 @@ def read_feather(stream: io.BytesIO) -> pd.DataFrame:
     return df
 
 
-def read_parquet(stream: io.BytesIO) -> pa.Table:
-    """Reads compressed Parquet file of candles to memory.
-
-    :param stream: A file input that must support seeking.
-    """
-    # https://arrow.apache.org/docs/python/parquet.html
-    table = pq.read_table(stream)
-    return table

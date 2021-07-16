@@ -30,7 +30,7 @@ def test_client_fetch_chain_status(client: Capitalgram):
     assert status["first_swap_at"] == '2020-05-05T21:09:32'
 
 
-def test_client_download_universe(client: Capitalgram, cache_path: str):
+def test_client_download_pair_universe(client: Capitalgram, cache_path: str):
     """Download pair mapping data"""
     universe = client.fetch_pair_universe()
     # Check we cached the file correctly
@@ -42,6 +42,16 @@ def test_client_download_universe(client: Capitalgram, cache_path: str):
     pair = universe.get_pair_by_id(1)
     assert pair.base_token_symbol == "WETH"
     assert pair.quote_token_symbol == "USDC"
+
+
+def test_client_download_exchange_universe(client: Capitalgram, cache_path: str):
+    """Download exchange mapping data"""
+    universe = client.fetch_exchange_universe()
+    # Check we cached the file correctly
+    assert os.path.exists(f"{cache_path}/exchange-universe.json")
+    # Check universe has data
+    assert len(universe.exchanges) > 0
+    assert universe.exchanges[1].name == "Uniswap v2"
 
 
 def test_client_download_all_pairs(client: Capitalgram, cache_path: str):

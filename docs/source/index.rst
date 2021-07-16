@@ -20,6 +20,7 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
 
    installation
    examples
+   learn
    glossary
 
 .. toctree::
@@ -27,6 +28,8 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    :caption: API documentation
 
    api/client
+   api/reader
+   api/exchange
    api/pair
    api/candle
    api/chain

@@ -82,10 +82,10 @@ Glossary
 
         Apache Arrow is a popular open source in-memory analytics technology kit. `More information <https://arrow.apache.org/docs/index.html>`__.
 
-    dataclass:
+    dataclass
 
         Standard Python way to annotate data structures. `More information <https://realpython.com/python-data-classes/>`__.
 
-    dataset server:
+    dataset server
 
         The server than indexes blockchains and creates :term:`candle` and other data for research, analysis and trade execution. Currently centralised and you need an API key to access.

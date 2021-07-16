@@ -18,7 +18,7 @@ class DuplicatePair(Exception):
     """Found multiple trading pairs for the same naive lookup."""
 
 
-class DEXType(enum.Enum):
+class PairType(enum.Enum):
     """What kind of an decentralised exchange, AMM or other the pair is trading on.
 
     Note that each type can have multiple implementations.
@@ -67,7 +67,7 @@ class DEXPair:
     address: NonChecksummedAddress
 
     #: What kind of exchange this pair is on
-    dex_type: DEXType
+    dex_type: PairType
 
     #: Naturalised base and quote token.
     #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
@@ -155,13 +155,23 @@ class DEXPair:
         return f"<Pair {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange #{self.exchange_id} on {chain_name}>"
 
     def __json__(self, request):
-        """Pyramid JSON renderer compatibility"""
+        """Pyramid JSON renderer compatibility.
+
+        https://docs.pylonsproject.org/projects/pyramid/en/latest/narr/renderers.html#using-a-custom-json-method
+        """
         return self.__dict__
 
     @classmethod
     def to_pyarrow_schema(cls) -> pa.Schema:
         """Construct schema for reading writing :term:`Parquet` filss for pair information."""
-        return create_pyarrow_schema_for_dataclass(cls)
+
+        # Enums must be explicitly expressed
+        hints = {
+            "chain_id": pa.uint16(),
+            "dex_type": pa.string(),
+        }
+
+        return create_pyarrow_schema_for_dataclass(cls, hints=hints)
 
     @classmethod
     def convert_to_pyarrow_table(cls, pairs: List["DEXPair"]) -> pa.Table:
@@ -172,11 +182,19 @@ class DEXPair:
         buffer = create_columnar_work_buffer(cls)
         # appender = partial(append_to_columnar_work_buffer, columnar_buffer)
         # map(appender, pairs)
+
         for p in pairs:
+            assert isinstance(p, DEXPair), f"Got {p}"
             append_to_columnar_work_buffer(buffer, p)
 
-        print(buffer)
-        return pa.Table.from_pydict(buffer, cls.to_pyarrow_schema())
+        schema = cls.to_pyarrow_schema()
+
+        # field: pa.Field
+        # for field in schema:
+        #    print("Checking", field.name)
+        #    a = pa.array(buffer[field.name], field.type)
+
+        return pa.Table.from_pydict(buffer, schema)
 
 
 @dataclass_json
@@ -206,11 +224,20 @@ class PairUniverse:
     between safe and wild west universes.
     """
 
-    #: When this universe was last refreshed
-    last_updated_at: UNIXTimestamp
-
     #: Pair info for this universe
     pairs: Dict[int, DEXPair]
+
+    #: When this universe was last refreshed
+    last_updated_at: Optional[UNIXTimestamp] = None
+
+    @classmethod
+    def create_from_pyarrow_table(cls, table: pa.Table) -> "PairUniverse":
+        """Convert columnar presentation to a Python in-memory objects.
+
+        Some data manipulation is easier with objects instead of columns.
+        """
+        for batch in table.to_batches():
+            import ipdb ; ipdb.set_trace()
 
     def get_pair_by_id(self, pair_id: int) -> Optional[DEXPair]:
         """Resolve pair by its id.
@@ -246,3 +273,6 @@ class PairUniverse:
     def get_inactive_pairs(self) -> Iterable["DEXPair"]:
         """Filter for pairs that have not see a trade for the last 30 days"""
         return filter(lambda p: p.flag_inactive, self.pairs.values())
+
+
+

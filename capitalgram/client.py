@@ -1,7 +1,12 @@
+import json
+from typing import List
+
 import pyarrow as pa
 import zstandard as zstd
 
-from capitalgram.candle import CandleBucket, read_parquet
+from capitalgram.candle import CandleBucket
+from capitalgram.exchange import Exchange, ExchangeUniverse
+from capitalgram.reader import read_parquet
 from capitalgram.chain import ChainId
 from capitalgram.environment.base import Environment
 from capitalgram.environment.jupyter import JupyterEnvironment
@@ -51,6 +56,12 @@ class Capitalgram:
         decompressed = cctx.decompress(binary)
         universe = PairUniverse.from_json(decompressed)
         return universe
+
+    def fetch_exchange_universe(self) -> ExchangeUniverse:
+        """Fetch list of all exchanges form the :term:`dataset server`.
+        """
+        stream = self.transport.fetch_exchange_universe()
+        return json.load(stream)
 
     def fetch_all_candles(self, bucket: CandleBucket) -> pa.Table:
         """Get cached blob of candle data of a certain candle width.

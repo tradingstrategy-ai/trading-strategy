@@ -106,6 +106,17 @@ class CachedHTTPTransport:
         self.save_response(path, "pair-universe")
         return self.get_cached_item(fname)
 
+    def fetch_exchange_universe(self) -> io.BytesIO:
+        fname = "exchange-universe.json"
+        cached = self.get_cached_item(fname)
+        if cached:
+            return cached
+
+        # Download save the file
+        path = self.get_cached_file_path(fname)
+        self.save_response(path, "exchanges")
+        return self.get_cached_item(fname)
+
     def fetch_candles_all_time(self, bucket: CandleBucket) -> io.BytesIO:
         fname = f"candles-{bucket.value}.feather"
         cached = self.get_cached_item(fname)

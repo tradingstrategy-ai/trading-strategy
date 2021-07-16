@@ -104,12 +104,15 @@ def append_to_columnar_work_buffer(buffer: Dict[str, list], item):
     """
 
     def process_value(key: str):
-        v = getattr(item, key)
-        if isinstance(v, Enum):
-            v = v.value
-        else:
-            v = v
-        buffer[key].append(v)
+        try:
+            v = getattr(item, key)
+            if isinstance(v, Enum):
+                v = v.value
+            else:
+                v = v
+            buffer[key].append(v)
+        except (AttributeError, ValueError) as e:
+            raise RuntimeError(f"Could not serialised {key} for {item}") from e
 
     for key in buffer:
         process_value(key)

@@ -1,9 +1,9 @@
-"""Chain-agnostic address types.
+"""This module contains tooling for chain-agnostic address types.
 
 When trading on multiple blockchains, we need to be able to uniquely identify the same smart contract address on multiple chains.
 
 There is an ongoing effort to standard cross-chain addresses.
-For more information see the `CAIP project <https://github.com/ChainAgnostic/CAIPs>_`.
+For more information see the `CAIP project <https://github.com/ChainAgnostic/CAIPs>`_.
 """
 
 from dataclasses import dataclass
