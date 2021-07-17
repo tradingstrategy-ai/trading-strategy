@@ -6,6 +6,7 @@ import pytest
 from capitalgram.candle import CandleBucket
 from capitalgram.client import Capitalgram
 from capitalgram.chain import ChainId
+from capitalgram.pair import PairUniverse
 
 
 @pytest.fixture(scope="module")
@@ -32,16 +33,18 @@ def test_client_fetch_chain_status(client: Capitalgram):
 
 def test_client_download_pair_universe(client: Capitalgram, cache_path: str):
     """Download pair mapping data"""
-    universe = client.fetch_pair_universe()
+    pairs = client.fetch_pair_universe()
     # Check we cached the file correctly
     assert os.path.exists(f"{cache_path}/pair-universe.json.zstd")
     # Check universe has data
-    assert len(universe.pairs) > 0
+    assert len(pairs) > 0
+
     # The first ever pair in Uniswap v2
     # ETH-USDC
-    pair = universe.get_pair_by_id(1)
-    assert pair.base_token_symbol == "WETH"
-    assert pair.quote_token_symbol == "USDC"
+    universe = PairUniverse.create_from_pyarrow_table(pairs)
+    first_pair = universe.pairs[1]
+    assert first_pair.base_token_symbol == "WETH"
+    assert first_pair.quote_token_symbol == "USDC"
 
 
 def test_client_download_exchange_universe(client: Capitalgram, cache_path: str):
@@ -52,6 +55,10 @@ def test_client_download_exchange_universe(client: Capitalgram, cache_path: str)
     # Check universe has data
     assert len(universe.exchanges) > 0
     assert universe.exchanges[1].name == "Uniswap v2"
+    assert universe.exchanges[1].address == "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f"
+    assert universe.exchanges[22].name == "Sushiswap"
+    assert universe.exchanges[22].address == "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac"
+    assert universe.exchanges[225].name == "Shiba Swap"
 
 
 def test_client_download_all_pairs(client: Capitalgram, cache_path: str):

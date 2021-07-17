@@ -34,7 +34,7 @@ Glossary
 
     Jupyter notebook
 
-        A popular Python based data science tool. `More information <https://jupyter.org/>`__.
+        A popular Python based data science tool. `More information <https://jupyter.org/>`__. Jupyter allows users to run data research :term:`notebooks <notebooks>` interactively. Jupyter notebooks can be easily shared, run on your local computer or on a hosted cloud environment, both free and paid.
 
     Pandas
 
@@ -82,10 +82,14 @@ Glossary
 
         Apache Arrow is a popular open source in-memory analytics technology kit. `More information <https://arrow.apache.org/docs/index.html>`__.
 
-    dataclass
+    Dataclass
 
         Standard Python way to annotate data structures. `More information <https://realpython.com/python-data-classes/>`__.
 
-    dataset server
+    Dataset server
 
         The server than indexes blockchains and creates :term:`candle` and other data for research, analysis and trade execution. Currently centralised and you need an API key to access.
+
+    Notebook
+
+        Notebook refers to an interactively editable Python script or application, mixed with diagrams and notes. The format was popularised by :term:`Jupyter notebook`.

@@ -10,6 +10,7 @@ from dataclasses_json import dataclass_json
 
 from capitalgram.chain import ChainId
 from capitalgram.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
+from capitalgram.utils.columnar import iterate_columnar_dicts
 from capitalgram.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
 
@@ -236,8 +237,13 @@ class PairUniverse:
 
         Some data manipulation is easier with objects instead of columns.
         """
-        for batch in table.to_batches():
-            import ipdb ; ipdb.set_trace()
+        pairs = {}
+        for batch in table.to_batches(max_chunksize=5000):
+            d = batch.to_pydict()
+            for row in iterate_columnar_dicts(d):
+                pairs[row["pair_id"]] = DEXPair.from_dict(row)
+
+        return PairUniverse(pairs=pairs)
 
     def get_pair_by_id(self, pair_id: int) -> Optional[DEXPair]:
         """Resolve pair by its id.

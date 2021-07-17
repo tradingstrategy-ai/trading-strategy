@@ -126,36 +126,25 @@ class Candle:
     def to_dataframe(cls) -> pd.DataFrame:
         """Return emptry Pandas dataframe presenting candle data."""
 
-        # https://stackoverflow.com/a/51953411/315168
-        _fields = {field.name: field.type for field in fields(cls)}
+        fields = dict([
+            ("pair_id", "int"),
+            ("timestamp", "datetime64[s]"),
+            ("exchange_rate", "float"),
+            ("open", "float"),
+            ("close", "float"),
+            ("high", "float"),
+            ("low", "float"),
+            ("buys", "float"),
+            ("sells", "float"),
+            ("buy_volume", "float"),
+            ("sell_volume", "float"),
+            ("avg", "float"),
+            ("start_block", "float"),
+            ("end_block", "float"),
+        ])
+        df = pd.DataFrame(columns=fields.keys())
+        return df.astype(fields)
 
-        resolved_hints = typing.get_type_hints(cls)
-        field_names = [field.name for field in fields(cls)]
-        resolved_field_types = {name: resolved_hints[name] for name in field_names}
-
-        df = pd.DataFrame(index=None)
-        for name, fdesc in resolved_field_types.items():
-            if name == "timestamp":
-                pf = "datetime64[s]"
-            elif name == "chain_id":
-                # https://stackoverflow.com/a/29503414/315168
-                # pf = pd.Categorical([str(f.value) for f in ChainId])
-                # Setting up categories much pain...
-                # Pandas API such horrible
-                pf = "int"
-            elif fdesc == int:
-                pf = "int"
-            elif fdesc == float:
-                pf = "float"
-            elif fdesc == str:
-                # Address
-                pf = "string_"
-            else:
-                raise RuntimeError(f"Cannot handle {name}: {fdesc}")
-
-            df[name] = pd.Series(dtype=pf)
-
-        return df
 
     @classmethod
     def to_pyarrow_schema(cls, small_candles=False) -> pa.Schema:

@@ -94,3 +94,5 @@ class ExchangeUniverse:
     #: Exchange id -> Exchange data mapping
     exchanges: Dict[PrimaryKey, Exchange]
 
+
+

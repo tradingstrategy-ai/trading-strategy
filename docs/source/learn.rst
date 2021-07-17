@@ -91,11 +91,13 @@ Managed by Stefan Jansen zalongside the ZipLine reloaded and his book Machine Le
 Jupyter Notebook run-time environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Google Colab
+* `Google Colab <https://research.google.com/colaboratory/>`_
 
 * Github Codespaces
 
 * Jupyter Hub
+
+* `Datalore from Jetbrain <https://datalore.jetbrains.com/>`_
 
 * Visual Studio Code
 

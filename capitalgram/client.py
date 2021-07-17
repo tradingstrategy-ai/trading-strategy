@@ -44,24 +44,20 @@ class Capitalgram:
         """If there is not yet API key available, automatically register for one."""
         pass
 
-    def fetch_pair_universe(self) -> PairUniverse:
+    def fetch_pair_universe(self) -> pa.Table:
         """Fetch pair universe from local cache or the candle server.
 
         The compressed file size is around 5 megabytes.
         """
         stream = self.transport.fetch_pair_universe()
-        # TODO: Optimise
-        binary = stream.read()
-        cctx = zstd.ZstdDecompressor()
-        decompressed = cctx.decompress(binary)
-        universe = PairUniverse.from_json(decompressed)
-        return universe
+        return read_parquet(stream)
 
     def fetch_exchange_universe(self) -> ExchangeUniverse:
         """Fetch list of all exchanges form the :term:`dataset server`.
         """
         stream = self.transport.fetch_exchange_universe()
-        return json.load(stream)
+        data = stream.read()
+        return ExchangeUniverse.from_json(data)
 
     def fetch_all_candles(self, bucket: CandleBucket) -> pa.Table:
         """Get cached blob of candle data of a certain candle width.
