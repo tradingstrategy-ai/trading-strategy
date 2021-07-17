@@ -88,6 +88,26 @@ Machine Learning for Trading
 
 Managed by Stefan Jansen zalongside the ZipLine reloaded and his book Machine Learning for Algorithmic Trading.  `View forum <https://exchange.ml4trading.io/>`_.
 
+Jupyter Notebook run-time environments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Google Colab
+
+* Github Codespaces
+
+* Jupyter Hub
+
+* Visual Studio Code
+
+* Starboard.gg
+
+
+Other
+~~~~~
+
+More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/musings/notebooks/beautiful_javascript_charts.html>`_.
+
+
 
 
 
