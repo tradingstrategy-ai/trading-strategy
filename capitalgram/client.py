@@ -1,10 +1,11 @@
 import json
-from typing import List
+from typing import List, Optional
 
 import pyarrow as pa
 import zstandard as zstd
 
 from capitalgram.candle import CandleBucket
+from capitalgram.environment.colab import ColabEnvironment
 from capitalgram.exchange import Exchange, ExchangeUniverse
 from capitalgram.reader import read_parquet
 from capitalgram.chain import ChainId
@@ -21,28 +22,30 @@ class Capitalgram:
     """
 
     @classmethod
-    def create_jupyter_client(cls, cache_path=None) -> "Capitalgram":
+    def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Capitalgram":
         """Create a new API client.
 
         :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
         """
-        return Capitalgram(JupyterEnvironment(), CachedHTTPTransport("https://candlelightdinner.capitalgram.com", cache_path=cache_path))
+        env = JupyterEnvironment()
+        config = env.setup_on_demand()
+        return Capitalgram(env, CachedHTTPTransport("https://candlelightdinner.capitalgram.com", cache_path=env.get_cache_path()))
+
+    @classmethod
+    def create_colab(cls) -> "Capitalgram":
+        """Create a new API client in Colab execution environment.
+
+        This will mount a folder in your local Google Drive for cache: `~/Capitalgram/cache`
+
+        This will mount a settings file in your local Google Drive: `~/Capitalgram/settings.json`
+        """
+        env = ColabEnvironment()
+        return Capitalgram(env, CachedHTTPTransport("https://candlelightdinner.capitalgram.com"))
 
     def __init__(self, env: Environment, transport: CachedHTTPTransport):
         """Do not call constructor directly, but use one of create methods. """
         self.env = env
         self.transport = transport
-
-    def start(self):
-        """Checks the API key validity and if the server is responsive.
-
-        If no API key is avaiable open an interactive prompt to register (if available)
-        """
-        pass
-
-    def register_on_demand(self):
-        """If there is not yet API key available, automatically register for one."""
-        pass
 
     def fetch_pair_universe(self) -> pa.Table:
         """Fetch pair universe from local cache or the candle server.

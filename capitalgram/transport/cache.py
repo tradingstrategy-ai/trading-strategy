@@ -91,6 +91,11 @@ class CachedHTTPTransport:
         response = self.requests.get(url, params=params)
         return response.json()
 
+    def post_json_response(self, api_path, params=None):
+        url = f"{self.endpoint}/{api_path}"
+        response = self.requests.post(url, params=params)
+        return response.json()
+
     def fetch_chain_status(self, chain_id: int) -> dict:
         """Not cached."""
         return self.get_json_response("chain-status", params={"chain_id": chain_id})
