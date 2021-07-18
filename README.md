@@ -18,13 +18,9 @@ Capitalgram is a Python library for on-chain quantative trading.
 
 * (*soon*) Decentralised execution of trading algorithms through smart contracts
 
-# Example
+# Example and getting started 
 
-```python
-# TODO 
-```
-
-# Installation
+See [the Getting Started example notebook]() on [documentation](https://docs.capitalgram.com).
 
 ## Prerequisites
 

@@ -27,3 +27,5 @@ jobs:
     - name: Run test scripts
       run: |
         poetry run pytest
+      env:
+        CAPITALGRAM_API_KEY: ${{ secrets.CAPITALGRAM_API_KEY }}

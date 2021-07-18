@@ -26,6 +26,7 @@ jobs:
         poetry install
     - name: Build documentation
       run: |
+        poetry run python -c "import pandoc ; print(pandoc)"
         cd docs && poetry run make html
     - name: Pre-check
       run: |
