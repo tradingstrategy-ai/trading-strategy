@@ -1,17 +1,17 @@
-import json
-from typing import List, Optional
+import os
+import tempfile
+from typing import Optional
 
 import pyarrow as pa
-import zstandard as zstd
 
 from capitalgram.candle import CandleBucket
 from capitalgram.environment.colab import ColabEnvironment
-from capitalgram.exchange import Exchange, ExchangeUniverse
+from capitalgram.environment.config import Configuration
+from capitalgram.exchange import ExchangeUniverse
 from capitalgram.reader import read_parquet
 from capitalgram.chain import ChainId
 from capitalgram.environment.base import Environment
 from capitalgram.environment.jupyter import JupyterEnvironment
-from capitalgram.pair import PairUniverse
 from capitalgram.transport.cache import CachedHTTPTransport
 
 
@@ -29,7 +29,7 @@ class Capitalgram:
         """
         env = JupyterEnvironment()
         config = env.setup_on_demand()
-        return Capitalgram(env, CachedHTTPTransport("https://candlelightdinner.capitalgram.com", cache_path=env.get_cache_path()))
+        return Capitalgram(env, CachedHTTPTransport(cache_path=env.get_cache_path(), api_key=config.api_key))
 
     @classmethod
     def create_colab(cls) -> "Capitalgram":
@@ -41,6 +41,18 @@ class Capitalgram:
         """
         env = ColabEnvironment()
         return Capitalgram(env, CachedHTTPTransport("https://candlelightdinner.capitalgram.com"))
+
+    @classmethod
+    def create_test_client(cls) -> "Capitalgram":
+        """Create a new Capitalgram clienet to be used with automated test suites.
+
+        Reads the API key from the environment variable `CAPITALGRAM_API_KEY`.
+        A temporary folder is used as a cache path.
+        """
+        cache_path = tempfile.mkdtemp()
+        env = JupyterEnvironment(cache_path=cache_path)
+        config = Configuration(api_key=os.environ["CAPITALGRAM_API_KEY"])
+        return Capitalgram(env, CachedHTTPTransport("https://candlelightdinner.capitalgram.com", api_key=config.api_key, cache_path=env.get_cache_path()))
 
     def __init__(self, env: Environment, transport: CachedHTTPTransport):
         """Do not call constructor directly, but use one of create methods. """

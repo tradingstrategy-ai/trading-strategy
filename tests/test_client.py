@@ -1,5 +1,4 @@
 import os
-import tempfile
 
 import pytest
 
@@ -10,15 +9,29 @@ from capitalgram.pair import PairUniverse
 
 
 @pytest.fixture(scope="module")
-def cache_path():
-    cache_path = tempfile.mkdtemp()
-    return cache_path
+def client():
+    """Create a client that uses test API key from OS environment against the production server."""
+    c = Capitalgram.create_test_client()
+    return c
 
 
 @pytest.fixture(scope="module")
-def client(cache_path):
-    c = Capitalgram.create_jupyter_client(cache_path=cache_path)
-    return c
+def cache_path(client: Capitalgram):
+    cache_path = client.transport.cache_path
+    return cache_path
+
+
+def test_client_ping(client: Capitalgram):
+    """Unauthenticated ping"""
+    data = client.transport.ping()
+    assert data["ping"] == "pong"
+
+
+def test_client_motd(client: Capitalgram):
+    """Authenticated ping"""
+    data = client.transport.message_of_the_day()
+    assert "version" in data
+    assert "message" in data
 
 
 def test_client_fetch_chain_status(client: Capitalgram):

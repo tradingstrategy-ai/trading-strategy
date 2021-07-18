@@ -2,13 +2,22 @@ import os
 
 from typing import Optional
 
-from capitalgram.environment.base import Environment, Configuration
+from capitalgram.environment.base import Environment
+from capitalgram.environment.config import Configuration
+from capitalgram.environment.interactive_setup import run_interactive_setup
 
 
 class JupyterEnvironment(Environment):
+    """Define paths and setup processes when using Capitalgram from any local Jupyter Notebook installation"""
+
+    def __init__(self, cache_path=None):
+        if not cache_path:
+            self.cache_path = os.path.expanduser("~/.cache/capitalgram")
+        else:
+            self.cache_path = cache_path
 
     def get_cache_path(self) -> str:
-        return os.path.expanduser("~/.cache/capitalgram")
+        return self.cache_path
 
     def get_settings_path(self) -> str:
         return os.path.expanduser("~/.capitalgram")
@@ -28,11 +37,11 @@ class JupyterEnvironment(Environment):
                 data = config.to_json()
                 out.write(data)
 
-    def interactive_setup(self, config: Configuration):
+    def interactive_setup(self) -> Configuration:
         """Perform interactive user onbaording"""
-        print("Using Capitalgram requires an API key.")
-        print("Do you have an API key yet?")
-        foo = input()
+        config = run_interactive_setup()
+        self.save_configuration(config)
+        return config
 
     def setup_on_demand(self) -> Configuration:
         """Check if we need to set up the environment."""

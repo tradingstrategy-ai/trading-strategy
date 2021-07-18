@@ -25,8 +25,13 @@ class CachedHTTPTransport:
     The download files are very large and expect to need several gigabytes of space for them.
     """
 
-    def __init__(self, endpoint: str, cache_period=datetime.timedelta(days=3), cache_path: Optional[str]=None):
-        self.endpoint = endpoint
+    def __init__(self, endpoint: Optional[str]=None, cache_period=datetime.timedelta(days=3), cache_path: Optional[str]=None, api_key: Optional[str]=None):
+
+        if endpoint:
+            self.endpoint = endpoint
+        else:
+            self.endpoint = "https://candlelightdinner.capitalgram.com"
+
         self.cache_period = cache_period
 
         if cache_path:
@@ -34,10 +39,15 @@ class CachedHTTPTransport:
         else:
             self.cache_path = os.path.expanduser("~/.cache/capitalgram")
 
-        self.requests = self.create_requests_client()
+        self.requests = self.create_requests_client(api_key=api_key)
 
-    def create_requests_client(self):
+    def create_requests_client(self, api_key: Optional[str] = None):
+        """Create HTTP 1.1 keep-alive connection to the server with optional authorization details."""
+
         session = requests.Session()
+
+        if api_key:
+            session.headers.update({'Authorization': api_key})
 
         def exception_hook(response: Response, *args, **kwargs):
             if response.status_code >= 400:
@@ -131,3 +141,20 @@ class CachedHTTPTransport:
         path = self.get_cached_file_path(fname)
         self.save_response(path, "candles-all", params={"bucket": bucket.value})
         return self.get_cached_item(path)
+
+    def ping(self) -> dict:
+        reply = self.get_json_response("ping")
+        return reply
+
+    def message_of_the_day(self) -> dict:
+        reply = self.get_json_response("message-of-the-day")
+        return reply
+
+    def register(self, first_name, last_name, email):
+        """Makes a register request.
+
+        The request does not load any useful payload, but it is assumed the email message gets verified
+        and the user gets the API from the email.
+        """
+        reply = self.post_json_response("register", params={"first_name": first_name, "last_name": last_name, "email": email})
+        assert reply == "OK"
