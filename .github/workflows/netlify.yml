@@ -22,11 +22,11 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
+        sudo apt-get install -y pandoc
         pip install poetry
         poetry install
     - name: Build documentation
       run: |
-        poetry run python -c "import pandoc ; print(pandoc)"
         cd docs && poetry run make html
     - name: Pre-check
       run: |
