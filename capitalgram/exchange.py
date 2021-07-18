@@ -57,10 +57,12 @@ class Exchange:
     #: Exchange name - if known or guessed
     name: Optional[str] = None
 
-    # Lifetime stats for this exchange - calculated only if exchanged deemed active.
-    # Only available for active tokens.
-    # Useful mostly for risk assessment, as this data is **not** accurate,
-    # but gives some reference information about the popularity of the token.
+    #: Lifetime stats for this exchange.
+    #: These stats calculated only if exchanged deemed active and we
+    #: can convert the volume to a supported quote token.
+    #: Any unsupported token volume does not show up in these stats.
+    #: Useful mostly for risk assessment, as this data is **not** accurate,
+    #: but gives some reference information about the popularity of the token.
     buy_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
     sell_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
     buy_volume_all_time: Optional[float] = None
@@ -82,6 +84,10 @@ class Exchange:
         """
         return self.__dict__
 
+    @property
+    def vol_30d(self):
+        return (self.buy_volume_30d or 0) + (self.sell_volume_30d or 0)
+
 
 @dataclass_json
 @dataclass
@@ -93,6 +99,22 @@ class ExchangeUniverse:
 
     #: Exchange id -> Exchange data mapping
     exchanges: Dict[PrimaryKey, Exchange]
+
+    def get_top_exchanges_by_30d_volume(self) -> List[Exchange]:
+        """Get top exchanges sorted by their 30d volume.
+
+        Note that we consider volume only for supported quote tokens.
+        See :py:class:`capitalgram.exchange.Exchange` for more details.
+        """
+
+        def vol(x: Exchange):
+            return (x.buy_volume_30d or 0) + (x.sell_volume_30d or 0)
+
+        exchanges = sorted(list(self.exchanges.values()), key=vol, reverse=True)
+        return exchanges
+
+
+
 
 
 

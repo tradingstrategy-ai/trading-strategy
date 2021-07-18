@@ -1,8 +1,10 @@
+from typing import Optional
+
 from capitalgram.environment.config import Configuration
 from capitalgram.transport.cache import CachedHTTPTransport
 
 
-def run_interactive_setup() -> Configuration:
+def run_interactive_setup() -> Optional[Configuration]:
     """Do REPL interactive setup with the user in Jupyter notebook."""
 
     api_key = None
@@ -12,43 +14,49 @@ def run_interactive_setup() -> Configuration:
     transport.ping()
 
     has_api_key = None
-    while has_api_key not in ("y", "n"):
-        print("Using Capitalgram requires an API key.")
-        print("Do you have an API key yet? [y/n]")
-        has_api_key = input()
+    while has_api_key not in ("y", "n", ""):
+        print("Using Capitalgram requires you to have an API key.")
+        has_api_key = input("Do you have an API key yet? [y/n]").lower()
+
+    if has_api_key == "":
+        print("Aborting setup")
+        return None
 
     if has_api_key == "y":
         pass
     else:
-        print("The Professional account and API key costs $990, but we will offer it for free for people who sign up on the mailing list during the private beta.")
-        print("Would you like to sign up on the mailing list and set up an API key now? [y/n]")
-        reply = input().lower()
-        if reply == 'n':
+        print("The Professional account and API key costs $990, but a FREE API key is available for those who sign up on the mailing list during the private beta.")
+        reply = input("Would you like to sign up on the mailing list and get a free API key now? [y/n]").lower()
+        if reply != 'y':
             print("Thank you. See you next time.")
+            return None
 
-        print("Please give your first name:")
-        first_name = input()
+        first_name = input("Your first name")
+        last_name = input("Your last name")
+        email = input("Valid email address - the API key will be sent to this email address")
 
-        print("Please give your last name:")
-        last_name = input()
+        resp = transport.register(first_name, last_name, email)
+        if resp["status"] != "OK":
+            print(f"Failed to register: {resp}")
+            return None
 
-        print("Please give a valid email - the API key will be sent to this email address:")
-        email = input()
-
-        transport.register(email, first_name, last_name)
         print(f"Signed up on the newsletter: {email} - please check your email for the API key")
 
     valid_api_key = False
     while not valid_api_key:
-        print("Enter your API key from the welcome email:")
-        api_key = input()
+        api_key = input("Enter your API key from the welcome email")
+        api_key = api_key.strip()  # Watch out whitespace copy paste issues
+        if api_key == "":
+            print("Aborting setup")
+            return None
 
+        print(f"Testing out API key: {api_key[0:6]}...")
         authenticated_transport = CachedHTTPTransport(api_key=api_key)
         try:
             welcome = authenticated_transport.message_of_the_day()
-            print("The server replied with the message of the day:")
-            print(welcome["version"])
-            print(welcome["message"])
+            print("The server replied accepted our API key and sent the following greetings:")
+            print("Server version:", welcome["version"])
+            print("Message of the day:", welcome["message"])
         except Exception as e:
             print(f"Received error: {e} - check your API key")
             continue
@@ -57,7 +65,7 @@ def run_interactive_setup() -> Configuration:
 
     config = Configuration(api_key=api_key)
 
-    print("Setting up new API complete.")
+    print("Setting up the new API complete.")
 
     return config
 

@@ -7,8 +7,8 @@ Learn
 
 Below are useful links to get started with :term:`Jupyter`, quantative finance and trading.
 
-Books, Tutorials and courses
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Books, tutorials and courses on trading
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Machine Learning for Algorihmic Trading
 ---------------------------------------
@@ -35,6 +35,11 @@ Master AI-Driven Algorithmic Trading
 This is an intense online training program about Python techniques for algorithmic trading. By signing up to this program you get access to 150+ hours of live/recorded instruction, 1,200+ pages PDF as well as 5,000+ lines of Python code and 60+ Jupyter Notebooks (read the 16 week study plan). Master AI-Driven Algorithmic Trading, get started today.
 
 `Read more <https://home.tpq.io/certificates/pyalgo/>`_.
+
+Books, tutorials and courses on Jupyter Notebook
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* `Jupyter Notebook basics tutorial <https://www.dataquest.io/blog/jupyter-notebook-tutorial/>`_
 
 Algorithmic trading frameworks for Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

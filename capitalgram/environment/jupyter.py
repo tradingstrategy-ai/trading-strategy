@@ -24,18 +24,21 @@ class JupyterEnvironment(Environment):
 
     def discover_configuration(self) -> Optional[Configuration]:
         spath = self.get_settings_path()
-        if os.path.exists():
-            with open(spath, "rt") as inp:
+        settings_file = os.path.join(spath, "settings.json")
+        if os.path.exists(settings_file):
+            with open(settings_file, "rt") as inp:
                 data = inp.read()
                 return Configuration.from_json(data)
         return None
 
     def save_configuration(self, config: Configuration):
         spath = self.get_settings_path()
-        if os.path.exists():
-            with open(spath, "wt") as out:
-                data = config.to_json()
-                out.write(data)
+
+        os.makedirs(spath)
+
+        with open(os.path.join(spath, "settings.json"), "wt") as out:
+            data = config.to_json()
+            out.write(data)
 
     def interactive_setup(self) -> Configuration:
         """Perform interactive user onbaording"""
@@ -47,7 +50,7 @@ class JupyterEnvironment(Environment):
         """Check if we need to set up the environment."""
         config = self.discover_configuration()
         if not config:
-            print(f"No existing Capitalgram configuration found in {self.get_settings_path()}. Starting interactive setup.")
+            print(f"No existing Capitalgram configuration found in {self.get_settings_path()}/settings.json. Starting interactive setup.")
             config = self.interactive_setup()
         else:
             print(f"Using configuration found in {self.get_settings_path()}")

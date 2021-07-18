@@ -84,6 +84,9 @@ class CachedHTTPTransport:
         shutil.rmtree(self.cache_period)
 
     def save_response(self, fpath, api_path, params=None):
+
+        os.makedirs(self.get_abs_cache_path())
+
         url = f"{self.endpoint}/{api_path}"
         # https://stackoverflow.com/a/14114741/315168
         start = time.time()
@@ -150,11 +153,11 @@ class CachedHTTPTransport:
         reply = self.get_json_response("message-of-the-day")
         return reply
 
-    def register(self, first_name, last_name, email):
+    def register(self, first_name, last_name, email) -> dict:
         """Makes a register request.
 
         The request does not load any useful payload, but it is assumed the email message gets verified
         and the user gets the API from the email.
         """
         reply = self.post_json_response("register", params={"first_name": first_name, "last_name": last_name, "email": email})
-        assert reply == "OK"
+        return reply
