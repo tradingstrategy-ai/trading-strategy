@@ -5,7 +5,7 @@ Learn
    :maxdepth: 2
    :caption: Contents:
 
-Below are useful links to get started with :term:`Jupyter`, quantative finance and trading.
+Below are useful links to get started with :term:`Jupyter Notebook`, quantative finance and trading.
 
 Books, tutorials and courses on trading
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -13,33 +13,36 @@ Books, tutorials and courses on trading
 Machine Learning for Algorihmic Trading
 ---------------------------------------
 
-A book by Stefan Jansen alongside the ZipLine reloaded and community forum.  `Read more <https://ml4trading.io/>`_.
+A book by Stefan Jansen alongside the ZipLine reloaded and community forum.  `Read more <https://ml4trading.io/>`__.
 
 Python For Finance: Algorithmic Trading
 ---------------------------------------
 
 This Python for Finance tutorial introduces you to algorithmic trading, and much more.
 
-`Read more <https://www.datacamp.com/community/tutorials/finance-python-trading>`_.
+`Read more <https://www.datacamp.com/community/tutorials/finance-python-trading>`__.
 
 Financial Models and Numerical Methods
 ---------------------------------------
 
 A collection of Jupyter notebooks based on different topics in the area of quantitative finance.
 
-`Read more <https://github.com/cantaro86/Financial-Models-Numerical-Methods>`_.
+`Read more <https://github.com/cantaro86/Financial-Models-Numerical-Methods>`__.
 
 Master AI-Driven Algorithmic Trading
 ------------------------------------
 
 This is an intense online training program about Python techniques for algorithmic trading. By signing up to this program you get access to 150+ hours of live/recorded instruction, 1,200+ pages PDF as well as 5,000+ lines of Python code and 60+ Jupyter Notebooks (read the 16 week study plan). Master AI-Driven Algorithmic Trading, get started today.
 
-`Read more <https://home.tpq.io/certificates/pyalgo/>`_.
+`Read more <https://home.tpq.io/certificates/pyalgo/>`__.
 
 Books, tutorials and courses on Jupyter Notebook
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* `Jupyter Notebook basics tutorial <https://www.dataquest.io/blog/jupyter-notebook-tutorial/>`_
+Jupyter Notebook basics
+-----------------------
+
+A tutorial by Dataquest. `Read more <https://www.dataquest.io/blog/jupyter-notebook-tutorial/>`__.
 
 Algorithmic trading frameworks for Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,38 +50,38 @@ Algorithmic trading frameworks for Python
 Backtrader
 ----------
 
-Direct support for notebooks. Last pull request merged 2020. `Read more <https://www.backtrader.com/>`_.
+Direct support for notebooks. Last pull request merged 2020. `Read more <https://www.backtrader.com/>`__.
 
 QsTrader
 --------
 
-Focuses on ETFs and stock. Might not be good for crypto, `Read more <https://www.quantstart.com/qstrader/>`_.
+Focuses on ETFs and stock. Might not be good for crypto, `Read more <https://www.quantstart.com/qstrader/>`__.
 
 Zipline Reloaded
 ----------------
 
-Continued work of the famous ZipLine library that was created by now defunctional Quantopian. `Read more <https://pypi.org/project/zipline-reloaded/>`_.
+Continued work of the famous ZipLine library that was created by now defunctional Quantopian. `Read more <https://pypi.org/project/zipline-reloaded/>`__.
 
 AlphaPy
 -------
 
-AlphaPy is a machine learning framework for both speculators and data scientists. It is written in Python mainly with the scikit-learn and pandas libraries, as well as many other helpful packages for feature engineering and visualization. `Read more <https://github.com/ScottFreeLLC/AlphaPy>`_.
+AlphaPy is a machine learning framework for both speculators and data scientists. It is written in Python mainly with the scikit-learn and pandas libraries, as well as many other helpful packages for feature engineering and visualization. `Read more <https://github.com/ScottFreeLLC/AlphaPy>`__.
 
 bt
 --
 
-bt is a flexible backtesting framework for Python used to test quantitative trading strategies. The framework allows you to easily create strategies that mix and match different Algos. It aims to foster the creation of easily testable, re-usable and flexible blocks of strategy logic to facilitate the rapid development of complex trading strategies. `Read more <https://github.com/pmorissette/bt>`_.
+bt is a flexible backtesting framework for Python used to test quantitative trading strategies. The framework allows you to easily create strategies that mix and match different Algos. It aims to foster the creation of easily testable, re-usable and flexible blocks of strategy logic to facilitate the rapid development of complex trading strategies. `Read more <https://github.com/pmorissette/bt>`__.
 
 
 AlphaLens
 ---------
 
-Alpha factor library for ZipLine. `Read more <https://github.com/quantopian/alphalens>`_.
+Alpha factor library for ZipLine. `Read more <https://github.com/quantopian/alphalens>`__.
 
 PyFolio
 -------
 
-Performance and risk analysis for portfolios. `Read more <https://github.com/quantopian/pyfolio>`_.
+Performance and risk analysis for portfolios. `Read more <https://github.com/quantopian/pyfolio>`__.
 
 PyAlgoTrade
 -----------
@@ -115,7 +118,7 @@ Value adding services
 Other
 ~~~~~
 
-More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/musings/notebooks/beautiful_javascript_charts.html>`_.
+More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/musings/notebooks/beautiful_javascript_charts.html>`__.
 
 
 

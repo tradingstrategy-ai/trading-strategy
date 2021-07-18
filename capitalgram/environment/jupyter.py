@@ -53,7 +53,7 @@ class JupyterEnvironment(Environment):
             print(f"No existing Capitalgram configuration found in {self.get_settings_path()}/settings.json. Starting interactive setup.")
             config = self.interactive_setup()
         else:
-            print(f"Using configuration found in {self.get_settings_path()}")
+            print(f"Started Capitalgram in Jupyter notebook environment, configuration is stored in {self.get_settings_path()}")
         return config
 
 

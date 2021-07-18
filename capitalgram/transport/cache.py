@@ -85,7 +85,7 @@ class CachedHTTPTransport:
 
     def save_response(self, fpath, api_path, params=None):
 
-        os.makedirs(self.get_abs_cache_path())
+        os.makedirs(self.get_abs_cache_path(), exist_ok=True)
 
         url = f"{self.endpoint}/{api_path}"
         # https://stackoverflow.com/a/14114741/315168

@@ -68,3 +68,9 @@ html_context = {
         '_static/custom.css',
     ],
 }
+
+#
+# All notebooks in documentation needs an API key and must be pre-executed
+# https://nbsphinx.readthedocs.io/en/0.8.6/never-execute.html
+#
+nbsphinx_execute = 'never'
