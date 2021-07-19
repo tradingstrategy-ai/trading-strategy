@@ -25,6 +25,13 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Trade execution
+
+   execution/overview
+   execution/deploy
+
+.. toctree::
+   :maxdepth: 1
    :caption: API documentation
 
    api/client

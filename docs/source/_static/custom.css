@@ -10,7 +10,10 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
     padding-bottom: 10px;
     border-bottom: 1px solid #EEB30C;
     margin-bottom: 10px;
+}
 
+.document ul.simple li {
+    margin-bottom: 1em;
 }
 
 .wy-nav-content {

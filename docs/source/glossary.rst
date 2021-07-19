@@ -86,10 +86,19 @@ Glossary
 
         Standard Python way to annotate data structures. `More information <https://realpython.com/python-data-classes/>`__.
 
+    Dataset
+
+        A data bundle consisting of :term:`candle <candles>` or other quantitative data sources.
+        The most usual dataset is hourly or daily candles for multiple assets, distributed as a downloadable archive of several hundreds of megabytes.
+
     Dataset server
 
-        The server than indexes blockchains and creates :term:`candle` and other data for research, analysis and trade execution. Currently centralised and you need an API key to access.
+        The server than indexes blockchains and creates :term:`candle` and other :term:`datasets <dataset>` for research, analysis and trade execution. Currently centralised and you need an API key to access.
 
     Notebook
 
         Notebook refers to an interactively editable Python script or application, mixed with diagrams and notes. The format was popularised by :term:`Jupyter notebook`.
+
+    Strategy
+
+        Also known as trading strategy or algorithm. The trading strategy is the rulebook what trades to make an how. In the context of quantative finance, and especially automated trading, this rulebook can be expressed as an algorithm and trading bot that has programmed rules for every situation the strategy may encounter.
