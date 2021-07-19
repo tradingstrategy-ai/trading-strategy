@@ -27,6 +27,8 @@ def iterate_columnar_dicts(inp: Dict[str, list]) -> Iterable[Dict[str, object]]:
     :return: Iterable that gives one dictionary per row after transpose
     """
     keys = inp.keys()
-    for i in range(len(inp)):
+    first_item = next(iter(inp.values()))
+    data_len = len(first_item)
+    for i in range(data_len):
         item = {key: inp[key][i] for key in keys}
         yield item

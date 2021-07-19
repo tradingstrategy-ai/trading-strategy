@@ -236,8 +236,13 @@ class PairUniverse:
         """Convert columnar presentation to a Python in-memory objects.
 
         Some data manipulation is easier with objects instead of columns.
+
+        .. note ::
+
+            This seems to quite slow operation.
+            It is recommend you avoid this if you do not need row-like data.
         """
-        pairs = {}
+        pairs: Dict[int, DEXPair] = {}
         for batch in table.to_batches(max_chunksize=5000):
             d = batch.to_pydict()
             for row in iterate_columnar_dicts(d):

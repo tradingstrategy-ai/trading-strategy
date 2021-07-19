@@ -29,7 +29,7 @@ DEFAULT_MAPPINGS = {
     ChainId: lambda t: pa.uint16(),
     NonChecksummedAddress: lambda t: pa.string(),
     BlockNumber: lambda t: pa.uint32(),
-    UNIXTimestamp: lambda t: pa.time32("s"),
+    UNIXTimestamp: lambda t: pa.timestamp("s"),
     BasisPoint: lambda t: pa.uint32(),
     bool: lambda t: pa.bool_(),
     float: lambda t: pa.float32(),

@@ -59,6 +59,9 @@ def test_client_download_pair_universe(client: Capitalgram, cache_path: str):
     assert first_pair.base_token_symbol == "WETH"
     assert first_pair.quote_token_symbol == "USDC"
 
+    # The total pair count on Ethereum is quite high
+    assert len(universe.pairs) > 40_000
+
 
 def test_client_download_exchange_universe(client: Capitalgram, cache_path: str):
     """Download exchange mapping data"""
@@ -82,3 +85,11 @@ def test_client_download_all_pairs(client: Capitalgram, cache_path: str):
     assert len(df) > 100
 
 
+def test_client_convert_all_pairs_to_pandas(client: Capitalgram, cache_path: str):
+    """We can convert the columnar Pyarrow data to Pandas format.
+
+    This has some issues with timestamps, so adding a test.
+    """
+    pairs_table = client.fetch_pair_universe()
+    df = pairs_table.to_pandas()
+    assert len(df) > 1000
