@@ -6,7 +6,7 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
  font-family:"Exo 2",Arial,sans-serif;
 }
 
-.articleBody h2 {
+.document h2 {
     padding-bottom: 10px;
     border-bottom: 1px solid #EEB30C;
     margin-bottom: 10px;

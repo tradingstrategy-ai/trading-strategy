@@ -111,7 +111,8 @@ Jupyter Notebook run-time environments
 
 * Starboard.gg
 
-Value adding services
+Other Notebook services
+~~~~~~~~~~~~~~~~~~~~~~~
 
 * `Binder <https://mybinder.org/>`_ turns a Github repository to executable Jupyter Python notebooks
 
