@@ -78,3 +78,10 @@ nbsphinx_execute = 'never'
 
 autodoc_class_signature = "separated"
 
+nbsphinx_prolog = """
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/github/miohtama/capitalgram-onchain-dex-quant-data/blob/master/docs/source/{{ env.doc2path(env.docname, base=None) }}
+
+<br>   
+"""

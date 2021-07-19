@@ -18,9 +18,9 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    :maxdepth: 1
    :caption: Narrative documentation
 
-   installation
    examples/getting-started
    learn
+   development
    glossary
 
 .. toctree::

@@ -61,6 +61,35 @@ a:hover {
   color: #eeb302;
 }
 
+/**
+ * Make autodoc and nbsphinx output more readable
+ */
+
+.highlight pre {
+    font-size: 16px !important;
+}
+
 .pre {
     font-family: 'Operator Mono', 'Source Code Pro', Menlo, Monaco, Consolas, Courier New, monospace;
+}
+
+table.dataframe,
+.output_area {
+    font-size: 16px !important;
+    font-family: 'Operator Mono', 'Source Code Pro', Menlo, Monaco, Consolas, Courier New, monospace;
+}
+
+table.dataframe {
+    width: 100%;
+}
+
+.output_area {
+    margin: 10px 0;
+    padding: 20px 0;
+    background: #f0f0f0;
+}
+
+.dataframe td,
+.dataframe th {
+    text-align: left !important;
 }

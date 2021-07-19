@@ -19,7 +19,7 @@ nbsphinx = "^0.8.6"
 ipdb = "^0.13.9"
 pandoc = "^1.1.0"
 sphinx-rtd-theme = "^0.5.2"
-sphinx = {git = "https://github.com/miohtama/sphinx.git"}
+sphinx = {git = "https://github.com/miohtama/sphinx.git", rev="c0b0a26bdaf5c1c9e9cdbe7eb68e29b938f5cd0b"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
