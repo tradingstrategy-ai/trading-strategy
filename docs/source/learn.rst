@@ -121,7 +121,7 @@ Other
 
 More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/musings/notebooks/beautiful_javascript_charts.html>`__.
 
-
+`Using tqdm progress bars in notebooks <https://stackoverflow.com/questions/42212810/tqdm-in-jupyter-notebook-prints-new-progress-bars-repeatedly>`__.
 
 
 

@@ -10,8 +10,8 @@ from capitalgram.environment.config import Configuration
 from capitalgram.exchange import ExchangeUniverse
 from capitalgram.reader import read_parquet
 from capitalgram.chain import ChainId
-from capitalgram.environment.base import Environment
-from capitalgram.environment.jupyter import JupyterEnvironment
+from capitalgram.environment.base import Environment, download_with_progress_plain
+from capitalgram.environment.jupyter import JupyterEnvironment, download_with_progress_jupyter
 from capitalgram.transport.cache import CachedHTTPTransport
 
 
@@ -29,18 +29,8 @@ class Capitalgram:
         """
         env = JupyterEnvironment()
         config = env.setup_on_demand()
-        return Capitalgram(env, CachedHTTPTransport(cache_path=env.get_cache_path(), api_key=config.api_key))
-
-    @classmethod
-    def create_colab(cls) -> "Capitalgram":
-        """Create a new API client in Colab execution environment.
-
-        This will mount a folder in your local Google Drive for cache: `~/Capitalgram/cache`
-
-        This will mount a settings file in your local Google Drive: `~/Capitalgram/settings.json`
-        """
-        env = ColabEnvironment()
-        return Capitalgram(env, CachedHTTPTransport("https://candlelightdinner.capitalgram.com"))
+        transport = CachedHTTPTransport(download_with_progress_jupyter, cache_path=env.get_cache_path(), api_key=config.api_key)
+        return Capitalgram(env, transport)
 
     @classmethod
     def create_test_client(cls) -> "Capitalgram":
@@ -52,7 +42,8 @@ class Capitalgram:
         cache_path = tempfile.mkdtemp()
         env = JupyterEnvironment(cache_path=cache_path)
         config = Configuration(api_key=os.environ["CAPITALGRAM_API_KEY"])
-        return Capitalgram(env, CachedHTTPTransport("https://candlelightdinner.capitalgram.com", api_key=config.api_key, cache_path=env.get_cache_path()))
+        transport = CachedHTTPTransport(download_with_progress_plain, "https://candlelightdinner.capitalgram.com", api_key=config.api_key, cache_path=env.get_cache_path())
+        return Capitalgram(env, transport)
 
     def __init__(self, env: Environment, transport: CachedHTTPTransport):
         """Do not call constructor directly, but use one of create methods. """

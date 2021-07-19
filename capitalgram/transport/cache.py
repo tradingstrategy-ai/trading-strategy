@@ -3,7 +3,7 @@ import io
 import os
 import pathlib
 import time
-from typing import List, Optional
+from typing import List, Optional, Callable
 import shutil
 import logging
 
@@ -25,7 +25,9 @@ class CachedHTTPTransport:
     The download files are very large and expect to need several gigabytes of space for them.
     """
 
-    def __init__(self, endpoint: Optional[str]=None, cache_period=datetime.timedelta(days=3), cache_path: Optional[str]=None, api_key: Optional[str]=None):
+    def __init__(self, download_func: Callable, endpoint: Optional[str]=None, cache_period=datetime.timedelta(days=3), cache_path: Optional[str]=None, api_key: Optional[str]=None):
+
+        self.download_func = download_func
 
         if endpoint:
             self.endpoint = endpoint
@@ -84,20 +86,11 @@ class CachedHTTPTransport:
         shutil.rmtree(self.cache_period)
 
     def save_response(self, fpath, api_path, params=None):
-
+        """Download a file to the cache and display a pretty progress bar while doing it."""
         os.makedirs(self.get_abs_cache_path(), exist_ok=True)
-
         url = f"{self.endpoint}/{api_path}"
         # https://stackoverflow.com/a/14114741/315168
-        start = time.time()
-        response = self.requests.get(url, params=params)
-        fsize = 0
-        with open(fpath, 'wb') as handle:
-            for block in response.iter_content(8 * 1024):
-                handle.write(block)
-                fsize += len(block)
-        duration = time.time() - start
-        logger.debug("Saved %s. Downloaded %s bytes in %f seconds.", fpath, fsize, duration)
+        self.download_func(self.requests, fpath, url, params)
 
     def get_json_response(self, api_path, params=None):
         url = f"{self.endpoint}/{api_path}"
