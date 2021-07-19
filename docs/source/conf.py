@@ -74,3 +74,7 @@ html_context = {
 # https://nbsphinx.readthedocs.io/en/0.8.6/never-execute.html
 #
 nbsphinx_execute = 'never'
+
+
+autodoc_class_signature = "separated"
+

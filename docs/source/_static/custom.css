@@ -61,4 +61,6 @@ a:hover {
   color: #eeb302;
 }
 
-
+.pre {
+    font-family: 'Operator Mono', 'Source Code Pro', Menlo, Monaco, Consolas, Courier New, monospace;
+}

@@ -34,6 +34,13 @@ class Exchange:
 
     The :term:`dataset server` server automatically discovers exchanges
     and tries to add meaningful label and risk data for them.
+
+    Regarding 30d and life time stats like `buy_volume_30d`:
+    These stats calculated only if exchanged deemed active and we
+    can convert the volume to a supported quote token.
+    Any unsupported token volume does not show up in these stats.
+    Useful mostly for risk assessment, as this data is **not** accurate,
+    but gives some reference information about the popularity of the token.
     """
 
     #: The chain id on which chain this pair is trading. 1 for Ethereum.
@@ -57,19 +64,28 @@ class Exchange:
     #: Exchange name - if known or guessed
     name: Optional[str] = None
 
-    #: Lifetime stats for this exchange.
-    #: These stats calculated only if exchanged deemed active and we
-    #: can convert the volume to a supported quote token.
-    #: Any unsupported token volume does not show up in these stats.
-    #: Useful mostly for risk assessment, as this data is **not** accurate,
-    #: but gives some reference information about the popularity of the token.
-    buy_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
-    sell_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
+    #: Denormalised exchange statistics
+    buy_count_all_time: Optional[int] = None
+
+    #: Denormalised exchange statistics
+    sell_count_all_time: Optional[int] = None
+
+    #: Denormalised exchange statistics
     buy_volume_all_time: Optional[float] = None
+
+    #: Denormalised exchange statistics
     sell_volume_all_time: Optional[float] = None
+
+    #: Denormalised exchange statistics
     buy_count_30d: Optional[int] = None
+
+    #: Denormalised exchange statistics
     sell_count_30d: Optional[int] = None
+
+    #: Denormalised exchange statistics
     buy_volume_30d: Optional[float] = None
+
+    #: Denormalised exchange statistics
     sell_volume_30d: Optional[float] = None
 
     def __repr__(self):
