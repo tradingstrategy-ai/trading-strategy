@@ -25,7 +25,7 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Examples
+   :caption: Code examples
 
    examples/plotting
    examples/pair-filtering
