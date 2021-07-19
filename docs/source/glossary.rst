@@ -34,7 +34,7 @@ Glossary
 
     Jupyter notebook
 
-        A popular Python based data science tool. `More information <https://jupyter.org/>`__. Jupyter allows users to run data research :term:`notebooks <notebooks>` interactively. Jupyter notebooks can be easily shared, run on your local computer or on a hosted cloud environment, both free and paid.
+        A popular Python based data science tool. Jupyter allows users to run data research :term:`notebooks <notebook>` interactively. Jupyter notebooks can be easily shared, run on your local computer or on a hosted cloud environment, both free and paid. `More information <https://jupyter.org/>`__.
 
     Pandas
 
