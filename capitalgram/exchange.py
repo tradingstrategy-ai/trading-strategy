@@ -129,6 +129,18 @@ class ExchangeUniverse:
         exchanges = sorted(list(self.exchanges.values()), key=vol, reverse=True)
         return exchanges
 
+    def get_by_name_and_chain(self, chain_id: ChainId, name: str) -> Optional[Exchange]:
+        """Get the exchange implementation on a specific chain.
+
+        :param name: Like `sushiswap` or `uniswap v2`. Case insensitive.
+        """
+        assert isinstance(chain_id, ChainId)
+        for xchg in self.exchanges.values():
+            if xchg.name.lower() == name:
+                return xchg
+        return None
+
+
 
 
 
