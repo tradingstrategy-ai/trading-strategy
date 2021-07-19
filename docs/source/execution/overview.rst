@@ -108,11 +108,11 @@ The fee is distributed to the stakeholders so that
 Risks
 -----
 
-Algorithms are open source and rely on 100% public data. Investors themselves accept the risk of the algorithm making losses when they deposit into a trading agent. Investors do not take risk with any counterparty, as any actions happening after the deposit are purely mathematical and out from the human intervention.
+Algorithms are open source and rely on 100% public data. Investors themselves accept the risk of the algorithm making losses when they deposit into a trading agent. Investors do not take risk with any counterparty, as any actions happening after the deposit are purely mathematical with minimal human intervention.
 
-Because everything is open, it is easy to come up with current performance, backtesting and other numbers. Investors are even encouraged to fiddle with the parameters to come up with better performance characters, like less maximum drawdown.
+Because everything is open, it is easy to present and analyse current performance, backtesting and other financial risk model numbers. Investors are even encouraged to fiddle with the algorithm parameters to come up with better performance and risk characteristic, like less maximum drawdown.
 
-There still always exists a systematic risk with nascent decentralised finance markets smart contract technology. As the data and source code for all markets are public, investors can also quantify this risk. Though unlike financial model risk, technological failure risk is harder to quantify.
+There still always exists a systematic risk with nascent decentralised finance markets smart contract technology. As the data and source code for all the markets are public, investors can quantify this risk and do not need to rely on third party assessments, like ones from credit institutions or regulators. Though unlike financial model risk, technological failure risk is harder to quantify.
 
 Private algorithms
 ------------------
