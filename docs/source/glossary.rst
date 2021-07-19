@@ -88,7 +88,7 @@ Glossary
 
     Dataset
 
-        A data bundle consisting of :term:`candle <candles>` or other quantitative data sources.
+        A data bundle consisting of :term:`candles <candle>` or other quantitative data sources.
         The most usual dataset is hourly or daily candles for multiple assets, distributed as a downloadable archive of several hundreds of megabytes.
 
     Dataset server

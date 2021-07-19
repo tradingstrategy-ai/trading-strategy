@@ -154,7 +154,7 @@ class Candle:
         """
         schema = pa.schema([
             ("pair_id", pa.uint32()),
-            ("timestamp", pa.time32("s")),
+            ("timestamp", pa.timestamp("s")),
             ("exchange_rate", pa.float32()),
             ("open", pa.float32()),
             ("close", pa.float32()),

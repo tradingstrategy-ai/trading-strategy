@@ -69,7 +69,7 @@ def download_with_progress_jupyter(session: Session, path: str, url: str, params
     # https://stackoverflow.com/questions/37573483/progress-bar-while-download-file-over-http-with-requests
     # https://stackoverflow.com/questions/42212810/tqdm-in-jupyter-notebook-prints-new-progress-bars-repeatedly
 
-    r = session.get(url, stream=True, allow_redirects=True)
+    r = session.get(url, stream=True, allow_redirects=True, params=params)
     if r.status_code != 200:
         r.raise_for_status()  # Will only raise for 4xx codes, so...
         raise RuntimeError(f"Request to {url} returned status code {r.status_code}")

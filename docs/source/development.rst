@@ -19,4 +19,26 @@ To install Capitalgram using pip do:
 
     pip install -e "https://github.com/miohtama/capitalgram-onchain-dex-quant-data.git
 
+Dataset cache
+-------------
 
+The default cacle location for the downloaded datasets is `~/.cache/capitalgram`.
+
+```shell
+ls -lha ~/.cache/capitalgram
+```
+
+```
+total 56M
+drwxr-xr-x  5 moo staff  160 Jul 19 23:14 ./
+drwx------ 14 moo staff  448 Jul 18 15:49 ../
+-rw-r--r--  1 moo staff  49M Jul 19 23:14 candles-24h.feather
+-rw-r--r--  1 moo staff  95K Jul 18 15:49 exchange-universe.json
+-rw-r--r--  1 moo staff 6.3M Jul 19 21:57 pair-universe.json.zstd
+```
+
+You can clear this out manually from the UNIX shell
+
+```shell
+rm -rf ~/.cache/capitalgram
+```
