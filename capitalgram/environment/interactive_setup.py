@@ -52,7 +52,7 @@ def run_interactive_setup() -> Optional[Configuration]:
             return None
 
         print(f"Testing out API key: {api_key[0:6]}...")
-        authenticated_transport = CachedHTTPTransport(api_key=api_key)
+        authenticated_transport = CachedHTTPTransport(download_with_progress_plain, api_key=api_key)
         try:
             welcome = authenticated_transport.message_of_the_day()
             print("The server replied accepted our API key and sent the following greetings:")
