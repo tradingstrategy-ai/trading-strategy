@@ -102,3 +102,7 @@ Glossary
     Strategy
 
         Also known as trading strategy or algorithm. The trading strategy is the rulebook what trades to make an how. In the context of quantative finance, and especially automated trading, this rulebook can be expressed as an algorithm and trading bot that has programmed rules for every situation the strategy may encounter.
+
+    Technical analysis
+
+        Technical analysis is a trading discipline employed to evaluate investments and identify trading opportunities by analyzing statistical trends gathered from trading activity, such as price movement and volume. `More information <https://www.investopedia.com/terms/t/technicalanalysis.asp>`__.
