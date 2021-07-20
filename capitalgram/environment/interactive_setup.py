@@ -1,5 +1,6 @@
 from typing import Optional
 
+from capitalgram.environment.base import download_with_progress_plain
 from capitalgram.environment.config import Configuration
 from capitalgram.transport.cache import CachedHTTPTransport
 
@@ -8,7 +9,7 @@ def run_interactive_setup() -> Optional[Configuration]:
     """Do REPL interactive setup with the user in Jupyter notebook."""
 
     api_key = None
-    transport = CachedHTTPTransport(api_key=None)
+    transport = CachedHTTPTransport(download_with_progress_plain, api_key=None)
 
     # Check the server is up - will throw an exception in the case of an error
     transport.ping()
