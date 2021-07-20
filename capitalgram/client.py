@@ -1,7 +1,7 @@
 import os
 import tempfile
 from typing import Optional
-import pyarrow as pa
+
 
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
@@ -11,6 +11,7 @@ import warnings
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 
+import pyarrow as pa
 from capitalgram.candle import CandleBucket
 from capitalgram.environment.config import Configuration
 from capitalgram.exchange import ExchangeUniverse
