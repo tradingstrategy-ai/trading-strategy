@@ -125,6 +125,8 @@ Different candlestick chart libraries for Jupyter. `Read post <https://coderzcol
 
 More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/musings/notebooks/beautiful_javascript_charts.html>`__.
 
+`Google Colab charts example <https://colab.research.google.com/notebooks/charts.ipynb>`__.
+
 Other
 ~~~~~
 
