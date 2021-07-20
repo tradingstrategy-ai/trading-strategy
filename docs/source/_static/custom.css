@@ -93,10 +93,10 @@ table.dataframe {
     width: 100%;
 }
 
-.output_area {
-    margin: 10px 0;
-    padding: 20px 0;
-    background: #f0f0f0;
+.output_area .highlight {
+    margin: 10px 0 !important;
+    padding: 20px 0 !important;
+    background: #f0f0f0 !important;
 }
 
 .dataframe td,
