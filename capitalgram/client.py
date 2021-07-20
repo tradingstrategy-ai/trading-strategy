@@ -34,9 +34,6 @@ class Capitalgram:
 
         :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
         """
-
-        Capitalgram._disable_unncessary_warnings()
-
         env = JupyterEnvironment()
         config = env.setup_on_demand()
         transport = CachedHTTPTransport(download_with_progress_jupyter, cache_path=env.get_cache_path(), api_key=config.api_key)
