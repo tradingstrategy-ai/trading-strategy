@@ -15,6 +15,9 @@ eth-hash = {extras = ["pycryptodome"], version = "^0.3.1"}
 backtrader = "^1.9.76"
 tqdm = "^4.61.2"
 plotly = "^5.1.0"
+cufflinks = "^0.17.3"
+chart-studio = "^1.1.0"
+mplfinance = "^0.12.7-alpha.17"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
@@ -27,3 +30,4 @@ sphinx = {git = "https://github.com/miohtama/sphinx.git", rev="c0b0a26bdaf5c1c9e
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+

@@ -116,12 +116,22 @@ Other Notebook services
 
 * `Binder <https://mybinder.org/>`_ turns a Github repository to executable Jupyter Python notebooks
 
-Other
-~~~~~
+Charts
+~~~~~~
+
+Different candlestick chart libraries for Jupyter. `Read post <https://coderzcolumn.com/tutorials/data-science/candlestick-chart-in-python-mplfinance-plotly-bokeh>`__.
+
+`Cufflinks tutorial <https://coderzcolumn.com/tutorials/data-science/cufflinks-how-to-create-plotly-charts-from-pandas-dataframe-with-one-line-of-code>`_
 
 More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/musings/notebooks/beautiful_javascript_charts.html>`__.
 
+Other
+~~~~~
+
 `Using tqdm progress bars in notebooks <https://stackoverflow.com/questions/42212810/tqdm-in-jupyter-notebook-prints-new-progress-bars-repeatedly>`__.
+
+
+
 
 
 
