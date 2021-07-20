@@ -1,11 +1,17 @@
 import os
 import tempfile
 from typing import Optional
-
 import pyarrow as pa
 
+
+# TODO: Must be here because  warnings are very inconveniently triggered import time
+from tqdm import TqdmExperimentalWarning
+import warnings
+# "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
+warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
+
+
 from capitalgram.candle import CandleBucket
-from capitalgram.environment.colab import ColabEnvironment
 from capitalgram.environment.config import Configuration
 from capitalgram.exchange import ExchangeUniverse
 from capitalgram.reader import read_parquet
@@ -27,6 +33,9 @@ class Capitalgram:
 
         :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
         """
+
+        Capitalgram._disable_unncessary_warnings()
+
         env = JupyterEnvironment()
         config = env.setup_on_demand()
         transport = CachedHTTPTransport(download_with_progress_jupyter, cache_path=env.get_cache_path(), api_key=config.api_key)
