@@ -28,7 +28,7 @@ author = 'Mikko Ohtamaa'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', 'nbsphinx', "sphinx.ext.intersphinx",]
+extensions = ['sphinx.ext.autodoc', 'nbsphinx', "sphinx.ext.intersphinx", "sphinx_sitemap"]
 
 # Grabbed from https://github.com/pandas-dev/pandas/blob/master/doc/source/conf.py
 intersphinx_mapping = {
@@ -92,3 +92,6 @@ nbsphinx_prolog = """
 
    <hr width=100% size=1>   
 """
+
+# For the sitemap
+html_baseurl = 'https://docs.capitalgram.com/'

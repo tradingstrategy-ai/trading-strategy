@@ -1137,7 +1137,7 @@ python-versions = "*"
 
 [[package]]
 name = "Sphinx"
-version = "4.2.0.dev20210720.dev-20210720"
+version = "4.2.0.dev20210721.dev-20210721"
 description = "Python documentation generator"
 category = "dev"
 optional = false
@@ -1187,6 +1187,18 @@ sphinx = "*"
 
 [package.extras]
 dev = ["transifex-client", "sphinxcontrib-httpdomain", "bump2version"]
+
+[[package]]
+name = "sphinx-sitemap"
+version = "2.2.0"
+description = "Sitemap generator for Sphinx"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+six = "*"
+sphinx = ">=1.2"
 
 [[package]]
 name = "sphinxcontrib-applehelp"
@@ -1448,7 +1460,7 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.2"
-content-hash = "a394c40f28e9af91afd4a6fdbb17b4209597a12d22369abddcf11ecdc5afeee9"
+content-hash = "cde2155372d2fa9d52401d3976e1e1273a8ee525c5289b41868c259ed02f3cbe"
 
 [metadata.files]
 alabaster = [
@@ -2203,6 +2215,9 @@ Sphinx = []
 sphinx-rtd-theme = [
     {file = "sphinx_rtd_theme-0.5.2-py2.py3-none-any.whl", hash = "sha256:4a05bdbe8b1446d77a01e20a23ebc6777c74f43237035e76be89699308987d6f"},
     {file = "sphinx_rtd_theme-0.5.2.tar.gz", hash = "sha256:32bd3b5d13dc8186d7a42fc816a23d32e83a4827d7d9882948e7b837c232da5a"},
+]
+sphinx-sitemap = [
+    {file = "sphinx-sitemap-2.2.0.tar.gz", hash = "sha256:65adda39233cb17c0da10ba1cebaa2df73e271cdb6f8efd5cec8eef3b3cf7737"},
 ]
 sphinxcontrib-applehelp = [
     {file = "sphinxcontrib-applehelp-1.0.2.tar.gz", hash = "sha256:a072735ec80e7675e3f432fcae8610ecf509c5f1869d17e2eecff44389cdbc58"},
