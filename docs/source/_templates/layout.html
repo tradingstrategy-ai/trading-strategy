@@ -81,8 +81,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
 
-  {# Keep modernizr in head - http://modernizr.com/docs/#installing #}
-  <script src="{{ pathto('_static/js/modernizr.min.js', 1) }}"></script>
+  {#
+
+    Plotly uses require.js for asynchronous JavaScript loading.
+
+    Here we will define the require.js config and tell
+    nbsphinx embedded <script> tags from where to load Plotly.
+
+  #}
+  <script type="text/javascript" src="{{ pathto('_static/require.js', 1) }}"></script>
+  <script>
+    require.config({
+      paths: {
+          plotly: '{{ pathto("_static/plotly", 1) }}'
+      }
+    });
+  </script>
 
 </head>
 
@@ -193,10 +207,12 @@
 
     {# XXX Sphinx 1.8.0 made this an external js-file, quick fix until we refactor the template to inherert more blocks directly from sphinx #}
     {% if sphinx_version >= "1.8.0" %}
+      <p>lol</p>
       <script type="text/javascript" id="documentation_options" data-url_root="{{ pathto('', 1) }}" src="{{ pathto('_static/documentation_options.js', 1) }}"></script>
       {%- for scriptfile in script_files %}
         {{ js_tag(scriptfile) }}
       {%- endfor %}
+      <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     {% else %}
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
@@ -209,6 +225,8 @@
               SOURCELINK_SUFFIX: '{{ sourcelink_suffix }}'
           };
       </script>
+      {# Just to make Doctools happy - underscore.js is broken and does not load _ for some reason #}
+      <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/0.10.0/lodash.min.js"></script>
       {%- for scriptfile in script_files %}
         <script type="text/javascript" src="{{ pathto(scriptfile, 1) }}"></script>
       {%- endfor %}
