@@ -36,6 +36,11 @@ This is an intense online training program about Python techniques for algorithm
 
 `Read more <https://home.tpq.io/certificates/pyalgo/>`__.
 
+Teddy Koker's blog
+------------------
+
+https://teddykoker.com/
+
 Books, tutorials and courses on Jupyter Notebook
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
