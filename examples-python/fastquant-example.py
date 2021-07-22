@@ -1,4 +1,5 @@
 """Single pair backtesting with Fastquant"""
+import datetime
 
 import pandas as pd
 
@@ -9,6 +10,14 @@ from capitalgram.client import Capitalgram
 from capitalgram.candle import CandleBucket
 from capitalgram.pair import PairUniverse, get_one_pair_from_pandas_universe
 
+# Start with 1000 USD
+STARTING_CASH = 1_000.00
+
+# When we start playing the casino
+# December 1st 2020
+STARTING_DATE = datetime.date(2020, 12, 1)
+
+# Create a Capitalgram API client
 capitalgram = Capitalgram.create_jupyter_client()
 
 # Exchange map data is so small it does not need any decompression
@@ -27,11 +36,14 @@ print(f"Running backtest for {sushi_usdc.base_token_symbol} - {sushi_usdc.quote_
 
 # Get 24h candles and cull down leaving only SUSHI-USDC
 candles_24h = capitalgram.fetch_all_candles(CandleBucket.h24).to_pandas()
-sushi_candles = candles_24h.loc[candles_24h["pair_id"] == sushi_usdc.pair_id ]
+sushi_usdc_candles = candles_24h.loc[candles_24h["pair_id"] == sushi_usdc.pair_id]
 
 # Prepare volume and timeseries index for backtest()
-sushi_candles["volume"] = sushi_candles["buy_volume"] + sushi_candles["sell_volume"]
-sushi_candles = sushi_candles.set_index(pd.DatetimeIndex(sushi_candles["timestamp"]))
+sushi_usdc_candles["volume"] = sushi_usdc_candles["buy_volume"] + sushi_usdc_candles["sell_volume"]
+sushi_candles = sushi_usdc_candles.set_index(pd.DatetimeIndex(sushi_usdc_candles["timestamp"]))
+
+# Skip the data before the starting date
+sushi_candles = sushi_candles.loc[sushi_candles.timestamp > STARTING_DATE]
 
 # Test a SUSHI-USDC strategy
 # Simple Moving Average Crossover (15 day MA vs 40 day MA)
@@ -39,5 +51,5 @@ print(f"Total {len(sushi_candles)} candles, running the backtest")
 
 # This will print strategy result to stdout
 # and open an image viewer app to show the result diagram
-backtest('smac', sushi_candles, init_cash=1000, fast_period=15, slow_period=40)
+backtest('smac', sushi_candles, init_cash=STARTING_CASH, fast_period=15, slow_period=40)
 
