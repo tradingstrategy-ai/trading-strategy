@@ -132,6 +132,7 @@ Other
 
 `Using tqdm progress bars in notebooks <https://stackoverflow.com/questions/42212810/tqdm-in-jupyter-notebook-prints-new-progress-bars-repeatedly>`__.
 
+`Forecasting prices <https://towardsdatascience.com/introduction-to-forecasting-philippine-stock-prices-fd4df5dad9c3>`_
 
 
 

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Optional, List, Iterable, Dict
 
+import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
 
@@ -286,4 +287,27 @@ class PairUniverse:
         return filter(lambda p: p.flag_inactive, self.pairs.values())
 
 
+def get_one_pair_from_pandas_universe(df: pd.DataFrame, exchange_id: PrimaryKey, base_token: str, quote_token: str) -> Optional[DEXPair]:
+    """Get a trading pair by its ticker symbols.
 
+    Note that this method works only very simple universes, as any given pair
+    is poised to have multiple tokens and multiple trading pairs on different exchanges.
+
+    :raise DuplicatePair: If the universe contains more than single entry for the pair.
+
+    :return: None if there is no match
+    """
+
+    pairs: pd.DataFrame= df.loc[
+        (df["exchange_id"] == exchange_id) &
+        (df["base_token_symbol"] == base_token) &
+        (df["quote_token_symbol"] == quote_token)]
+
+    if len(pairs) > 1:
+        raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
+
+    if len(pairs) == 1:
+        data = next(iter(pairs.to_dict("index").values()))
+        return DEXPair.from_dict(data)
+
+    return None
