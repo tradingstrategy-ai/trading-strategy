@@ -15,7 +15,7 @@ STARTING_CASH = 1_000.00
 
 # When we start playing the casino
 # December 1st 2020
-STARTING_DATE = datetime.date(2020, 12, 1)
+STARTING_DATE = datetime.datetime(2020, 12, 1)
 
 # Create a Capitalgram API client
 capitalgram = Capitalgram.create_jupyter_client()
@@ -51,5 +51,6 @@ print(f"Total {len(sushi_candles)} candles, running the backtest")
 
 # This will print strategy result to stdout
 # and open an image viewer app to show the result diagram
-backtest('smac', sushi_candles, init_cash=STARTING_CASH, fast_period=15, slow_period=40)
+backtest('smac', sushi_candles, init_cash=STARTING_CASH, fast_period=5, slow_period=10)
 
+# 2021-07-15, Final PnL: -547.98
