@@ -30,6 +30,7 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    examples/plotting
    examples/technical-analysis
    examples/pairs
+   examples/backtrader
 
 .. toctree::
    :maxdepth: 1
