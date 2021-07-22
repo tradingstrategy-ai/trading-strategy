@@ -132,6 +132,8 @@ class ExchangeUniverse:
     def get_by_name_and_chain(self, chain_id: ChainId, name: str) -> Optional[Exchange]:
         """Get the exchange implementation on a specific chain.
 
+        :param chain_id: Blockchain this exchange is on
+
         :param name: Like `sushiswap` or `uniswap v2`. Case insensitive.
         """
         assert isinstance(chain_id, ChainId)
