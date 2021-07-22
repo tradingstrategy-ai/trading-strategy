@@ -36,5 +36,8 @@ sushi_candles = sushi_candles.set_index(pd.DatetimeIndex(sushi_candles["timestam
 # Test a SUSHI-USDC strategy
 # Simple Moving Average Crossover (15 day MA vs 40 day MA)
 print(f"Total {len(sushi_candles)} candles, running the backtest")
-backtest('smac', sushi_candles, fast_period=15, slow_period=40)
+
+# This will print strategy result to stdout
+# and open an image viewer app to show the result diagram
+backtest('smac', sushi_candles, init_cash=1000, fast_period=15, slow_period=40)
 
