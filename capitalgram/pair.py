@@ -287,27 +287,64 @@ class PairUniverse:
         return filter(lambda p: p.flag_inactive, self.pairs.values())
 
 
-def get_one_pair_from_pandas_universe(df: pd.DataFrame, exchange_id: PrimaryKey, base_token: str, quote_token: str) -> Optional[DEXPair]:
-    """Get a trading pair by its ticker symbols.
+class PandasPairUniverse:
+    """A pair universe that holds the source data as Pandas dataframe.
 
-    Note that this method works only very simple universes, as any given pair
-    is poised to have multiple tokens and multiple trading pairs on different exchanges.
+    :py:class:`pd.DataFrame` is somewhat more difficult to interact with,
+    but offers tighter in-memory presentation for filtering and such.
 
-    :raise DuplicatePair: If the universe contains more than single entry for the pair.
-
-    :return: None if there is no match
+    The data frame has the same columns as described by :py:class:`DEXPair`.
     """
 
-    pairs: pd.DataFrame= df.loc[
-        (df["exchange_id"] == exchange_id) &
-        (df["base_token_symbol"] == base_token) &
-        (df["quote_token_symbol"] == quote_token)]
+    def __init__(self, df: pd.DataFrame):
+        """
+        :param df: The source DataFrame that contains all DEXPair entries
+        """
+        assert isinstance(df, pd.DataFrame)
+        self.df = df
 
-    if len(pairs) > 1:
-        raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
+    def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
+        """Look up pair information and return its data.
 
-    if len(pairs) == 1:
-        data = next(iter(pairs.to_dict("index").values()))
-        return DEXPair.from_dict(data)
+        :return: Nicely presented :py:class:`DEXPair`.
+        """
 
-    return None
+        df = self.df
+
+        pairs: pd.DataFrame= df.loc[df["pair_id"] == pair_id]
+
+        if len(pairs) > 1:
+            raise DuplicatePair(f"Multiple pairs found for id {pair_id}")
+
+        if len(pairs) == 1:
+            data = next(iter(pairs.to_dict("index").values()))
+            return DEXPair.from_dict(data)
+
+        return None
+
+    def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str) -> Optional[DEXPair]:
+        """Get a trading pair by its ticker symbols.
+
+        Note that this method works only very simple universes, as any given pair
+        is poised to have multiple tokens and multiple trading pairs on different exchanges.
+
+        :raise DuplicatePair: If the universe contains more than single entry for the pair.
+
+        :return: None if there is no match
+        """
+
+        df = self.df
+
+        pairs: pd.DataFrame= df.loc[
+            (df["exchange_id"] == exchange_id) &
+            (df["base_token_symbol"] == base_token) &
+            (df["quote_token_symbol"] == quote_token)]
+
+        if len(pairs) > 1:
+            raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
+
+        if len(pairs) == 1:
+            data = next(iter(pairs.to_dict("index").values()))
+            return DEXPair.from_dict(data)
+
+        return None

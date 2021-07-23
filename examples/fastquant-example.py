@@ -1,4 +1,8 @@
-"""Single pair backtesting with Fastquant"""
+"""Single pair backtesting with Fastquant.
+
+Does a Simple Moving Average Crossover for SUSHI-USDC pair.
+
+"""
 import datetime
 
 import pandas as pd
@@ -46,7 +50,7 @@ sushi_candles = sushi_usdc_candles.set_index(pd.DatetimeIndex(sushi_usdc_candles
 sushi_candles = sushi_candles.loc[sushi_candles.timestamp > STARTING_DATE]
 
 # Test a SUSHI-USDC strategy
-# Simple Moving Average Crossover (15 day MA vs 40 day MA)
+# Simple Moving Average Crossover (5 day MA vs 10 day MA)
 print(f"Total {len(sushi_candles)} candles, running the backtest")
 
 # This will print strategy result to stdout

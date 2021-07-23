@@ -5,13 +5,13 @@ For more information about candles see :term:`candle`.
 
 import enum
 import io
-import typing
-from dataclasses import dataclass, fields
-from typing import List
+from dataclasses import dataclass
+from typing import List, Optional
 
 import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
+from pandas.core.groupby import GroupBy
 from pyarrow import feather
 
 from capitalgram.caip import ChainAddressTuple
@@ -195,4 +195,24 @@ def read_feather(stream: io.BytesIO) -> pd.DataFrame:
     df = feather.read_feather(stream)
     return df
 
+
+class GroupedCandleUniverse:
+    """A candle universe where each trading pair has its own candles.
+
+    This is helper class to create foundation for multi pair strategies.
+
+    For the data logistics purposes, all candles are lumped together in single columnar data blobs.
+    However, it rarely makes sense to execute operations over different trading pairs.
+    :py:class`GroupedCandleUniverse` creates trading pair id -> candle data grouping out from
+    raw candle data.
+    """
+
+    def __init__(self, df: pd.DataFrame):
+        assert isinstance(df, pd.DataFrame)
+        self.df = df
+        self.pairs: GroupBy = df.groupby(["pair_id"])
+
+    def get_candles_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
+        """Get candles for a single pair."""
+        return self.pairs.get_group(pair_id)
 

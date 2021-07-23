@@ -39,7 +39,7 @@ This is an intense online training program about Python techniques for algorithm
 Teddy Koker's blog
 ------------------
 
-https://teddykoker.com/
+Articles on trading, gambling and machine learning. `Read blog <https://teddykoker.com/>`__.
 
 Books, tutorials and courses on Jupyter Notebook
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
