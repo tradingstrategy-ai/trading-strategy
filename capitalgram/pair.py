@@ -303,6 +303,9 @@ class PandasPairUniverse:
         assert isinstance(df, pd.DataFrame)
         self.df = df
 
+    def get_all_pair_ids(self) -> List[PrimaryKey]:
+        return self.df["pair_id"].unique()
+
     def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
         """Look up pair information and return its data.
 

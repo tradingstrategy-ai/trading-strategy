@@ -132,6 +132,11 @@ More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/mu
 
 `Google Colab charts example <https://colab.research.google.com/notebooks/charts.ipynb>`__.
 
+Adversial environment
+~~~~~~~~~~~~~~~~~~~~~
+
+`On Uniswap listing bots <https://ethereum.stackexchange.com/questions/103970/is-it-possible-to-create-a-vault-that-will-open-itself-after-a-countdown-dead-m/103976#103976>`_
+
 Other
 ~~~~~
 
