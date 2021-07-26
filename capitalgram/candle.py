@@ -6,7 +6,7 @@ For more information about candles see :term:`candle`.
 import enum
 import io
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Iterable, Tuple
 
 import pandas as pd
 import pyarrow as pa
@@ -215,4 +215,9 @@ class GroupedCandleUniverse:
     def get_candles_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
         """Get candles for a single pair."""
         return self.pairs.get_group(pair_id)
+
+    def get_all_pairs(self) -> Iterable[Tuple[PrimaryKey, pd.DataFrame]]:
+        """Go through all candles, one DataFrame per trading pair."""
+        for pair_id, data in self.pairs:
+            yield pair_id, data
 

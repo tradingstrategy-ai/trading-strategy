@@ -19,6 +19,7 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    :caption: Narrative documentation
 
    examples/getting-started
+   running
    learn
    development
    glossary
