@@ -1,24 +1,9 @@
 import os
 
-import pytest
-
 from capitalgram.candle import CandleBucket
 from capitalgram.client import Capitalgram
 from capitalgram.chain import ChainId
 from capitalgram.pair import PairUniverse
-
-
-@pytest.fixture(scope="module")
-def client():
-    """Create a client that uses test API key from OS environment against the production server."""
-    c = Capitalgram.create_test_client()
-    return c
-
-
-@pytest.fixture(scope="module")
-def cache_path(client: Capitalgram):
-    cache_path = client.transport.cache_path
-    return cache_path
 
 
 def test_client_ping(client: Capitalgram):
@@ -48,7 +33,7 @@ def test_client_download_pair_universe(client: Capitalgram, cache_path: str):
     """Download pair mapping data"""
     pairs = client.fetch_pair_universe()
     # Check we cached the file correctly
-    assert os.path.exists(f"{cache_path}/pair-universe.json.zstd")
+    assert os.path.exists(f"{cache_path}/pair-universe.parquet")
     # Check universe has data
     assert len(pairs) > 0
 
@@ -81,7 +66,7 @@ def test_client_download_all_pairs(client: Capitalgram, cache_path: str):
     """Download all candles for a specific candle width."""
     df = client.fetch_all_candles(CandleBucket.d30)
     # Check we cached the file correctly
-    assert os.path.exists(f"{cache_path}/candles-30d.feather")
+    assert os.path.exists(f"{cache_path}/candles-30d.parquet")
     assert len(df) > 100
 
 

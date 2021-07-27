@@ -40,13 +40,17 @@ class Capitalgram:
         return Capitalgram(env, transport)
 
     @classmethod
-    def create_test_client(cls) -> "Capitalgram":
+    def create_test_client(cls, cache_path=None) -> "Capitalgram":
         """Create a new Capitalgram clienet to be used with automated test suites.
 
         Reads the API key from the environment variable `CAPITALGRAM_API_KEY`.
         A temporary folder is used as a cache path.
         """
-        cache_path = tempfile.mkdtemp()
+        if cache_path:
+            os.makedirs(cache_path, exist_ok=True)
+        else:
+            cache_path = tempfile.mkdtemp()
+
         env = JupyterEnvironment(cache_path=cache_path)
         config = Configuration(api_key=os.environ["CAPITALGRAM_API_KEY"])
         transport = CachedHTTPTransport(download_with_progress_plain, "https://candlelightdinner.capitalgram.com", api_key=config.api_key, cache_path=env.get_cache_path())

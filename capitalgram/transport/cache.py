@@ -107,7 +107,7 @@ class CachedHTTPTransport:
         return self.get_json_response("chain-status", params={"chain_id": chain_id})
 
     def fetch_pair_universe(self) -> io.BytesIO:
-        fname = "pair-universe.json.zstd"
+        fname = "pair-universe.parquet"
         cached = self.get_cached_item(fname)
         if cached:
             return cached
@@ -129,7 +129,7 @@ class CachedHTTPTransport:
         return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: CandleBucket) -> io.BytesIO:
-        fname = f"candles-{bucket.value}.feather"
+        fname = f"candles-{bucket.value}.parquet"
         cached = self.get_cached_item(fname)
         if cached:
             return cached

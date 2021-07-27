@@ -6,21 +6,10 @@ from capitalgram.chain import ChainId
 from capitalgram.pair import PairUniverse, PandasPairUniverse
 
 
-@pytest.fixture(scope="module")
-def client():
-    """Create a client that uses test API key from OS environment against the production server."""
-    c = Capitalgram.create_test_client()
-    return c
-
-
-@pytest.fixture(scope="module")
-def cache_path(client: Capitalgram):
-    cache_path = client.transport.cache_path
-    return cache_path
-
-
-def test_grouped_candles(client: Capitalgram, cache_path: str):
+def test_grouped_candles(persistent_test_client: Capitalgram):
     """Group downloaded candles by a trading pair."""
+
+    client = persistent_test_client
 
     exchange_universe = client.fetch_exchange_universe()
     raw_pairs = client.fetch_pair_universe().to_pandas()
