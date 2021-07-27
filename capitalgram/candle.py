@@ -5,6 +5,7 @@ For more information about candles see :term:`candle`.
 
 import enum
 import io
+import datetime
 from dataclasses import dataclass
 from typing import List, Optional, Iterable, Tuple
 
@@ -101,7 +102,8 @@ class Candle:
     end_block: BlockNumber
 
     def __repr__(self):
-        return f"@{self.timestamp} O:{self.open} H:{self.high} L:{self.low} C:{self.close} V:{self.volume} B:{self.buys} S:{self.sells} SB:{self.start_block} EB:{self.end_block}"
+        human_timestamp = datetime.datetime.utcfromtimestamp(self.timestamp)
+        return f"@{human_timestamp} O:{self.open} H:{self.high} L:{self.low} C:{self.close} V:{self.volume} B:{self.buys} S:{self.sells} SB:{self.start_block} EB:{self.end_block}"
 
     @property
     def caip(self) -> ChainAddressTuple:

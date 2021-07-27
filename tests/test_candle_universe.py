@@ -30,7 +30,16 @@ def test_grouped_candles(persistent_test_client: Capitalgram):
 
     low_price = sushi_usdt_candles["low"]
     min_price = low_price.min()
-    
+
+    # Do a timezone / summer time sanity check
+    ts_column = sushi_usdt_candles["timestamp"]
+    ts_list = ts_column.to_list()
+    sample_timestamp = ts_list[0]
+    assert sample_timestamp.tz is None
+    assert sample_timestamp.tzinfo is None
+    assert sample_timestamp.hour == 0
+    assert sample_timestamp.minute == 0
+
     # Min and max prices of SUSHI-USDT ever
     assert max_price == pytest.approx(22.4612)
     assert min_price == pytest.approx(0.49680945)
