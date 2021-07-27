@@ -8,10 +8,12 @@ import backtrader as bt
 import pytest
 from backtrader import analyzers
 from backtrader import indicators
+import pandas as pd
 
 from capitalgram.candle import CandleBucket, GroupedCandleUniverse
+from capitalgram.chain import ChainId
 from capitalgram.client import Capitalgram
-from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader
+from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds
 from capitalgram.pair import PandasPairUniverse
 
 
@@ -41,6 +43,15 @@ class SmaCross(bt.Strategy):
 
         elif self.crossover < 0:  # in the market & cross to the downside
             self.close()  # close long position
+
+
+class NoStrategy(bt.Strategy):
+
+    def __init__(self):
+        self.ticks = 0
+
+    def next(self):
+        self.ticks += 1
 
 
 def test_backtrader_sma(logger, persistent_test_client: Capitalgram):
@@ -96,16 +107,77 @@ def test_backtrader_sma(logger, persistent_test_client: Capitalgram):
     sma_cross: SmaCross = results[0]
 
     # We run the strategy over 202 days
-    assert sma_cross.ticks == 202
+    assert sma_cross.ticks == 203
 
     # Check some analyzer results
 
     # Strategy returns
     returns: analyzers.Returns = sma_cross.analyzers.returns
-    assert returns.rets["ravg"] == pytest.approx(4.279320882184001e-06)
     assert returns.rets["rtot"] == pytest.approx(0.0009072160270230083)
 
     # Won/loss trades
     trade_analyzer: analyzers.TradeAnalyzer = sma_cross.analyzers.tradeanalyzer
     assert trade_analyzer.rets["won"]["total"] == 4
     assert trade_analyzer.rets["lost"]["total"] == 5
+
+
+def test_backtrader_multiasset(logger, persistent_test_client: Capitalgram):
+    """Mutliasset strategy runs correct number of days."""
+
+    client = persistent_test_client
+
+    # Decompress the pair dataset to Python map
+    columnar_pair_table = client.fetch_pair_universe()
+
+    # Convert PyArrow table to Pandas format to continue working on it
+    all_pairs_dataframe = columnar_pair_table.to_pandas()
+
+    # Filter down to pairs that only trade on Sushiswap
+    sushi_swap_exchange_id = 22  # Test Speed up
+    sushi_pairs: pd.DataFrame = all_pairs_dataframe.loc[all_pairs_dataframe['exchange_id'] == sushi_swap_exchange_id]
+
+    # Create a Python set of pair ids
+    wanted_pair_ids = sushi_pairs["pair_id"]
+
+    # Make the trading pair data easily accessible
+    pair_universe = PandasPairUniverse(sushi_pairs)
+
+    print(f"Sushiswap on Ethereum has {len(pair_universe.get_all_pair_ids())} trading pairs")
+
+    # Get daily candles as Pandas DataFrame
+    all_candles = client.fetch_all_candles(CandleBucket.h24).to_pandas()
+    sushi_candles: pd.DataFrame = all_candles.loc[all_candles["pair_id"].isin(wanted_pair_ids)]
+
+    sushi_candles = prepare_candles_for_backtrader(sushi_candles)
+
+    # We limit candles to a specific date range to make this notebook deterministic
+    start = datetime.datetime(2020, 10, 1)
+    end = datetime.datetime(2021, 6, 1)
+
+    sushi_candles = sushi_candles[(sushi_candles.index >= start) & (sushi_candles.index <= end)]
+
+    # Group candles by the trading pair ticker
+    sushi_tickers = GroupedCandleUniverse(sushi_candles)
+
+    print(f"Out candle universe size is {len(sushi_candles)}")
+
+    # Create a cerebro entity
+    cerebro = bt.Cerebro(stdstats=False)
+
+    # Add a strategy
+    cerebro.addstrategy(NoStrategy)
+
+    # Pass all Sushi pairs to the data fees to the strategy
+    # noinspection JupyterKernel
+    feeds = [df for pair_id, df in sushi_tickers.get_all_pairs()]
+    add_dataframes_as_feeds(cerebro, feeds)
+
+    results = cerebro.run()
+
+    sma_cross: NoStrategy = results[0]
+
+    # We run the strategy over 202 days
+    assert sma_cross.ticks == 244
+
+
+
