@@ -1,7 +1,24 @@
+import datetime
 from typing import Iterable
 
 import backtrader as bt
+from backtrader.feeds import PandasData
 import pandas as pd
+
+from capitalgram.candle import CandleBucket
+from capitalgram.pair import DEXPair, PandasPairUniverse
+
+
+class CapitalgramFeed(PandasData):
+    """A Pandas data feed with token metadata added.
+
+    This feed serves Backtrader Cerebro engine. It contains only raw OHLVC info.
+    """
+
+    def __init__(self, pair_info: DEXPair):
+        self.pair_info = pair_info
+        super(CapitalgramFeed, self).__init__()
+
 
 
 def prepare_candles_for_backtrader(candles: pd.DataFrame) -> pd.DataFrame:
@@ -19,10 +36,37 @@ def prepare_candles_for_backtrader(candles: pd.DataFrame) -> pd.DataFrame:
     return candles
 
 
-def add_dataframes_as_feeds(cerebro: bt.Cerebro, datas: Iterable[pd.DataFrame]):
-    """Add Pandas candle data as source feed to Backtrader strategy tester."""
+def reindex_pandas_for_backtrader(df: pd.DataFrame, start, end, bucket):
+    """Backtrader does not allow sparsedata, but all data must be filled"""
+
+    # https://stackoverflow.com/a/19324591/315168
+    # https://stackoverflow.com/questions/47231496/pandas-fill-missing-dates-in-time-series
+    assert bucket == CandleBucket.h24, "Only daily candles supported ATM"
+    idx = pd.date_range(start, end)
+    # df.index = idx
+    # Backtrader only cares about OHLCV values,
+    # so we set everything to zero on missing days
+    # TODO: Copy previous day open/close/high/etc here.
+    df.index = pd.DatetimeIndex(df.index)
+    return df.reindex(idx, fill_value=0)
+
+
+def add_dataframes_as_feeds(
+        cerebro: bt.Cerebro,
+        pair_universe: PandasPairUniverse,
+        datas: Iterable[pd.DataFrame],
+        start: datetime.datetime,
+        end: datetime.datetime,
+        bucket: CandleBucket):
+    """Add Pandas candle data as source feed to Backtrader strategy tester.
+
+    For each py:class:`pd.DataFrame` creates a new :py:meth:`bt.Celebro.adddata` feed
+    of the type :py:class:`CapitalgramFeed`.
+    Data on any missing dates is gracefully handled.
+    """
 
     datas = list(datas)
+
 
     # TODO HAX
     # Backtrader cannot iterate over broken data if some feeds have data and some do not.
@@ -31,13 +75,19 @@ def add_dataframes_as_feeds(cerebro: bt.Cerebro, datas: Iterable[pd.DataFrame]):
     # longest feed is the first
     datas = sorted(datas, key=lambda df: len(df), reverse=True)
 
-    # TODO: Seems to be really hard to get Backtrader to accept gapepd data
-    # Maybe to write in a custom feed class?
     for df in datas:
-        backtrader_feed = bt.feeds.PandasData(dataname=df)
+        pair_id = df["pair_id"][0]
+        pair_data = pair_universe.get_pair_by_id(pair_id)
+
+        # Drop unnecessary columsn
+        df = df[["open", "high", "low", "close", "volume"]]
+
+        # Reindex so that backtrader can read data
+        df = reindex_pandas_for_backtrader(df, start, end, bucket)
+
+        backtrader_feed = CapitalgramFeed(pair_data, dataname=df)
         cerebro.adddata(backtrader_feed)
-        # cerebro.resampledata(backtrader_feed)
-        break
+
 
 
 

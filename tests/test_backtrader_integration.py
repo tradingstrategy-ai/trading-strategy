@@ -13,7 +13,7 @@ import pandas as pd
 from capitalgram.candle import CandleBucket, GroupedCandleUniverse
 from capitalgram.chain import ChainId
 from capitalgram.client import Capitalgram
-from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds
+from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
 from capitalgram.pair import PandasPairUniverse
 
 
@@ -45,10 +45,15 @@ class SmaCross(bt.Strategy):
             self.close()  # close long position
 
 
-class NoStrategy(bt.Strategy):
+class IntegrationTestStrategy(bt.Strategy):
+    """Not a real strategy - just does some asserts"""
 
     def __init__(self):
         self.ticks = 0
+        first_feed = self.datas[0]
+        assert isinstance(first_feed, CapitalgramFeed)
+        assert first_feed.pair_info.base_token_symbol == "WETH"
+        assert first_feed.pair_info.quote_token_symbol == "USDT"
 
     def next(self):
         self.ticks += 1
@@ -134,15 +139,17 @@ def test_backtrader_multiasset(logger, persistent_test_client: Capitalgram):
 
     # Filter down to pairs that only trade on Sushiswap
     sushi_swap_exchange_id = 22  # Test Speed up
-    sushi_pairs: pd.DataFrame = all_pairs_dataframe.loc[all_pairs_dataframe['exchange_id'] == sushi_swap_exchange_id]
-
+    sushi_pairs: pd.DataFrame = all_pairs_dataframe.loc[
+        (all_pairs_dataframe['exchange_id'] == sushi_swap_exchange_id) &  # Trades on Sushi
+        (all_pairs_dataframe['buy_volume_all_time'] > 500_000)  # 500k min buys
+    ]
     # Create a Python set of pair ids
     wanted_pair_ids = sushi_pairs["pair_id"]
 
     # Make the trading pair data easily accessible
     pair_universe = PandasPairUniverse(sushi_pairs)
 
-    print(f"Sushiswap on Ethereum has {len(pair_universe.get_all_pair_ids())} trading pairs")
+    print(f"Sushiswap on Ethereum has {len(pair_universe.get_all_pair_ids())} legit trading pairs")
 
     # Get daily candles as Pandas DataFrame
     all_candles = client.fetch_all_candles(CandleBucket.h24).to_pandas()
@@ -165,19 +172,25 @@ def test_backtrader_multiasset(logger, persistent_test_client: Capitalgram):
     cerebro = bt.Cerebro(stdstats=False)
 
     # Add a strategy
-    cerebro.addstrategy(NoStrategy)
+    cerebro.addstrategy(IntegrationTestStrategy)
 
     # Pass all Sushi pairs to the data fees to the strategy
     # noinspection JupyterKernel
     feeds = [df for pair_id, df in sushi_tickers.get_all_pairs()]
-    add_dataframes_as_feeds(cerebro, feeds)
+    add_dataframes_as_feeds(
+        cerebro,
+        pair_universe,
+        feeds,
+        start,
+        end,
+        CandleBucket.h24)
 
     results = cerebro.run()
 
-    sma_cross: NoStrategy = results[0]
+    strategy: IntegrationTestStrategy = results[0]
 
     # We run the strategy over 202 days
-    assert sma_cross.ticks == 244
+    assert strategy.ticks == 244
 
 
 
