@@ -106,3 +106,7 @@ Glossary
     Technical analysis
 
         Technical analysis is a trading discipline employed to evaluate investments and identify trading opportunities by analyzing statistical trends gathered from trading activity, such as price movement and volume. `More information <https://www.investopedia.com/terms/t/technicalanalysis.asp>`__.
+
+    Backtrader
+
+        An old Python based framework for strategy backtesting and live execution. `Read more <https://www.backtrader.com/>`__.

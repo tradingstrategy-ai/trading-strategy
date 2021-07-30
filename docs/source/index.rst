@@ -10,7 +10,7 @@ Capitalgram is a `Python programming language <https://www.python.org/>`_ based 
 
 The ready strategies, or trading bots, can be deployed as :term:`autonomous agents <autonomous agent>` running on :term:`smart contracts <smart contract>`. Strategies then trade on :term:`decentralised exchanges <decentralised exchange>`. After deployed, anyone can invest in and withdraw from the strategies in real time.
 
-Capitalgram integrates with :term:`Jupyter notebook`, :term:`Pandas` and other popular Python based quantative finance libraries.
+Capitalgram integrates with :term:`Jupyter notebook`, :term:`Pandas`, :term:`Backtrader` and other popular Python based quantative finance libraries.
 
 See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
 
@@ -31,7 +31,12 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    examples/plotting
    examples/technical-analysis
    examples/pairs
-   examples/backtrader
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Algorithms
+
+   algorithms/entropy-monkey
 
 .. toctree::
    :maxdepth: 1
@@ -52,4 +57,6 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    api/chain
    api/caip
    api/types
+   api/backtrader
+   api/matplotlib
 

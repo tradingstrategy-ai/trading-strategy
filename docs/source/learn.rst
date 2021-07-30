@@ -147,10 +147,13 @@ Other
 
 `Using tqdm progress bars in notebooks <https://stackoverflow.com/questions/42212810/tqdm-in-jupyter-notebook-prints-new-progress-bars-repeatedly>`__.
 
-`Forecasting prices <https://towardsdatascience.com/introduction-to-forecasting-philippine-stock-prices-fd4df5dad9c3>`_
+`Forecasting prices <https://towardsdatascience.com/introduction-to-forecasting-philippine-stock-prices-fd4df5dad9c3>`__.
 
+`Adding custom DataFrames to Backtrader <https://community.backtrader.com/topic/1828/how-to-feed-a-custom-pandas-dataframe-in-backtrader>`__.
 
+`Tracking multiple data feeds with Backtrader <https://www.backtrader.com/blog/posts/2017-04-09-multi-example/multi-example/>`__.
 
+`Multiple data feeds with Backtrader - tutorial <https://backtest-rookies.com/2017/08/22/backtrader-multiple-data-feeds-indicators/>`__.
 
 
 

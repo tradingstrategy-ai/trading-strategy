@@ -24,7 +24,7 @@ class CapitalgramFeed(PandasData):
 def prepare_candles_for_backtrader(candles: pd.DataFrame) -> pd.DataFrame:
     """Prepare DataFrame format so that Backtrader strategy can read it.
 
-    What assumptions :py:method:`Celebro.addfeed` makes about Pandas data.
+    What assumptions :py:meth:`Celebro.addfeed` makes about Pandas data.
     """
 
     # Our index must be the timestamp
@@ -57,12 +57,15 @@ def add_dataframes_as_feeds(
         datas: Iterable[pd.DataFrame],
         start: datetime.datetime,
         end: datetime.datetime,
-        bucket: CandleBucket):
+        bucket: CandleBucket,
+        plot=False):
     """Add Pandas candle data as source feed to Backtrader strategy tester.
 
     For each py:class:`pd.DataFrame` creates a new :py:meth:`bt.Celebro.adddata` feed
     of the type :py:class:`CapitalgramFeed`.
     Data on any missing dates is gracefully handled.
+
+    :param plot: Whether Backtrader includes this series in its default plot
     """
 
     datas = list(datas)
@@ -85,7 +88,7 @@ def add_dataframes_as_feeds(
         # Reindex so that backtrader can read data
         df = reindex_pandas_for_backtrader(df, start, end, bucket)
 
-        backtrader_feed = CapitalgramFeed(pair_data, dataname=df)
+        backtrader_feed = CapitalgramFeed(pair_data, dataname=df, plot=False)
         cerebro.adddata(backtrader_feed)
 
 
