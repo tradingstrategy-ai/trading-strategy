@@ -28,34 +28,6 @@ class Capitalgram:
     This client will download and manage cached datasets.
     """
 
-    @classmethod
-    def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Capitalgram":
-        """Create a new API client.
-
-        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
-        """
-        env = JupyterEnvironment()
-        config = env.setup_on_demand()
-        transport = CachedHTTPTransport(download_with_progress_jupyter, cache_path=env.get_cache_path(), api_key=config.api_key)
-        return Capitalgram(env, transport)
-
-    @classmethod
-    def create_test_client(cls, cache_path=None) -> "Capitalgram":
-        """Create a new Capitalgram clienet to be used with automated test suites.
-
-        Reads the API key from the environment variable `CAPITALGRAM_API_KEY`.
-        A temporary folder is used as a cache path.
-        """
-        if cache_path:
-            os.makedirs(cache_path, exist_ok=True)
-        else:
-            cache_path = tempfile.mkdtemp()
-
-        env = JupyterEnvironment(cache_path=cache_path)
-        config = Configuration(api_key=os.environ["CAPITALGRAM_API_KEY"])
-        transport = CachedHTTPTransport(download_with_progress_plain, "https://candlelightdinner.capitalgram.com", api_key=config.api_key, cache_path=env.get_cache_path())
-        return Capitalgram(env, transport)
-
     def __init__(self, env: Environment, transport: CachedHTTPTransport):
         """Do not call constructor directly, but use one of create methods. """
         self.env = env
@@ -91,3 +63,41 @@ class Capitalgram:
         """Get live information about how a certain blockchain indexing and candle creation is doing."""
         return self.transport.fetch_chain_status(chain_id.value)
 
+    @classmethod
+    def preflight_check(cls):
+        """Checks that everything is in ok to run the notebook"""
+
+        # Work around Google Colab shipping with old Pandas
+        import pandas
+        assert pandas.__version__ >= (1, 3), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
+
+    @classmethod
+    def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Capitalgram":
+        """Create a new API client.
+
+        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
+        """
+
+        cls.preflight_check()
+
+        env = JupyterEnvironment()
+        config = env.setup_on_demand()
+        transport = CachedHTTPTransport(download_with_progress_jupyter, cache_path=env.get_cache_path(), api_key=config.api_key)
+        return Capitalgram(env, transport)
+
+    @classmethod
+    def create_test_client(cls, cache_path=None) -> "Capitalgram":
+        """Create a new Capitalgram clienet to be used with automated test suites.
+
+        Reads the API key from the environment variable `CAPITALGRAM_API_KEY`.
+        A temporary folder is used as a cache path.
+        """
+        if cache_path:
+            os.makedirs(cache_path, exist_ok=True)
+        else:
+            cache_path = tempfile.mkdtemp()
+
+        env = JupyterEnvironment(cache_path=cache_path)
+        config = Configuration(api_key=os.environ["CAPITALGRAM_API_KEY"])
+        transport = CachedHTTPTransport(download_with_progress_plain, "https://candlelightdinner.capitalgram.com", api_key=config.api_key, cache_path=env.get_cache_path())
+        return Capitalgram(env, transport)
