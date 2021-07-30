@@ -62,6 +62,11 @@ Backtrader
 
 Direct support for notebooks. Last pull request merged 2020. `Read more <https://www.backtrader.com/>`__.
 
+Fastquant
+---------
+
+A simplified one-liner backtesting solution built on the top of Backtrader. `Read more <https://github.com/enzoampil/fastquant>`_.
+
 QsTrader
 --------
 
@@ -100,6 +105,14 @@ Was originally written for Bitstamp. Offers backtesting, paper trading, live tra
 
 Communities
 ~~~~~~~~~~~
+
+Fastquant and HawkInsight
+-------------------------
+
+:term:`Fastquant` is an open source backtesting library built by `Hawksight team <https://hawksight.co/>`_. Hawksight offers strategy backtesting and signals for equities and cryptos.
+
+`Join to Fastquant Slack <https://join.slack.com/t/fastquant/shared_invite/zt-sfoxaqq9-LU0Bha7jDvOVVAzu~B3PDA>`_. `See Fastquant Github <https://github.com/enzoampil/fastquant>`_.
+
 
 Machine Learning for Trading
 ----------------------------
