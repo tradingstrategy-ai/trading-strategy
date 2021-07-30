@@ -109,4 +109,8 @@ Glossary
 
     Backtrader
 
-        An old Python based framework for strategy backtesting and live execution. `Read more <https://www.backtrader.com/>`__.
+        An old Python based framework for strategy backtesting and live execution. `See documentation <https://www.backtrader.com/>`__.
+
+    Fastquant
+
+        Fastquant allows you to easily backtest investment strategies with as few as three lines of Python code. Its goal is to promote data driven investments by making quantitative analysis in finance accessible to everyone. Fastquant builds on the top of :term:`Backtrader`. See `Github repository <https://github.com/enzoampil/fastquant>`__.

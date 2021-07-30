@@ -31,6 +31,7 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    examples/plotting
    examples/technical-analysis
    examples/pairs
+   examples/fastquant
 
 .. toctree::
    :maxdepth: 1
@@ -59,4 +60,5 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    api/types
    api/backtrader
    api/matplotlib
+   api/fastquant
 

@@ -111,13 +111,13 @@ Fastquant and HawkInsight
 
 :term:`Fastquant` is an open source backtesting library built by `Hawksight team <https://hawksight.co/>`_. Hawksight offers strategy backtesting and signals for equities and cryptos.
 
-`Join to Fastquant Slack <https://join.slack.com/t/fastquant/shared_invite/zt-sfoxaqq9-LU0Bha7jDvOVVAzu~B3PDA>`_. `See Fastquant Github <https://github.com/enzoampil/fastquant>`_.
+`Join to Fastquant Slack <https://join.slack.com/t/fastquant/shared_invite/zt-sfoxaqq9-LU0Bha7jDvOVVAzu~B3PDA>`_. `See Fastquant Github <https://github.com/enzoampil/fastquant>`__.
 
 
 Machine Learning for Trading
 ----------------------------
 
-Managed by Stefan Jansen zalongside the ZipLine reloaded and his book Machine Learning for Algorithmic Trading.  `View forum <https://exchange.ml4trading.io/>`_.
+Managed by Stefan Jansen zalongside the ZipLine reloaded and his book Machine Learning for Algorithmic Trading.  `View forum <https://exchange.ml4trading.io/>`__.
 
 Jupyter Notebook run-time environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
