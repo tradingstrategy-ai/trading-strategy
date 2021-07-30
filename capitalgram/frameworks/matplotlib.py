@@ -11,5 +11,8 @@ def render_figure_in_docs(fig: Figure, dpi=450):
     """
 
     file_description, path = tempfile.mkstemp(suffix=".png")
-    fig.savefig(path, dpi=dpi)
+
+    # https://stackoverflow.com/questions/27878217/how-do-i-extend-the-margin-at-the-bottom-of-a-figure-in-matplotlib
+    # https://stackoverflow.com/a/45632225/315168
+    fig.savefig(path, dpi=dpi, bbox_inches='tight')
     return Image(filename=path)
