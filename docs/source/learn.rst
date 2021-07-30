@@ -41,6 +41,11 @@ Teddy Koker's blog
 
 Articles on trading, gambling and machine learning. `Read blog <https://teddykoker.com/>`__.
 
+Backtesting option strategy with Backtrader
+-------------------------------------------
+
+An example tutorial. `Read post <https://www.programmersought.com/article/53086652859/>`__.
+
 Books, tutorials and courses on Jupyter Notebook
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
