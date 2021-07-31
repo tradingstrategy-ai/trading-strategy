@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from capitalgram.caip import ChainAddressTuple
-from capitalgram.candle import CandleBucket
+from capitalgram.candle import TimeBucket
 from capitalgram.pair import PairUniverse
 
 
@@ -31,7 +31,7 @@ class BaseTransport(ABC):
         """Downlaod real-time partial candle data."""
 
     @abstractmethod
-    def fetch_candle_dataset(self, bucket: CandleBucket):
+    def fetch_candle_dataset(self, bucket: TimeBucket):
         """Download cached precompiled data set.
 
         Datasets are anywhere between 80 MB - 4 GB.

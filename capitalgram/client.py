@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 
 import pyarrow as pa
-from capitalgram.candle import CandleBucket
+from capitalgram.candle import TimeBucket
 from capitalgram.environment.config import Configuration
 from capitalgram.exchange import ExchangeUniverse
 from capitalgram.reader import read_parquet
@@ -48,7 +48,7 @@ class Capitalgram:
         data = stream.read()
         return ExchangeUniverse.from_json(data)
 
-    def fetch_all_candles(self, bucket: CandleBucket) -> pa.Table:
+    def fetch_all_candles(self, bucket: TimeBucket) -> pa.Table:
         """Get cached blob of candle data of a certain candle width.
 
         The returned data can be between several hundreds of megabytes to several gigabytes

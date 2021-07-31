@@ -10,7 +10,7 @@ from backtrader import analyzers
 from backtrader import indicators
 import pandas as pd
 
-from capitalgram.candle import CandleBucket, GroupedCandleUniverse
+from capitalgram.candle import TimeBucket, GroupedCandleUniverse
 from capitalgram.chain import ChainId
 from capitalgram.client import Capitalgram
 from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
@@ -68,7 +68,7 @@ def test_backtrader_sma(logger, persistent_test_client: Capitalgram):
     raw_pairs = client.fetch_pair_universe().to_pandas()
 
     # Use daily candles in this test as BT assumes daily
-    raw_candles = client.fetch_all_candles(CandleBucket.d1).to_pandas()
+    raw_candles = client.fetch_all_candles(TimeBucket.d1).to_pandas()
 
     pair_universe = PandasPairUniverse(raw_pairs)
     candle_universe = GroupedCandleUniverse(raw_candles)
@@ -152,7 +152,7 @@ def test_backtrader_multiasset(logger, persistent_test_client: Capitalgram):
     print(f"Sushiswap on Ethereum has {len(pair_universe.get_all_pair_ids())} legit trading pairs")
 
     # Get daily candles as Pandas DataFrame
-    all_candles = client.fetch_all_candles(CandleBucket.d1).to_pandas()
+    all_candles = client.fetch_all_candles(TimeBucket.d1).to_pandas()
     sushi_candles: pd.DataFrame = all_candles.loc[all_candles["pair_id"].isin(wanted_pair_ids)]
 
     sushi_candles = prepare_candles_for_backtrader(sushi_candles)
@@ -183,7 +183,7 @@ def test_backtrader_multiasset(logger, persistent_test_client: Capitalgram):
         feeds,
         start,
         end,
-        CandleBucket.d1)
+        TimeBucket.d1)
 
     results = cerebro.run()
 

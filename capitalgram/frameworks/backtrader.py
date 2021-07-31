@@ -5,7 +5,7 @@ import backtrader as bt
 from backtrader.feeds import PandasData
 import pandas as pd
 
-from capitalgram.candle import CandleBucket
+from capitalgram.candle import TimeBucket
 from capitalgram.pair import DEXPair, PandasPairUniverse
 
 
@@ -41,7 +41,7 @@ def reindex_pandas_for_backtrader(df: pd.DataFrame, start, end, bucket):
 
     # https://stackoverflow.com/a/19324591/315168
     # https://stackoverflow.com/questions/47231496/pandas-fill-missing-dates-in-time-series
-    assert bucket == CandleBucket.d1, "Only daily candles supported ATM"
+    assert bucket == TimeBucket.d1, "Only daily candles supported ATM"
     idx = pd.date_range(start, end)
     # df.index = idx
     # Backtrader only cares about OHLCV values,
@@ -57,7 +57,7 @@ def add_dataframes_as_feeds(
         datas: Iterable[pd.DataFrame],
         start: datetime.datetime,
         end: datetime.datetime,
-        bucket: CandleBucket,
+        bucket: TimeBucket,
         plot=False):
     """Add Pandas candle data as source feed to Backtrader strategy tester.
 

@@ -19,10 +19,11 @@ from capitalgram.caip import ChainAddressTuple
 from capitalgram.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
 
 
-class CandleBucket(enum.Enum):
-    """Supported time windows for candle data.
+class TimeBucket(enum.Enum):
+    """Supported time windows for candle and liquidity data.
 
-    All candles are upsampled from 1m data.
+    The raw blockchain data is assembled to 1 minute time buckets.
+    Then the 1 minute timebuckets are resampled to other windows.
     """
 
     #: One minute candles
@@ -72,9 +73,14 @@ class Candle:
 
     #: USD exchange rate of the quote token used to
     #: convert to dollar amounts in this candle.
-    #: Note that currently any USD stablecoin is
+    #:
+    #: Note that currently any USD stablecoin (USDC, DAI) is
     #: assumed to be 1:1 and the candle server cannot
     #: handle exchange rate difference among stablecoins.
+    #:
+    #: The rate is taken at the beginning of the 1 minute time bucket.
+    #: For other time buckets, the exchange rate is the simple average
+    #: for the duration of the bucket.
     exchange_rate: float
 
     #: OHLCV core data

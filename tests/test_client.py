@@ -1,6 +1,6 @@
 import os
 
-from capitalgram.candle import CandleBucket
+from capitalgram.candle import TimeBucket
 from capitalgram.client import Capitalgram
 from capitalgram.chain import ChainId
 from capitalgram.pair import PairUniverse
@@ -64,7 +64,7 @@ def test_client_download_exchange_universe(client: Capitalgram, cache_path: str)
 
 def test_client_download_all_pairs(client: Capitalgram, cache_path: str):
     """Download all candles for a specific candle width."""
-    df = client.fetch_all_candles(CandleBucket.d30)
+    df = client.fetch_all_candles(TimeBucket.d30)
     # Check we cached the file correctly
     assert os.path.exists(f"{cache_path}/candles-30d.parquet")
     assert len(df) > 100

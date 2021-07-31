@@ -9,7 +9,7 @@ from backtrader import analyzers
 import pandas as pd
 from fastquant import backtest
 
-from capitalgram.candle import CandleBucket, GroupedCandleUniverse
+from capitalgram.candle import TimeBucket, GroupedCandleUniverse
 from capitalgram.chain import ChainId
 from capitalgram.client import Capitalgram
 from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
@@ -37,7 +37,7 @@ def test_fastquant_smac(logger, persistent_test_client: Capitalgram):
         "USDT")
 
     # Get daily candles as Pandas DataFrame
-    all_candles = capitalgram.fetch_all_candles(CandleBucket.d1).to_pandas()
+    all_candles = capitalgram.fetch_all_candles(TimeBucket.d1).to_pandas()
     sushi_usdt_candles: pd.DataFrame  = all_candles.loc[all_candles["pair_id"] == sushi_usdt.pair_id]
 
     # Reformat data suitable for Backtrader based backtesting

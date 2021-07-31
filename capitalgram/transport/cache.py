@@ -10,7 +10,7 @@ import logging
 import requests
 from requests import Response
 
-from capitalgram.candle import CandleBucket
+from capitalgram.candle import TimeBucket
 
 
 logger = logging.getLogger(__name__)
@@ -128,7 +128,7 @@ class CachedHTTPTransport:
         self.save_response(path, "exchanges")
         return self.get_cached_item(fname)
 
-    def fetch_candles_all_time(self, bucket: CandleBucket) -> io.BytesIO:
+    def fetch_candles_all_time(self, bucket: TimeBucket) -> io.BytesIO:
         fname = f"candles-{bucket.value}.parquet"
         cached = self.get_cached_item(fname)
         if cached:

@@ -1,6 +1,6 @@
 import pytest
 
-from capitalgram.candle import CandleBucket, GroupedCandleUniverse
+from capitalgram.candle import TimeBucket, GroupedCandleUniverse
 from capitalgram.client import Capitalgram
 from capitalgram.chain import ChainId
 from capitalgram.pair import PairUniverse, PandasPairUniverse
@@ -13,7 +13,7 @@ def test_grouped_candles(persistent_test_client: Capitalgram):
 
     exchange_universe = client.fetch_exchange_universe()
     raw_pairs = client.fetch_pair_universe().to_pandas()
-    raw_candles = client.fetch_all_candles(CandleBucket.d7).to_pandas()
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
 
     pair_universe = PandasPairUniverse(raw_pairs)
     candle_universe = GroupedCandleUniverse(raw_candles)
