@@ -67,6 +67,13 @@ html_context = {
     'extra_css_files': [
         '_static/custom.css',
     ],
+
+    # https://stackoverflow.com/questions/62904172/how-do-i-replace-view-page-source-with-edit-on-github-links-in-sphinx-rtd-th
+    # https://github.com/readthedocs/sphinx_rtd_theme/issues/529
+    'display_github': True,
+    'github_user': 'miohtama',
+    'github_repo': 'capitalgram-onchain-dex-quant-data',
+    'github_version': 'tree/master/docs/source/',
 }
 
 #
