@@ -11,7 +11,8 @@ import pandas as pd
 from backtrader.indicators import PeriodN
 from backtrader import analyzers
 
-from capitalgram.candle import TimeBucket, GroupedCandleUniverse
+from capitalgram.candle import GroupedCandleUniverse
+from capitalgram.timebucket import TimeBucket
 from capitalgram.client import Capitalgram
 from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
 from capitalgram.pair import PandasPairUniverse

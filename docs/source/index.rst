@@ -56,6 +56,7 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    api/pair
    api/candle
    api/chain
+   api/timebucket
    api/caip
    api/types
    api/backtrader

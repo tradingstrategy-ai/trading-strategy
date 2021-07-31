@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 
 import pyarrow as pa
-from capitalgram.candle import TimeBucket
+from capitalgram.timebucket import TimeBucket
 from capitalgram.environment.config import Configuration
 from capitalgram.exchange import ExchangeUniverse
 from capitalgram.reader import read_parquet

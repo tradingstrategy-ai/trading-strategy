@@ -3,7 +3,6 @@
 For more information about candles see :term:`candle`.
 """
 
-import enum
 import io
 import datetime
 from dataclasses import dataclass
@@ -17,38 +16,6 @@ from pyarrow import feather
 
 from capitalgram.caip import ChainAddressTuple
 from capitalgram.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
-
-
-class TimeBucket(enum.Enum):
-    """Supported time windows for candle and liquidity data.
-
-    The raw blockchain data is assembled to 1 minute time buckets.
-    Then the 1 minute timebuckets are resampled to other windows.
-    """
-
-    #: One minute candles
-    m1 = "1m"
-
-    #: Five minute candles
-    m5 = "5m"
-
-    #: Quarter candles
-    m15 = "15m"
-
-    #: Hourly candles
-    h1 = "1h"
-
-    #: Four hour candles
-    h4 = "4h"
-
-    #: Daily candles
-    d1 = "d1"
-
-    #: Weekly candles
-    d7 = "7d"
-
-    #: Monthly candles
-    d30 = "30d"
 
 
 @dataclass_json

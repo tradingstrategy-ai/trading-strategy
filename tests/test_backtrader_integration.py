@@ -10,7 +10,8 @@ from backtrader import analyzers
 from backtrader import indicators
 import pandas as pd
 
-from capitalgram.candle import TimeBucket, GroupedCandleUniverse
+from capitalgram.candle import GroupedCandleUniverse
+from capitalgram.timebucket import TimeBucket
 from capitalgram.chain import ChainId
 from capitalgram.client import Capitalgram
 from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed

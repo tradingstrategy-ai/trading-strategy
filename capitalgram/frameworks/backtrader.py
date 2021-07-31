@@ -5,7 +5,7 @@ import backtrader as bt
 from backtrader.feeds import PandasData
 import pandas as pd
 
-from capitalgram.candle import TimeBucket
+from capitalgram.timebucket import TimeBucket
 from capitalgram.pair import DEXPair, PandasPairUniverse
 
 

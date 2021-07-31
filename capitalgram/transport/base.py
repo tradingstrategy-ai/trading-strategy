@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from capitalgram.caip import ChainAddressTuple
-from capitalgram.candle import TimeBucket
+from capitalgram.timebucket import TimeBucket
 from capitalgram.pair import PairUniverse
 
 

@@ -1,6 +1,7 @@
 import pytest
 
-from capitalgram.candle import TimeBucket, GroupedCandleUniverse
+from capitalgram.candle import GroupedCandleUniverse
+from capitalgram.timebucket import TimeBucket
 from capitalgram.client import Capitalgram
 from capitalgram.chain import ChainId
 from capitalgram.pair import PairUniverse, PandasPairUniverse

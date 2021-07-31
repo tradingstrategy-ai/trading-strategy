@@ -10,8 +10,7 @@ import logging
 import requests
 from requests import Response
 
-from capitalgram.candle import TimeBucket
-
+from capitalgram.timebucket import TimeBucket
 
 logger = logging.getLogger(__name__)
 
