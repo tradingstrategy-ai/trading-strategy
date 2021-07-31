@@ -28,11 +28,19 @@ author = 'Mikko Ohtamaa'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', 'nbsphinx', "sphinx.ext.intersphinx", "sphinx_sitemap"]
+extensions = [
+    'sphinx.ext.autodoc',
+    'nbsphinx',
+    "sphinx.ext.intersphinx",
+    "sphinx_sitemap",
+#    "sphinx_toolbox.more_autodoc",
+#    "sphinx_autodoc_typehints"
+]
 
 # Grabbed from https://github.com/pandas-dev/pandas/blob/master/doc/source/conf.py
 intersphinx_mapping = {
     "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/dev", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),

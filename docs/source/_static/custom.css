@@ -30,6 +30,11 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
     color: #666;
 }
 
+.wy-menu-vertical a:hover {
+    color: #eeb302;
+}
+
+
 .wy-nav-side {
     background: #eeb302;
     color: white;
@@ -86,6 +91,12 @@ div.prompt {
     width: 48px !important;
 }
 
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    left: 0 !important;
+    right: inherit !important;
+}
+
 .pre,
 div[class^="highlight"] {
     font-family: 'JetBrains Mono', monospace !important;
@@ -116,3 +127,4 @@ table.dataframe {
 .highlight .nn {
     text-decoration: none !important;
 }
+

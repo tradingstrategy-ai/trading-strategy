@@ -8,7 +8,10 @@ import warnings
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
+import pyarrow
 import pyarrow as pa
+from pyarrow import Table
+
 from capitalgram.timebucket import TimeBucket
 from capitalgram.environment.config import Configuration
 from capitalgram.exchange import ExchangeUniverse
@@ -45,7 +48,7 @@ class Capitalgram:
         data = stream.read()
         return ExchangeUniverse.from_json(data)
 
-    def fetch_all_candles(self, bucket: TimeBucket) -> pa.Table:
+    def fetch_all_candles(self, bucket: TimeBucket) -> pyarrow.Table:
         """Get cached blob of candle data of a certain candle width.
 
         The returned data can be between several hundreds of megabytes to several gigabytes
@@ -58,7 +61,7 @@ class Capitalgram:
         stream = self.transport.fetch_candles_all_time(bucket)
         return read_parquet(stream)
 
-    def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> pa.Table:
+    def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:
         """Get cached blob of liquidity events of a certain time window.
 
         The returned data can be between several hundreds of megabytes to several gigabytes

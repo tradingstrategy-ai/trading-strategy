@@ -74,7 +74,7 @@ class XYLiquidity:
     removes: int
 
     #: Number of total events affecting liquidity during the time window.
-    #: This is adds, removes AND swaps.
+    #: This is adds, removes AND swaps AND sync().
     syncs: int
 
     #: How much new liquidity was supplied, in the terms of the quote token converted to US dollar
