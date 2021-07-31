@@ -43,7 +43,8 @@ intersphinx_mapping = {
     "pyarrow": ("https://arrow.apache.org/docs/", None),
 }
 
-pygments_style = 'monokai'
+# https://help.farbox.com/pygments.html
+pygments_style = 'perldoc'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

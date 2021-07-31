@@ -71,6 +71,9 @@ class Capitalgram:
         import pandas
         assert pandas.__version__ >= (1, 3), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
 
+        from capitalgram.frameworks.fastquant_monkey_patch import apply_patch
+        apply_patch()
+
     @classmethod
     def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Capitalgram":
         """Create a new API client.

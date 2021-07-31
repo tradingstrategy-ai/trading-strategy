@@ -78,16 +78,23 @@ a:hover {
 
 .highlight pre {
     font-size: 16px !important;
+    font-family: 'JetBrains Mono', monospace !important;
 }
 
-.pre {
-    font-family: 'Operator Mono', 'Source Code Pro', Menlo, Monaco, Consolas, Courier New, monospace;
+/* Fix prompt number going out of margin */
+div.prompt {
+    width: 48px !important;
+}
+
+.pre,
+div[class^="highlight"] {
+    font-family: 'JetBrains Mono', monospace !important;
 }
 
 table.dataframe,
 .output_area {
     font-size: 16px !important;
-    font-family: 'Operator Mono', 'Source Code Pro', Menlo, Monaco, Consolas, Courier New, monospace;
+    font-family: 'JetBrains Mono', monospace !important;
 }
 
 table.dataframe {
@@ -103,4 +110,9 @@ table.dataframe {
 .dataframe td,
 .dataframe th {
     text-align: left !important;
+}
+
+/* Fix unnecessary underlines in Pigment source code*/
+.highlight .nn {
+    text-decoration: none !important;
 }
