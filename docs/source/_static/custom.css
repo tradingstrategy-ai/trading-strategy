@@ -3,7 +3,8 @@ body {
 }
 
 h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
- font-family:"Exo 2",Arial,sans-serif;
+    font-family:"Exo 2",Arial,sans-serif;
+    font-weight: 400;
 }
 
 .document h2 {
@@ -58,7 +59,7 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 a {
   color: #b68300;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 400;
   transition: 0.3s;
 }
 
