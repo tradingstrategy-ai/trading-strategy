@@ -3,7 +3,6 @@
 For more information about candles see :term:`candle`.
 """
 
-import io
 import datetime
 from dataclasses import dataclass
 from typing import List, Optional, Iterable, Tuple
@@ -12,7 +11,6 @@ import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
 from pandas.core.groupby import GroupBy
-from pyarrow import feather
 
 from capitalgram.caip import ChainAddressTuple
 from capitalgram.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
@@ -160,15 +158,6 @@ class CandleResult:
     def sort_by_timestamp(self):
         """In-place sorting of candles by their timestamp."""
         self.candles.sort(key=lambda c: c.timestamp)
-
-
-def read_feather(stream: io.BytesIO) -> pd.DataFrame:
-    """Reads compressed Feather file of candles to memory.
-
-    :param stream: A file input that must support seeking.
-    """
-    df = feather.read_feather(stream)
-    return df
 
 
 class GroupedCandleUniverse:

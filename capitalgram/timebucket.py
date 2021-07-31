@@ -12,6 +12,10 @@ class TimeBucket(enum.Enum):
 
     The raw blockchain data is assembled to 1 minute time buckets.
     Then the 1 minute timebuckets are resampled to other windows.
+
+    All time windows are in UTC.
+    Daily time buckets have their hour, minute and second set to the zero in the outputted data.
+    Hourly time buckets have minute and hour set to zero, etc.
     """
 
     #: One minute candles
