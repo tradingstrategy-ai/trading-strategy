@@ -6,13 +6,36 @@
 Capitalgram documentation
 =========================
 
-Capitalgram is a `Python programming language <https://www.python.org/>`_ based toolkit for :term:`on-chain` quantitative finance research and trade. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live data is available to one minute accuracy.
+Capitalgram is an :term:`on-chain` quantative finance framework and trade automation protocol. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live data is available to one minute accuracy.
 
 The ready strategies, or trading bots, can be deployed as :term:`autonomous agents <autonomous agent>` running on :term:`smart contracts <smart contract>`. Strategies then trade on :term:`decentralised exchanges <decentralised exchange>`. After deployed, anyone can invest in and withdraw from the strategies in real time.
 
 Capitalgram integrates with :term:`Jupyter notebook`, :term:`Pandas`, :term:`Backtrader` and other popular Python based quantative finance libraries.
 
-See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
+Build on
+--------
+
+.. raw:: html
+
+   <img class="logo" src="_static/logos/ethereum.png">
+
+   <img class="logo logo-smaller" src="_static/logos/python.png">
+
+   <img class="logo" src="_static/logos/pandas.png">
+
+   <img class="logo" src="_static/logos/pyarrow.png">
+
+   <img class="logo" src="_static/logos/colab.png">
+
+Community
+---------
+
+`Github repository <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
+
+Documentation
+-------------
+
+Find the documentation for research notebooks and Python APIs below.
 
 .. toctree::
    :maxdepth: 1

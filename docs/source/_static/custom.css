@@ -128,3 +128,13 @@ table.dataframe {
     text-decoration: none !important;
 }
 
+/* Logo wall */
+
+img.logo {
+    width: 128px;
+    margin: 20px;
+}
+
+img.logo-smaller {
+    width: 64px;
+}
