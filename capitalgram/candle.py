@@ -41,7 +41,7 @@ class CandleBucket(enum.Enum):
     h4 = "4h"
 
     #: Daily candles
-    h24 = "24h"
+    d1 = "d1"
 
     #: Weekly candles
     d7 = "7d"

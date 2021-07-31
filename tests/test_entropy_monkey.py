@@ -136,7 +136,7 @@ def test_backtrader_entropy_monkey(logger, persistent_test_client: Capitalgram):
     print(f"Sushiswap on Ethereum has {len(pair_universe.get_all_pair_ids())} legit trading pairs")
 
     # Get daily candles as Pandas DataFrame
-    all_candles = client.fetch_all_candles(CandleBucket.h24).to_pandas()
+    all_candles = client.fetch_all_candles(CandleBucket.d1).to_pandas()
     sushi_candles: pd.DataFrame = all_candles.loc[all_candles["pair_id"].isin(wanted_pair_ids)]
 
     sushi_candles = prepare_candles_for_backtrader(sushi_candles)
@@ -167,7 +167,7 @@ def test_backtrader_entropy_monkey(logger, persistent_test_client: Capitalgram):
         feeds,
         start,
         end,
-        CandleBucket.h24)
+        CandleBucket.d1)
 
     # Anaylyse won vs. loss of trades
     cerebro.addanalyzer(analyzers.TradeAnalyzer, _name="tradeanalyzer")  # trade analyzer

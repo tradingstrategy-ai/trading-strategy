@@ -41,7 +41,7 @@ def reindex_pandas_for_backtrader(df: pd.DataFrame, start, end, bucket):
 
     # https://stackoverflow.com/a/19324591/315168
     # https://stackoverflow.com/questions/47231496/pandas-fill-missing-dates-in-time-series
-    assert bucket == CandleBucket.h24, "Only daily candles supported ATM"
+    assert bucket == CandleBucket.d1, "Only daily candles supported ATM"
     idx = pd.date_range(start, end)
     # df.index = idx
     # Backtrader only cares about OHLCV values,
