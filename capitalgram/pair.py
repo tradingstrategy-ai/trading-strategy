@@ -52,7 +52,6 @@ class DEXPair:
     * Non-optional fields are always available
 
     * Optional fields may be available if the candle server 1) detected the pair popular enough 2) managed to fetch the third party service information related to the token
-
     """
 
     #: Internal primary key for any trading pair
@@ -130,17 +129,28 @@ class DEXPair:
     trustwallet_info: Optional[Dict[str, str]] = None  # TrustWallet database data, as direct dump
     etherscan_info: Optional[Dict[str, str]] = None  # Etherscan pro database data, as direct dump
 
-    # Lifetime stats for this pair calculated from daily candles.
-    # Only available for active tokens.
-    # Useful mostly for risk assessment, as this data is **not** accurate,
-    # but gives some reference information about the popularity of the token.
-    buy_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
-    sell_count_all_time: Optional[int] = None  # Total swaps during the pair lifetime
+    #: Risk assessment summary data
+    buy_count_all_time: Optional[int] = None
+
+    #: Risk assessment summary data
+    sell_count_all_time: Optional[int] = None
+
+    #: Risk assessment summary data
     buy_volume_all_time: Optional[float] = None
+
+    #: Risk assessment summary data
     sell_volume_all_time: Optional[float] = None
+
+    #: Risk assessment summary data
     buy_count_30d: Optional[int] = None
+
+    #: Risk assessment summary data
     sell_count_30d: Optional[int] = None
+
+    #: Risk assessment summary data
     buy_volume_30d: Optional[float] = None
+
+    #: Risk assessment summary data
     sell_volume_30d: Optional[float] = None
 
     # Uniswap pair on Sushiswap etc.

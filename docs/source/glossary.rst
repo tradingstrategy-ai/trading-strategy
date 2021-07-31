@@ -1,3 +1,4 @@
+
 .. _glossary:
 
 Glossary
@@ -114,3 +115,12 @@ Glossary
     Fastquant
 
         Fastquant allows you to easily backtest investment strategies with as few as three lines of Python code. Its goal is to promote data driven investments by making quantitative analysis in finance accessible to everyone. Fastquant builds on the top of :term:`Backtrader`. See `Github repository <https://github.com/enzoampil/fastquant>`__.
+
+    Base token
+
+        The token you want to buy or sell in a trading pair. See also :term:`quote token`.
+
+    Quote token
+
+        The token that acts as a nominator for the price when you are buying or selling. Usually this is more well-known token of the pair: ETH, BTC or any of various USD stablecoins. See also :term:`base token`.
+

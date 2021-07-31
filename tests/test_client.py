@@ -70,6 +70,14 @@ def test_client_download_all_pairs(client: Capitalgram, cache_path: str):
     assert len(df) > 100
 
 
+def test_client_download_all_liquidity_samples(client: Capitalgram, cache_path: str):
+    """Download all liquidity samples for a specific candle width."""
+    df = client.fetch_all_liquidity_samples(TimeBucket.d30)
+    # Check we cached the file correctly
+    assert os.path.exists(f"{cache_path}/liquidity-samples-30d.parquet")
+    assert len(df) > 100
+
+
 def test_client_convert_all_pairs_to_pandas(client: Capitalgram, cache_path: str):
     """We can convert the columnar Pyarrow data to Pandas format.
 

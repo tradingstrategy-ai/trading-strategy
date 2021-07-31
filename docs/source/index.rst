@@ -55,6 +55,7 @@ See `Github <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
    api/exchange
    api/pair
    api/candle
+   api/liquidity
    api/chain
    api/timebucket
    api/caip

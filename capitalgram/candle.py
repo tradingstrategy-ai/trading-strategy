@@ -48,10 +48,16 @@ class Candle:
     #: for the duration of the bucket.
     exchange_rate: float
 
-    #: OHLCV core data
+    #: OHLC core data
     open: USDollarAmount
+
+    #: OHLC core data
     close: USDollarAmount
+
+    #: OHLC core data
     high: USDollarAmount
+
+    #: OHLC core data
     low: USDollarAmount
 
     #: Number of buys happened during the candle period
@@ -60,9 +66,10 @@ class Candle:
     #: Number of sells happened during the candle period
     sells: int
 
-    #: Volume data.
-    #: Note that we separate buys and sells
+    #: Volume data
     buy_volume: USDollarAmount
+
+    #: Volume data
     sell_volume: USDollarAmount
 
     #: Average trade size
@@ -70,6 +77,8 @@ class Candle:
 
     #: Blockchain tracking information
     start_block: BlockNumber
+
+    #: Blockchain tracking information
     end_block: BlockNumber
 
     def __repr__(self):

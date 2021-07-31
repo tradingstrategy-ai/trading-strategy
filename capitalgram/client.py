@@ -2,14 +2,11 @@ import os
 import tempfile
 from typing import Optional
 
-
-
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 from tqdm import TqdmExperimentalWarning
 import warnings
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
-
 
 import pyarrow as pa
 from capitalgram.timebucket import TimeBucket
@@ -54,9 +51,24 @@ class Capitalgram:
         The returned data can be between several hundreds of megabytes to several gigabytes
         and is cached locally.
 
-        The returned data is saved in Pyarror Feather format.
+        The returned data is saved in PyArrow Parquet format.
+
+        For more information see :py:class:`capitalgram.candle.Candle`.
         """
         stream = self.transport.fetch_candles_all_time(bucket)
+        return read_parquet(stream)
+
+    def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> pa.Table:
+        """Get cached blob of liquidity events of a certain time window.
+
+        The returned data can be between several hundreds of megabytes to several gigabytes
+        and is cached locally.
+
+        The returned data is saved in PyArrow Parquet format.
+        
+        For more information see :py:class:`capitalgram.liquidity.XYLiquidity`.
+        """
+        stream = self.transport.fetch_liquidity_all_time(bucket)
         return read_parquet(stream)
 
     def fetch_chain_status(self, chain_id: ChainId) -> dict:

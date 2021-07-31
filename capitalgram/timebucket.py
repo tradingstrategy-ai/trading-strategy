@@ -1,5 +1,4 @@
 """Time window presentation."""
-
 import enum
 
 
@@ -16,6 +15,8 @@ class TimeBucket(enum.Enum):
     All time windows are in UTC.
     Daily time buckets have their hour, minute and second set to the zero in the outputted data.
     Hourly time buckets have minute and hour set to zero, etc.
+
+    Python labels are reserved from the actual values, because Python symbol cannot start with a number.
     """
 
     #: One minute candles

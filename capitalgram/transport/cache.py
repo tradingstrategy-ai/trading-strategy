@@ -137,6 +137,17 @@ class CachedHTTPTransport:
         self.save_response(path, "candles-all", params={"bucket": bucket.value})
         return self.get_cached_item(path)
 
+    def fetch_liquidity_all_time(self, bucket: TimeBucket) -> io.BytesIO:
+        fname = f"liquidity-samples-{bucket.value}.parquet"
+        cached = self.get_cached_item(fname)
+        if cached:
+            return cached
+        # Download save the file
+        path = self.get_cached_file_path(fname)
+        self.save_response(path, "liquidity-all", params={"bucket": bucket.value})
+        return self.get_cached_item(path)
+
+
     def ping(self) -> dict:
         reply = self.get_json_response("ping")
         return reply
