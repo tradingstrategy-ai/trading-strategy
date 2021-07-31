@@ -52,7 +52,7 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 #doc-title {
     text-transform: uppercase;
     font-size: 10px;
-    font-weight: bold;
+    font-weight: 400;
     letter-spacing: 2px;
 }
 
