@@ -13,7 +13,9 @@ The documentation contains various notebooks for
 Running in Google Colab
 -----------------------
 
-Click "Open Colab" badge on the top of the example page in the documentation.
+This is the easiest method to start your research if you are not familiar with Python.
+
+Click "Open Colab" badge on the top of the example page in the documentation. You need a Google account. A Google cloud server will be automatically allocated for you to run the code. Currently Colab servers are free.
 
 Running in terminal IPython
 ---------------------------

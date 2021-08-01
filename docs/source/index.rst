@@ -45,6 +45,7 @@ Find the documentation for research notebooks and Python APIs below.
 
    examples/getting-started
    running
+   datasets
    learn
    development
    glossary
