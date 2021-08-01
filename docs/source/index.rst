@@ -6,7 +6,7 @@
 Capitalgram documentation
 =========================
 
-Capitalgram is an :term:`on-chain` quantative finance framework and trade automation protocol. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live data is available to one minute accuracy.
+Capitalgram is an :term:`on-chain` quantitative finance framework and trade automation protocol. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live data is available to one minute accuracy.
 
 The ready strategies, or trading bots, can be deployed as :term:`autonomous agents <autonomous agent>` running on :term:`smart contracts <smart contract>`. Strategies then trade on :term:`decentralised exchanges <decentralised exchange>`. After deployed, anyone can invest in and withdraw from the strategies in real time.
 
