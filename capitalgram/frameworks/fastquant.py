@@ -1,4 +1,4 @@
-"""Fastquant integration."""
+"""The :term:`Fastquant` integration for Capitalgram data and notebooks."""
 
 import pandas as pd
 

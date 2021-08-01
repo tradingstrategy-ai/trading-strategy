@@ -5,7 +5,6 @@ from typing import List
 
 from capitalgram.caip import ChainAddressTuple
 from capitalgram.timebucket import TimeBucket
-from capitalgram.pair import PairUniverse
 
 
 class BaseTransport(ABC):

@@ -124,3 +124,13 @@ Glossary
 
         The token that acts as a nominator for the price when you are buying or selling. Usually this is more well-known token of the pair: ETH, BTC or any of various USD stablecoins. See also :term:`base token`.
 
+    Liquidity
+
+        Liquidity refers to the depth of the order books: how much volume a single trade can achieve without moving the price. It can be expressed as :term:`slippage` or absolute depth of the order book. The latter is very easy for :term:`AMM` based exchanges where the liquidity is a continuous function. Capitalgram provides :term:`datasets <dataset>` for AMM liquidity in :py:mod:`capitalgram.liquidity` module.
+
+    Slippage
+
+        Slippage tells you how much you will lose in a trade because there is not enough :term:`liquidity` to satisfy the deal. `More information <https://www.investopedia.com/terms/s/slippage.asp>`__.
+
+
+

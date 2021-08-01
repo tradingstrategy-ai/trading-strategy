@@ -1,9 +1,10 @@
 """Time window presentation."""
+
 import enum
 
 
 class TimeBucket(enum.Enum):
-    """Supported time windows for candle and liquidity data.
+    """Supported time windows for :term:`candle` and :term:`liquidity` data.
 
     We use term "bucket", from the
     `TimescaleDB slang <https://docs.timescale.com/api/latest/continuous-aggregates/refresh_continuous_aggregate/>`_

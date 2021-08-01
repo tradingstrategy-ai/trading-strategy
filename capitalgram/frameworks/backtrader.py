@@ -1,3 +1,5 @@
+"""Helper methods and classes to integrate :term:`Backtrader` with Capitalgram based :term:`Pandas` data."""
+
 import datetime
 from typing import Iterable
 
