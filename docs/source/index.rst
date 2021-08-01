@@ -27,6 +27,8 @@ Build on
 
    <img class="logo" src="_static/logos/colab.png">
 
+   <img class="logo" src="_static/logos/plotly.png">
+
 Community
 ---------
 
@@ -59,7 +61,7 @@ Find the documentation for research notebooks and Python APIs below.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Algorithms
+   :caption: Strategies
 
    algorithms/entropy-monkey
 
