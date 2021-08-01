@@ -52,6 +52,7 @@ Find the documentation for research notebooks and Python APIs below.
    :caption: Code examples
 
    examples/plotting
+   examples/interactive-charts
    examples/technical-analysis
    examples/pairs
    examples/fastquant

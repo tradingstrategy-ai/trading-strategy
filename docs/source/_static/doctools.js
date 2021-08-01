@@ -14,7 +14,7 @@
  */
 
 // Might break search?
-//$u = _.noConflict();
+// $u = _.noConflict();
 
 /**
  * make the code below compatible with browsers without

@@ -19,6 +19,8 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 
 .wy-nav-content {
     max-width: 1200px;
+    /* Fix various style issues */
+    background: white;
 }
 
 .wy-menu-vertical header, .wy-menu-vertical p.caption {
@@ -97,6 +99,10 @@ div.nboutput.container div.prompt > div {
     right: inherit !important;
 }
 
+div.rendered_html table {
+    font-size: 14px !important;
+}
+
 .pre,
 div[class^="highlight"] {
     font-family: 'JetBrains Mono', monospace !important;
@@ -137,4 +143,10 @@ img.logo {
 
 img.logo-smaller {
     width: 64px;
+}
+
+/* Hide until fixed */
+
+div[role="search"] {
+    display: none;
 }
