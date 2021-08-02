@@ -12,7 +12,7 @@ Capitalgram documentation
 
 Capitalgram is a protocol for :term:`on-chain` quantitative finance and trade automation. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live data is available to one minute accuracy.
 
-The ready strategies, or trading bots, can be deployed as :term:`autonomous agents <autonomous agent>` running on :term:`smart contracts <smart contract>`. Strategies then trade on :term:`decentralised exchanges <decentralised exchange>`. After deployed, anyone can invest in and withdraw from the strategies in real time. As trade rules are automated on-chain, anyone can observe that the trading strategy is honestly executed.
+The ready strategies, or trading bots, can be deployed as :term:`autonomous agents <autonomous agent>` running on :term:`smart contracts <smart contract>`. Strategies then trade on :term:`decentralised exchanges <decentralised exchange>`. After deployed, anyone can invest in and withdraw from the strategies in real time. As trade rules are automated on-chain, anyone can verify the honest execution of the trading strategy.
 
 Capitalgram integrates with :term:`Jupyter notebook`, :term:`Pandas`, :term:`Backtrader` and other popular Python based quantative finance toolkits.
 
