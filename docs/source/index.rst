@@ -8,7 +8,7 @@ Capitalgram documentation
 
 .. raw:: html
 
-   <img class="intro" src="_static/intro.png">
+   <img class="intro" src="_static/intro.png" alt="Decentralised trading bots">
 
 Capitalgram is a protocol for :term:`on-chain` quantitative finance and trade automation. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live data is available to one minute accuracy.
 
@@ -21,17 +21,17 @@ Build on
 
 .. raw:: html
 
-   <img class="logo" src="_static/logos/ethereum.png">
+   <img class="logo" src="_static/logos/ethereum.png" alt="Ethereum">
 
-   <img class="logo logo-smaller" src="_static/logos/python.png">
+   <img class="logo logo-smaller" src="_static/logos/python.png" alt="Python">
 
-   <img class="logo" src="_static/logos/pandas.png">
+   <img class="logo" src="_static/logos/pandas.png" alt="Pandas">
 
-   <img class="logo" src="_static/logos/pyarrow.png">
+   <img class="logo" src="_static/logos/pyarrow.png" alt="PyArrow">
 
-   <img class="logo" src="_static/logos/colab.png">
+   <img class="logo" src="_static/logos/colab.png" alt="Google Colab">
 
-   <img class="logo" src="_static/logos/plotly.png">
+   <img class="logo" src="_static/logos/plotly.png" alt="Plotly">
 
 Community
 ---------
