@@ -1,5 +1,5 @@
-Deploing a strategy
-===================
+Deploying a strategy
+====================
 
 Preface
 -------
