@@ -136,6 +136,12 @@ table.dataframe {
 
 /* Logo wall */
 
+img.intro {
+    display: block;
+    margin: 0 auto;
+    max-width: 800px;
+}
+
 img.logo {
     width: 128px;
     margin: 20px;

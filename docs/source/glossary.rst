@@ -54,11 +54,6 @@ Glossary
         In the context of :term:`on-chain`, usually hostile to the original product and competes from the
         same :term:`liquidity`.
 
-    Liquidity
-
-        Refers to the depth of tradeable asset on an exchange. More there is liquidity, larger trades you can do
-        without moving the price.
-
     Candle
 
         Candle, or a candlestick is a type of price chart used in technical analysis that displays the high, low, open, and closing prices of an asset for a specific time period, or :term:`bucket`. `More information <https://en.wikipedia.org/wiki/Candlestick_chart>`__.
