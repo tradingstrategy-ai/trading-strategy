@@ -1,10 +1,10 @@
-Decentralised trade execution overview
-======================================
+Overview
+========
 
 Preface
 -------
 
-Capitagram protocol offers fully decentralised trade execution for algorithms.
+Capitagram protocol offers fully decentralised trade execution for algorithms using decentralised exchanges, on-chain data sources and other blockchain based elements.
 
 .. image:: architecture.png
    :width: 1000px
