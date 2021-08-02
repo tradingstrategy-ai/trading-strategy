@@ -17,11 +17,24 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
     margin-bottom: 1em;
 }
 
+
+
 .wy-nav-content {
     max-width: 1200px;
     /* Fix various style issues */
     background: white;
 }
+
+/* Mobile header */
+.wy-nav-top {
+    background: #EEB30C;
+    color: white;
+}
+
+.wy-nav-top a, .wy-nav-top a:visited, .wy-nav-top a:hover {
+    color: white !important;
+}
+
 
 .wy-menu-vertical header, .wy-menu-vertical p.caption {
     color: black
@@ -140,6 +153,7 @@ img.intro {
     display: block;
     margin: 0 auto;
     max-width: 800px;
+    width: 100%;
 }
 
 img.logo {

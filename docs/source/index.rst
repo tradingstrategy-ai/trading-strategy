@@ -72,7 +72,7 @@ Find the documentation for research notebooks and Python APIs below.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Trade execution
+   :caption: Protocol
 
    execution/overview
    execution/deploy
