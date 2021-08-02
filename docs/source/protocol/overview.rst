@@ -114,7 +114,7 @@ Because everything is open, it is easy to present and analyse current performanc
 
 There still always exists a systematic risk with nascent decentralised finance markets smart contract technology. As the data and source code for all the markets are public, investors can quantify this risk and do not need to rely on third party assessments, like ones from credit institutions or regulators. Though unlike financial model risk, technological failure risk is harder to quantify.
 
-Private algorithms
+Private strategies
 ------------------
 
 In the case the algorithm vendor does not want to publish the source code their algorithm, they can only use the *trading agent contract* to offer deposits and withdraws for third parties to invest in their algorithm. In this case, the algorithm vendor is responsible for running their own oracle network. As the users cannot verify the algorithm source code directly, they need to to trust the algorithm vendor to do the trade decisions for themselves.

@@ -127,5 +127,37 @@ Glossary
 
         Slippage tells you how much you will lose in a trade because there is not enough :term:`liquidity` to satisfy the deal. `More information <https://www.investopedia.com/terms/s/slippage.asp>`__.
 
+    Yield farming
+
+        Pooling assets of multiple people for passive trading strategies. Usually yield farming pools rely on liquidity mining token distribution which they immediately sell (auto compounding). Yield farms operate solely on smart contracts and their strategies are limited. Yield farms almost always take zero market risk agains their :term:`quote token`.
+
+    Exposure
+
+        The risk of a strategy for the volatility of a particular asset. For example, if you have 100% exposure to ETH and ETH prices drops to zero, you lose all of your money.
+
+    Market neutral strategy
+
+        Market neutral strategies are trading strategies that have little or no :term:`exposure` to crypto asset volatility. They are often :term:`high-frequency trading` strategies, like arbitrage. Good market neutral strategies can make 10% - 20% monthly yield in cryptocurrency markets.
+
+    High-frequency trading
+
+        High-frequency trading, or HFT for short, is a trading strategy where you do arbitration, cross-market market making or such and compete against the other actors with your technical speed. Capitalgram is not suitable framework for HFT trading, though its data can aid to come up with good HFT strategiees.
+
+    Directional strategy
+
+        A trading strategy where you bet the market to go up or down.
+
+    Active strategy
+
+        Buying and selling assets based on the market movement. Differs from buy-and-hold by actively (hourly, daily, weekly) engaging in trading. `Read more <https://www.investopedia.com/articles/active-trading/11/four-types-of-active-traders.asp>`__.
+
+    Non-custodial
+
+        A smart contract based service model where the owner of the assets never lose the control of the assets. This is opposite to most traditional finance services where you cannot see what happens to your money after the deposit or whether you are able to withdraw. The integrity of the service provider in the traditional finance thus needs to be guaranteted through regulation or government bailouts. The non-custodial model is specific to smart contracts and cannot be achieved without a blockchain. `Read more <https://stackoverflow.com/questions/65009246/what-does-non-custodial-mean>`__.
+
+    Private strategy
+
+        A trading strategy where the source code of the strategy is not disclosed to public. Private strategies can still be :term:`non-custodial` and enjoy the benefits of Capitalgram protocol trade execution and fee distribution. :ref`Read more <Private strategies>`.
+
 
 

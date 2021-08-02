@@ -74,8 +74,9 @@ Find the documentation for research notebooks and Python APIs below.
    :maxdepth: 1
    :caption: Protocol
 
-   execution/overview
-   execution/deploy
+   protocol/overview
+   protocol/comparison
+   protocol/deploy
 
 .. toctree::
    :maxdepth: 1
