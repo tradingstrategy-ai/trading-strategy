@@ -26,4 +26,4 @@ You can run example notebooks in a terminal after git checkout and poetry instal
 
 .. code-block:: shell
 
-    ipython --TerminalIPythonApp.file_to_run=docs/source/algorithms/sushi-macaque.ipynb
+    ipython --TerminalIPythonApp.file_to_run=docs/source/examples/getting-started.ipynb

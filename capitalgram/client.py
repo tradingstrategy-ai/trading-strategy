@@ -83,9 +83,12 @@ class Capitalgram:
         """Checks that everything is in ok to run the notebook"""
 
         # Work around Google Colab shipping with old Pandas
+        from packaging import version
         import pandas
-        assert pandas.__version__ >= (1, 3), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
+        pandas_version = version.parse(pandas.__version__)
+        assert pandas_version >= version.parse("1.3"), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
 
+        # Fix Backtrader / Pandas 1.3 issue that breaks FastQuant
         from capitalgram.frameworks.fastquant_monkey_patch import apply_patch
         apply_patch()
 

@@ -51,6 +51,7 @@ Find the documentation for research notebooks and Python APIs below.
    running
    datasets
    learn
+   troubleshooting
    development
    glossary
 

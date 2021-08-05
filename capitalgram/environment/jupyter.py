@@ -40,7 +40,7 @@ class JupyterEnvironment(Environment):
     def save_configuration(self, config: Configuration):
         spath = self.get_settings_path()
 
-        os.makedirs(spath)
+        os.makedirs(spath, exist_ok=True)
 
         with open(os.path.join(spath, "settings.json"), "wt") as out:
             data = config.to_json()

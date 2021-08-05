@@ -1,4 +1,4 @@
-import fastquant.backtest.post_backtest
+from fastquant.backtest import post_backtest
 from fastquant.backtest.post_backtest import print_dict
 
 
@@ -51,4 +51,4 @@ def apply_patch():
 
     https://github.com/miohtama/capitalgram-onchain-dex-quant-data/runs/3208273324?check_suite_focus=true
     """
-    fastquant.backtest.post_backtest.get_optim_metrics_and_params = _get_optim_metrics_and_params
+    post_backtest.get_optim_metrics_and_params = _get_optim_metrics_and_params
