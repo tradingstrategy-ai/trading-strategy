@@ -4,7 +4,7 @@ from capitalgram.liquidity import GroupedLiquidityUniverse
 from capitalgram.timebucket import TimeBucket
 from capitalgram.client import Capitalgram
 from capitalgram.chain import ChainId
-from capitalgram.pair import PairUniverse, PandasPairUniverse
+from capitalgram.pair import PandasPairUniverse
 
 
 def test_grouped_liquidity(persistent_test_client: Capitalgram):

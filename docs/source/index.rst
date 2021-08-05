@@ -63,6 +63,7 @@ Find the documentation for research notebooks and Python APIs below.
    examples/interactive-charts
    examples/technical-analysis
    examples/pairs
+   examples/liquidity
    examples/fastquant
 
 .. toctree::
