@@ -83,6 +83,7 @@ class Capitalgram:
         """Checks that everything is in ok to run the notebook"""
 
         # Work around Google Colab shipping with old Pandas
+        # https://stackoverflow.com/questions/11887762/how-do-i-compare-version-numbers-in-python
         from packaging import version
         import pandas
         pandas_version = version.parse(pandas.__version__)

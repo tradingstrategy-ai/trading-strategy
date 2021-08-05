@@ -23,7 +23,7 @@ def test_grouped_liquidity(persistent_test_client: Capitalgram):
     sushi_swap = exchange_universe.get_by_name_and_chain(ChainId.ethereum, "sushiswap")
     sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "USDT")
 
-    sushi_usdt_liquidity_samples = liquidity_universe.get_candles_by_pair(sushi_usdt.pair_id)
+    sushi_usdt_liquidity_samples = liquidity_universe.get_liquidity_by_pair(sushi_usdt.pair_id)
 
     # Get max and min weekly candle of SUSHI-USDT on SushiSwap
     high_liq = sushi_usdt_liquidity_samples["high"]
@@ -42,5 +42,6 @@ def test_grouped_liquidity(persistent_test_client: Capitalgram):
     assert sample_timestamp.minute == 0
 
     # Min and max liquidity of SUSHI-USDT pool ever
-    assert max_liq == pytest.approx(22.4612)
-    assert min_liq == pytest.approx(0.49680945)
+    # 403M liquidity
+    assert max_liq == pytest.approx(403_601_060)
+    assert min_liq == pytest.approx(49.276726)
