@@ -18,7 +18,7 @@ The major differences are
 
 * Hedge funds can employ :term:`market neutral strategies <market neutral strategy>` or :term:`high-frequency trading` strategies. Capitalgram is not designed for these strategies, but focuses more on :term:`directional strategies <directional strategy>`.
 
-* However, Capitalgram can offer :term:`private strategies <private strategy>`. In this case, the strategy secret sauce is not open to the public, but they can still enjoy the protocol benefits of trade execution, reward distribution and fee distribution. Private strategies can choose to whitelist their investors if they wish.
+* Both hedge funds and Capitalgram can offer :term:`private strategies <private strategy>`. In this case, the strategy source code is not open to the public, but they can still enjoy the protocol benefits like trade execution, reward distribution and fee distribution. Private strategies can choose to whitelist their investors if they wish.
 
 How Capitalgram is different from yield farming services?
 ---------------------------------------------------------
@@ -29,7 +29,7 @@ Yield farming services are almost always passive interest based. They pool asset
 
 Yield farming protocol collect fees, often withdrawal fees. Some of these fees can be credited to the strategy creators.
 
-* Capitalgram employs `active trading strategies <active strategy>`.
+* Capitalgram employs :term:`active trading strategies <active strategy>`.
 
 * Capitalgram has specialised off-chain oracle network to make decisions based on large :term:`datasets <dataset>`, trading signals and machine learning that cannot be done on-chain.
 
@@ -50,11 +50,11 @@ Some of the popular crypto trading bot services include 3Commas, Crypto Hopper a
 
 * Crypto trading bot services are centralised, there is no visibility how they operate inside and how secure they are. Giving an exchange API key to any service to makes it possible to `steal all your money on your cryptocurrenct exechange account <https://www.techradar.com/news/cybercriminals-have-abused-api-keys-to-steal-millions-in-crypto>`_.
 
-* `The centralised exchanges themselves are prone to insider hacks <https://www.coindesk.com/token-swaps-after-kucoin-280m-hack>`_ (`another incident <https://www.reddit.com/r/CryptoHopper/comments/ldo4pe/api_keys_are_invalid/>`_)
+* `The centralised exchanges themselves are prone to insider hacks <https://www.coindesk.com/token-swaps-after-kucoin-280m-hack>`_ (see `another incident <https://www.reddit.com/r/CryptoHopper/comments/ldo4pe/api_keys_are_invalid/>`_).
 
 * There is no visibility if these centralised services sell their order flow data to traders to trade against you, or trade against you themselves.
 
-* Capitalgram can be verified by anyone to act fair and honestly due to on-chain transparency.
+* Anyone can verify that Capitalgram protocol has act fair and honestly due to on-chain transparency.
 
 * Capitalgram has a community and open source ecosystem around it.
 
