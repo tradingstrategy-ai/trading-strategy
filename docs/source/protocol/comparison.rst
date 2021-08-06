@@ -18,7 +18,7 @@ The major differences are
 
 * Hedge funds can employ :term:`market neutral strategies <market neutral strategy>` or :term:`high-frequency trading` strategies. Capitalgram is not designed for these strategies, but focuses more on :term:`directional strategies <directional strategy>`.
 
-* However, Capitalgram can offer :term`private strategies <private strategy>`. In this case, the strategy secret sauce is not open to the public, but they can still enjoy the protocol benefits of trade execution, reward distribution and fee distribution. Private strategies can choose to whitelist their investors if they wish.
+* However, Capitalgram can offer :term:`private strategies <private strategy>`. In this case, the strategy secret sauce is not open to the public, but they can still enjoy the protocol benefits of trade execution, reward distribution and fee distribution. Private strategies can choose to whitelist their investors if they wish.
 
 How Capitalgram is different from yield farming services?
 ---------------------------------------------------------
