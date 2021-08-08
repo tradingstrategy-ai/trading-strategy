@@ -151,7 +151,11 @@ class GroupedLiquidityUniverse:
 
     def get_liquidity_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
         """Get liquidity samples for a single pair."""
-        return self.pairs.get_group(pair_id)
+        pair = self.pairs.get_group(pair_id)
+        if pair is not None:
+            pair = pair.set_index(pair["timestamp"])
+            return pair
+        return None
 
     def get_all_pairs(self) -> Iterable[Tuple[PrimaryKey, pd.DataFrame]]:
         """Go through all liquidity samples, one DataFrame per trading pair."""
