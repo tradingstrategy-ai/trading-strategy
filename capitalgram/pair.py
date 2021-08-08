@@ -311,7 +311,7 @@ class PandasPairUniverse:
         :param df: The source DataFrame that contains all DEXPair entries
         """
         assert isinstance(df, pd.DataFrame)
-        self.df = df
+        self.df = df.set_index(df["pair_id"])
 
     def get_all_pair_ids(self) -> List[PrimaryKey]:
         return self.df["pair_id"].unique()
@@ -335,11 +335,13 @@ class PandasPairUniverse:
 
         return None
 
-    def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str) -> Optional[DEXPair]:
+    def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str, pick_by_highest_vol=False) -> Optional[DEXPair]:
         """Get a trading pair by its ticker symbols.
 
         Note that this method works only very simple universes, as any given pair
         is poised to have multiple tokens and multiple trading pairs on different exchanges.
+
+        :param pick_by_highest_vol: If multiple trading pairs with the same symbols are found, pick one with the highest volume. This is because often malicious trading pairs are create to attract novice users.
 
         :raise DuplicatePair: If the universe contains more than single entry for the pair.
 
@@ -354,7 +356,13 @@ class PandasPairUniverse:
             (df["quote_token_symbol"] == quote_token)]
 
         if len(pairs) > 1:
-            raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
+            if not pick_by_highest_vol:
+                raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
+
+            # Sort by trade volume and pick the highest one
+            pairs = pairs.sort_values(by="buy_volume_all_time", ascending=False)
+            data = next(iter(pairs.to_dict("index").values()))
+            return DEXPair.from_dict(data)
 
         if len(pairs) == 1:
             data = next(iter(pairs.to_dict("index").values()))
