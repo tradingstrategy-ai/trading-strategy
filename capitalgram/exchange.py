@@ -116,6 +116,9 @@ class ExchangeUniverse:
     #: Exchange id -> Exchange data mapping
     exchanges: Dict[PrimaryKey, Exchange]
 
+    def get_by_id(self, id) -> Optional[Exchange]:
+        return self.exchanges.get(id)
+
     def get_top_exchanges_by_30d_volume(self) -> List[Exchange]:
         """Get top exchanges sorted by their 30d volume.
 

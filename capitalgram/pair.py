@@ -10,6 +10,7 @@ import pyarrow as pa
 from dataclasses_json import dataclass_json
 
 from capitalgram.chain import ChainId
+from capitalgram.exchange import ExchangeUniverse
 from capitalgram.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
 from capitalgram.utils.columnar import iterate_columnar_dicts
 from capitalgram.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
@@ -90,12 +91,6 @@ class DEXPair:
     #: Token pair contract address on-chain
     token1_address: str
 
-    first_swap_at_block_number: BlockNumber
-    last_swap_at_block_number: BlockNumber
-
-    first_swap_at: UNIXTimestamp
-    last_swap_at: UNIXTimestamp
-
     #: Pair has been flagged inactive, because it has not traded at least once during the last 30 days.
     flag_inactive: bool
 
@@ -111,6 +106,18 @@ class DEXPair:
 
     #: Pair is listed on an exchange we do not if it is good or not
     flag_unknown_exchange: bool
+
+    #: Block number of the first Uniswap Swap event
+    first_swap_at_block_number: Optional[BlockNumber] = None
+
+    #: Block number of the last Uniswap Swap event
+    last_swap_at_block_number:  Optional[BlockNumber] = None
+
+    #: Timestamp of the first Uniswap Swap event
+    first_swap_at: Optional[UNIXTimestamp] = None
+
+    #: Timestamp of the first Uniswap Swap event
+    last_swap_at: Optional[UNIXTimestamp] = None
 
     #: Various risk analyis flags
     flag_not_enough_swaps: Optional[bool] = None
@@ -165,6 +172,19 @@ class DEXPair:
     def __repr__(self):
         chain_name = self.chain_id.name.capitalize()
         return f"<Pair {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange #{self.exchange_id} on {chain_name}>"
+
+    def get_friendly_name(self, exchange_universe: ExchangeUniverse) -> str:
+        """Get a very human readable name for this trading pair.
+
+        We need to translate the exchange id to someething human readable,
+        and for this we need to have the access to the exchange universe.
+        """
+        exchange = exchange_universe.get_by_id(self.exchange_id)
+        if exchange:
+            exchange_name = exchange.name
+        else:
+            exchange_name = f"Exchange #{self.exchange_id}"
+        return f"{self.base_token_symbol} - {self.quote_token_symbol} on {exchange_name}"
 
     def __json__(self, request):
         """Pyramid JSON renderer compatibility.
@@ -315,6 +335,14 @@ class PandasPairUniverse:
 
     def get_all_pair_ids(self) -> List[PrimaryKey]:
         return self.df["pair_id"].unique()
+
+    def get_count(self) -> int:
+        """How many trading pairs there are."""
+        return len(self.df)
+
+    def get_unflagged_count(self) -> int:
+        """How many trading pairs there are that seem to be legit for analysis."""
+        raise NotImplementedError()
 
     def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
         """Look up pair information and return its data.

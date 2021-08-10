@@ -14,6 +14,7 @@ from pandas.core.groupby import GroupBy
 
 from capitalgram.caip import ChainAddressTuple
 from capitalgram.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
+from capitalgram.utils.groupeduniverse import PairGroupedUniverse
 
 
 @dataclass_json
@@ -169,7 +170,7 @@ class CandleResult:
         self.candles.sort(key=lambda c: c.timestamp)
 
 
-class GroupedCandleUniverse:
+class GroupedCandleUniverse(PairGroupedUniverse):
     """A candle universe where each trading pair has its own candles.
 
     This is helper class to create foundation for multi pair strategies.
@@ -180,17 +181,10 @@ class GroupedCandleUniverse:
     raw candle data.
     """
 
-    def __init__(self, df: pd.DataFrame):
-        assert isinstance(df, pd.DataFrame)
-        self.df = df
-        self.pairs: GroupBy = df.groupby(["pair_id"])
+    def get_candle_count(self) -> int:
+        """Return the dataset size - how many candles total"""
+        return self.get_pair_count()
 
     def get_candles_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
         """Get candles for a single pair."""
-        return self.pairs.get_group(pair_id)
-
-    def get_all_pairs(self) -> Iterable[Tuple[PrimaryKey, pd.DataFrame]]:
-        """Go through all candles, one DataFrame per trading pair."""
-        for pair_id, data in self.pairs:
-            yield pair_id, data
-
+        return self.get_samples_by_pair(pair_id)

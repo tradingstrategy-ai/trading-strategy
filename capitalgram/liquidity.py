@@ -13,6 +13,7 @@ from dataclasses_json import dataclass_json
 from pandas.core.groupby import GroupBy
 
 from capitalgram.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
+from capitalgram.utils.groupeduniverse import PairGroupedUniverse
 
 
 @dataclass_json
@@ -133,7 +134,7 @@ class LiquidityResult:
         self.candles.sort(key=lambda c: c.timestamp)
 
 
-class GroupedLiquidityUniverse:
+class GroupedLiquidityUniverse(PairGroupedUniverse):
     """A universe where each trading pair has its own liquidity data feed.
 
     This is helper class to create foundation for multi pair strategies.
@@ -144,21 +145,6 @@ class GroupedLiquidityUniverse:
     raw liquidity sample.
     """
 
-    def __init__(self, df: pd.DataFrame):
-        assert isinstance(df, pd.DataFrame)
-        self.df = df
-        self.pairs: GroupBy = df.groupby(["pair_id"])
-
-    def get_liquidity_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
-        """Get liquidity samples for a single pair."""
-        pair = self.pairs.get_group(pair_id)
-        if pair is not None:
-            pair = pair.set_index(pair["timestamp"])
-            return pair
-        return None
-
-    def get_all_pairs(self) -> Iterable[Tuple[PrimaryKey, pd.DataFrame]]:
-        """Go through all liquidity samples, one DataFrame per trading pair."""
-        for pair_id, data in self.pairs:
-            yield pair_id, data
-
+    def get_liquiditY_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
+        """Get samples for a single pair."""
+        return self.get_samples_by_pair(pair_id)
