@@ -1,4 +1,4 @@
-"""Test ape in algo."""
+"""Unit tests for "ape into new tokens" algo."""
 
 import logging
 import datetime
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def prefilter_pairs(all_pairs_dataframe: pd.DataFrame) -> pd.DataFrame:
     """Get rid of pairs that we definitely are not interested in.
 
-    This will greatly speed up the later computations, as we do not need to
+    This will greatly speed up the later backtesting computations, as we do not need to
     calculate the opening volumes for thousands of pairs.
 
     Note that may induce survivorship bias - we use thiws mainly
@@ -79,6 +79,7 @@ class ApeTheLatestStrategy(bt.Strategy):
                  exchange_universe: ExchangeUniverse,
                  pair_universe: PandasPairUniverse,
                  liquidity_universe: GroupedLiquidityUniverse,
+                 candle_universe: GroupedCandleUniverse,
                  min_liquidity=250_000,
                  out_of_money_threshold=100.0):
 
@@ -92,6 +93,7 @@ class ApeTheLatestStrategy(bt.Strategy):
         self.exchange_universe = exchange_universe
         self.pair_universe = pair_universe
         self.liquidity_universe = liquidity_universe
+        self.candle_universe = candle_universe
 
         #: A pair becomes investible when it reaches this liquidity
         self.min_liquidity = min_liquidity
@@ -121,6 +123,40 @@ class ApeTheLatestStrategy(bt.Strategy):
             pair_info = pair.pair_info
             self.backtrader_pair_map[pair_info.pair_id] = pair
 
+    def get_daily_info(self, pair_id: int, now_: datetime.datetime) -> dict:
+        """Fetch some useful diagnose info during the strategy development."""
+        candles = self.candle_universe.get_candles_by_pair(pair_id)
+        liquidity = self.liquidity_universe.get_samples_by_pair(pair_id)
+        data = {}
+
+        try:
+            data.update({
+                "candle": {
+                    "open": candles["open"][now_],
+                    "close": candles["close"][now_],
+                    "high": candles["high"][now_],
+                    "low": candles["low"][now_],
+                    "buy_volume": candles["buy_volume"][now_],
+                    "sell_volume": candles["sell_volume"][now_],
+                    "buys": candles["buys"][now_],
+                    "sells": candles["sells"][now_],
+                }})
+        except KeyError:
+            pass
+
+        try:
+            data.update({
+                "liquidity": {
+                    "open": liquidity["open"][now_],
+                    "close": liquidity["close"][now_],
+                    "high": liquidity["high"][now_],
+                    "low": liquidity["low"][now_],
+                }})
+        except KeyError:
+            pass
+
+        return data
+
     def next(self):
         """Tick the strategy.
 
@@ -128,8 +164,8 @@ class ApeTheLatestStrategy(bt.Strategy):
         """
 
         # Advance to the next day
-        self.day += 1
         today = self.start_date + datetime.timedelta(days=self.day)
+        self.day += 1
 
         # End of the story
         if self.out_of_money:
@@ -157,19 +193,32 @@ class ApeTheLatestStrategy(bt.Strategy):
         # Sort pairs by the latest new
         fresh_pairs = [(pair_id, liquidity_reached_at) for pair_id, liquidity_reached_at in self.liquidity_reached_state.items()]
         fresh_pairs = sorted(fresh_pairs, key=lambda x: x[1], reverse=True)
-        latest_pair_id = fresh_pairs[0][0]
 
+        daily_data = latest_pair_id = None
+        for pair_id, date in fresh_pairs:
+            latest_pair_id = pair_id
+            daily_data = self.get_daily_info(latest_pair_id, today)
+            if not "candle" in daily_data:
+                # Latest pair today is EURS - USDC on Uniswap v2, info {'liquidity': {'open': 500474.38, 'close': 500474.38, 'high': 500474.38, 'low': 500474.38}}
+                # This pair has liquidity added, but not a single trade,
+                # so we cannot buy it - we do not know how expensive it is going to be,
+                # so we just pick the next pair
+                continue
+            break
+
+        assert latest_pair_id
         latest_pair = self.pair_universe.get_pair_by_id(latest_pair_id)
         latest_pair_name = latest_pair.get_friendly_name(self.exchange_universe)
-        logger.info("Latest pair today is %s", latest_pair_name)
+
+        logger.info("Latest pair today is %s, info %s", latest_pair_name, daily_data)
 
         backtrader_pair = self.backtrader_pair_map[latest_pair_id]
         if self.getposition(backtrader_pair).size > 0:
             logger.info("Already owning %s", latest_pair_name)
         else:
-
             # Close the existing single position
             ticker: CapitalgramFeed
+            trade = None
             for ticker in self.datas:
                 if self.getposition(ticker).size > 0:
                     closing_pair_info = ticker.pair_info
@@ -239,7 +288,8 @@ def test_backtrader_ape_in_strategy(logger, persistent_test_client: Capitalgram)
                         start_date=start,
                         exchange_universe=exchange_universe,
                         pair_universe=pair_universe,
-                        liquidity_universe=liquidity_universe)
+                        liquidity_universe=liquidity_universe,
+                        candle_universe=candle_universe)
 
     logger.info("Preparing feeds")
     # Pass all Sushi pairs to the data fees to the strategy
