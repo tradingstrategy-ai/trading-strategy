@@ -310,3 +310,5 @@ def test_backtrader_ape_in_strategy(logger, persistent_test_client: Capitalgram)
     results = cerebro.run()
 
     strategy: ApeTheLatestStrategy = results[0]
+
+    logger.info('Ending portfolio value: %.2f USD', cerebro.broker.getvalue())
