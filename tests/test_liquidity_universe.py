@@ -43,7 +43,6 @@ def test_grouped_liquidity(persistent_test_client: Capitalgram):
     assert sample_timestamp.minute == 0
 
     # Min and max liquidity of SUSHI-USDT pool ever
-    # 403M liquidity
     assert max_liq == pytest.approx(31747.889)
     assert min_liq == pytest.approx(550)
 

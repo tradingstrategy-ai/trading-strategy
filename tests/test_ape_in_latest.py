@@ -6,7 +6,6 @@ from typing import Dict
 
 import backtrader as bt
 import pandas as pd
-import pytest
 from backtrader import analyzers
 
 from capitalgram.candle import GroupedCandleUniverse
@@ -56,7 +55,7 @@ def update_pair_liquidity_threshold(
     for pair_id in pair_universe.get_all_pair_ids():
         if pair_id not in reached_state:
             # Get the todays liquidity
-            liquidity_samples = liquidity_universe.get_liquidity_by_pair(pair_id)
+            liquidity_samples = liquidity_universe.get_samples_by_pair(pair_id)
             # We determine the available liquidity by the daily open
             try:
                 liquidity_today = liquidity_samples["open"][ts]
@@ -80,7 +79,8 @@ class ApeTheLatestStrategy(bt.Strategy):
                  exchange_universe: ExchangeUniverse,
                  pair_universe: PandasPairUniverse,
                  liquidity_universe: GroupedLiquidityUniverse,
-                 min_liquidity=100_000):
+                 min_liquidity=250_000,
+                 out_of_money_threshold=100.0):
 
         logger.info("Initializing")
 
@@ -96,9 +96,17 @@ class ApeTheLatestStrategy(bt.Strategy):
         #: A pair becomes investible when it reaches this liquidity
         self.min_liquidity = min_liquidity
 
+        self.out_of_money_threshold = out_of_money_threshold
+
+        #: How much of our cash we put on a single asset every time
+        self.ape_risk_factor = 0.9
+
         #: We operate on daily candles.
         #: At each tick, we process to the next candle
         self.day = 0
+
+        #: When we die
+        self.out_of_money = False
 
         #: paid id -> date mapping for pairs that have become
         #: liquid enough to invest
@@ -122,6 +130,10 @@ class ApeTheLatestStrategy(bt.Strategy):
         # Advance to the next day
         self.day += 1
         today = self.start_date + datetime.timedelta(days=self.day)
+
+        # End of the story
+        if self.out_of_money:
+            return
 
         logger.info("Starting day %d, we have %d pairs that have reached the liquidity threshold",
                     self.day,
@@ -155,16 +167,32 @@ class ApeTheLatestStrategy(bt.Strategy):
         if self.getposition(backtrader_pair).size > 0:
             logger.info("Already owning %s", latest_pair_name)
         else:
-            self.close(backtrader_pair)
+
+            # Close the existing single position
+            ticker: CapitalgramFeed
+            for ticker in self.datas:
+                if self.getposition(ticker).size > 0:
+                    closing_pair_info = ticker.pair_info
+                    name = closing_pair_info.get_friendly_name(self.exchange_universe)
+                    logger.info("Closing position for %s", name)
+                    trade = self.close(ticker)
+
             cash = self.broker.get_cash()
+
+            if cash < self.out_of_money_threshold:
+                logger.info("Out of money at day %d, last trade was %s", self.day, trade)
+                self.out_of_money = True
+                return
+
             price = backtrader_pair.close[0]
+            if price == 0:
+                import ipdb ; ipdb.set_trace()
             assert price > 0
-            size = cash / price
+            size = (cash / price) * self.ape_risk_factor
+            order = self.buy(backtrader_pair, size=size, price=price, exectype=bt.Order.Market)
             logger.info("Buying into %s, position size %f, available cash %f", latest_pair_name, size, cash)
-            self.buy(backtrader_pair, size=size, exectype=bt.Order.Market)
 
 
-@pytest.mark.skip(reason="Not finished yet")
 def test_backtrader_ape_in_strategy(logger, persistent_test_client: Capitalgram):
     """Ape in to the latest token every day."""
 
