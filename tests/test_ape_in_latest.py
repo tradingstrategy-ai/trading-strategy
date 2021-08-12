@@ -1,7 +1,8 @@
 """Unit tests for "ape into new tokens" algo."""
-
+import cProfile
 import logging
 import datetime
+from pstats import Stats
 from typing import Dict
 
 import backtrader as bt
@@ -307,7 +308,14 @@ def test_backtrader_ape_in_strategy(logger, persistent_test_client: Capitalgram)
     # Anaylyse won vs. loss of trades
     cerebro.addanalyzer(analyzers.TradeAnalyzer, _name="tradeanalyzer")  # trade analyzer
 
-    results = cerebro.run()
+    pr = cProfile.Profile()
+    pr.enable()
+    try:
+        results = cerebro.run()
+    finally:
+        pr.disable()
+        stats = Stats(pr)
+        stats.sort_stats('cumtime').print_stats(50)
 
     strategy: ApeTheLatestStrategy = results[0]
 
