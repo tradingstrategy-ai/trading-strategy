@@ -65,7 +65,7 @@ def test_qstrader_vanilla():
     tearsheet.plot_results()
 
 
-def test_qstrader_crypto(persistent_test_client):
+def test_qstrader_buy_and_hold_crypto(persistent_test_client):
     """Run QSTrader buy and hold against SUSHI-WETH pair on SushiSwap."""
 
     # Qstrader makes an assumption of market opening and closing hours

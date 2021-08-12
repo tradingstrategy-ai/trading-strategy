@@ -22,7 +22,8 @@ mplfinance = "^0.12.7-alpha.17"
 # https://github.com/mementum/backtrader/pull/418
 backtrader = {git = "https://github.com/mementum/backtrader", rev="e2674b1690f6366e08646d8cfd44af7bb71b3970"}
 fastquant = "^0.1.5"
-qstrader = {path = "../code/qstrader", develop = true}
+# qstrader = {path = "../code/qstrader", develop = true}
+qstrader = {git = "https://github.com/miohtama/qstrader", rev="c2752016e825023054dc854c5d0b139d75e0cf2f"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
