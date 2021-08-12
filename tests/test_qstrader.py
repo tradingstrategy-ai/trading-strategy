@@ -67,8 +67,10 @@ def test_qstrader_vanilla():
 
 def test_qstrader_crypto(persistent_test_client):
     """Run QSTrader buy and hold against SUSHI-WETH pair on SushiSwap."""
-    start_dt = pd.Timestamp('2020-10-01 00:00:00', tz=pytz.UTC)
-    end_dt = pd.Timestamp('2021-10-01 00:00:00', tz=pytz.UTC)
+
+    # Qstrader makes an assumption of market opening and closing hours
+    start_dt = pd.Timestamp('2020-10-01 14:30:00', tz=pytz.UTC)
+    end_dt = pd.Timestamp('2021-07-01 23:59:00', tz=pytz.UTC)
 
     capitalgram = persistent_test_client
 
@@ -93,7 +95,7 @@ def test_qstrader_crypto(persistent_test_client):
 
     # Construct the symbol and asset necessary for the backtest
     # strategy_symbols = ['GLD']
-    strategy_assets = [sushi_eth]
+    strategy_assets = [sushi_eth.pair_id]
     strategy_universe = StaticUniverse(strategy_assets)
 
     asset_bar_frames = {
