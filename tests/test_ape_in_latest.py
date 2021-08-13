@@ -7,6 +7,7 @@ from typing import Dict
 
 import backtrader as bt
 import pandas as pd
+import pytest
 from backtrader import analyzers
 
 from capitalgram.candle import GroupedCandleUniverse
@@ -243,6 +244,7 @@ class ApeTheLatestStrategy(bt.Strategy):
             logger.info("Buying into %s, position size %f, available cash %f", latest_pair_name, size, cash)
 
 
+@pytest.mark.skip(reason="Backtrader is too slow for this test. I ditched Backtrader and trying QSTrader next.")
 def test_backtrader_ape_in_strategy(logger, persistent_test_client: Capitalgram):
     """Ape in to the latest token every day."""
 
