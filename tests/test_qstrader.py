@@ -1,7 +1,5 @@
 """QSTrader integration test."""
-import datetime
 
-from capitalgram.candle import Candle
 from capitalgram.chain import ChainId
 
 import os
@@ -62,7 +60,7 @@ def test_qstrader_vanilla():
         strategy_equity=strategy_backtest.get_equity_curve(),
         title='Buy & Hold GLD ETF'
     )
-    tearsheet.plot_results()
+    # tearsheet.plot_results()
 
 
 def test_qstrader_buy_and_hold_crypto(persistent_test_client):
@@ -128,6 +126,6 @@ def test_qstrader_buy_and_hold_crypto(persistent_test_client):
         strategy_equity=strategy_backtest.get_equity_curve(),
         title=f'Buy & Hold {sushi_eth}'
     )
-    tearsheet.plot_results()
+    # tearsheet.plot_results()
 
 
