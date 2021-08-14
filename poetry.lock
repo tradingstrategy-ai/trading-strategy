@@ -238,7 +238,7 @@ beautifulsoup4 = "*"
 
 [[package]]
 name = "ccxt"
-version = "1.54.87"
+version = "1.54.93"
 description = "A JavaScript / Python / PHP cryptocurrency trading library with support for 130+ exchanges"
 category = "main"
 optional = false
@@ -636,7 +636,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "importlib-metadata"
-version = "4.6.3"
+version = "4.6.4"
 description = "Read metadata from Python packages"
 category = "main"
 optional = false
@@ -1280,7 +1280,7 @@ test = ["appdirs (==1.4.4)", "pytest (>=6)", "pytest-cov (>=2.7)", "pytest-mock 
 
 [[package]]
 name = "plotly"
-version = "5.1.0"
+version = "5.2.1"
 description = "An open-source, interactive data visualization library for Python"
 category = "main"
 optional = false
@@ -1556,11 +1556,11 @@ py = {version = "*", markers = "implementation_name == \"pypy\""}
 [[package]]
 name = "qstrader"
 version = "0.2.2"
-description = ""
+description = "QSTrader backtesting simulation engine"
 category = "main"
 optional = false
 python-versions = "*"
-develop = false
+develop = true
 
 [package.dependencies]
 Click = ">=7.1.2"
@@ -1570,10 +1570,8 @@ pandas = ">=1.1.5"
 seaborn = ">=0.10.1"
 
 [package.source]
-type = "git"
-url = "https://github.com/miohtama/qstrader"
-reference = "c2752016e825023054dc854c5d0b139d75e0cf2f"
-resolved_reference = "c2752016e825023054dc854c5d0b139d75e0cf2f"
+type = "directory"
+url = "../code/qstrader"
 
 [[package]]
 name = "regex"
@@ -1692,7 +1690,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "Sphinx"
-version = "4.2.0.dev20210813.dev-20210813"
+version = "4.2.0.dev20210814.dev-20210814"
 description = "Python documentation generator"
 category = "dev"
 optional = false
@@ -2096,7 +2094,7 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.2"
-content-hash = "9bff93c5c337b074b3417f532f1f0cb2fd8401dcc459f19d4192139e7ba78699"
+content-hash = "cb4468140bc0f07763a1695730dbe1ff15d1b3deb5a5135ff3b540c35d6bbe6a"
 
 [metadata.files]
 aiodns = [
@@ -2228,8 +2226,8 @@ bs4 = [
     {file = "bs4-0.0.1.tar.gz", hash = "sha256:36ecea1fd7cc5c0c6e4a1ff075df26d50da647b75376626cc186e2212886dd3a"},
 ]
 ccxt = [
-    {file = "ccxt-1.54.87-py2.py3-none-any.whl", hash = "sha256:2b88b275b16cd696397aec142c9697bc84f6e557f8ae7f3cd7ab0e907f157aa8"},
-    {file = "ccxt-1.54.87.tar.gz", hash = "sha256:18b86ea9d990b0e82d999c0ccb9c49d54bdc943cece5bec00b5e7c3051ec5a87"},
+    {file = "ccxt-1.54.93-py2.py3-none-any.whl", hash = "sha256:d481ed799391d216faaa9f84195de5a064d5497063c72076f8eb37f4384a674e"},
+    {file = "ccxt-1.54.93.tar.gz", hash = "sha256:c56979952a758d18e188dd06edad64b8fe054e08b80d3d10c1c54719cf395b07"},
 ]
 certifi = [
     {file = "certifi-2021.5.30-py2.py3-none-any.whl", hash = "sha256:50b1e4f8446b06f41be7dd6338db18e0990601dce795c2b1686458aa7e8fa7d8"},
@@ -2460,8 +2458,8 @@ imagesize = [
     {file = "imagesize-1.2.0.tar.gz", hash = "sha256:b1f6b5a4eab1f73479a50fb79fcf729514a900c341d8503d62a62dbc4127a2b1"},
 ]
 importlib-metadata = [
-    {file = "importlib_metadata-4.6.3-py3-none-any.whl", hash = "sha256:51c6635429c77cf1ae634c997ff9e53ca3438b495f10a55ba28594dd69764a8b"},
-    {file = "importlib_metadata-4.6.3.tar.gz", hash = "sha256:0645585859e9a6689c523927a5032f2ba5919f1f7d0e84bd4533312320de1ff9"},
+    {file = "importlib_metadata-4.6.4-py3-none-any.whl", hash = "sha256:ed5157fef23a4bc4594615a0dd8eba94b2bb36bf2a343fa3d8bb2fa0a62a99d5"},
+    {file = "importlib_metadata-4.6.4.tar.gz", hash = "sha256:7b30a78db2922d78a6f47fb30683156a14f3c6aa5cc23f77cc8967e9ab2d002f"},
 ]
 ipdb = [
     {file = "ipdb-0.13.9.tar.gz", hash = "sha256:951bd9a64731c444fd907a5ce268543020086a697f6be08f7cc2c9a752a278c5"},
@@ -2889,8 +2887,8 @@ platformdirs = [
     {file = "platformdirs-2.2.0.tar.gz", hash = "sha256:632daad3ab546bd8e6af0537d09805cec458dce201bccfe23012df73332e181e"},
 ]
 plotly = [
-    {file = "plotly-5.1.0-py2.py3-none-any.whl", hash = "sha256:d60412ee21d85102f67e5c7134d59feb5e42a5cbbfb1e580ad67cbdf7589d80c"},
-    {file = "plotly-5.1.0.tar.gz", hash = "sha256:71f6744acdc524c22236c226d7cf1072d1a58ebacaf749c640998298472c8c44"},
+    {file = "plotly-5.2.1-py2.py3-none-any.whl", hash = "sha256:bf7c8123541a2c6579c309561a8e1058c129434c67419651efbdc4922b11da8f"},
+    {file = "plotly-5.2.1.tar.gz", hash = "sha256:1575c34f87313818fc109a3d3326f2b91363d049c1e80cbf68561c8df24fb47c"},
 ]
 pluggy = [
     {file = "pluggy-0.13.1-py2.py3-none-any.whl", hash = "sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d"},
