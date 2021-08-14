@@ -184,7 +184,7 @@ class DEXPair:
             exchange_name = exchange.name
         else:
             exchange_name = f"Exchange #{self.exchange_id}"
-        return f"{self.base_token_symbol} - {self.quote_token_symbol} on {exchange_name}"
+        return f"{self.base_token_symbol} - {self.quote_token_symbol}, pair #{self.pair_id} on {exchange_name}"
 
     def __json__(self, request):
         """Pyramid JSON renderer compatibility.

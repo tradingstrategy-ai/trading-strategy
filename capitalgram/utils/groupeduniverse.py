@@ -1,8 +1,12 @@
-from typing import Optional, Tuple, Iterable
+import logging
+from typing import Optional, Tuple, Iterable, Dict
 
 import pandas as pd
 
 from capitalgram.types import PrimaryKey
+
+
+logger = logging.getLogger(__name__)
 
 
 class PairGroupedUniverse:
@@ -14,10 +18,14 @@ class PairGroupedUniverse:
     recompile the data on the client side.
     """
 
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, df: pd.DataFrame, timestamp_column="timestamp"):
         assert isinstance(df, pd.DataFrame)
         self.df = df
         self.pairs: pd.GroupBy = df.groupby(["pair_id"])
+
+    def get_columns(self) -> pd.Index:
+        """Get column names from the underlying pandas.GroupBy object"""
+        return self.pairs.obj.columns
 
     def get_sample_count(self) -> int:
         """Return the dataset size - how many samples total for all pairs"""
@@ -33,10 +41,7 @@ class PairGroupedUniverse:
         After the samples have been extracted, set `timestamp` as the index for the data.
         """
         pair = self.pairs.get_group(pair_id)
-        if pair is not None:
-            pair = pair.set_index(pair["timestamp"])
-            return pair
-        return None
+        return pair
 
     def get_all_pairs(self) -> Iterable[Tuple[PrimaryKey, pd.DataFrame]]:
         """Go through all liquidity samples, one DataFrame per trading pair."""

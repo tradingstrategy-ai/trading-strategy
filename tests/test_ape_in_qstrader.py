@@ -1,7 +1,9 @@
 """QSTrader ape-in strategy test."""
+import cProfile
 import datetime
 import logging
 import os
+from pstats import Stats
 from typing import Dict
 
 import pandas as pd
@@ -20,7 +22,7 @@ from qstrader.statistics.tearsheet import TearsheetStatistics
 from qstrader.trading.backtest import BacktestTradingSession
 
 from capitalgram.chain import ChainId
-from capitalgram.frameworks.qstrader import DEXAsset, prepare_candles_for_qstrader
+from capitalgram.frameworks.qstrader import DEXAsset, prepare_candles_for_qstrader, CapitalgramDataSource
 from capitalgram.liquidity import GroupedLiquidityUniverse
 from capitalgram.pair import PandasPairUniverse, DEXPair
 from capitalgram.timebucket import TimeBucket
@@ -63,6 +65,8 @@ def update_pair_liquidity_threshold(
     ts = pd.Timestamp(now_.date())
 
     for pair_id in pair_universe.get_all_pair_ids():
+
+        # Skip pairs we know reached liquidity threshold earlier
         if pair_id not in reached_state:
             # Get the todays liquidity
             liquidity_samples = liquidity_universe.get_samples_by_pair(pair_id)
@@ -101,6 +105,7 @@ class LiquidityThresholdReachedAlphaModel(AlphaModel):
             candle_universe: GroupedCandleUniverse,
             liquidity_universe: GroupedLiquidityUniverse,
             min_liquidity=500_000,
+            max_assets_per_portfolio=5,
             data_handler=None
     ):
         self.exchange_universe = exchange_universe
@@ -109,7 +114,47 @@ class LiquidityThresholdReachedAlphaModel(AlphaModel):
         self.liquidity_universe = liquidity_universe
         self.data_handler = data_handler
         self.min_liquidity = min_liquidity
+        self.max_assets_per_portfolio = max_assets_per_portfolio
         self.liquidity_reached_state = {}
+
+    def construct_shopping_basked(self, dt: pd.Timestamp, new_entries: dict) -> Dict[int, float]:
+        """Construct a pair id """
+
+        # Sort entire by volume
+        sorted_by_volume = sorted(new_entries.items(), key=lambda x: x[1], reverse=True)
+
+        # Weight all entries equally based on our maximum N entries size
+        pick_count = min(len(sorted_by_volume), self.max_assets_per_portfolio)
+
+        ts = pd.Timestamp(dt.date())
+
+        if pick_count:
+            weight = 1.0 / pick_count
+            picked = {}
+            for i in range(pick_count):
+                pair_id, vol = sorted_by_volume[i]
+
+                # An asset may have liquidity added, but not a single trade yet (EURS-USDC on 2020-10-1)
+                # Ignore them, because we cannot backtest something with no OHLCV data
+                candles = self.candle_universe.get_candles_by_pair(pair_id)
+
+                # Note daily bars here, not open-close bars as internally used by QSTrader
+                if ts not in candles["Close"]:
+                    name = self.translate_pair(pair_id)
+                    logger.warning("Tried to trade too early %s at %s", name, ts)
+                    continue
+
+                picked[pair_id] = weight
+
+            return picked
+
+        # No new feasible assets today
+        return {}
+
+    def translate_pair(self, pair_id: int) -> str:
+        """Make pari ids human readable for logging."""
+        pair_info = self.pair_universe.get_pair_by_id(pair_id)
+        return pair_info.get_friendly_name(self.exchange_universe)
 
     def __call__(self, dt) -> Dict[int, float]:
         """
@@ -137,10 +182,16 @@ class LiquidityThresholdReachedAlphaModel(AlphaModel):
             self.pair_universe,
             self.liquidity_universe
         )
+        logger.debug("New entries coming to the market %zs %s", dt, new_entries)
+        picked = self.construct_shopping_basked(dt, new_entries)
 
-        logger.info("Got data %s %s", dt, new_entries)
-
-        return {}
+        if picked:
+            logger.info("On day %s our picks are", dt)
+            for pair_id, weight in picked.items():
+                logger.info("    %s: %f", self.translate_pair(pair_id), weight)
+        else:
+            logger.info("On day %s there is nothing new interesting at the markets", dt)
+        return picked
 
 
 def test_qstrader_ape_in(persistent_test_client):
@@ -157,8 +208,10 @@ def test_qstrader_ape_in(persistent_test_client):
     filtered_pairs = prefilter_pairs(columnar_pair_table.to_pandas())
 
     # We limit candles to a specific date range to make this notebook deterministic
-    start = pd.Timestamp('2020-10-01 14:30:00', tz=pytz.UTC)
-    end = pd.Timestamp('2021-07-01 23:59:00', tz=pytz.UTC)
+    # start = pd.Timestamp('2020-10-01 14:30:00', tz=pytz.UTC)
+    # end = pd.Timestamp('2021-07-01 23:59:00', tz=pytz.UTC)
+    start = pd.Timestamp('2020-10-01 14:30:00')
+    end = pd.Timestamp('2021-07-01 23:59:00')
 
     # Make the trading pair data easily accessible
     pair_universe = PandasPairUniverse(filtered_pairs)
@@ -167,10 +220,11 @@ def test_qstrader_ape_in(persistent_test_client):
     # Get daily candles as Pandas DataFrame
     all_candles = client.fetch_all_candles(TimeBucket.d1).to_pandas()
     all_candles = all_candles.loc[all_candles["pair_id"].isin(wanted_pair_ids)]
-    candle_universe = GroupedCandleUniverse(prepare_candles_for_qstrader(all_candles))
+    candle_universe = GroupedCandleUniverse(prepare_candles_for_qstrader(all_candles), timestamp_column="Date")
 
     all_liquidity = client.fetch_all_liquidity_samples(TimeBucket.d1).to_pandas()
     all_liquidity = all_liquidity.loc[all_liquidity["pair_id"].isin(wanted_pair_ids)]
+    all_liquidity = all_liquidity.set_index(all_liquidity["timestamp"])
     liquidity_universe = GroupedLiquidityUniverse(all_liquidity)
 
     logger.info("Starting the strategy. We have %d pairs, %d candles, %d liquidity samples",
@@ -178,14 +232,11 @@ def test_qstrader_ape_in(persistent_test_client):
                 candle_universe.get_candle_count(),
                 liquidity_universe.get_sample_count())
 
-    asset_bar_frames = {pair_id: df for pair_id, df in candle_universe.get_all_pairs()}
+    data_source = CapitalgramDataSource(exchange_universe, pair_universe, candle_universe)
 
-    strategy_assets = list(asset_bar_frames.keys())
+    strategy_assets = list(data_source.asset_bar_frames.keys())
     strategy_universe = StaticUniverse(strategy_assets)
 
-    # To avoid loading all CSV files in the directory, set the
-    # data source to load only those provided symbols
-    data_source = DataframeDailyBarDataSource(asset_bar_frames, DEXAsset)
     data_handler = BacktestDataHandler(strategy_universe, data_sources=[data_source])
 
     # Construct an Alpha Model that simply provides a fixed
@@ -197,21 +248,34 @@ def test_qstrader_ape_in(persistent_test_client):
         candle_universe,
         liquidity_universe)
 
+    # Start strategy with $10k
     strategy_backtest = BacktestTradingSession(
         start,
         end,
         strategy_universe,
         strategy_alpha_model,
+        initial_cash=10_000,
         rebalance='daily',
         long_only=True,
-        cash_buffer_percentage=0.01,
+        cash_buffer_percentage=0.25,
         data_handler=data_handler
     )
+    logger.info("Running the strategy")
+
     strategy_backtest.run()
+
+    # pr = cProfile.Profile()
+    # pr.enable()
+    # try:
+    #     strategy_backtest.run()
+    # finally:
+    #     pr.disable()
+    #     stats = Stats(pr)
+    #     stats.sort_stats('cumtime').print_stats(50)
 
     # Performance Output
     tearsheet = TearsheetStatistics(
         strategy_equity=strategy_backtest.get_equity_curve(),
         title=f'Ape in the latest'
     )
-    # tearsheet.plot_results()
+    tearsheet.plot_results()

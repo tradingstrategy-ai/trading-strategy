@@ -183,8 +183,9 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
     def get_candle_count(self) -> int:
         """Return the dataset size - how many candles total"""
-        return self.get_pair_count()
+        return self.get_sample_count()
 
     def get_candles_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
         """Get candles for a single pair."""
         return self.get_samples_by_pair(pair_id)
+
