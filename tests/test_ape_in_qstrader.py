@@ -258,20 +258,14 @@ def test_qstrader_ape_in(persistent_test_client):
         rebalance='daily',
         long_only=True,
         cash_buffer_percentage=0.25,
-        data_handler=data_handler
+        data_handler=data_handler,
+        # Chop off the first day from the strategy, as the first day
+        # will report all existing Uniswap pairs as "new"
+        burn_in_dt=start - datetime.timedelta(days=2)
     )
     logger.info("Running the strategy")
 
     strategy_backtest.run()
-
-    # pr = cProfile.Profile()
-    # pr.enable()
-    # try:
-    #     strategy_backtest.run()
-    # finally:
-    #     pr.disable()
-    #     stats = Stats(pr)
-    #     stats.sort_stats('cumtime').print_stats(50)
 
     # Performance Output
     tearsheet = TearsheetStatistics(
