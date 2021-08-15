@@ -1,9 +1,12 @@
 import logging
 import functools
+from typing import List
 
 import pytz
 import pandas as pd
 import numpy as np
+
+from capitalgram.analysis.tradeanalyzer import AssetTradeHistory, SpotTrade, TradeAnalyzer
 from qstrader import settings
 from qstrader.asset.asset import Asset
 
@@ -11,6 +14,8 @@ from qstrader.asset.asset import Asset
 from capitalgram.candle import GroupedCandleUniverse
 from capitalgram.exchange import ExchangeUniverse
 from capitalgram.pair import DEXPair, PairUniverse, PandasPairUniverse
+from qstrader.broker.portfolio.portfolio_event import PortfolioEvent
+from qstrader.broker.transaction.transaction import Transaction
 
 logger = logging.getLogger(__name__)
 
@@ -235,3 +240,31 @@ class CapitalgramDataSource:
         prices_df = prices_df.loc[start_dt:end_dt]
         return prices_df
 
+
+def analyse_portfolio(events: List[PortfolioEvent]) -> TradeAnalyzer:
+    """Build a trade analyzer from QSTrader portfolio events."""
+    histories = {}
+
+    for e in events:
+        txn: Transaction = e.txn
+
+        # Portfolio generates multiple prevents, but transaction is only present in buys and sells
+        if txn:
+            pair_id = txn.asset
+            assert type(pair_id) == int
+            history = histories.get(pair_id)
+            if not history:
+                history = histories[pair_id] = AssetTradeHistory()
+
+            trade = SpotTrade(
+                timestamp=txn.dt,
+                price=txn.price,
+                quantity=txn.quantity,
+                commission=0,
+                slippage=0,
+            )
+            assert txn.quantity
+            assert txn.price
+            history.add_trade(trade)
+
+    return TradeAnalyzer(asset_histories=histories)

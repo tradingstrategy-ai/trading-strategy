@@ -8,9 +8,13 @@ from typing import Dict
 
 import pandas as pd
 import pytz
+from IPython.core.display import display
 
+from capitalgram.analysis.tradeanalyzer import expand_timeline
 from capitalgram.candle import GroupedCandleUniverse
 from capitalgram.exchange import ExchangeUniverse
+
+from capitalgram.frameworks.qstrader import analyse_portfolio
 from qstrader.alpha_model.alpha_model import AlphaModel
 from qstrader.alpha_model.fixed_signals import FixedSignalsAlphaModel
 from qstrader.asset.equity import Equity
@@ -208,10 +212,9 @@ def test_qstrader_ape_in(persistent_test_client):
     filtered_pairs = prefilter_pairs(columnar_pair_table.to_pandas())
 
     # We limit candles to a specific date range to make this notebook deterministic
-    # start = pd.Timestamp('2020-10-01 14:30:00', tz=pytz.UTC)
-    # end = pd.Timestamp('2021-07-01 23:59:00', tz=pytz.UTC)
-    start = pd.Timestamp('2020-10-01 14:30:00')
-    end = pd.Timestamp('2021-07-01 23:59:00')
+    # To make the test run wall clock time shorter, we only do one month sample
+    start = pd.Timestamp('2021-01-01 14:30:00')
+    end = pd.Timestamp('2021-01-07 23:59:00')
 
     # Make the trading pair data easily accessible
     pair_universe = PandasPairUniverse(filtered_pairs)
@@ -267,9 +270,32 @@ def test_qstrader_ape_in(persistent_test_client):
 
     strategy_backtest.run()
 
+    portfolio = strategy_backtest.broker.portfolios["000001"]
+    trade_analysis = analyse_portfolio(portfolio.history)
+
+    timeline = trade_analysis.create_timeline()
+    expanded_timeline = expand_timeline(exchange_universe, pair_universe, timeline)
+    display(expanded_timeline)
+    import ipdb ; ipdb.set_trace()
+
+    summary = trade_analysis.calculate_summary_statistics()
+
+    print(summary)
+    import ipdb ; ipdb.set_trace()
+
+    # Though the result can be somewhat random,
+    # assume we have done at least one winning and one losing trade
+    assert summary.won > 0
+    assert summary.lost > 0
+    assert -10000 < summary.realised_profit < 100_000
+
+    # Check the time range makes sense
+    assert trade_analysis.get_first_opened_at().date() == start.date()
+    assert trade_analysis.get_last_closed_at().date() == end.date() - datetime.timedelta(days=1)
+
     # Performance Output
     tearsheet = TearsheetStatistics(
         strategy_equity=strategy_backtest.get_equity_curve(),
         title=f'Ape in the latest'
     )
-    tearsheet.plot_results()
+    # tearsheet.plot_results()
