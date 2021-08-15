@@ -276,22 +276,20 @@ def test_qstrader_ape_in(persistent_test_client):
     timeline = trade_analysis.create_timeline()
     expanded_timeline = expand_timeline(exchange_universe, pair_universe, timeline)
     display(expanded_timeline)
-    import ipdb ; ipdb.set_trace()
 
     summary = trade_analysis.calculate_summary_statistics()
-
-    print(summary)
-    import ipdb ; ipdb.set_trace()
 
     # Though the result can be somewhat random,
     # assume we have done at least one winning and one losing trade
     assert summary.won > 0
     assert summary.lost > 0
-    assert -10000 < summary.realised_profit < 100_000
+    assert summary.undecided == 5, "We should have five trades open at the end of the backtest"
+    assert -10000 < summary.realised_profit < 1_000_000
 
     # Check the time range makes sense
-    assert trade_analysis.get_first_opened_at().date() == start.date()
-    assert trade_analysis.get_last_closed_at().date() == end.date() - datetime.timedelta(days=1)
+    # 3 days burn in
+    assert trade_analysis.get_first_opened_at().date() == start.date() + datetime.timedelta(days=3)
+    assert trade_analysis.get_last_closed_at().date() == end.date()
 
     # Performance Output
     tearsheet = TearsheetStatistics(

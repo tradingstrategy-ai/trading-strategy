@@ -5,6 +5,7 @@ Unlike Backtrader, this one is good for multiasset portfolio analysis.
 """
 
 import datetime
+import enum
 from dataclasses import dataclass, field
 from typing import List, Dict, Iterable, Optional
 
@@ -73,6 +74,26 @@ class TradePosition:
     @property
     def open_value(self) -> float:
         return sum([t.value for t in self.trades])
+
+    @property
+    def open_price(self) -> float:
+        """At what price we opened this position.
+
+        Supports only simple enter/exit positions.
+        """
+        buys = list(self.buys)
+        assert len(buys) == 1
+        return buys[0].price
+
+    @property
+    def close_price(self) -> float:
+        """At what price we opened this position.
+
+        Supports only simple enter/exit positions.
+        """
+        sells = list(self.sells)
+        assert len(sells) == 1
+        return sells[0].price
 
     @property
     def buys(self) -> Iterable[SpotTrade]:
@@ -188,11 +209,28 @@ class TradeSummary:
 
 
 
+class TimelineEventType(enum.Enum):
+    """Currently supporting only spot open and close, no incremental events."""
+    open = "open"
+    close = "cloes"
+
+
 @dataclass
 class TimelineEvent:
     pair_id: PrimaryKey
     position: TradePosition
-    closed: bool
+    type: TimelineEventType
+
+    @property
+    def price(self):
+        """The price on which this event happened.
+
+        If open (enter) then the buy price. If close (exit) then the sell price.
+        """
+        if self.type == TimelineEventType.open:
+            return self.position.open_price
+        else:
+            return self.position.close_price
 
 
 @dataclass
@@ -270,7 +308,7 @@ class TradeAnalyzer:
                     open_event = TimelineEvent(
                         pair_id=pair_id,
                         position=position,
-                        closed=False,
+                        type=TimelineEventType.open,
                     )
                     yield (position.opened_at, open_event)
 
@@ -279,7 +317,7 @@ class TradeAnalyzer:
                         close_event = TimelineEvent(
                             pair_id=pair_id,
                             position=position,
-                            closed=True,
+                            type=TimelineEventType.close,
                         )
                         yield (position.closed_at, close_event)
 
@@ -310,12 +348,14 @@ def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PairUniv
             "exchange": exchange.name,
             "base": pair_info.base_token_symbol,
             "quote": pair_info.quote_token_symbol,
+            "price": tle.price,
         }
-        if tle.closed:
+        if tle.type == TimelineEventType.close:
             r["event"] = "Closed"
             r["profit"] = tle.position.realised_profit
             r["profit_pct"] = tle.position.realised_profit_percent
             r["closed_value"] = tle.position.sell_value
+            r["price"] = tle.position.close_price
             if tle.position.is_win():
                 r["won"] = 1
             else:
@@ -323,6 +363,7 @@ def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PairUniv
         else:
             r["event"] = "Opened"
             r["opened_value"] = tle.position.buy_value
+            r["price"] = tle.position.open_price
         return r
 
     applied_df = timeline.apply(expander, axis='columns', result_type='expand')
