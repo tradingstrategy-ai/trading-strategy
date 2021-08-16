@@ -12,7 +12,7 @@ from typing import List, Dict, Iterable, Optional
 import pandas as pd
 
 from capitalgram.exchange import ExchangeUniverse
-from capitalgram.pair import PairUniverse
+from capitalgram.pair import PairUniverse, PandasPairUniverse
 from capitalgram.types import PrimaryKey, USDollarAmount
 
 
@@ -326,7 +326,7 @@ class TradeAnalyzer:
         return df
 
 
-def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PairUniverse, timeline: pd.DataFrame) -> pd.DataFrame:
+def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PandasPairUniverse, timeline: pd.DataFrame) -> pd.DataFrame:
     """Expand trade history timeline to human readable table.
 
     This will the outputting much easier in Python Notebooks.

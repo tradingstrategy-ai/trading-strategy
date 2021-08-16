@@ -8,6 +8,7 @@ from typing import Dict
 
 import pandas as pd
 import pytz
+from tqdm import tqdm
 from IPython.core.display import display
 
 from capitalgram.analysis.tradeanalyzer import expand_timeline
@@ -22,6 +23,8 @@ from qstrader.asset.universe.static import StaticUniverse
 from qstrader.data.backtest_data_handler import BacktestDataHandler
 from qstrader.data.daily_bar_csv import CSVDailyBarDataSource
 from qstrader.data.daily_bar_dataframe import DataframeDailyBarDataSource
+from qstrader.simulation.event import SimulationEvent
+from qstrader.simulation.everyday import EverydaySimulationEngine
 from qstrader.statistics.tearsheet import TearsheetStatistics
 from qstrader.trading.backtest import BacktestTradingSession
 
@@ -264,11 +267,22 @@ def test_qstrader_ape_in(persistent_test_client):
         data_handler=data_handler,
         # Chop off the first day from the strategy, as the first day
         # will report all existing Uniswap pairs as "new"
-        burn_in_dt=start - datetime.timedelta(days=2)
+        burn_in_dt=start - datetime.timedelta(days=2),
+        simulation_engine=EverydaySimulationEngine(start, end)
     )
     logger.info("Running the strategy")
 
-    strategy_backtest.run()
+    all_simulation_events = strategy_backtest.fetch_simulation_events()
+
+    # Run the test with a nice progress bar
+    with tqdm(total=len(all_simulation_events)) as progress_bar:
+        def progress_callback(idx, evt: SimulationEvent):
+            progress_bar.display(pos=idx, msg=evt.event_type)
+
+        strategy_backtest.run(progress_callback=progress_callback)
+
+    assert strategy_backtest.events_simulated == 28
+    assert strategy_backtest.rebalances == 5  # One week minus days burn in
 
     portfolio = strategy_backtest.broker.portfolios["000001"]
     trade_analysis = analyse_portfolio(portfolio.history)
