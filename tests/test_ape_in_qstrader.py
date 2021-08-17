@@ -317,4 +317,4 @@ def test_qstrader_ape_in(persistent_test_client):
         strategy_equity=strategy_backtest.get_equity_curve(),
         title=f'Ape in the latest'
     )
-    # tearsheet.plot_results()
+    tearsheet.plot_results()
