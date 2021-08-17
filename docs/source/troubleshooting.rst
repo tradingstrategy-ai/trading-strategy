@@ -22,7 +22,7 @@ Downloaded files might get corrupted e.g. due to partial download.
 
 You can see a message like:
 
-.. code-block:: txt
+.. code-block:: none
 
     OSError: Could not open parquet input source '<Buffer>': Invalid: Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.
 
