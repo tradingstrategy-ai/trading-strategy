@@ -4,15 +4,18 @@ A simplified trade analysis that only understands spots buys and sells, not marg
 Unlike Backtrader, this one is good for multiasset portfolio analysis.
 """
 
-import enum
-from dataclasses import dataclass, field
-from typing import List, Dict, Iterable, Optional, Tuple
 
+from dataclasses import dataclass, field
+from typing import List, Dict, Iterable, Optional, Tuple, Callable
+
+import numpy as np
 import pandas as pd
+from pandas.io.formats.style import Styler
 
 from capitalgram.exchange import ExchangeUniverse
 from capitalgram.pair import PairUniverse, PandasPairUniverse
 from capitalgram.types import PrimaryKey, USDollarAmount
+from capitalgram.utils.format import format_value, format_percent, format_price
 from capitalgram.utils.summarydataframe import as_dollar, as_integer, create_summary_table, as_percent
 
 
@@ -22,10 +25,26 @@ class SpotTrade:
 
     For sells, quantity is negative.
     """
+
+    #: Internal running counter to uniquely label all trades in trade analysis
+    trade_id: PrimaryKey
+
+    #: Trading pair for this trade
+    pair_id: PrimaryKey
+
+    #: When this trade was made, the backtes simulation thick
     timestamp: pd.Timestamp
+
+    #: Asset price at buy in
     price: USDollarAmount
+
+    #: How much we bought the asset
     quantity: float
+
+    #: How much fees we paid to the exchange
     commission: USDollarAmount
+
+    #: How much we lost against the midprice due to the slippage
     slippage: USDollarAmount
 
     def is_buy(self):
@@ -51,21 +70,44 @@ class TradePosition:
 
     * Exit (sell optionally)
     """
+
+    #: List of all trades done for this position
     trades: List[SpotTrade] = field(default_factory=list)
 
     #: Closing the position could be deducted from the trades themselves,
     #: but we cache it by hand to speed up processing
+    opened_at: Optional[pd.Timestamp] = None
+
+    #: Closing the position could be deducted from the trades themselves,
+    #: but we cache it by hand to speed up processing
     closed_at: Optional[pd.Timestamp] = None
+
+    def __eq__(self, other: "TradePosition"):
+        """Trade positions are unique by opening timestamp and pair id.]
+
+        We assume there cannot be a position opened for the same asset at the same time twice.
+        """
+        return self.position_id == other.position_id
+
+    def __hash__(self):
+        """Allows easily create index (hash map) of all positions"""
+        return hash((self.position_id))
+
+    @property
+    def position_id(self) -> PrimaryKey:
+        """Position id is the same as the opening trade id."""
+        return self.trades[0].trade_id
+
+    @property
+    def pair_id(self) -> PrimaryKey:
+        """Position id is the same as the opening trade id."""
+        return self.trades[0].pair_id
 
     def is_open(self):
         return self.closed_at is None
 
     def is_closed(self):
         return not self.is_open()
-
-    @property
-    def opened_at(self) -> pd.Timestamp:
-        return self.trades[0].timestamp
 
     @property
     def open_quantity(self) -> float:
@@ -136,7 +178,7 @@ class TradePosition:
         assert not self.is_open()
         return self.realised_profit < 0
 
-    def add_trade(self, t):
+    def add_trade(self, t: SpotTrade):
         if self.trades:
             last_trade = self.trades[-1]
             assert t.timestamp > last_trade.timestamp, f"Tried to do trades in wrong order. Last: {last_trade}, got {t}"
@@ -195,7 +237,7 @@ class AssetTradeHistory:
                 current_position.add_trade(t)
         else:
             # Open new position
-            new_position = TradePosition()
+            new_position = TradePosition(opened_at=t.timestamp)
             new_position.add_trade(t)
             self.positions.append(new_position)
 
@@ -229,30 +271,6 @@ class TradeSummary:
             "Cash left at the end": as_dollar(self.uninvested_cash),
         }
         return create_summary_table(human_data)
-
-
-class TimelineEventType(enum.Enum):
-    """Currently supporting only spot open and close, no incremental events."""
-    open = "open"
-    close = "close"
-
-
-@dataclass
-class TimelineEvent:
-    pair_id: PrimaryKey
-    position: TradePosition
-    type: TimelineEventType
-
-    @property
-    def price(self):
-        """The price on which this event happened.
-
-        If open (enter) then the buy price. If close (exit) then the sell price.
-        """
-        if self.type == TimelineEventType.open:
-            return self.position.open_price
-        else:
-            return self.position.close_price
 
 
 @dataclass
@@ -331,105 +349,71 @@ class TradeAnalyzer:
         :return: DataFrame with timestamp and timeline_event columns
         """
 
-        # https://stackoverflow.com/questions/42999332/fastest-way-to-convert-python-iterator-output-to-pandas-dataframe
         def gen_events():
-            """Generate data for the dataframe.
+            for pair_id, position in self.get_all_positions():
+                yield (position.position_id, position)
 
-            Use Python generators to dynamically fill Pandas dataframe.
-            Each dataframe gets timestamp, timeline_event columns.
-            """
-            for pair_id, history in self.asset_histories.items():
-                for position in history.positions:
-                    open_event = TimelineEvent(
-                        pair_id=pair_id,
-                        position=position,
-                        type=TimelineEventType.open,
-                    )
-                    yield (position.opened_at, open_event)
-
-                    # If position is closed generated two events
-                    if position.is_closed():
-                        close_event = TimelineEvent(
-                            pair_id=pair_id,
-                            position=position,
-                            type=TimelineEventType.close,
-                        )
-                        yield (position.closed_at, close_event)
-
-        df = pd.DataFrame(gen_events(), columns=["timestamp", "timeline_event"])
-        df = df.set_index(["timestamp"])
+        df = pd.DataFrame(gen_events(), columns=["position_id", "position"])
         return df
 
 
-def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PandasPairUniverse, timeline: pd.DataFrame) -> pd.DataFrame:
+def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PandasPairUniverse, timeline: pd.DataFrame) -> Tuple[pd.DataFrame, Callable]:
     """Expand trade history timeline to human readable table.
 
     This will the outputting much easier in Python Notebooks.
 
     Currently does not incrementing/decreasing positions gradually.
 
-    :return: DataFrame with human readable position win/loss information, having DF indexed by timestamps
+    Instaqd of applying styles or returning a styled dataframe, we return a callable that applies the styles.
+    This is because of Pandas issue https://github.com/pandas-dev/pandas/issues/40675 - hidden indexes, columns,
+    etc. are not exported.
+
+    :return: DataFrame with human readable position win/loss information, having DF indexed by timestamps and a styler function
     """
 
     # https://stackoverflow.com/a/52363890/315168
     def expander(row):
-        tle: TimelineEvent = row["timeline_event"]
+        position: TradePosition = row["position"]
         # timestamp = row.name  # ???
-        pair_id = tle.pair_id
+        pair_id = position.pair_id
         pair_info = pair_universe.get_pair_by_id(pair_id)
         exchange = exchange_universe.get_by_id(pair_info.exchange_id)
         r = {
             # "timestamp": timestamp,
+            "Id": position.position_id,
+            "Opened at": position.opened_at,
             "Exchange": exchange.name,
-            "Base": pair_info.base_token_symbol,
-            "Quote": pair_info.quote_token_symbol,
-            "Price": tle.price,
+            "Base asset": pair_info.base_token_symbol,
+            "Quote asset": pair_info.quote_token_symbol,
+            "PnL USD": format_value(position.realised_profit) if position.is_closed() else np.nan,
+            "PnL %": format_percent(position.realised_profit_percent) if position.is_closed() else np.nan,
+            "PnL % raw": position.realised_profit_percent if position.is_closed() else 0,
+            "Open price USD": format_price(position.open_price),
+            "Close price USD": format_price(position.close_price) if position.is_closed() else np.nan,
         }
-        if tle.type == TimelineEventType.close:
-            # r["Event"] = "Closed"
-            r["PnL"] = tle.position.realised_profit
-            r["PnL %"] = tle.position.realised_profit_percent
-            r["Closed value"] = tle.position.sell_value
-            r["Price"] = tle.position.close_price
-            if tle.position.is_win():
-                r["won"] = 1
-            else:
-                r["lost"] = 1
-        else:
-            # r["Event"] = "Opened"
-            r["Open value"] = tle.position.buy_value
-            r["Price"] = tle.position.open_price
         return r
 
     applied_df = timeline.apply(expander, axis='columns', result_type='expand')
 
     # https://stackoverflow.com/a/52720936/315168
     applied_df\
-        .rename_axis('timestamp')\
-        .sort_values(by=['timestamp'], ascending=[True], inplace=True)
+        .sort_values(by=['Id'], ascending=[True], inplace=True)
 
     # Get rid of NaN labels
     # https://stackoverflow.com/a/28390992/315168
     applied_df.fillna('', inplace=True)
 
-    # Dynamically color the background of trade outcome colun
-    # https://stackoverflow.com/a/66812259/315168
-    def highlight_trade_outcome(col):
-        return ['background-color: red' if val < 0 else 'background-color: green' for val in col]
+    def apply_styles(df: pd.DataFrame):
+        # Create a Pandas Styler with multiple styling options applied
+        # Dynamically color the background of trade outcome coluns # https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.background_gradient.html
+        return df.style\
+            .hide_index()\
+            .hide_columns(["Id", "PnL % raw"])\
+            .background_gradient(
+                axis=0,
+                gmap=applied_df['PnL % raw'],
+                cmap='RdYlGn',
+                vmin=-1,  # We can only lose 100% of our money on position
+                vmax=1)  # 50% profit is 21.5 position. Assume this is the max success color we can hit over
 
-    # https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.background_gradient.html
-    applied_df.style.background_gradient(
-        axis=0,
-        gmap=applied_df['PnL %'],
-        cmap='YlOrRd',
-        vmin=-1,  # We can only lose 100% of our money on position
-        vmax=0.5)  # 50% profit is 21.5 position. Assume this is the max success color we can hit over
-
-    return applied_df
-
-
-
-
-
-
-
+    return applied_df, apply_styles

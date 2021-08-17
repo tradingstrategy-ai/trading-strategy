@@ -245,6 +245,8 @@ def analyse_portfolio(events: List[PortfolioEvent]) -> TradeAnalyzer:
     """Build a trade analyzer from QSTrader portfolio events."""
     histories = {}
 
+    trade_id = 1
+
     for e in events:
         txn: Transaction = e.txn
 
@@ -257,6 +259,8 @@ def analyse_portfolio(events: List[PortfolioEvent]) -> TradeAnalyzer:
                 history = histories[pair_id] = AssetTradeHistory()
 
             trade = SpotTrade(
+                pair_id=pair_id,
+                trade_id=trade_id,
                 timestamp=txn.dt,
                 price=txn.price,
                 quantity=txn.quantity,
@@ -266,5 +270,6 @@ def analyse_portfolio(events: List[PortfolioEvent]) -> TradeAnalyzer:
             assert txn.quantity
             assert txn.price
             history.add_trade(trade)
+            trade_id += 1
 
     return TradeAnalyzer(asset_histories=histories)
