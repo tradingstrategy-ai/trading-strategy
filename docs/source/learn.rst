@@ -150,6 +150,8 @@ More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/mu
 
 `Google Colab charts example <https://colab.research.google.com/notebooks/charts.ipynb>`__.
 
+`Interesting 3d distributoin diagrams <https://stackoverflow.com/questions/61926533/gradient-fill-underneath-each-histogram-curve-python>`__.
+
 Adversial environment
 ~~~~~~~~~~~~~~~~~~~~~
 

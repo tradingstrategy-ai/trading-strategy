@@ -8,7 +8,7 @@ import pandas as pd
 from tqdm import tqdm
 from IPython.core.display import display
 
-
+from capitalgram.analysis.profitdistribution import plot_trade_profit_distribution
 from qstrader.alpha_model.alpha_model import AlphaModel
 from qstrader.asset.universe.static import StaticUniverse
 from qstrader.data.backtest_data_handler import BacktestDataHandler
@@ -286,8 +286,10 @@ def test_qstrader_ape_in(persistent_test_client):
     trade_analysis = analyse_portfolio(portfolio.history)
 
     timeline = trade_analysis.create_timeline()
-    expanded_timeline = expand_timeline(exchange_universe, pair_universe, timeline)
-    display(expanded_timeline)
+    expanded_timeline, styler = expand_timeline(exchange_universe, pair_universe, timeline)
+
+    # Test trade success distribution diagram (even though never plot)
+    plot_trade_profit_distribution(expanded_timeline, bins=10)
 
     cash_left = strategy_backtest.broker.get_total_portfolio_cash_balances()
     summary = trade_analysis.calculate_summary_statistics(initial_cash, cash_left)
