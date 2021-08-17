@@ -71,6 +71,7 @@ Find the documentation for research notebooks and Python APIs below.
    :caption: Strategies
 
    algorithms/entropy-monkey
+   algorithms/ape-in
 
 .. toctree::
    :maxdepth: 1

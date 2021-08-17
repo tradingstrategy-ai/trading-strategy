@@ -4,16 +4,16 @@ A simplified trade analysis that only understands spots buys and sells, not marg
 Unlike Backtrader, this one is good for multiasset portfolio analysis.
 """
 
-import datetime
 import enum
 from dataclasses import dataclass, field
-from typing import List, Dict, Iterable, Optional
+from typing import List, Dict, Iterable, Optional, Tuple
 
 import pandas as pd
 
 from capitalgram.exchange import ExchangeUniverse
 from capitalgram.pair import PairUniverse, PandasPairUniverse
 from capitalgram.types import PrimaryKey, USDollarAmount
+from capitalgram.utils.summarydataframe import as_dollar, as_integer, create_summary_table, as_percent
 
 
 @dataclass
@@ -73,6 +73,8 @@ class TradePosition:
 
     @property
     def open_value(self) -> float:
+        """The current value of this open position, with the price at the time of opening."""
+        assert self.is_open()
         return sum([t.value for t in self.trades])
 
     @property
@@ -206,13 +208,33 @@ class TradeSummary:
     zero_loss: int
     undecided: int
     realised_profit: USDollarAmount
+    open_value: USDollarAmount
+    uninvested_cash: USDollarAmount
+    initial_cash: USDollarAmount
 
+    def to_dataframe(self) -> pd.DataFrame:
+        """Creates a human-readable Pandas dataframe table from the object."""
+        total_trades = self.won + self.lost
+        human_data = {
+            "Cash at start": as_dollar(self.initial_cash),
+            "Value at end": as_dollar(self.open_value + self.uninvested_cash),
+            "Trade win percent": as_percent(self.won / total_trades),
+            "Total trades done": as_integer(self.won + self.lost + self.zero_loss),
+            "Won trades": as_integer(self.won),
+            "Lost trades": as_integer(self.lost),
+            "Zero profit trades": as_integer(self.zero_loss),
+            "Positions open at the end": as_integer(self.undecided),
+            "Realised profit and loss": as_dollar(self.realised_profit),
+            "Portfolio unrealised value": as_dollar(self.open_value),
+            "Cash left at the end": as_dollar(self.uninvested_cash),
+        }
+        return create_summary_table(human_data)
 
 
 class TimelineEventType(enum.Enum):
     """Currently supporting only spot open and close, no incremental events."""
     open = "open"
-    close = "cloes"
+    close = "close"
 
 
 @dataclass
@@ -255,18 +277,28 @@ class TradeAnalyzer:
                     yield closed
         return max(all_closes())
 
-    def get_all_positions(self) -> Iterable[TradePosition]:
+    def get_all_positions(self) -> Iterable[Tuple[PrimaryKey, TradePosition]]:
         """Return open and closed positions over all traded assets."""
-        for history in self.asset_histories.values():
-            yield from history.positions
+        for pair_id, history in self.asset_histories.items():
+            for position in history.positions:
+                yield pair_id, position
 
-    def calculate_summary_statistics(self) -> TradeSummary:
+    def get_open_positions(self) -> Iterable[Tuple[PrimaryKey, TradePosition]]:
+        """Return open and closed positions over all traded assets."""
+        for pair_id, history in self.asset_histories.items():
+            for position in history.positions:
+                if position.is_open():
+                    yield pair_id, position
+
+    def calculate_summary_statistics(self, initial_cash, uninvested_cash) -> TradeSummary:
         """Calculate some statistics how our trades went.
         """
         won = lost = zero_loss = undecided = 0
+        open_value: USDollarAmount = 0
         profit: USDollarAmount = 0
-        for position in self.get_all_positions():
+        for pair_id, position in self.get_all_positions():
             if position.is_open():
+                open_value += position.open_value
                 undecided += 1
                 continue
 
@@ -286,6 +318,9 @@ class TradeAnalyzer:
             zero_loss=zero_loss,
             undecided=undecided,
             realised_profit=profit,
+            open_value=open_value,
+            uninvested_cash=uninvested_cash,
+            initial_cash=initial_cash,
         )
 
     def create_timeline(self) -> pd.DataFrame:
@@ -345,25 +380,25 @@ def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PandasPa
         exchange = exchange_universe.get_by_id(pair_info.exchange_id)
         r = {
             # "timestamp": timestamp,
-            "exchange": exchange.name,
-            "base": pair_info.base_token_symbol,
-            "quote": pair_info.quote_token_symbol,
-            "price": tle.price,
+            "Exchange": exchange.name,
+            "Base": pair_info.base_token_symbol,
+            "Quote": pair_info.quote_token_symbol,
+            "Price": tle.price,
         }
         if tle.type == TimelineEventType.close:
-            r["event"] = "Closed"
-            r["profit"] = tle.position.realised_profit
-            r["profit_pct"] = tle.position.realised_profit_percent
-            r["closed_value"] = tle.position.sell_value
-            r["price"] = tle.position.close_price
+            # r["Event"] = "Closed"
+            r["PnL"] = tle.position.realised_profit
+            r["PnL %"] = tle.position.realised_profit_percent
+            r["Closed value"] = tle.position.sell_value
+            r["Price"] = tle.position.close_price
             if tle.position.is_win():
                 r["won"] = 1
             else:
                 r["lost"] = 1
         else:
-            r["event"] = "Opened"
-            r["opened_value"] = tle.position.buy_value
-            r["price"] = tle.position.open_price
+            # r["Event"] = "Opened"
+            r["Open value"] = tle.position.buy_value
+            r["Price"] = tle.position.open_price
         return r
 
     applied_df = timeline.apply(expander, axis='columns', result_type='expand')
@@ -371,7 +406,25 @@ def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PandasPa
     # https://stackoverflow.com/a/52720936/315168
     applied_df\
         .rename_axis('timestamp')\
-        .sort_values(by=['timestamp', 'event'], ascending=[True, True], inplace=True)
+        .sort_values(by=['timestamp'], ascending=[True], inplace=True)
+
+    # Get rid of NaN labels
+    # https://stackoverflow.com/a/28390992/315168
+    applied_df.fillna('', inplace=True)
+
+    # Dynamically color the background of trade outcome colun
+    # https://stackoverflow.com/a/66812259/315168
+    def highlight_trade_outcome(col):
+        return ['background-color: red' if val < 0 else 'background-color: green' for val in col]
+
+    # https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.background_gradient.html
+    applied_df.style.background_gradient(
+        axis=0,
+        gmap=applied_df['PnL %'],
+        cmap='YlOrRd',
+        vmin=-1,  # We can only lose 100% of our money on position
+        vmax=0.5)  # 50% profit is 21.5 position. Assume this is the max success color we can hit over
+
     return applied_df
 
 

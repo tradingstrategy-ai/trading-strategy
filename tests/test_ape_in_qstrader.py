@@ -1,38 +1,30 @@
 """QSTrader ape-in strategy test."""
-import cProfile
+
 import datetime
 import logging
-import os
-from pstats import Stats
 from typing import Dict
 
 import pandas as pd
-import pytz
 from tqdm import tqdm
 from IPython.core.display import display
 
-from capitalgram.analysis.tradeanalyzer import expand_timeline
-from capitalgram.candle import GroupedCandleUniverse
-from capitalgram.exchange import ExchangeUniverse
 
-from capitalgram.frameworks.qstrader import analyse_portfolio
 from qstrader.alpha_model.alpha_model import AlphaModel
-from qstrader.alpha_model.fixed_signals import FixedSignalsAlphaModel
-from qstrader.asset.equity import Equity
 from qstrader.asset.universe.static import StaticUniverse
 from qstrader.data.backtest_data_handler import BacktestDataHandler
-from qstrader.data.daily_bar_csv import CSVDailyBarDataSource
-from qstrader.data.daily_bar_dataframe import DataframeDailyBarDataSource
 from qstrader.simulation.event import SimulationEvent
 from qstrader.simulation.everyday import EverydaySimulationEngine
 from qstrader.statistics.tearsheet import TearsheetStatistics
 from qstrader.trading.backtest import BacktestTradingSession
 
-from capitalgram.chain import ChainId
-from capitalgram.frameworks.qstrader import DEXAsset, prepare_candles_for_qstrader, CapitalgramDataSource
+from capitalgram.frameworks.qstrader import prepare_candles_for_qstrader, CapitalgramDataSource
 from capitalgram.liquidity import GroupedLiquidityUniverse
-from capitalgram.pair import PandasPairUniverse, DEXPair
+from capitalgram.pair import PandasPairUniverse
 from capitalgram.timebucket import TimeBucket
+from capitalgram.analysis.tradeanalyzer import expand_timeline, TradePosition
+from capitalgram.candle import GroupedCandleUniverse
+from capitalgram.exchange import ExchangeUniverse
+from capitalgram.frameworks.qstrader import analyse_portfolio
 
 logger = logging.getLogger(__name__)
 
@@ -218,6 +210,7 @@ def test_qstrader_ape_in(persistent_test_client):
     # To make the test run wall clock time shorter, we only do one month sample
     start = pd.Timestamp('2021-01-01 14:30:00')
     end = pd.Timestamp('2021-01-07 23:59:00')
+    # end = pd.Timestamp('2021-02-07 23:59:00')
 
     # Make the trading pair data easily accessible
     pair_universe = PandasPairUniverse(filtered_pairs)
@@ -255,12 +248,13 @@ def test_qstrader_ape_in(persistent_test_client):
         liquidity_universe)
 
     # Start strategy with $10k
+    initial_cash = 10_000
     strategy_backtest = BacktestTradingSession(
         start,
         end,
         strategy_universe,
         strategy_alpha_model,
-        initial_cash=10_000,
+        initial_cash=initial_cash,
         rebalance='daily',
         long_only=True,
         cash_buffer_percentage=0.25,
@@ -272,12 +266,16 @@ def test_qstrader_ape_in(persistent_test_client):
     )
     logger.info("Running the strategy")
 
-    all_simulation_events = strategy_backtest.fetch_simulation_events()
+    all_simulation_events = strategy_backtest.prefetch_simulation_events()
 
     # Run the test with a nice progress bar
     with tqdm(total=len(all_simulation_events)) as progress_bar:
-        def progress_callback(idx, evt: SimulationEvent):
-            progress_bar.display(pos=idx, msg=evt.event_type)
+        def progress_callback(idx: int, ts: pd.Timestamp, evt: SimulationEvent):
+            progress_bar.set_description(f"Simulation at day {ts.date()}")
+            progress_bar.update(1)
+
+        # Supress excessive qstrader logging output
+        logging.getLogger("qstrader").setLevel(logging.WARNING)
 
         strategy_backtest.run(progress_callback=progress_callback)
 
@@ -291,7 +289,8 @@ def test_qstrader_ape_in(persistent_test_client):
     expanded_timeline = expand_timeline(exchange_universe, pair_universe, timeline)
     display(expanded_timeline)
 
-    summary = trade_analysis.calculate_summary_statistics()
+    cash_left = strategy_backtest.broker.get_total_portfolio_cash_balances()
+    summary = trade_analysis.calculate_summary_statistics(initial_cash, cash_left)
 
     # Though the result can be somewhat random,
     # assume we have done at least one winning and one losing trade
@@ -299,6 +298,12 @@ def test_qstrader_ape_in(persistent_test_client):
     assert summary.lost > 0
     assert summary.undecided == 5, "We should have five trades open at the end of the backtest"
     assert -10000 < summary.realised_profit < 1_000_000
+    display(summary.to_dataframe())
+
+    pair_id: int
+    open_position: TradePosition
+    for pair_id, open_position in trade_analysis.get_open_positions():
+        logger.info("Position %d, value %f", pair_id, open_position.open_value)
 
     # Check the time range makes sense
     # 3 days burn in
