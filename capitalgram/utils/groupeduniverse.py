@@ -18,9 +18,14 @@ class PairGroupedUniverse:
     recompile the data on the client side.
     """
 
-    def __init__(self, df: pd.DataFrame, timestamp_column="timestamp"):
+    def __init__(self, df: pd.DataFrame, timestamp_column: Optional[str]="timestamp"):
+        """
+        :param timestamp_column: If set build a timestamped index instead of int index for any samples extracted. Some data sources may require you to use different column name for datetime index. This set is done in-place, modifying `df`.
+        """
         assert isinstance(df, pd.DataFrame)
         self.df = df
+        if timestamp_column:
+            self.df.set_index(timestamp_column, inplace=True)
         self.pairs: pd.GroupBy = df.groupby(["pair_id"])
 
     def get_columns(self) -> pd.Index:

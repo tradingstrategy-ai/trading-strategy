@@ -101,7 +101,12 @@ Performance and risk analysis for portfolios. `Read more <https://github.com/qua
 PyAlgoTrade
 -----------
 
-Was originally written for Bitstamp. Offers backtesting, paper trading, live trading. Looks abandon now. `Read more <https://github.com/gbeced/pyalgotrade>`_.
+Was originally written for Bitstamp. Offers backtesting, paper trading, live trading. Looks abandon now. `Read more <https://github.com/gbeced/pyalgotrade>`__.
+
+FinTa
+-----
+
+FinTA, Financial Technical Analysis, contains common financial technical indicators implemented in Pandas. `Read more <https://github.com/peerchemist/finta>`__.
 
 Communities
 ~~~~~~~~~~~
@@ -157,6 +162,13 @@ Adversial environment
 
 `On Uniswap listing bots <https://ethereum.stackexchange.com/questions/103970/is-it-possible-to-create-a-vault-that-will-open-itself-after-a-countdown-dead-m/103976#103976>`_
 
+Momentum trading with Python
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Creating My First Momentum Trading Model with Deephaven <https://medium.com/@deephavendatalabs/assessing-momentum-trading-viability-36e2e7e6683c>`__
+
+`Momentum Based Trading Strategy Using Zipline Trader <https://alpaca.markets/learn/linear-regression-zipline-trader/>`_
+
 Other
 ~~~~~
 
@@ -169,6 +181,8 @@ Other
 `Tracking multiple data feeds with Backtrader <https://www.backtrader.com/blog/posts/2017-04-09-multi-example/multi-example/>`__.
 
 `Multiple data feeds with Backtrader - tutorial <https://backtest-rookies.com/2017/08/22/backtrader-multiple-data-feeds-indicators/>`__.
+
+
 
 
 

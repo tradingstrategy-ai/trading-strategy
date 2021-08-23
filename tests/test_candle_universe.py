@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from capitalgram.candle import GroupedCandleUniverse
@@ -44,3 +45,26 @@ def test_grouped_candles(persistent_test_client: Capitalgram):
     # Min and max prices of SUSHI-USDT ever
     assert max_price == pytest.approx(22.4612)
     assert min_price == pytest.approx(0.49680945)
+
+
+def test_grouped_candles_index(persistent_test_client: Capitalgram):
+    """Returned candles per pair have timestamp set as the index.
+
+    This is a development life quality improvement.
+    """
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    raw_pairs = client.fetch_pair_universe().to_pandas()
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+
+    pair_universe = PandasPairUniverse(raw_pairs)
+    candle_universe = GroupedCandleUniverse(raw_candles)
+
+    # Do some test calculations for a single pair
+    sushi_swap = exchange_universe.get_by_name_and_chain(ChainId.ethereum, "sushiswap")
+    sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "USDT")
+    sushi_usdt_candles = candle_universe.get_candles_by_pair(sushi_usdt.pair_id)
+
+    assert isinstance(sushi_usdt_candles.index, pd.DatetimeIndex)
