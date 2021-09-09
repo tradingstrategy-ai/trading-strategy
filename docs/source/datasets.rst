@@ -9,7 +9,7 @@ Datasets
 List of available DEX datasets
 ------------------------------
 
-Capitalgram provides real-time and historical DEX trading data as :term:`datasets <dataset>`.
+TradingStrategy.ai provides real-time and historical DEX trading data as :term:`datasets <dataset>`.
 See `the available datasets <https://mightyeagle.capitalgram.com/datasets>`__.
 
 API endpoints

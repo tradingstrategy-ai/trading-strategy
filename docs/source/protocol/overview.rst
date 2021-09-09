@@ -35,7 +35,7 @@ Overview
 Oracles
 ~~~~~~~
 
-Capitalgram network consists of oracle nodes. Oracles have two functions
+TradingStrategy.ai network consists of oracle nodes. Oracles have two functions
 
 * Read blockchain and and manage :term:`candle` :term:`dataset` that serves as a source for
   algorithms to make decision. This function is not much different from any other market data service that

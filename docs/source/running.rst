@@ -6,7 +6,7 @@ Preface
 
 The documentation contains various notebooks for
 
-* How to use Capitalgram API
+* How to use TradingStrategy.ai API
 
 * How to develop your own automated trading strategies
 

@@ -1,20 +1,20 @@
-.. Capitalgram documentation master file, created by
+.. TradingStrategy.ai documentation master file, created by
    sphinx-quickstart on Thu Jul 15 09:33:58 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Capitalgram documentation
+TradingStrategy.ai documentation
 =========================
 
 .. raw:: html
 
    <img class="intro" src="_static/intro.png" alt="Decentralised trading bots">
 
-Capitalgram is a protocol for :term:`on-chain` quantitative finance and trade automation. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live `data <https://mightyeagle.capitalgram.com/datasets>`_ is available to one minute accuracy.
+TradingStrategy.ai is a protocol for :term:`on-chain` quantitative finance and trade automation. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live `data <https://mightyeagle.capitalgram.com/datasets>`_ is available to one minute accuracy.
 
 The ready strategies, or trading bots, can be deployed as :term:`autonomous agents <autonomous agent>` running on :term:`smart contracts <smart contract>`. Strategies then trade on :term:`decentralised exchanges <decentralised exchange>`. After deployed, anyone can invest in and withdraw from the strategies in real time. As trade rules are automated on-chain, anyone can verify the honest execution of the trading strategy.
 
-Capitalgram integrates with :term:`Jupyter notebook`, :term:`Pandas`, :term:`Backtrader` and other popular quantitative finance toolkits popular in `Python data science ecosystem <http://python.org/>`_.
+TradingStrategy.ai integrates with :term:`Jupyter notebook`, :term:`Pandas`, :term:`Backtrader` and other popular quantitative finance toolkits popular in `Python data science ecosystem <http://python.org/>`_.
 
 Build on
 --------

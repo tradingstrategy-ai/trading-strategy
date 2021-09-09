@@ -13,7 +13,7 @@ In this chapter, we will discuss how to use `capitalgram` locally with your Pyth
 Installation
 ------------
 
-To install Capitalgram using pip do:
+To install TradingStrategy.ai using pip do:
 
 .. code-block:: shell
 
