@@ -1,4 +1,4 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
+z# This workflow will install Python dependencies, run tests and lint with a single version of Python
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
 name: Netlify deploy
@@ -30,11 +30,14 @@ jobs:
         cd docs && poetry run make html
     - name: Pre-check
       run: |
-        ls -lha docs/build/html
+        mkdir /tmp/site
+        cp docs/proxy-index.html /tmp/site/index.html
+        cp -r docs/build/html /tmp/site/docs
+        ls -lha /tmp/site
     - name: Deploy to Netlify
       uses: nwtgck/actions-netlify@v1.2
       with:
-        publish-dir: './docs/build/html'
+        publish-dir: '/tmp/site'
         production-branch: master
         deploy-message: "Deploy from GitHub Actions"
         enable-pull-request-comment: false

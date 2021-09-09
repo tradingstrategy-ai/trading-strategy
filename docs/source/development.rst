@@ -42,3 +42,10 @@ You can clear this out manually from the UNIX shell
 ```shell
 rm -rf ~/.cache/capitalgram
 ```
+
+Document deployment
+-------------------
+
+Github Actions workflow will deploy on Netlify. You need Netlify `AUTH_TOKEN` and `SITE_ID`.
+
+`AUTH_TOKEN` can be generated in the user settings.
