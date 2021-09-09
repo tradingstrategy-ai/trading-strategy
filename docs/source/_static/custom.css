@@ -9,7 +9,8 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 
 .document h2 {
     padding-bottom: 10px;
-    border-bottom: 1px solid #EEB30C;
+    // ccbeb3
+    border-bottom: 1px solid #CCBEB3;
     margin-bottom: 10px;
 }
 
@@ -27,7 +28,7 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 
 /* Mobile header */
 .wy-nav-top {
-    background: #EEB30C;
+    background: #CCBEB3;
     color: white;
 }
 
