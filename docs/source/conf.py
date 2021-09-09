@@ -80,8 +80,8 @@ html_context = {
     # https://stackoverflow.com/questions/62904172/how-do-i-replace-view-page-source-with-edit-on-github-links-in-sphinx-rtd-th
     # https://github.com/readthedocs/sphinx_rtd_theme/issues/529
     'display_github': True,
-    'github_user': 'miohtama',
-    'github_repo': 'capitalgram-onchain-dex-quant-data',
+    'github_user': 'tradingstrategy-ai',
+    'github_repo': 'client',
     'github_version': 'tree/master/docs/source/',
 }
 
@@ -110,4 +110,4 @@ nbsphinx_prolog = """
 """
 
 # For the sitemap
-html_baseurl = 'https://docs.capitalgram.com/'
+html_baseurl = 'https://tradingstrategy.ai/docs'
