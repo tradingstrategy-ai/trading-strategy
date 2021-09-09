@@ -21,9 +21,7 @@
 
   {# FAVICON #}
 
-  <link rel="icon" type="image/png" href="{{ pathto('_static/favicon_32.png', 1) }}" sizes="32x32">
-  <link rel="icon" type="image/png" href="{{ pathto('_static/favicon_96.png', 1) }}" sizes="96x96">
-  <link rel="icon" type="image/svg+xml" href="{{ pathto('_static/favicon.svg', 1) }}">
+  <link rel="icon" type="image/svg+xml" href="{{ pathto('_static/logo.svg', 1) }}">
 
   {# CANONICAL URL #}
   {% if theme_canonical_url %}
@@ -119,7 +117,7 @@
             {# Not strictly valid HTML, but it's the only way to display/scale
                it properly, without weird scripting or heaps of work
             #}
-              <img src="{{ pathto('_static/logo.png', 1) }}" class="logo" alt="Logo"/>
+              <img width=128 src="{{ pathto('_static/logo.svg', 1) }}" class="logo" alt="Logo"/>
             </a>
 
             <p id="doc-title">On-chain quantitative finance</p>
