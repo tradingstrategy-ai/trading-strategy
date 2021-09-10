@@ -79,7 +79,7 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 a {
   color: #005b49;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 500;
   transition: 0.3s;
 }
 
