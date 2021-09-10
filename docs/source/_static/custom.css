@@ -9,7 +9,6 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 
 .document h2 {
     padding-bottom: 10px;
-    // ccbeb3
     border-bottom: 1px solid #CCBEB3;
     margin-bottom: 10px;
 }
@@ -47,12 +46,12 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 }
 
 .wy-menu-vertical a:hover {
-    color: #eeb302;
+    color: #FEF1E5;
 }
 
 
 .wy-nav-side {
-    background: #eeb302;
+    background: #FEF1E5;
     color: white;
 }
 
@@ -78,19 +77,19 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 }
 
 a {
-  color: #b68300;
+  color: #005b49;
   text-decoration: none;
-  font-weight: 400;
+  font-weight: 600;
   transition: 0.3s;
 }
 
 a:visited {
-  color: #b68300;
+  color: #005b49;
 }
 
 a:hover {
   text-decoration: underline;
-  color: #eeb302;
+  color: #005b49;
 }
 
 /**
