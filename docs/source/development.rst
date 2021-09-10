@@ -10,8 +10,8 @@ Preface
 
 In this chapter, we will discuss how to use `capitalgram` locally with your Python or Jupyter Notebook to development new strategies or the library itself.
 
-Installation
-------------
+Installation for developer
+--------------------------
 
 To install TradingStrategy.ai using pip do:
 
@@ -43,8 +43,24 @@ You can clear this out manually from the UNIX shell
 rm -rf ~/.cache/capitalgram
 ```
 
-Document deployment
--------------------
+Developing the library itself
+-----------------------------
+
+Developing locally
+~~~~~~~~~~~~~~~~~~
+
+Check out from Github.
+
+Then
+
+.. code-block::
+
+    poetry shell
+    poetry install
+
+
+Deploying new documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Github Actions workflow will deploy on Netlify. You need Netlify `AUTH_TOKEN` and `SITE_ID`.
 
