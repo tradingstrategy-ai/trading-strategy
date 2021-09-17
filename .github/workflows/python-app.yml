@@ -28,4 +28,4 @@ jobs:
       run: |
         poetry run pytest
       env:
-        CAPITALGRAM_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}
+        TRADING_STRATEGY_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}
