@@ -5,7 +5,7 @@ description = "Framework for on-chain quantitative financial analysis and tradin
 authors = ["Mikko Ohtamaa <mikko@capitalgram.com>"]
 homepage = "https://tradingstrategy.ai"
 repository = "https://github.com/tradingstrategy-ai/client"
-license = "MIT"
+license = "AGPL"
 readme = "README.md"
 keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance", "binance"]
 
