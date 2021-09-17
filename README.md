@@ -1,4 +1,4 @@
-![CI status](https://github.com/tradingstrategy-ai/client/badge.svg)
+[![CI Status](https://github.com/tradingstrategy-ai/client/actions/workflows/python-app.yml/badge.svg)](https://github.com/tradingstrategy-ai/client/actions/workflows/python-app.yml)
 
 # Trading Strategy protocol client
 
@@ -16,7 +16,7 @@ Trading Strategy client is a Python library for on-chain algorithmic trading and
 
 * Integration with [Jupyter Notebook](https://jupyter.org/) for easy manipulation of data 
 
-* Use Python quant toolkits like [Zipline](https://github.com/stefan-jansen/zipline-reloaded) to create, analyse and backtest algorithms
+* Use Python quant toolkits like [Backtrader](https://tradingstrategy.ai/docs/glossary.html#term-Backtrader) to create, analyse and backtest DEX trading algorithms 
 
 * (*soon*) Decentralised execution of trading algorithms through smart contracts
 
@@ -39,11 +39,6 @@ pip install tradindstrategy
 ```shell
 poetry add tradindstrategy
 ```
-
-# Oh-chain trading data
-
-Currently trading data is downloaded from capitalgram.com candle server. 
-The access to the data is free, but you need to register to Capitalgram mailing list to get an API key.  
 
 # License
 
