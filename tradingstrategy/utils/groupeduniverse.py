@@ -3,7 +3,7 @@ from typing import Optional, Tuple, Iterable, Dict
 
 import pandas as pd
 
-from capitalgram.types import PrimaryKey
+from tradingstrategy.types import PrimaryKey
 
 
 logger = logging.getLogger(__name__)

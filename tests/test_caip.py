@@ -1,6 +1,6 @@
 import pytest
 
-from capitalgram.caip import ChainAddressTuple, InvalidChecksum
+from tradingstrategy.caip import ChainAddressTuple, InvalidChecksum
 
 
 def test_caip_parse_naive():

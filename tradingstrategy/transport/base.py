@@ -3,8 +3,8 @@ import io
 from abc import ABC, abstractmethod
 from typing import List
 
-from capitalgram.caip import ChainAddressTuple
-from capitalgram.timebucket import TimeBucket
+from tradingstrategy.caip import ChainAddressTuple
+from tradingstrategy.timebucket import TimeBucket
 
 
 class BaseTransport(ABC):

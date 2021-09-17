@@ -1,9 +1,9 @@
 """Correctly pick pair by volume."""
 
 import pytest
-from capitalgram.chain import ChainId
-from capitalgram.client import Capitalgram
-from capitalgram.pair import PandasPairUniverse, DEXPair, DuplicatePair
+from tradingstrategy.chain import ChainId
+from tradingstrategy.client import Capitalgram
+from tradingstrategy.pair import PandasPairUniverse, DEXPair, DuplicatePair
 
 
 def test_pair_by_volume(logger, persistent_test_client: Capitalgram):

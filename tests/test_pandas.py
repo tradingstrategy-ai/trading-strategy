@@ -1,7 +1,7 @@
 import datetime
 
-from capitalgram.candle import Candle
-from capitalgram.chain import ChainId
+from tradingstrategy.candle import Candle
+from tradingstrategy.chain import ChainId
 
 
 def test_serialise_pandas():

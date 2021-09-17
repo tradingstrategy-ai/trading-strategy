@@ -8,7 +8,7 @@ import pandas as pd
 from tqdm import tqdm
 from IPython.core.display import display
 
-from capitalgram.analysis.profitdistribution import plot_trade_profit_distribution
+from tradingstrategy.analysis.profitdistribution import plot_trade_profit_distribution
 from qstrader.alpha_model.alpha_model import AlphaModel
 from qstrader.asset.universe.static import StaticUniverse
 from qstrader.data.backtest_data_handler import BacktestDataHandler
@@ -17,14 +17,14 @@ from qstrader.simulation.everyday import EverydaySimulationEngine
 from qstrader.statistics.tearsheet import TearsheetStatistics
 from qstrader.trading.backtest import BacktestTradingSession
 
-from capitalgram.frameworks.qstrader import prepare_candles_for_qstrader, CapitalgramDataSource
-from capitalgram.liquidity import GroupedLiquidityUniverse
-from capitalgram.pair import PandasPairUniverse
-from capitalgram.timebucket import TimeBucket
-from capitalgram.analysis.tradeanalyzer import expand_timeline, TradePosition
-from capitalgram.candle import GroupedCandleUniverse
-from capitalgram.exchange import ExchangeUniverse
-from capitalgram.frameworks.qstrader import analyse_portfolio
+from tradingstrategy.frameworks.qstrader import prepare_candles_for_qstrader, CapitalgramDataSource
+from tradingstrategy.liquidity import GroupedLiquidityUniverse
+from tradingstrategy.pair import PandasPairUniverse
+from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.analysis.tradeanalyzer import expand_timeline, TradePosition
+from tradingstrategy.candle import GroupedCandleUniverse
+from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.frameworks.qstrader import analyse_portfolio
 
 logger = logging.getLogger(__name__)
 

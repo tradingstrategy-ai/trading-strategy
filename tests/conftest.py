@@ -4,7 +4,7 @@ import logging
 import pytest
 import coloredlogs
 
-from capitalgram.client import Capitalgram
+from tradingstrategy.client import Capitalgram
 
 
 @pytest.fixture(scope="session")

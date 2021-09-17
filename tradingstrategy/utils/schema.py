@@ -10,8 +10,8 @@ from dataclasses import fields, Field
 
 import pyarrow as pa
 
-from capitalgram.chain import ChainId
-from capitalgram.types import PrimaryKey, NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint
+from tradingstrategy.chain import ChainId
+from tradingstrategy.types import PrimaryKey, NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint
 
 
 class CannotMap(Exception):

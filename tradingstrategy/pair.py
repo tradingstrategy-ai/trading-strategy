@@ -9,11 +9,11 @@ import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
 
-from capitalgram.chain import ChainId
-from capitalgram.exchange import ExchangeUniverse
-from capitalgram.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
-from capitalgram.utils.columnar import iterate_columnar_dicts
-from capitalgram.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
+from tradingstrategy.chain import ChainId
+from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
+from tradingstrategy.utils.columnar import iterate_columnar_dicts
+from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
 
 

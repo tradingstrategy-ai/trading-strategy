@@ -12,14 +12,14 @@ import pyarrow
 import pyarrow as pa
 from pyarrow import Table
 
-from capitalgram.timebucket import TimeBucket
-from capitalgram.environment.config import Configuration
-from capitalgram.exchange import ExchangeUniverse
-from capitalgram.reader import read_parquet
-from capitalgram.chain import ChainId
-from capitalgram.environment.base import Environment, download_with_progress_plain
-from capitalgram.environment.jupyter import JupyterEnvironment, download_with_progress_jupyter
-from capitalgram.transport.cache import CachedHTTPTransport
+from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.environment.config import Configuration
+from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.reader import read_parquet
+from tradingstrategy.chain import ChainId
+from tradingstrategy.environment.base import Environment, download_with_progress_plain
+from tradingstrategy.environment.jupyter import JupyterEnvironment, download_with_progress_jupyter
+from tradingstrategy.transport.cache import CachedHTTPTransport
 
 
 class Capitalgram:
@@ -90,7 +90,7 @@ class Capitalgram:
         assert pandas_version >= version.parse("1.3"), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
 
         # Fix Backtrader / Pandas 1.3 issue that breaks FastQuant
-        from capitalgram.frameworks.fastquant_monkey_patch import apply_patch
+        from tradingstrategy.frameworks.fastquant_monkey_patch import apply_patch
         apply_patch()
 
     @classmethod

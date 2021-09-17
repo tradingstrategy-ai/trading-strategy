@@ -1,5 +1,5 @@
-from capitalgram.chain import ChainId
-from capitalgram.exchange import Exchange, ExchangeType
+from tradingstrategy.chain import ChainId
+from tradingstrategy.exchange import Exchange, ExchangeType
 
 
 def test_create_exchange():

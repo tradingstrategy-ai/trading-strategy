@@ -11,11 +11,11 @@ import pandas as pd
 from backtrader.indicators import PeriodN
 from backtrader import analyzers
 
-from capitalgram.candle import GroupedCandleUniverse
-from capitalgram.timebucket import TimeBucket
-from capitalgram.client import Capitalgram
-from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
-from capitalgram.pair import PandasPairUniverse
+from tradingstrategy.candle import GroupedCandleUniverse
+from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.client import Capitalgram
+from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
+from tradingstrategy.pair import PandasPairUniverse
 
 
 class PastTradeVolumeIndicator(PeriodN):

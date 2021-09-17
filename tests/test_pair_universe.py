@@ -2,8 +2,8 @@ import datetime
 
 import pytest
 
-from capitalgram.chain import ChainId
-from capitalgram.pair import PairUniverse, PairType, DEXPair
+from tradingstrategy.chain import ChainId
+from tradingstrategy.pair import PairUniverse, PairType, DEXPair
 
 
 def test_pair_pyarrow_schema():

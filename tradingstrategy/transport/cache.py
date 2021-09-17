@@ -10,7 +10,7 @@ import logging
 import requests
 from requests import Response
 
-from capitalgram.timebucket import TimeBucket
+from tradingstrategy.timebucket import TimeBucket
 
 logger = logging.getLogger(__name__)
 

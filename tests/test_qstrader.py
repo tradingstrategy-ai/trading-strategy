@@ -1,15 +1,15 @@
 """QSTrader integration test."""
 
-from capitalgram.chain import ChainId
+from tradingstrategy.chain import ChainId
 
 import os
 
 import pandas as pd
 import pytz
 
-from capitalgram.frameworks.qstrader import DEXAsset, prepare_candles_for_qstrader
-from capitalgram.pair import PandasPairUniverse, DEXPair
-from capitalgram.timebucket import TimeBucket
+from tradingstrategy.frameworks.qstrader import DEXAsset, prepare_candles_for_qstrader
+from tradingstrategy.pair import PandasPairUniverse, DEXPair
+from tradingstrategy.timebucket import TimeBucket
 from qstrader.alpha_model.fixed_signals import FixedSignalsAlphaModel
 from qstrader.asset.equity import Equity
 from qstrader.asset.universe.static import StaticUniverse

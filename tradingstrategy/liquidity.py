@@ -12,8 +12,8 @@ import pyarrow as pa
 from dataclasses_json import dataclass_json
 from pandas.core.groupby import GroupBy
 
-from capitalgram.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
-from capitalgram.utils.groupeduniverse import PairGroupedUniverse
+from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
+from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
 
 @dataclass_json

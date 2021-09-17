@@ -6,14 +6,14 @@ import pytz
 import pandas as pd
 import numpy as np
 
-from capitalgram.analysis.tradeanalyzer import AssetTradeHistory, SpotTrade, TradeAnalyzer
+from tradingstrategy.analysis.tradeanalyzer import AssetTradeHistory, SpotTrade, TradeAnalyzer
 from qstrader import settings
 from qstrader.asset.asset import Asset
 
 
-from capitalgram.candle import GroupedCandleUniverse
-from capitalgram.exchange import ExchangeUniverse
-from capitalgram.pair import DEXPair, PairUniverse, PandasPairUniverse
+from tradingstrategy.candle import GroupedCandleUniverse
+from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.pair import DEXPair, PairUniverse, PandasPairUniverse
 from qstrader.broker.portfolio.portfolio_event import PortfolioEvent
 from qstrader.broker.transaction.transaction import Transaction
 

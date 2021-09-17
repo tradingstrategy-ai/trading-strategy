@@ -12,11 +12,11 @@ import numpy as np
 import pandas as pd
 from pandas.io.formats.style import Styler
 
-from capitalgram.exchange import ExchangeUniverse
-from capitalgram.pair import PairUniverse, PandasPairUniverse
-from capitalgram.types import PrimaryKey, USDollarAmount
-from capitalgram.utils.format import format_value, format_percent, format_price
-from capitalgram.utils.summarydataframe import as_dollar, as_integer, create_summary_table, as_percent
+from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.pair import PairUniverse, PandasPairUniverse
+from tradingstrategy.types import PrimaryKey, USDollarAmount
+from tradingstrategy.utils.format import format_value, format_percent, format_price
+from tradingstrategy.utils.summarydataframe import as_dollar, as_integer, create_summary_table, as_percent
 
 
 @dataclass

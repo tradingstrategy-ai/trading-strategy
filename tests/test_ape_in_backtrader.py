@@ -10,13 +10,13 @@ import pandas as pd
 import pytest
 from backtrader import analyzers
 
-from capitalgram.candle import GroupedCandleUniverse
-from capitalgram.exchange import ExchangeUniverse
-from capitalgram.liquidity import GroupedLiquidityUniverse
-from capitalgram.timebucket import TimeBucket
-from capitalgram.client import Capitalgram
-from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
-from capitalgram.pair import PandasPairUniverse
+from tradingstrategy.candle import GroupedCandleUniverse
+from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.liquidity import GroupedLiquidityUniverse
+from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.client import Capitalgram
+from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
+from tradingstrategy.pair import PandasPairUniverse
 
 
 logger = logging.getLogger(__name__)

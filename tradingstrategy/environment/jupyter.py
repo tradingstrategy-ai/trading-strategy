@@ -8,9 +8,9 @@ from tqdm.autonotebook import tqdm
 
 import requests
 
-from capitalgram.environment.base import Environment
-from capitalgram.environment.config import Configuration
-from capitalgram.environment.interactive_setup import run_interactive_setup
+from tradingstrategy.environment.base import Environment
+from tradingstrategy.environment.config import Configuration
+from tradingstrategy.environment.interactive_setup import run_interactive_setup
 
 
 class JupyterEnvironment(Environment):

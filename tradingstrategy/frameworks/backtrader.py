@@ -7,8 +7,8 @@ import backtrader as bt
 from backtrader.feeds import PandasData
 import pandas as pd
 
-from capitalgram.timebucket import TimeBucket
-from capitalgram.pair import DEXPair, PandasPairUniverse
+from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.pair import DEXPair, PandasPairUniverse
 
 
 class CapitalgramFeed(PandasData):

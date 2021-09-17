@@ -1,10 +1,10 @@
 import pytest
 
-from capitalgram.candle import GroupedCandleUniverse
-from capitalgram.timebucket import TimeBucket
-from capitalgram.client import Capitalgram
-from capitalgram.chain import ChainId
-from capitalgram.pair import PairUniverse, PandasPairUniverse
+from tradingstrategy.candle import GroupedCandleUniverse
+from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.client import Capitalgram
+from tradingstrategy.chain import ChainId
+from tradingstrategy.pair import PairUniverse, PandasPairUniverse
 
 
 def test_grouped_candles(persistent_test_client: Capitalgram):

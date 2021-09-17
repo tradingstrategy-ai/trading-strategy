@@ -1,8 +1,8 @@
 from typing import Optional
 
-from capitalgram.environment.base import download_with_progress_plain
-from capitalgram.environment.config import Configuration
-from capitalgram.transport.cache import CachedHTTPTransport
+from tradingstrategy.environment.base import download_with_progress_plain
+from tradingstrategy.environment.config import Configuration
+from tradingstrategy.transport.cache import CachedHTTPTransport
 
 
 def run_interactive_setup() -> Optional[Configuration]:

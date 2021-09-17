@@ -9,13 +9,13 @@ from backtrader import analyzers
 import pandas as pd
 from fastquant import backtest
 
-from capitalgram.candle import GroupedCandleUniverse
-from capitalgram.timebucket import TimeBucket
-from capitalgram.chain import ChainId
-from capitalgram.client import Capitalgram
-from capitalgram.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
-from capitalgram.frameworks.fastquant import to_human_readable_result
-from capitalgram.pair import PandasPairUniverse
+from tradingstrategy.candle import GroupedCandleUniverse
+from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.chain import ChainId
+from tradingstrategy.client import Capitalgram
+from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
+from tradingstrategy.frameworks.fastquant import to_human_readable_result
+from tradingstrategy.pair import PandasPairUniverse
 
 
 

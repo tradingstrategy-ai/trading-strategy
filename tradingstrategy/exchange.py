@@ -6,8 +6,8 @@ from typing import Optional, List, Iterable, Dict
 
 from dataclasses_json import dataclass_json
 
-from capitalgram.chain import ChainId
-from capitalgram.types import NonChecksummedAddress, UNIXTimestamp, PrimaryKey
+from tradingstrategy.chain import ChainId
+from tradingstrategy.types import NonChecksummedAddress, UNIXTimestamp, PrimaryKey
 
 
 class ExchangeType(enum.Enum):
