@@ -123,7 +123,7 @@ class ExchangeUniverse:
         """Get top exchanges sorted by their 30d volume.
 
         Note that we consider volume only for supported quote tokens.
-        See :py:class:`capitalgram.exchange.Exchange` for more details.
+        See :py:class:`tradingstrategy.exchange.Exchange` for more details.
         """
 
         def vol(x: Exchange):

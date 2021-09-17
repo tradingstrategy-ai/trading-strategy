@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 def plot_trade_profit_distribution(df: pd.DataFrame, bins=25) -> Figure:
     """Create a histogram of won and lost trades based on trade analyzer expanded timeline output.
 
-    See also :py:meth:`capitalgram.analysis.tradeanalyizer.expand_timeline`.
+    See also :py:meth:`tradingstrategy.analysis.tradeanalyizer.expand_timeline`.
 
     :param df: A DataFrame with a column `PnL % raw`
     """

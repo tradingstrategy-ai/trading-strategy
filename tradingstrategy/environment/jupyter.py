@@ -26,7 +26,7 @@ class JupyterEnvironment(Environment):
         return self.cache_path
 
     def get_settings_path(self) -> str:
-        return os.path.expanduser("~/.capitalgram")
+        return os.path.expanduser("~/.tradingstrategy")
 
     def discover_configuration(self) -> Optional[Configuration]:
         spath = self.get_settings_path()

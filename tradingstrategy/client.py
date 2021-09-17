@@ -56,7 +56,7 @@ class Client:
 
         The returned data is saved in PyArrow Parquet format.
 
-        For more information see :py:class:`capitalgram.candle.Candle`.
+        For more information see :py:class:`tradingstrategy.candle.Candle`.
         """
         stream = self.transport.fetch_candles_all_time(bucket)
         return read_parquet(stream)
@@ -69,7 +69,7 @@ class Client:
 
         The returned data is saved in PyArrow Parquet format.
         
-        For more information see :py:class:`capitalgram.liquidity.XYLiquidity`.
+        For more information see :py:class:`tradingstrategy.liquidity.XYLiquidity`.
         """
         stream = self.transport.fetch_liquidity_all_time(bucket)
         return read_parquet(stream)
