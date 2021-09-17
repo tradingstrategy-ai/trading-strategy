@@ -159,5 +159,15 @@ Glossary
 
         A trading strategy where the source code of the strategy is not disclosed to public. Private strategies can still be :term:`non-custodial` and enjoy the benefits of TradingStrategy.ai protocol trade execution and fee distribution. :ref`Read more <Private strategies>`.
 
+    Risk-free rate
 
+        The expected return for the money that is considered (almost) risk-free. On the traditional markets, this is the tresury note or government bond yield (although you still have some risks like the sovereignity risk). In DeFi this is considered an US dollar lending pool rate, like one you would get from Aave :term:`USDC` pool.
+
+    Drawdown
+
+        How many % the asset can go down. `Read more <https://en.wikipedia.org/wiki/Drawdown_(economics)>`__.
+
+    USDC
+
+        A popular US cash and US treasury note backed stablecoin from Circle. `Read more <https://www.circle.com/en/usdc>`__.
 

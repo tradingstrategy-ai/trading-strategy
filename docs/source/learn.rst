@@ -57,20 +57,26 @@ A tutorial by Dataquest. `Read more <https://www.dataquest.io/blog/jupyter-noteb
 Algorithmic trading frameworks for Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _backtrader:
+
 Backtrader
 ----------
 
-Direct support for notebooks. Last pull request merged 2020. `Read more <https://www.backtrader.com/>`__.
+Backtrader is one of the oldest and most popular Python based backtesting frameworks. It supports live trading. Direct support for Jupyter notebooks.  `Read more on BackTrader <https://www.backtrader.com/>`__.
+
+
+.. _qstrader:
+
+QsTrader
+--------
+
+QsTrader is a portfolio optimisation backtesting framework for Python. It originally focused on ETFs and stock. `Read more on QsTrader <https://www.quantstart.com/qstrader/>`__.
+
 
 Fastquant
 ---------
 
 A simplified one-liner backtesting solution built on the top of Backtrader. `Read more <https://github.com/enzoampil/fastquant>`_.
-
-QsTrader
---------
-
-Focuses on ETFs and stock. Might not be good for crypto, `Read more <https://www.quantstart.com/qstrader/>`__.
 
 Zipline Reloaded
 ----------------

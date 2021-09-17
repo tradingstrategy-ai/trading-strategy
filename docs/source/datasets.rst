@@ -1,10 +1,11 @@
-Datasets
-========
+.. _trading data:
+
+Trading data
+============
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
 
 List of available DEX datasets
 ------------------------------

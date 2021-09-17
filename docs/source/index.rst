@@ -45,7 +45,16 @@ Find the documentation for research notebooks and Python APIs below.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Narrative documentation
+   :caption: User documentation
+
+   investors
+   algo-creators
+   fee-structures
+   risks-and-legal
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Algorithm vendor documentation
 
    examples/getting-started
    running
@@ -68,7 +77,7 @@ Find the documentation for research notebooks and Python APIs below.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Strategies
+   :caption: Strategy examples
 
    algorithms/entropy-monkey
    algorithms/ape-in

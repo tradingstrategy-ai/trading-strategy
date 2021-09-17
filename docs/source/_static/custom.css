@@ -7,6 +7,24 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
     font-weight: 400;
 }
 
+a {
+    color: #005b49;
+    text-decoration: none;
+    font-weight: 500;
+    transition: 0.3s;
+    border-bottom: 1px solid #005b49;
+
+}
+
+a:visited {
+  color: #005b49;
+}
+
+a:hover {
+  text-decoration: none;
+  color: black;
+}
+
 .document h2 {
     padding-bottom: 10px;
     border-bottom: 1px solid #CCBEB3;
@@ -33,7 +51,9 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 
 .wy-nav-top a, .wy-nav-top a:visited, .wy-nav-top a:hover {
     color: white !important;
+    border: 0 !important;
 }
+
 
 
 .wy-menu-vertical header, .wy-menu-vertical p.caption {
@@ -43,6 +63,13 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
 .wy-menu-vertical a,
 .wy-menu-vertical a:visited {
     color: #666;
+    border: 0;
+}
+
+.wy-side-nav-search a,
+.wy-breadcrumbs a,
+footer a {
+    border: 0;
 }
 
 .wy-menu-vertical a:hover {
@@ -76,21 +103,7 @@ h1,h2,.rst-content .toctree-wrapper p.caption,h3,h4,h5,h6,legend {
     letter-spacing: 2px;
 }
 
-a {
-  color: #005b49;
-  text-decoration: none;
-  font-weight: 500;
-  transition: 0.3s;
-}
 
-a:visited {
-  color: #005b49;
-}
-
-a:hover {
-  text-decoration: underline;
-  color: #005b49;
-}
 
 /**
  * Make autodoc and nbsphinx output more readable
