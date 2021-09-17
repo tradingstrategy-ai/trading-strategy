@@ -3,7 +3,7 @@
 Fee structures
 ==============
 
-TradingStrategy.ai offers flexible fee structures that strike an optimal balance between the investor demand and the algorithmic vendor earnings.
+Trading Strategy offers flexible fee structures that strike an optimal balance between the investor demand and the algorithmic vendor earnings.
 
 .. raw:: html
 
@@ -38,9 +38,9 @@ Setting the feeds for a trading strategy
 
 * The algorithm vendor proposes the fee structure when they propose a new algorithm for the protocol
 
-* The TradingStrategy accepts the fee structure and deploys the corresponding smart contract
+* The Trading Strategy accepts the fee structure and deploys the corresponding smart contract
 
-* The fees can be later adjusted with the mutual decision of the algorithm vendor and TradingStrategy governance
+* The fees can be later adjusted with the mutual decision of the algorithm vendor and Trading Strategy governance
 
 Splitting the fees
 ------------------
@@ -49,7 +49,7 @@ The revenue share makes it possible for the protocol to grow in scalable manner.
 
 * Algorithm vendors will enjoy new income from new investors
 
-* TradingStrategy protocol governance can invest to marketing and attracting new investors
+* Trading Strategy protocol governance can invest to marketing and attracting new investors
 
 The protocol fees need to be split with the following parties. Each will receive portiion of the fees earned by a strategy.
 

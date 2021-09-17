@@ -64,7 +64,7 @@ Glossary
 
     OHLCV
 
-        A typical :term:`candle` contains open, high, low and close price and trade volume for a :term:`time bucket <bucket>`. Because on-chain exposes more data than centralised exchanges, TradingStrategy.ai data also contains individual buys and sells, US dollar exchange rate and so forth.
+        A typical :term:`candle` contains open, high, low and close price and trade volume for a :term:`time bucket <bucket>`. Because on-chain exposes more data than centralised exchanges, Trading Strategy data also contains individual buys and sells, US dollar exchange rate and so forth.
 
     Parquet
 
@@ -121,7 +121,7 @@ Glossary
 
     Liquidity
 
-        Liquidity refers to the depth of the order books: how much volume a single trade can achieve without moving the price. It can be expressed as :term:`slippage` or absolute depth of the order book. The latter is very easy for :term:`AMM` based exchanges where the liquidity is a continuous function. TradingStrategy.ai provides :term:`datasets <dataset>` for AMM liquidity in :py:mod:`capitalgram.liquidity` module.
+        Liquidity refers to the depth of the order books: how much volume a single trade can achieve without moving the price. It can be expressed as :term:`slippage` or absolute depth of the order book. The latter is very easy for :term:`AMM` based exchanges where the liquidity is a continuous function. Trading Strategy provides :term:`datasets <dataset>` for AMM liquidity in :py:mod:`capitalgram.liquidity` module.
 
     Slippage
 
@@ -141,7 +141,7 @@ Glossary
 
     High-frequency trading
 
-        High-frequency trading, or HFT for short, is a trading strategy where you do arbitration, cross-market market making or such and compete against the other actors with your technical speed. TradingStrategy.ai is not suitable framework for HFT trading, though its data can aid to come up with good HFT strategiees.
+        High-frequency trading, or HFT for short, is a trading strategy where you do arbitration, cross-market market making or such and compete against the other actors with your technical speed. Trading Strategy is not suitable framework for HFT trading, though its data can aid to come up with good HFT strategiees.
 
     Directional strategy
 
@@ -157,7 +157,7 @@ Glossary
 
     Private strategy
 
-        A trading strategy where the source code of the strategy is not disclosed to public. Private strategies can still be :term:`non-custodial` and enjoy the benefits of TradingStrategy.ai protocol trade execution and fee distribution. :ref`Read more <Private strategies>`.
+        A trading strategy where the source code of the strategy is not disclosed to public. Private strategies can still be :term:`non-custodial` and enjoy the benefits of Trading Strategy protocol trade execution and fee distribution. :ref`Read more <Private strategies>`.
 
     Risk-free rate
 

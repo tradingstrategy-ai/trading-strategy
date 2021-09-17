@@ -1,7 +1,7 @@
 For algorithm vendors
 =====================
 
-If you are an algorithmic trading strategy programmer, systematic trader or a quantative crypto hedge fund, you can earn extra with TradingStrategy.ai.
+If you are an algorithmic trading strategy programmer, systematic trader or a quantative crypto hedge fund, you can earn extra with Trading Strategy.
 
 .. raw:: html
 
@@ -11,9 +11,9 @@ If you are an algorithmic trading strategy programmer, systematic trader or a qu
 How to create strategy
 ----------------------
 
-TradingStrategy offers decentralised finance :ref:`trading data` as the starting point for the strategy development. Register an API key and start exploring the datasets.
+Trading Strategy offers decentralised finance :ref:`trading data` as the starting point for the strategy development. Register an API key and start exploring the datasets.
 
-Plan your strategy type: Single pair strategy or portfolio optimisation strategy. Based on this TradingStrategy offers you too popular Python backtesting and trading framework to choose from.
+Plan your strategy type: Single pair strategy or portfolio optimisation strategy. Based on this Trading Strategy offers you too popular Python backtesting and trading framework to choose from.
 
 * :ref:`Backtrader` for single-pair strategies, or strategies that trade few well-known trading pairs
 
@@ -21,9 +21,9 @@ Plan your strategy type: Single pair strategy or portfolio optimisation strategy
 
 * You can also do backtesting in your own tool and on your own infrastructure
 
-Backtest your strategy using Python, as based on TradingStrategy provided code examples. Then, write your live trading strategy script.
+Backtest your strategy using Python, as based on Trading Strategy provided code examples. Then, write your live trading strategy script.
 
-TradingStrategy governance accept your request for a new algorithm, with proposed fee structure, and deploys a corresponding smart contract.
+Trading Strategy governance accept your request for a new algorithm, with proposed fee structure, and deploys a corresponding smart contract.
 
 Trading can start.
 
@@ -32,7 +32,7 @@ Strategies can be hidden and redeployed until it is guaranteed the live executio
 Strategy privacy and trade secrets
 ----------------------------------
 
-TradingStrategy protocol strategies can be either private or public. In the private strategies, the algorithm creators are responsible for running their own servers.
+Trading Strategy protocol strategies can be either private or public. In the private strategies, the algorithm creators are responsible for running their own servers.
 
 Private strategies
 ~~~~~~~~~~~~~~~~~~
@@ -44,7 +44,7 @@ Private strategies can contain trade secrets ("the secret sauce"). They can be c
 Public strategies
 ~~~~~~~~~~~~~~~~~
 
-Public strategy algorithm source code is open and executed by the public TradingStrategy oracle server fleet.
+Public strategy algorithm source code is open and executed by the public Trading Strategy oracle server fleet.
 
 Public strategies can be
 

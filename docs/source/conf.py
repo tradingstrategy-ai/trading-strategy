@@ -18,7 +18,7 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 
-project = 'TradingStrategy.ai'
+project = 'Trading Strategy'
 copyright = '2021, Mikko Ohtamaa'
 author = 'Mikko Ohtamaa'
 

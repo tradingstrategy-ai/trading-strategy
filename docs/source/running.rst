@@ -6,7 +6,7 @@ Preface
 
 The documentation contains various notebooks for
 
-* How to use TradingStrategy.ai API
+* How to use Trading Strategy API
 
 * How to develop your own automated trading strategies
 

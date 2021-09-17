@@ -1,7 +1,7 @@
 For investors
 =============
 
-TradingStrategy.ai offers investor direct investments in algorithm trading strategies.
+Trading Strategy offers investor direct investments in algorithm trading strategies.
 
 .. raw:: html
 
@@ -25,7 +25,7 @@ How to invest
 
 * The investor needs to hold the reserve currency of the strategy. In the most of the cases this is :term:`USDC` coin.
 
-* Investors click *Invest* on the chosen strategy on `TradingStrategy.ai <https://tradingstrategy.ai>`_.
+* Investors click *Invest* on the chosen strategy on `Trading Strategy <https://tradingstrategy.ai>`_.
 
 Smart contract benefits
 -----------------------
