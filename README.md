@@ -1,4 +1,4 @@
-![CI status](https://github.com/miohtama/capitalgram-onchain-dex-quant-data/actions/workflows/python-app.yml/badge.svg)
+![CI status](https://github.com/tradingstrategy-ai/client/badge.svg)
 
 Capitalgram is a Python library for on-chain quantative trading.
 
@@ -20,7 +20,7 @@ Capitalgram is a Python library for on-chain quantative trading.
 
 # Example and getting started 
 
-See [the Getting Started notebook](https://docs.capitalgram.com/examples/getting-started.html) and the rest of the [documentation](https://docs.capitalgram.com).
+See [the Getting Started notebook](https://tradingstrategy.ai/docs/programming/examples/getting-started.html) and the rest of the [documentation](https://tradingstrategy.ai/docs/).
 
 ## Prerequisites
 
@@ -31,11 +31,11 @@ Python 3.7+
 Install with `pip` or `poetry`
 
 ```shell
-pip install capitalgram 
+pip install tradindstrategy 
 ```
 
 ```shell
-poetry add capitalgram
+poetry add tradindstrategy
 ```
 
 # Oh-chain trading data
