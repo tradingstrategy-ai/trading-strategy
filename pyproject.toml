@@ -1,8 +1,13 @@
 [tool.poetry]
 name = "tradingstrategy"
 version = "0.2.0"
-description = ""
+description = "Framework for on-chain quantitative financial analysis and trading algorithms on decentralised exchanges"
 authors = ["Mikko Ohtamaa <mikko@capitalgram.com>"]
+homepage = "https://tradingstrategy.ai"
+repository = "https://github.com/tradingstrategy-ai/client"
+license = "MIT"
+readme = "README.md"
+keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance"]
 
 [tool.poetry.dependencies]
 python = "^3.7.2"

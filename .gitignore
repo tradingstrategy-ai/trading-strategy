@@ -2,4 +2,4 @@ __pycache__
 docs/build
 .DS_Store
 .ipynb_checkpoints
-
+dist
