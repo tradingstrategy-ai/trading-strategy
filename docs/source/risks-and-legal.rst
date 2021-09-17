@@ -13,7 +13,7 @@ Legal and jurisdictional
 
 TradingStrategy protocol is not a fund. The protocol governance or the algorithm vendors do not have discretionary control over how the user assets are invested of whether the user can exit.
 
-TradingStrategy protocol development team is operated by a Gibraltarian based company. Because the development team does not transfer value or store value on the behalf of investors, the development team is unlikely to be a subject for the DLT licensing regime.
+TradingStrategy protocol development is operated by a Gibraltar based company. Because the development team does not transfer value or store value on the behalf of investors, the development team is unlikely to be a subject for the DLT licensing regime.
 
 Other algorithmic trading signal and copy trading services
 ----------------------------------------------------------
