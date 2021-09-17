@@ -18,10 +18,15 @@ class PairGroupedUniverse:
     recompile the data on the client side.
     """
 
-    def __init__(self, df: pd.DataFrame, timestamp_column="timestamp"):
+    def __init__(self, df: pd.DataFrame, timestamp_column="timestamp", index_automatically=True):
+        """
+        :param timestamp_column: What column use to build a time index
+        :param index_automatically: Convert the index to use time series. You might avoid this with QSTrader kind of data.
+        """
         assert isinstance(df, pd.DataFrame)
-        self.df = df
-        self.pairs: pd.GroupBy = df.groupby(["pair_id"])
+        if index_automatically:
+            self.df = df.set_index(timestamp_column, drop=False)
+        self.pairs: pd.GroupBy = self.df.groupby(["pair_id"])
 
     def get_columns(self) -> pd.Index:
         """Get column names from the underlying pandas.GroupBy object"""

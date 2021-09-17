@@ -94,6 +94,17 @@ class Client:
         apply_patch()
 
     @classmethod
+    def setup_notebook(cls):
+        """Setup diagram rendering and such.
+
+        Force high DPI output for all images.
+        """
+        # https://stackoverflow.com/a/51955985/315168
+        import matplotlib as mpl
+        mpl.rcParams['figure.dpi'] = 600
+
+
+    @classmethod
     def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
         """Create a new API client.
 
@@ -101,6 +112,7 @@ class Client:
         """
 
         cls.preflight_check()
+        cls.setup_notebook()
 
         env = JupyterEnvironment()
         config = env.setup_on_demand()

@@ -145,6 +145,6 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
     raw liquidity sample.
     """
 
-    def get_liquiditY_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
+    def get_liquidity_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
         """Get samples for a single pair."""
         return self.get_samples_by_pair(pair_id)
