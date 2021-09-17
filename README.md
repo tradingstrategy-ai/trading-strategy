@@ -1,6 +1,8 @@
 ![CI status](https://github.com/tradingstrategy-ai/client/badge.svg)
 
-Capitalgram is a Python library for on-chain quantative trading.
+# Trading Strategy protocol client
+
+Trading Strategy client is a Python library for on-chain algorithmic trading and trading bots. 
 
 # Use cases
 
@@ -20,7 +22,7 @@ Capitalgram is a Python library for on-chain quantative trading.
 
 # Example and getting started 
 
-See [the Getting Started notebook](https://tradingstrategy.ai/docs/programming/examples/getting-started.html) and the rest of the [documentation](https://tradingstrategy.ai/docs/).
+See [the Getting Started notebook](https://tradingstrategy.ai/docs/programming/examples/getting-started.html) and the rest of the [Trading Strategy documentation](https://tradingstrategy.ai/docs/).
 
 ## Prerequisites
 
