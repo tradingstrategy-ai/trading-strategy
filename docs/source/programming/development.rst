@@ -65,3 +65,13 @@ Deploying new documentation
 Github Actions workflow will deploy on Netlify. You need Netlify `AUTH_TOKEN` and `SITE_ID`.
 
 `AUTH_TOKEN` can be generated in the user settings.
+
+Making a release
+----------------
+
+`Release with poetry <https://python-poetry.org/docs/cli/>`_.
+
+.. code-block:: shell
+
+    poetry build
+    poetry publish
