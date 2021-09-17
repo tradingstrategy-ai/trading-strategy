@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "tradingstrategy"
+name = "trading-strategy"
 version = "0.2.0"
 description = "Framework for on-chain quantitative financial analysis and trading algorithms on decentralised exchanges"
 authors = ["Mikko Ohtamaa <mikko@capitalgram.com>"]
@@ -7,7 +7,7 @@ homepage = "https://tradingstrategy.ai"
 repository = "https://github.com/tradingstrategy-ai/client"
 license = "MIT"
 readme = "README.md"
-keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance"]
+keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance", "binance"]
 
 [tool.poetry.dependencies]
 python = "^3.7.2"
@@ -25,10 +25,12 @@ mplfinance = "^0.12.7-alpha.17"
 # Cannot use release, because new maplotlib compatibiltiy
 # Fixes
 # https://github.com/mementum/backtrader/pull/418
-backtrader = {git = "https://github.com/mementum/backtrader", rev="e2674b1690f6366e08646d8cfd44af7bb71b3970"}
+# backtrader = {git = "https://github.com/mementum/backtrader", rev="e2674b1690f6366e08646d8cfd44af7bb71b3970"}
+trading-strategy-backtrader = "^0.1"
 fastquant = "^0.1.5"
+trading-strategy-qstrader = "^0.3.0"
 # qstrader = {path = "../code/qstrader", develop = true}
-qstrader = {git = "https://github.com/miohtama/qstrader", rev="ee011745531e0cab412bd3a98f65976840821c4f"}
+#qstrader = {git = "https://github.com/miohtama/qstrader", rev="ee011745531e0cab412bd3a98f65976840821c4f"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

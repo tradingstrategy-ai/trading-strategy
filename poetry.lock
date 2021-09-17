@@ -145,16 +145,9 @@ description = "BackTesting Engine"
 category = "main"
 optional = false
 python-versions = "*"
-develop = false
 
 [package.extras]
 plotting = ["matplotlib"]
-
-[package.source]
-type = "git"
-url = "https://github.com/mementum/backtrader"
-reference = "e2674b1690f6366e08646d8cfd44af7bb71b3970"
-resolved_reference = "e2674b1690f6366e08646d8cfd44af7bb71b3970"
 
 [[package]]
 name = "beautifulsoup4"
@@ -225,7 +218,7 @@ beautifulsoup4 = "*"
 
 [[package]]
 name = "ccxt"
-version = "1.56.47"
+version = "1.56.51"
 description = "A JavaScript / Python / PHP cryptocurrency trading library with support for 130+ exchanges"
 category = "main"
 optional = false
@@ -1541,28 +1534,6 @@ cffi = {version = "*", markers = "implementation_name == \"pypy\""}
 py = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
-name = "qstrader"
-version = "0.2.3-mikko"
-description = ""
-category = "main"
-optional = false
-python-versions = "*"
-develop = false
-
-[package.dependencies]
-Click = ">=7.1.2"
-matplotlib = ">=3.0.3"
-numpy = ">=1.18.4"
-pandas = ">=1.1.5"
-seaborn = ">=0.10.1"
-
-[package.source]
-type = "git"
-url = "https://github.com/miohtama/qstrader"
-reference = "ee011745531e0cab412bd3a98f65976840821c4f"
-resolved_reference = "ee011745531e0cab412bd3a98f65976840821c4f"
-
-[[package]]
 name = "regex"
 version = "2021.8.28"
 description = "Alternative regular expression module, to replace re."
@@ -1893,6 +1864,32 @@ notebook = ["ipywidgets (>=6)"]
 telegram = ["requests"]
 
 [[package]]
+name = "trading-strategy-backtrader"
+version = "0.1"
+description = "BackTesting Engine (forked)"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+plotting = ["matplotlib"]
+
+[[package]]
+name = "trading-strategy-qstrader"
+version = "0.3"
+description = "QSTrader backtesting simulation engine (forked)"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+Click = ">=7.1.2"
+matplotlib = ">=3.0.3"
+numpy = ">=1.18.4"
+pandas = ">=1.1.5"
+seaborn = ">=0.10.1"
+
+[[package]]
 name = "traitlets"
 version = "5.1.0"
 description = "Traitlets Python configuration system"
@@ -2065,7 +2062,7 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.2"
-content-hash = "b3543546313b7a963a4a7ef4ea237a2207a22c1ffe79d70f2700389c1af32d57"
+content-hash = "740d23c89d7fd812dafb8440d97d0dae52e16be31f4bbd9eea865f50ca8faeb0"
 
 [metadata.files]
 aiodns = [
@@ -2160,7 +2157,9 @@ backcall = [
     {file = "backports.entry_points_selectable-1.1.0-py2.py3-none-any.whl", hash = "sha256:a6d9a871cde5e15b4c4a53e3d43ba890cc6861ec1332c9c2428c92f977192acc"},
     {file = "backports.entry_points_selectable-1.1.0.tar.gz", hash = "sha256:988468260ec1c196dab6ae1149260e2f5472c9110334e5d51adcb77867361f6a"},
 ]
-backtrader = []
+backtrader = [
+    {file = "backtrader-1.9.76.123-py2.py3-none-any.whl", hash = "sha256:0dc8912a98352b75122f8d7084bc63ee47f61c2a1d16f506d4d82aee3941297a"},
+]
 beautifulsoup4 = [
     {file = "beautifulsoup4-4.10.0-py3-none-any.whl", hash = "sha256:9a315ce70049920ea4572a4055bc4bd700c940521d36fc858205ad4fcde149bf"},
     {file = "beautifulsoup4-4.10.0.tar.gz", hash = "sha256:c23ad23c521d818955a4151a67d81580319d4bf548d3d49f4223ae041ff98891"},
@@ -2177,8 +2176,8 @@ bs4 = [
     {file = "bs4-0.0.1.tar.gz", hash = "sha256:36ecea1fd7cc5c0c6e4a1ff075df26d50da647b75376626cc186e2212886dd3a"},
 ]
 ccxt = [
-    {file = "ccxt-1.56.47-py2.py3-none-any.whl", hash = "sha256:f0567428b38d14c993787dd733709ff04200241afaba24edad4dc1bf128a490c"},
-    {file = "ccxt-1.56.47.tar.gz", hash = "sha256:122bb9598c37bb1b276e8b3acd949b3dcc97a834a159303c44a9d01b1a4feb72"},
+    {file = "ccxt-1.56.51-py2.py3-none-any.whl", hash = "sha256:6400a0f2a74fc7bb3d1a3ae50ef3c690757f8ed96829804e78b62eba4d117ae7"},
+    {file = "ccxt-1.56.51.tar.gz", hash = "sha256:99ff0f4be60d0ebedd4d66b1eafb70a2001e2bf53bfd52c9420e138891490c19"},
 ]
 certifi = [
     {file = "certifi-2021.5.30-py2.py3-none-any.whl", hash = "sha256:50b1e4f8446b06f41be7dd6338db18e0990601dce795c2b1686458aa7e8fa7d8"},
@@ -2192,11 +2191,6 @@ cffi = [
     {file = "cffi-1.14.6-cp27-cp27m-win_amd64.whl", hash = "sha256:7bcac9a2b4fdbed2c16fa5681356d7121ecabf041f18d97ed5b8e0dd38a80224"},
     {file = "cffi-1.14.6-cp27-cp27mu-manylinux1_i686.whl", hash = "sha256:ed38b924ce794e505647f7c331b22a693bee1538fdf46b0222c4717b42f744e7"},
     {file = "cffi-1.14.6-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:e22dcb48709fc51a7b58a927391b23ab37eb3737a98ac4338e2448bef8559b33"},
-    {file = "cffi-1.14.6-cp35-cp35m-macosx_10_9_x86_64.whl", hash = "sha256:aedb15f0a5a5949ecb129a82b72b19df97bbbca024081ed2ef88bd5c0a610534"},
-    {file = "cffi-1.14.6-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:48916e459c54c4a70e52745639f1db524542140433599e13911b2f329834276a"},
-    {file = "cffi-1.14.6-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:f627688813d0a4140153ff532537fbe4afea5a3dffce1f9deb7f91f848a832b5"},
-    {file = "cffi-1.14.6-cp35-cp35m-win32.whl", hash = "sha256:f0010c6f9d1a4011e429109fda55a225921e3206e7f62a0c22a35344bfd13cca"},
-    {file = "cffi-1.14.6-cp35-cp35m-win_amd64.whl", hash = "sha256:57e555a9feb4a8460415f1aac331a2dc833b1115284f7ded7278b54afc5bd218"},
     {file = "cffi-1.14.6-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:e8c6a99be100371dbb046880e7a282152aa5d6127ae01783e37662ef73850d8f"},
     {file = "cffi-1.14.6-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:19ca0dbdeda3b2615421d54bef8985f72af6e0c47082a8d26122adac81a95872"},
     {file = "cffi-1.14.6-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:d950695ae4381ecd856bcaf2b1e866720e4ab9a1498cba61c602e56630ca7195"},
@@ -3113,7 +3107,6 @@ pyzmq = [
     {file = "pyzmq-22.3.0-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:d6157793719de168b199194f6b6173f0ccd3bf3499e6870fac17086072e39115"},
     {file = "pyzmq-22.3.0.tar.gz", hash = "sha256:8eddc033e716f8c91c6a2112f0a8ebc5e00532b4a6ae1eb0ccc48e027f9c671c"},
 ]
-qstrader = []
 regex = [
     {file = "regex-2021.8.28-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:9d05ad5367c90814099000442b2125535e9d77581855b9bee8780f1b41f2b1a2"},
     {file = "regex-2021.8.28-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f3bf1bc02bc421047bfec3343729c4bbbea42605bcfd6d6bfe2c07ade8b12d2a"},
@@ -3315,6 +3308,14 @@ tornado = [
 tqdm = [
     {file = "tqdm-4.62.2-py2.py3-none-any.whl", hash = "sha256:80aead664e6c1672c4ae20dc50e1cdc5e20eeff9b14aa23ecd426375b28be588"},
     {file = "tqdm-4.62.2.tar.gz", hash = "sha256:a4d6d112e507ef98513ac119ead1159d286deab17dffedd96921412c2d236ff5"},
+]
+trading-strategy-backtrader = [
+    {file = "trading-strategy-backtrader-0.1.tar.gz", hash = "sha256:2fcb342e0383a55aeb5e56948c6d8b3eb30c4375ad004637aeac8f96ff6a4e30"},
+    {file = "trading_strategy_backtrader-0.1-py3-none-any.whl", hash = "sha256:230d878f5284d3525283787339fa4694f9243304d40f55e71e876dbbdb87e740"},
+]
+trading-strategy-qstrader = [
+    {file = "trading-strategy-qstrader-0.3.tar.gz", hash = "sha256:3aea326dd5c4ee639f7af85245a9f416be969ebffc68baadc6193df929697088"},
+    {file = "trading_strategy_qstrader-0.3-py3-none-any.whl", hash = "sha256:42a83906a0000e99f3a9933a231e504c486af92530b18588f06c72a01acb4d03"},
 ]
 traitlets = [
     {file = "traitlets-5.1.0-py3-none-any.whl", hash = "sha256:03f172516916220b58c9f19d7f854734136dd9528103d04e9bf139a92c9f54c4"},
