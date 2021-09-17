@@ -1,7 +1,7 @@
 Liquidity
 =========
 
- .. automodule:: capitalgram.liquidity
+ .. automodule:: tradingstrategy.liquidity
     :members:
 
 

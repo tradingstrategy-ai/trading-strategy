@@ -1,7 +1,7 @@
 Fastquant integration
 ========================
 
- .. automodule:: capitalgram.frameworks.fastquant
+ .. automodule:: tradingstrategy.frameworks.fastquant
     :members:
 
 

@@ -1,7 +1,7 @@
 Matplotlib integration
 ======================
 
- .. automodule:: capitalgram.frameworks.matplotlib
+ .. automodule:: tradingstrategy.frameworks.matplotlib
     :members:
 
 

@@ -1,7 +1,7 @@
 Trading pairs
 =============
 
- .. automodule:: capitalgram.pair
+ .. automodule:: tradingstrategy.pair
     :members:
 
 

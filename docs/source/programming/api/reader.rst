@@ -1,6 +1,6 @@
 Reading datasets
 ================
 
- .. automodule:: capitalgram.reader
+ .. automodule:: tradingstrategy.reader
      :members:
 

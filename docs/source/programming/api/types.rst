@@ -1,6 +1,6 @@
 Types
 =====
 
- .. automodule:: capitalgram.types
+ .. automodule:: tradingstrategy.types
      :members:
 

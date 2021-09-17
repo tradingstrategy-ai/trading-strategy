@@ -1,7 +1,7 @@
 Chain-agnostic addresses
 ========================
 
- .. automodule:: capitalgram.caip
+ .. automodule:: tradingstrategy.caip
     :members:
 
 

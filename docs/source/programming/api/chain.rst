@@ -1,7 +1,7 @@
 Blockchains
 ===========
 
- .. automodule:: capitalgram.chain
+ .. automodule:: tradingstrategy.chain
     :members:
 
 

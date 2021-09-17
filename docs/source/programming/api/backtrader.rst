@@ -1,7 +1,7 @@
 Backtrader integration
 ========================
 
- .. automodule:: capitalgram.frameworks.backtrader
+ .. automodule:: tradingstrategy.frameworks.backtrader
     :members:
 
 

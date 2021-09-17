@@ -1,7 +1,7 @@
 Candles
 =======
 
- .. automodule:: capitalgram.candle
+ .. automodule:: tradingstrategy.candle
     :members:
 
 

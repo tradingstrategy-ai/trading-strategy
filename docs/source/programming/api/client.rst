@@ -1,6 +1,6 @@
 Client
 ======
 
- .. autoclass:: capitalgram.client.Capitalgram
+ .. autoclass:: tradingstrategy.client.Client
      :members:
 

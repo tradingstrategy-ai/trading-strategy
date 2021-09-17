@@ -1,7 +1,7 @@
 Time buckets
 ========================
 
- .. automodule:: capitalgram.timebucket
+ .. automodule:: tradingstrategy.timebucket
     :members:
 
 

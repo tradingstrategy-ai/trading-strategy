@@ -1,7 +1,7 @@
 Exchange
 ========
 
- .. automodule:: capitalgram.exchange
+ .. automodule:: tradingstrategy.exchange
     :members:
 
 
