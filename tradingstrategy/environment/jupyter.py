@@ -18,7 +18,7 @@ class JupyterEnvironment(Environment):
 
     def __init__(self, cache_path=None):
         if not cache_path:
-            self.cache_path = os.path.expanduser("~/.cache/capitalgram")
+            self.cache_path = os.path.expanduser("~/.cache/tradingstrategy")
         else:
             self.cache_path = cache_path
 
@@ -56,10 +56,10 @@ class JupyterEnvironment(Environment):
         """Check if we need to set up the environment."""
         config = self.discover_configuration()
         if not config:
-            print(f"No existing Capitalgram configuration found in {self.get_settings_path()}/settings.json. Starting interactive setup.")
+            print(f"No existing Trading Strategy configuration found in {self.get_settings_path()}/settings.json. Starting interactive setup.")
             config = self.interactive_setup()
         else:
-            print(f"Started Capitalgram in Jupyter notebook environment, configuration is stored in {self.get_settings_path()}")
+            print(f"Started Trading Strategy in Jupyter notebook environment, configuration is stored in {self.get_settings_path()}")
         return config
 
 

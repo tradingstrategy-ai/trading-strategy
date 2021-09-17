@@ -3,12 +3,12 @@ import pytest
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.liquidity import GroupedLiquidityUniverse
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.client import Capitalgram
+from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import PandasPairUniverse
 
 
-def test_grouped_liquidity(persistent_test_client: Capitalgram):
+def test_grouped_liquidity(persistent_test_client: Client):
     """Group downloaded liquidity sample data by a trading pair."""
 
     client = persistent_test_client
@@ -47,7 +47,7 @@ def test_grouped_liquidity(persistent_test_client: Capitalgram):
     assert min_liq == pytest.approx(550)
 
 
-def test_combined_candles_and_liquidity(persistent_test_client: Capitalgram):
+def test_combined_candles_and_liquidity(persistent_test_client: Client):
     """Candles and liquidity data looks similar regarding the pair count."""
 
     client = persistent_test_client

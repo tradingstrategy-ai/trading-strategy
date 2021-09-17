@@ -14,7 +14,7 @@ from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.liquidity import GroupedLiquidityUniverse
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.client import Capitalgram
+from tradingstrategy.client import Client
 from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
 from tradingstrategy.pair import PandasPairUniverse
 
@@ -245,7 +245,7 @@ class ApeTheLatestStrategy(bt.Strategy):
 
 
 @pytest.mark.skip(reason="Backtrader is too slow for this test. I ditched Backtrader and trying QSTrader next.")
-def test_backtrader_ape_in_strategy(logger, persistent_test_client: Capitalgram):
+def test_backtrader_ape_in_strategy(logger, persistent_test_client: Client):
     """Ape in to the latest token every day."""
 
     client = persistent_test_client

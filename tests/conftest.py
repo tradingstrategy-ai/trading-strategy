@@ -4,30 +4,30 @@ import logging
 import pytest
 import coloredlogs
 
-from tradingstrategy.client import Capitalgram
+from tradingstrategy.client import Client
 
 
 @pytest.fixture(scope="session")
-def client() -> Capitalgram:
+def client() -> Client:
     """Create a client that uses test API key from OS environment against the production server.
 
     This fixture has the duration of the whole test session: once downloaded data is cached and is not redownloaded.
     """
-    c = Capitalgram.create_test_client()
+    c = Client.create_test_client()
     return c
 
 
 @pytest.fixture(scope="session")
-def cache_path(client: Capitalgram):
+def cache_path(client: Client):
     cache_path = client.transport.cache_path
     return cache_path
 
 
 @pytest.fixture(scope="session")
-def persistent_test_client() -> Capitalgram:
+def persistent_test_client() -> Client:
     """Create a client that never redownloads data in a local dev env.
     """
-    c = Capitalgram.create_test_client("/tmp/capitalgram-tests")
+    c = Client.create_test_client("/tmp/capitalgram-tests")
     return c
 
 

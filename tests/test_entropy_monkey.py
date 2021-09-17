@@ -13,7 +13,7 @@ from backtrader import analyzers
 
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.client import Capitalgram
+from tradingstrategy.client import Client
 from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
 from tradingstrategy.pair import PandasPairUniverse
 
@@ -111,7 +111,7 @@ class EntropyMonkey(bt.Strategy):
         self.buy(random_pair, size=size, exectype=bt.Order.Market)
 
 
-def test_backtrader_entropy_monkey(logger, persistent_test_client: Capitalgram):
+def test_backtrader_entropy_monkey(logger, persistent_test_client: Client):
     """Mutliasset strategy runs correct number of days."""
 
     client = persistent_test_client

@@ -33,11 +33,6 @@ Build on
 
    <img class="logo" src="_static/logos/plotly.png" alt="Plotly">
 
-Community
----------
-
-`Github repository <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
-
 
 Find the documentation for research notebooks and Python APIs below.
 
@@ -65,4 +60,8 @@ Find the documentation for research notebooks and Python APIs below.
    protocol/comparison
    protocol/deploy
 
+Community
+---------
+
+`Github repository <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
 

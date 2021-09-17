@@ -13,7 +13,7 @@ import pandas as pd
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.chain import ChainId
-from tradingstrategy.client import Capitalgram
+from tradingstrategy.client import Client
 from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
 from tradingstrategy.pair import PandasPairUniverse
 
@@ -60,7 +60,7 @@ class IntegrationTestStrategy(bt.Strategy):
         self.ticks += 1
 
 
-def test_backtrader_sma(logger, persistent_test_client: Capitalgram):
+def test_backtrader_sma(logger, persistent_test_client: Client):
     """Run Backtrader SMA on a single pair over Capitalgram API."""
 
     client = persistent_test_client
@@ -127,7 +127,7 @@ def test_backtrader_sma(logger, persistent_test_client: Capitalgram):
     assert trade_analyzer.rets["lost"]["total"] == 5
 
 
-def test_backtrader_multiasset(logger, persistent_test_client: Capitalgram):
+def test_backtrader_multiasset(logger, persistent_test_client: Client):
     """Mutliasset strategy runs correct number of days."""
 
     client = persistent_test_client

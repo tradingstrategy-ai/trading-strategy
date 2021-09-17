@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "capitalgram"
-version = "0.1.0"
+name = "tradingstrategy"
+version = "0.2.0"
 description = ""
-authors = ["Mikko Ohtamaa <mikko@opensourcehacker.com>"]
+authors = ["Mikko Ohtamaa <mikko@capitalgram.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.7.2"

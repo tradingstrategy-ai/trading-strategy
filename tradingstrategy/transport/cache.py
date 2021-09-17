@@ -31,14 +31,14 @@ class CachedHTTPTransport:
         if endpoint:
             self.endpoint = endpoint
         else:
-            self.endpoint = "https://candlelightdinner.capitalgram.com"
+            self.endpoint = "https://candlelightdinner.tradingstrategy.ai"
 
         self.cache_period = cache_period
 
         if cache_path:
             self.cache_path = cache_path
         else:
-            self.cache_path = os.path.expanduser("~/.cache/capitalgram")
+            self.cache_path = os.path.expanduser("~/.cache/trading-strategy")
 
         self.requests = self.create_requests_client(api_key=api_key)
 
@@ -124,7 +124,7 @@ class CachedHTTPTransport:
 
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "exchanges")
+        self.save_response(path, "exchange-universe")
         return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> io.BytesIO:

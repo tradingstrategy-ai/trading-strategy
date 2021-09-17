@@ -2,11 +2,11 @@
 
 import pytest
 from tradingstrategy.chain import ChainId
-from tradingstrategy.client import Capitalgram
+from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse, DEXPair, DuplicatePair
 
 
-def test_pair_by_volume(logger, persistent_test_client: Capitalgram):
+def test_pair_by_volume(logger, persistent_test_client: Client):
     """If we have multiple fake trading pairs, we pick the correct one by volume."""
 
     capitalgram = persistent_test_client

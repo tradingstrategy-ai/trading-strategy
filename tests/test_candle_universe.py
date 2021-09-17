@@ -2,12 +2,12 @@ import pytest
 
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.client import Capitalgram
+from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import PairUniverse, PandasPairUniverse
 
 
-def test_grouped_candles(persistent_test_client: Capitalgram):
+def test_grouped_candles(persistent_test_client: Client):
     """Group downloaded candles by a trading pair."""
 
     client = persistent_test_client

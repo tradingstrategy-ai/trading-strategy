@@ -12,14 +12,14 @@ from fastquant import backtest
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.chain import ChainId
-from tradingstrategy.client import Capitalgram
+from tradingstrategy.client import Client
 from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
 from tradingstrategy.frameworks.fastquant import to_human_readable_result
 from tradingstrategy.pair import PandasPairUniverse
 
 
 
-def test_fastquant_smac(logger, persistent_test_client: Capitalgram):
+def test_fastquant_smac(logger, persistent_test_client: Client):
     """Run Fasttrader SMAC on a single pair over Capitalgram API."""
 
     capitalgram = persistent_test_client

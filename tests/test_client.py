@@ -1,25 +1,25 @@
 import os
 
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.client import Capitalgram
+from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import PairUniverse
 
 
-def test_client_ping(client: Capitalgram):
+def test_client_ping(client: Client):
     """Unauthenticated ping"""
     data = client.transport.ping()
     assert data["ping"] == "pong"
 
 
-def test_client_motd(client: Capitalgram):
+def test_client_motd(client: Client):
     """Authenticated ping"""
     data = client.transport.message_of_the_day()
     assert "version" in data
     assert "message" in data
 
 
-def test_client_fetch_chain_status(client: Capitalgram):
+def test_client_fetch_chain_status(client: Client):
     """Get chain scanning status"""
     status = client.fetch_chain_status(ChainId.ethereum)
     assert status["chain_id"] == 1
@@ -29,7 +29,7 @@ def test_client_fetch_chain_status(client: Capitalgram):
     assert status["first_swap_at"] == '2020-05-05T21:09:32'
 
 
-def test_client_download_pair_universe(client: Capitalgram, cache_path: str):
+def test_client_download_pair_universe(client: Client, cache_path: str):
     """Download pair mapping data"""
     pairs = client.fetch_pair_universe()
     # Check we cached the file correctly
@@ -48,7 +48,7 @@ def test_client_download_pair_universe(client: Capitalgram, cache_path: str):
     assert len(universe.pairs) > 40_000
 
 
-def test_client_download_exchange_universe(client: Capitalgram, cache_path: str):
+def test_client_download_exchange_universe(client: Client, cache_path: str):
     """Download exchange mapping data"""
     universe = client.fetch_exchange_universe()
     # Check we cached the file correctly
@@ -62,7 +62,7 @@ def test_client_download_exchange_universe(client: Capitalgram, cache_path: str)
     assert universe.exchanges[225].name == "Shiba Swap"
 
 
-def test_client_download_all_pairs(client: Capitalgram, cache_path: str):
+def test_client_download_all_pairs(client: Client, cache_path: str):
     """Download all candles for a specific candle width."""
     df = client.fetch_all_candles(TimeBucket.d30)
     # Check we cached the file correctly
@@ -70,7 +70,7 @@ def test_client_download_all_pairs(client: Capitalgram, cache_path: str):
     assert len(df) > 100
 
 
-def test_client_download_all_liquidity_samples(client: Capitalgram, cache_path: str):
+def test_client_download_all_liquidity_samples(client: Client, cache_path: str):
     """Download all liquidity samples for a specific candle width."""
     df = client.fetch_all_liquidity_samples(TimeBucket.d30)
     # Check we cached the file correctly
@@ -78,7 +78,7 @@ def test_client_download_all_liquidity_samples(client: Capitalgram, cache_path: 
     assert len(df) > 100
 
 
-def test_client_convert_all_pairs_to_pandas(client: Capitalgram, cache_path: str):
+def test_client_convert_all_pairs_to_pandas(client: Client, cache_path: str):
     """We can convert the columnar Pyarrow data to Pandas format.
 
     This has some issues with timestamps, so adding a test.
