@@ -68,7 +68,8 @@ a:hover {
 
 .wy-side-nav-search a,
 .wy-breadcrumbs a,
-footer a {
+footer a,
+.toctree-wrapper a {
     border: 0;
 }
 

@@ -4,7 +4,7 @@ Overview
 Preface
 -------
 
-Capitagram protocol offers fully decentralised trade execution for algorithms using decentralised exchanges, on-chain data sources and other blockchain based elements.
+Trading Strategy protocol offers fully decentralised trade execution for algorithms using decentralised exchanges, on-chain data sources and other blockchain based elements.
 
 .. image:: architecture.png
    :width: 1000px

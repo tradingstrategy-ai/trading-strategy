@@ -38,49 +38,24 @@ Community
 
 `Github repository <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
 
-Documentation
--------------
 
 Find the documentation for research notebooks and Python APIs below.
 
 .. toctree::
    :maxdepth: 1
-   :caption: User documentation
+   :caption: Overview
 
    investors
    algo-creators
    fee-structures
    risks-and-legal
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Algorithm vendor documentation
-
-   examples/getting-started
-   running
-   datasets
-   learn
-   troubleshooting
-   development
    glossary
 
 .. toctree::
    :maxdepth: 1
-   :caption: Code examples
+   :caption: Algorithm vendor guide
 
-   examples/plotting
-   examples/interactive-charts
-   examples/technical-analysis
-   examples/pairs
-   examples/liquidity-analysis
-   examples/fastquant
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Strategy examples
-
-   algorithms/entropy-monkey
-   algorithms/ape-in
+   programming/index
 
 .. toctree::
    :maxdepth: 1
@@ -90,21 +65,4 @@ Find the documentation for research notebooks and Python APIs below.
    protocol/comparison
    protocol/deploy
 
-.. toctree::
-   :maxdepth: 1
-   :caption: API documentation
-
-   api/client
-   api/reader
-   api/exchange
-   api/pair
-   api/candle
-   api/liquidity
-   api/chain
-   api/timebucket
-   api/caip
-   api/types
-   api/backtrader
-   api/matplotlib
-   api/fastquant
 
