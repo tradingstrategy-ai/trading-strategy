@@ -1,10 +1,11 @@
 """Test code for double-77 trading strategy on ETH-USDC pair."""
+from typing import Optional
 
 import pytest
 import pandas as pd
 
 import backtrader as bt
-from backtrader import analyzers
+from backtrader import analyzers, Position
 from backtrader import indicators
 
 from tradingstrategy.chain import ChainId
@@ -34,6 +35,9 @@ BACKTESTING_BEGINS = pd.Timestamp("2020-10-1")
 
 # When do we end backtesting
 BACKTESTING_ENDS = pd.Timestamp("2021-09-1")
+
+# If the price drops 15% we trigger a stop loss
+STOP_LOSS = 0.97
 
 # Here is original PineScript for the comparison
 ORIGINAL_PINE_SCRIPT = """
@@ -108,7 +112,9 @@ class Double7(bt.Strategy):
         self.lowest = indicators.Lowest(self.data.close, period=LOW_CANDLES)
 
         # Count ticks and some basic testing metrics
-        self.ticks = self.enters = self.exits = 0
+        self.ticks = self.enters = self.exits = self.stop_loss_triggers = 0
+
+        self.last_order = None
 
     def next(self):
         """Execute a decision making tick for each candle."""
@@ -135,17 +141,28 @@ class Double7(bt.Strategy):
             # Do not try to make any decision if we have nan or zero data
             return
 
+        position: Optional[Position] = self.position
+
         # Enter when we are above moving average and the daily close was
-        if close >= avg and close <= low and not self.position:
-            print("Entered to a position")
+        if close >= avg and close <= low and not position:
+            self.last_order = self.buy(price=close)
             self.enters += 1
-            self.buy()
 
         # If the price closes above its 7 day high, exit from the markets
-        if close >= high and self.position:
+        if close >= high and position:
             print("Exited the position")
             self.exits += 1
             self.close()
+
+        # Because AMMs do not support complex order types,
+        # only swaps, we do not manual stop loss here by
+        # brute market sell in the case the price falls below the stop loss threshold
+        if position:
+            entry_price = self.last_order.price
+            if close <= entry_price * STOP_LOSS:
+                print(f"Stop loss triggered. Now {close}, opened at {entry_price}")
+                self.stop_loss_triggers += 1
+                self.close()
 
 
 def test_double_77(logger, persistent_test_client: Client):
@@ -207,15 +224,16 @@ def test_double_77(logger, persistent_test_client: Client):
 
     # We run the strategy over 202 days
     returns: analyzers.Returns = strategy.analyzers.returns
-    assert returns.rets["rtot"] == pytest.approx(0.061144023898301814)
+    assert returns.rets["rtot"] == pytest.approx(0.06752856668009004)
 
     # How many days the strategy run
     assert strategy.ticks == 336
     assert strategy.enters == 9
-    assert strategy.exits == 9
+    assert strategy.exits == 6
+    assert strategy.stop_loss_triggers == 3
 
     trade_analyzer: analyzers.TradeAnalyzer = strategy.analyzers.tradeanalyzer
-    assert trade_analyzer.rets["won"]["total"] == 8
-    assert trade_analyzer.rets["lost"]["total"] == 1
+    assert trade_analyzer.rets["won"]["total"] == 6
+    assert trade_analyzer.rets["lost"]["total"] == 3
 
     # cerebro.plot()
