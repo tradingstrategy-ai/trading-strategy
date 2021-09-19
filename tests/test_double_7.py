@@ -14,7 +14,8 @@ from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader
 from tradingstrategy.pair import PandasPairUniverse
 
 # Which pair we analyse
-TARGET_PAIR = ("WETH", "USDC")  # https://analytics.sushi.com/pairs/0x795065dcc9f64b5614c407a6efdc400da6221fb0
+# https://analytics.sushi.com/pairs/0x06da0fd433c1a5d7a4faa01111c044910a184553
+TARGET_PAIR = ("WETH", "USDC")
 
 # Use daily candles for backtesting
 CANDLE_KIND = TimeBucket.d1
@@ -86,7 +87,7 @@ if (strategy.position_size > 0)
 """
 
 
-class Double77(bt.Strategy):
+class Double7(bt.Strategy):
     """An example of double-77 strategy for DEX spot trading.
 
     The original description: https://www.thechartist.com.au/double-7-s-strategy/
@@ -95,7 +96,7 @@ class Double77(bt.Strategy):
     def start(self):
         # Set up indicators used in this strategy
 
-        # Moving v
+        # Moving average that tells us when we are in the bull market
         self.moving_average = indicators.SMA(period=MOVING_AVERAGE_CANDLES)
 
         # The highest close price for the N candles
@@ -184,7 +185,7 @@ def test_double_77(logger, persistent_test_client: Client):
     cerebro = bt.Cerebro(stdstats=False)
 
     # Add out strategy
-    cerebro.addstrategy(Double77)
+    cerebro.addstrategy(Double7)
 
     # Add two analyzers for the strategy performance
     cerebro.addanalyzer(analyzers.Returns, _name="returns")
@@ -201,7 +202,7 @@ def test_double_77(logger, persistent_test_client: Client):
 
     results = cerebro.run()
 
-    strategy: Double77 = results[0]
+    strategy: Double7 = results[0]
 
     # We run the strategy over 202 days
     returns: analyzers.Returns = strategy.analyzers.returns

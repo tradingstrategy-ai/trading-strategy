@@ -28,14 +28,15 @@ Code examples
    examples/liquidity-analysis
    examples/fastquant
 
-Backtesting examples
---------------------
+Trading strategy examples
+-------------------------
 
 .. toctree::
    :maxdepth: 1
 
    algorithms/entropy-monkey
    algorithms/ape-in
+   algorithms/double-7
 
 API documentation
 -----------------
