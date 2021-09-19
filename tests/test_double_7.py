@@ -11,7 +11,8 @@ from backtrader import indicators
 from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
-from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds
+from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, \
+    TradeRecorder, analyse_strategy_trades, DEXStragety
 from tradingstrategy.pair import PandasPairUniverse
 
 # Which pair we analyse
@@ -91,7 +92,7 @@ if (strategy.position_size > 0)
 """
 
 
-class Double7(bt.Strategy):
+class Double7(DEXStragety):
     """An example of double-77 strategy for DEX spot trading.
 
     The original description: https://www.thechartist.com.au/double-7-s-strategy/
@@ -112,14 +113,10 @@ class Double7(bt.Strategy):
         self.lowest = indicators.Lowest(self.data.close, period=LOW_CANDLES)
 
         # Count ticks and some basic testing metrics
-        self.ticks = self.enters = self.exits = self.stop_loss_triggers = 0
-
-        self.last_order = None
+        self.enters = self.exits = self.stop_loss_triggers = 0
 
     def next(self):
         """Execute a decision making tick for each candle."""
-
-        self.ticks += 1
 
         # Get the last value of the current candle close and indicators
         # More about self.data and self.lines of Backtrader
@@ -135,7 +132,8 @@ class Double7(bt.Strategy):
         high = self.highest[-1]
         avg = self.moving_average[0]
 
-        print(f"Tick: {self.ticks}, close: {close}, avg: {avg}, low: {low}, high: {high}")
+        current_time = self.get_timestamp()
+        print(f"Tick: {self.tick}, time: {current_time}, close: {close}, avg: {avg}, low: {low}, high: {high}")
 
         if not all([close, low, high, avg]):
             # Do not try to make any decision if we have nan or zero data
@@ -145,7 +143,7 @@ class Double7(bt.Strategy):
 
         # Enter when we are above moving average and the daily close was
         if close >= avg and close <= low and not position:
-            self.last_order = self.buy(price=close)
+            self.buy(price=close)
             self.enters += 1
 
         # If the price closes above its 7 day high, exit from the markets
@@ -205,8 +203,11 @@ def test_double_77(logger, persistent_test_client: Client):
     cerebro.addstrategy(Double7)
 
     # Add two analyzers for the strategy performance
-    cerebro.addanalyzer(analyzers.Returns, _name="returns")
-    cerebro.addanalyzer(analyzers.TradeAnalyzer, _name="tradeanalyzer")
+    cerebro.addanalyzer(analyzers.Returns)
+    cerebro.addanalyzer(analyzers.TradeAnalyzer)
+
+    # Trading Strategy custom trade analyzer
+    cerebro.addanalyzer(TradeRecorder)
 
     # Add our SUSHI-ETH price feed
     add_dataframes_as_feeds(
@@ -232,8 +233,9 @@ def test_double_77(logger, persistent_test_client: Client):
     assert strategy.exits == 6
     assert strategy.stop_loss_triggers == 3
 
-    trade_analyzer: analyzers.TradeAnalyzer = strategy.analyzers.tradeanalyzer
-    assert trade_analyzer.rets["won"]["total"] == 6
-    assert trade_analyzer.rets["lost"]["total"] == 3
+    bt_trade_analyzer: analyzers.TradeAnalyzer = strategy.analyzers.tradeanalyzer
+    assert bt_trade_analyzer.rets["won"]["total"] == 6
+    assert bt_trade_analyzer.rets["lost"]["total"] == 3
 
-    # cerebro.plot()
+    trades = strategy.analyzers.traderecorder.trades
+    trade_analysis = analyse_strategy_trades(trades)

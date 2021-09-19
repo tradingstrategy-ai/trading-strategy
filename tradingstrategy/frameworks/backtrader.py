@@ -1,12 +1,14 @@
 """Helper methods and classes to integrate :term:`Backtrader` with Capitalgram based :term:`Pandas` data."""
 
 import datetime
-from typing import Iterable
+from typing import Iterable, List
 
 import backtrader as bt
+from backtrader import Trade, LineIterator
 from backtrader.feeds import PandasData
 import pandas as pd
 
+from tradingstrategy.analysis.tradeanalyzer import TradeAnalyzer, AssetTradeHistory, SpotTrade
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.pair import DEXPair, PandasPairUniverse
 
@@ -21,6 +23,60 @@ class CapitalgramFeed(PandasData):
         self.pair_info = pair_info
         super(CapitalgramFeed, self).__init__()
 
+
+class DEXStragety(bt.Strategy):
+    """A strategy base class with support for Trading Strategy DEX specific use cases."""
+
+    def buy(self, *args, **kwargs):
+        """Stamps each trade with a timestamp.
+
+        Normal Backtrader does not have this functionality.
+        """
+        trade: Trade = super(self).buy(*args, **kwargs)
+        import ipdb ; ipdb.set_trace()
+        self.last_trade = trade
+
+    def close(self, *args, **kwargs):
+        super(self).close(*args, **kwargs)
+        self.last_trade = None
+
+    def get_timestamp(self) -> pd.Timestamp:
+        return pd.Timestamp.utcfromtimestamp(self.datetime[0])
+
+    def _start(self):
+        """"Add tick counter"""
+        super(self)._start(self)
+        self.tick = 0
+
+    def _oncepost(self, dt):
+        """Add tick counter."""
+        for indicator in self._lineiterators[LineIterator.IndType]:
+            if len(indicator._clock) > len(indicator):
+                indicator.advance()
+
+        if self._oldsync:
+            # Strategy has not been reset, the line is there
+            self.advance()
+        else:
+            # strategy has been reset to beginning. advance step by step
+            self.forward()
+
+        self.lines.datetime[0] = dt
+        self._notify()
+
+        minperstatus = self._getminperstatus()
+        if minperstatus < 0:
+            self.tick += 1
+            self.next()
+        elif minperstatus == 0:
+            self.nextstart()  # only called for the 1st value
+        else:
+            self.prenext()
+
+        self._next_analyzers(minperstatus, once=True)
+        self._next_observers(minperstatus, once=True)
+
+        self.clear()
 
 
 def prepare_candles_for_backtrader(candles: pd.DataFrame) -> pd.DataFrame:
@@ -93,5 +149,56 @@ def add_dataframes_as_feeds(
         cerebro.adddata(backtrader_feed)
 
 
+def analyse_strategy_trades(trades: List[Trade]) -> TradeAnalyzer:
+    """Build a trade analyzer from Backtrader executed portfolio."""
+    histories = {}
 
+    trade_id = 1
+
+    import ipdb ; ipdb.set_trace()
+
+    for t in trades:
+
+        feed: CapitalgramFeed = t.data
+        pair_info = feed.pair_info
+
+        pair_id = pair_info.pair_id
+        assert type(pair_id) == int
+        history = histories.get(pair_id)
+        if not history:
+            history = histories[pair_id] = AssetTradeHistory()
+
+        trade = SpotTrade(
+            pair_id=pair_id,
+            trade_id=trade_id,
+            timestamp=txn.dt,
+            price=txn.price,
+            quantity=txn.quantity,
+            commission=0,
+            slippage=0,
+        )
+        assert txn.quantity
+        assert txn.price
+        history.add_trade(trade)
+        trade_id += 1
+
+    return TradeAnalyzer(asset_histories=histories)
+
+
+class TradeRecorder(bt.Analyzer):
+    """Record all trades during the backtest run so that they can be analysed."""
+
+    def create_analysis(self):
+        self.trades: List[Trade] = []
+
+    def stop(self):
+        pass
+
+    def notify_trade(self, trade: Trade):
+        assert isinstance(trade, Trade)
+        self.trades.append(trade)
+
+    def get_analysis(self) -> dict:
+         # Internally called by Backtrader
+         return {"trades": self.trades}
 
