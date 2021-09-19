@@ -34,7 +34,8 @@ class JupyterEnvironment(Environment):
         if os.path.exists(settings_file):
             with open(settings_file, "rt") as inp:
                 data = inp.read()
-                return Configuration.from_json(data)
+                if data:
+                    return Configuration.from_json(data)
         return None
 
     def save_configuration(self, config: Configuration):
