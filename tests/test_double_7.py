@@ -182,7 +182,7 @@ def test_double_77(logger, persistent_test_client: Client):
     assert len(pair_candles) > MOVING_AVERAGE_CANDLES, "We do not have enough data to execute the strategy"
 
     # Create the Backtrader back testing engine "Cebebro"
-    cerebro = bt.Cerebro(stdstats=False)
+    cerebro = bt.Cerebro(stdstats=True)
 
     # Add out strategy
     cerebro.addstrategy(Double7)
@@ -198,7 +198,8 @@ def test_double_77(logger, persistent_test_client: Client):
         [pair_candles],
         BACKTESTING_BEGINS,
         BACKTESTING_ENDS,
-        strategy_time_bucket)
+        strategy_time_bucket,
+        plot=True)
 
     results = cerebro.run()
 
@@ -217,3 +218,4 @@ def test_double_77(logger, persistent_test_client: Client):
     assert trade_analyzer.rets["won"]["total"] == 8
     assert trade_analyzer.rets["lost"]["total"] == 1
 
+    # cerebro.plot()

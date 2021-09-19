@@ -72,7 +72,6 @@ def add_dataframes_as_feeds(
 
     datas = list(datas)
 
-
     # TODO HAX
     # Backtrader cannot iterate over broken data if some feeds have data and some do not.
     # With unluck Backtrader stops at the first empty day of a random feed.
@@ -90,7 +89,7 @@ def add_dataframes_as_feeds(
         # Reindex so that backtrader can read data
         df = reindex_pandas_for_backtrader(df, start, end, bucket)
 
-        backtrader_feed = CapitalgramFeed(pair_data, dataname=df, plot=False)
+        backtrader_feed = CapitalgramFeed(pair_data, dataname=df, plot=plot)
         cerebro.adddata(backtrader_feed)
 
 
