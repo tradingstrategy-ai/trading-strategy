@@ -9,7 +9,7 @@ Glossary
 
     AMM
         Automated market maker (AMM) is a `bonding curve based <https://docs.ethhub.io/guides/graphical-guide-for-understanding-uniswap/>`__ decentralised exchange. It does not
-        have an order book.
+      have an order book.
 
     On-chain
 
@@ -26,7 +26,7 @@ Glossary
 
     Autonomous agent
 
-        An agent software that acts without human intervention. Once started, there is no further need for system administration or othe work.
+        An agent software that acts without human intervention. Once started, there is no further need for system administration or other work.
 
     Smart contract
 
@@ -43,24 +43,21 @@ Glossary
 
     Uniswap
 
-        The most popular :term:`AMM` based :term:`decentralised exchange`. Uniswap has two major versios.
-        In version 2 (v2) the liquidity is evenly distributed across the bonding curve. In version 3, the
-        liquidity providers can have liquidity on a partial curve, simulate order book and have better
-        capital efficiency. Most decentralised exchanges are Uniswap v2 :term:`clones <clone>`.
+        The most popular :term:`AMM` based :term:`decentralised exchange`. Uniswap has two major versions.
+        In version 2 (v2) the liquidity is evenly distributed across the bonding curve. In version 3, the liquidity providers can have liquidity on a partial curve, simulate order book and have better capital efficiency. Most decentralised exchanges are Uniswap v2 :term:`clones <clone>`.
 
     Clone
 
         Also known as fork. A product launched based on the open source code of another existing product.
-        In the context of :term:`on-chain`, usually hostile to the original product and competes from the
-        same :term:`liquidity`.
+        In the context of :term:`on-chain`, usually hostile to the original product and competes from the same :term:`liquidity`.
 
     Candle
 
-        Candle, or a candlestick is a type of price chart used in technical analysis that displays the high, low, open, and closing prices of an asset for a specific time period, or :term:`bucket`. `More information <https://en.wikipedia.org/wiki/Candlestick_chart>`__.
+        A candle or a candlestick is a type of price chart used in technical analysis that displays the high, low, open, and closing prices of an asset for a specific time period, or :term:`bucket`. `More information <https://en.wikipedia.org/wiki/Candlestick_chart>`__.
 
     Bucket
 
-        The (time) bucket to a time period for :term:`candle` data. For example, you can have one minute, one hour or time buckets, describing for the what period of a time the candle includes the trades.
+        The (time) bucket to a time period for :term:`candle` data. For example, you can have one minute, one hour or time buckets, describing for what period of time the candle includes the trades.
 
     OHLCV
 
@@ -76,7 +73,7 @@ Glossary
 
     Arrow
 
-        Apache Arrow is a popular open source in-memory analytics technology kit. `More information <https://arrow.apache.org/docs/index.html>`__.
+        Apache Arrow is a popular open-source in-memory analytics technology kit. `More information <https://arrow.apache.org/docs/index.html>`__.
 
     Dataclass
 
@@ -109,7 +106,7 @@ Glossary
 
     Fastquant
 
-        Fastquant allows you to easily backtest investment strategies with as few as three lines of Python code. Its goal is to promote data driven investments by making quantitative analysis in finance accessible to everyone. Fastquant builds on the top of :term:`Backtrader`. See `Github repository <https://github.com/enzoampil/fastquant>`__.
+        Fastquant allows you to easily backtest investment strategies with as few as three lines of Python code. Its goal is to promote data-driven investments by making quantitative analysis in finance accessible to everyone. Fastquant builds on the top of :term:`Backtrader`. See `Github repository <https://github.com/enzoampil/fastquant>`__.
 
     Base token
 
@@ -117,7 +114,7 @@ Glossary
 
     Quote token
 
-        The token that acts as a nominator for the price when you are buying or selling. Usually this is more well-known token of the pair: ETH, BTC or any of various USD stablecoins. See also :term:`base token`.
+        The token acts as a nominator for the price when you are buying or selling. Usually, this is a more well-known token of the pair: ETH, BTC or any of various USD stablecoins. See also :term:`base token`.
 
     Liquidity
 
@@ -141,7 +138,7 @@ Glossary
 
     High-frequency trading
 
-        High-frequency trading, or HFT for short, is a trading strategy where you do arbitration, cross-market market making or such and compete against the other actors with your technical speed. Trading Strategy is not suitable framework for HFT trading, though its data can aid to come up with good HFT strategiees.
+        High-frequency trading, or HFT for short, is a trading strategy where you do arbitration, cross-market market making or such and compete against the other actors with your technical speed. Trading Strategy is not a suitable framework for HFT trading, though its data can aid to come up with good HFT strategies.
 
     Directional strategy
 
@@ -153,15 +150,15 @@ Glossary
 
     Non-custodial
 
-        A smart contract based service model where the owner of the assets never lose the control of the assets. This is opposite to most traditional finance services where you cannot see what happens to your money after the deposit or whether you are able to withdraw. The integrity of the service provider in the traditional finance thus needs to be guaranteted through regulation or government bailouts. The non-custodial model is specific to smart contracts and cannot be achieved without a blockchain. `Read more <https://stackoverflow.com/questions/65009246/what-does-non-custodial-mean>`__.
+        A smart contract-based service model where the owner of the assets never loses control of the assets. This is opposite to most traditional finance services where you cannot see what happens to your money after the deposit or whether you can withdraw. The integrity of the service provider in traditional finance thus needs to be guaranteed through regulation or government bailouts. The non-custodial model is specific to smart contracts and cannot be achieved without a blockchain. `Read more <https://stackoverflow.com/questions/65009246/what-does-non-custodial-mean>`__.
 
     Private strategy
 
-        A trading strategy where the source code of the strategy is not disclosed to public. Private strategies can still be :term:`non-custodial` and enjoy the benefits of Trading Strategy protocol trade execution and fee distribution. :ref`Read more <Private strategies>`.
+        A trading strategy where the source code of the strategy is not disclosed to the public. Private strategies can still be :term:`non-custodial` and enjoy the benefits of Trading Strategy protocol trade execution and fee distribution. :ref`Read more <Private strategies>`.
 
     Risk-free rate
 
-        The expected return for the money that is considered (almost) risk-free. On the traditional markets, this is the tresury note or government bond yield (although you still have some risks like the sovereignity risk). In DeFi this is considered an US dollar lending pool rate, like one you would get from Aave :term:`USDC` pool.
+        The expected return for the money is considered (almost) risk-free. On the traditional markets, this is the treasury note or government bond yield (although you still have some risks like the sovereignty risk). In DeFi this is considered an US dollar lending pool rate, like one you would get from Aave :term:`USDC` pool.
 
     Drawdown
 
@@ -177,5 +174,4 @@ Glossary
 
     TradingView
 
-        Trading view is the world most ppopular trading strategy platform. It lets you discover investment ideas and showcase your talents to a large and active community of traders. Easy and intuitive for beginners, and powerful enough for advanced chartists. Trading View has all the charting tools you need to share and view trading ideas. Real-time data and browser-based charts let you do your research from anywhere, since there are no installations or complex setups. `Read more <https://www.quora.com/What-is-TradingView>`__.
-
+        Trading view is the world most popular trading strategy platform. It lets you discover investment ideas and showcase your talents to a large and active community of traders. Easy and intuitive for beginners, and powerful enough for advanced chartists. Trading View has all the charting tools you need to share and view trading ideas. Real-time data and browser-based charts let you do your research from anywhere since there are no installations or complex setups. `Read more <https://www.quora.com/What-is-TradingView>`__.
