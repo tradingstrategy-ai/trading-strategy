@@ -17,7 +17,7 @@ def run_interactive_setup() -> Optional[Configuration]:
     has_api_key = None
     while has_api_key not in ("y", "n", ""):
         print("Using Capitalgram requires you to have an API key.")
-        has_api_key = input("Do you have an API key yet? [y/n]").lower()
+        has_api_key = input("Do you have an API key yet? [y/n]? ").lower()
 
     if has_api_key == "":
         print("Aborting setup")
@@ -32,9 +32,10 @@ def run_interactive_setup() -> Optional[Configuration]:
             print("Thank you. See you next time.")
             return None
 
-        first_name = input("Your first name")
-        last_name = input("Your last name")
-        email = input("Valid email address - the API key will be sent to this email address")
+        first_name = input("Your first name? ")
+        last_name = input("Your last name? ")
+        print("The API key will be delivered to your emai.")
+        email = input("Your email address? ")
 
         resp = transport.register(first_name, last_name, email)
         if resp["status"] != "OK":
@@ -45,13 +46,14 @@ def run_interactive_setup() -> Optional[Configuration]:
 
     valid_api_key = False
     while not valid_api_key:
-        api_key = input("Enter your API key from the welcome email")
+        print("The API key is in format 'secret-token:tradingstrategy-...'")
+        api_key = input("Enter your API key from the welcome email you just received: ")
         api_key = api_key.strip()  # Watch out whitespace copy paste issues
         if api_key == "":
             print("Aborting setup")
             return None
 
-        print(f"Testing out API key: {api_key[0:6]}...")
+        print(f"Testing out API key: secret-token:...{api_key[0:6]}")
         authenticated_transport = CachedHTTPTransport(download_with_progress_plain, api_key=api_key)
         try:
             welcome = authenticated_transport.message_of_the_day()
@@ -66,7 +68,7 @@ def run_interactive_setup() -> Optional[Configuration]:
 
     config = Configuration(api_key=api_key)
 
-    print("Setting up the new API complete.")
+    print("The API key setup complete.")
 
     return config
 
