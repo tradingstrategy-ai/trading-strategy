@@ -155,7 +155,6 @@ def test_backtrader_multiasset(logger, persistent_test_client: Client):
     # Get daily candles as Pandas DataFrame
     all_candles = client.fetch_all_candles(TimeBucket.d1).to_pandas()
     sushi_candles: pd.DataFrame = all_candles.loc[all_candles["pair_id"].isin(wanted_pair_ids)]
-
     sushi_candles = prepare_candles_for_backtrader(sushi_candles)
 
     # We limit candles to a specific date range to make this notebook deterministic

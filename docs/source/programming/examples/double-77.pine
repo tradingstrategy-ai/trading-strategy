@@ -1,0 +1,47 @@
+//@version=4
+strategy("Double 7's Strat.v1", overlay=true, default_qty_type = strategy.percent_of_equity, default_qty_value = 100)
+
+value1=input(7, title="Quantity of day low")
+value2=input(7, title="Quantity of day high")
+entry=lowest(close[1],value1)
+exit=highest(close[1],value2)
+
+mma100=sma(close,100)
+
+plot(entry, title = '7 day low', color = color.blue,   linewidth = 1, style = plot.style_linebr)  // plot 7 day low
+plot(exit, title = '7 day high', color = color.purple,   linewidth = 1, style = plot.style_linebr)  // plot 7 day high
+plot(mma100, title = 'MMA100', color = color.orange,   linewidth = 2, style = plot.style_line)  // plot MMA100
+
+//Stop Loss input setting
+longLossPerc = input(title="Long Stop Loss (%)", type=input.float, minval=0.0, step=0.1, defval=1) * 0.01
+
+// Determine stop loss price
+longStopPrice  = strategy.position_avg_price * (1 - longLossPerc)
+
+// Plot stop loss values for confirmation
+plot(series=(strategy.position_size > 0) ? longStopPrice : na, color=color.red, style=plot.style_linebr, linewidth=2, title="Long Stop Loss")
+
+// Test Period
+testStartYear = input(2021, "Backtest Start Year")
+testStartMonth = input(5, "Backtest Start Month")
+testStartDay = input(17, "Backtest Start Day")
+testPeriodStart = timestamp(testStartYear,testStartMonth,testStartDay,0,0)
+
+testStopYear = input(2022, "Backtest Stop Year")
+testStopMonth = input(12, "Backtest Stop Month")
+testStopDay = input(30, "Backtest Stop Day")
+testPeriodStop = timestamp(testStopYear,testStopMonth,testStopDay,0,0)
+
+testPeriod() =>
+    time >= testPeriodStart and time <= testPeriodStop ? true : false
+
+if testPeriod()
+    if (close>mma100) and (close<entry)
+        strategy.entry("RsiLE", strategy.long , comment="Open")
+
+    if (close>exit)
+        strategy.close_all()
+
+// Submit exit orders based on calculated stop loss price
+if (strategy.position_size > 0)
+    strategy.exit(id="XL STOP", stop=longStopPrice)
