@@ -60,7 +60,7 @@ Glossary
 
     Bucket
 
-        Refers to a time period for :term:`candle` data. For example, you can have one minute, one hour or daily buckets.
+        The (time) bucket to a time period for :term:`candle` data. For example, you can have one minute, one hour or time buckets, describing for the what period of a time the candle includes the trades.
 
     OHLCV
 
