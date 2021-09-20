@@ -23,7 +23,8 @@ def convert_backtrader_timestamp(bt_time: float) -> pd.Timestamp:
 
     See :py:func:`num2date` for more information.
     """
-    return num2date(bt_time)
+    dt = num2date(bt_time)
+    return pd.Timestamp(dt)
 
 
 class DEXFeed(PandasData):

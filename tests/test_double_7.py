@@ -1,4 +1,5 @@
 """Test code for double-77 trading strategy on ETH-USDC pair."""
+from ipywidgets import HTML
 from typing import Optional
 
 import pytest
@@ -7,6 +8,7 @@ import pandas as pd
 import backtrader as bt
 from backtrader import analyzers, Position
 from backtrader import indicators
+from tradingstrategy.analysis.tradeanalyzer import TradeSummary
 from tradingstrategy.analysis.tradehint import TradeHintType
 
 from tradingstrategy.analysis.tradehint import TradeHint
@@ -22,7 +24,10 @@ from tradingstrategy.pair import PandasPairUniverse
 TARGET_PAIR = ("WETH", "USDC")
 
 # Use daily candles for backtesting
-CANDLE_KIND = TimeBucket.d1
+CANDLE_KIND = TimeBucket.h4
+
+# How many USD is our play money wallet
+INITIAL_CASH = 10_000
 
 # The moving average must be above of this number for us to buy
 MOVING_AVERAGE_CANDLES = 50
@@ -233,17 +238,27 @@ def test_double_77(logger, persistent_test_client: Client):
 
     # We run the strategy over 202 days
     returns: analyzers.Returns = strategy.analyzers.returns
-    assert returns.rets["rtot"] == pytest.approx(0.06752856668009004)
+    assert returns.rets["rtot"] == pytest.approx(0.13809524712350393)
 
     # How many days the strategy run
-    assert strategy.tick == 335
-    assert strategy.enters == 9
-    assert strategy.exits == 6
-    assert strategy.stop_loss_triggers == 3
+    assert strategy.tick == 2010
+    assert strategy.enters == 53
+    assert strategy.exits == 34
+    assert strategy.stop_loss_triggers == 19
 
     bt_trade_analyzer: analyzers.TradeAnalyzer = strategy.analyzers.tradeanalyzer
-    assert bt_trade_analyzer.rets["won"]["total"] == 6
-    assert bt_trade_analyzer.rets["lost"]["total"] == 3
+    assert bt_trade_analyzer.rets["won"]["total"] == 34
+    assert bt_trade_analyzer.rets["lost"]["total"] == 19
 
+    # Test trade analyzer functions
     trades = strategy.analyzers.traderecorder.trades
     trade_analysis = analyse_strategy_trades(trades)
+
+    cash_left = strategy.broker.get_cash()
+    summary: TradeSummary = trade_analysis.calculate_summary_statistics(INITIAL_CASH, cash_left)
+    output = HTML(summary.to_dataframe().to_html(header=False))
+
+    # Percents
+    assert summary.won == 68
+    assert summary.lost == 38
+
