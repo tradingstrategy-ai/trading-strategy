@@ -1,10 +1,10 @@
 """Helper methods and classes to integrate :term:`Backtrader` with Capitalgram based :term:`Pandas` data."""
 
 import datetime
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Union
 
 import backtrader as bt
-from backtrader import Trade, LineIterator, TradeHistory
+from backtrader import Trade, LineIterator, TradeHistory, num2date, BuyOrder, SellOrder
 from backtrader.feeds import PandasData
 import pandas as pd
 
@@ -13,9 +13,17 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.pair import DEXPair, PandasPairUniverse
 
 
-def convert_backtrader_timestamp(dt: float) -> pd.Timestamp:
-    """Convert traderader internal timestamps to Pandas."""
-    pass
+def convert_backtrader_timestamp(bt_time: float) -> pd.Timestamp:
+    """Convert traderader internal timestamps to Pandas.
+
+    Backtrader internally tracks time as "float of day numbers."
+    Go figures?
+
+    See :py:meth:`PandasData._load` for more information.
+
+    See :py:func:`num2date` for more information.
+    """
+    return num2date(bt_time)
 
 
 class DEXFeed(PandasData):
@@ -36,29 +44,36 @@ class DEXStragety(bt.Strategy):
         super(DEXStragety, self).__init__(*args, **kwargs)
 
         #: Currently open position
-        self.last_opened_trade: Optional[Trade] = None
+        self.last_opened_buy: Optional[BuyOrder] = None
 
         #: The next() tick counter
         self.tick: Optional[int] = None
 
         self._tradehistoryon = True
 
-    def buy(self, *args, **kwargs) -> Trade:
+    def buy(self, *args, **kwargs) -> BuyOrder:
         """Stamps each trade with a timestamp.
 
         Normal Backtrader does not have this functionality.
         """
-        trade: Trade = super().buy(*args, **kwargs)
+
+        assert "hint" in kwargs, "Please give hint parameter to buy()"
+
+        buy: BuyOrder = super().buy(*args, **kwargs)
         # Save the trade for the stop loss management
-        self.last_opened_trade = trade
-        return trade
+        self.last_opened_buy = buy
+
+        # Hint will be available as trade.info.hint
+        return buy
 
     def close(self, *args, **kwargs):
         super().close(*args, **kwargs)
-        self.last_opened_trade = None
+        self.last_opened_buy = None
 
     def get_timestamp(self) -> pd.Timestamp:
-        return pd.Timestamp.utcfromtimestamp(self.datetime[0])
+        """Get the timestamp of the current candle"""
+        bt_time = self.datetime[0]
+        return convert_backtrader_timestamp(bt_time)
 
     def _start(self):
         """"Add tick counter"""
@@ -67,6 +82,7 @@ class DEXStragety(bt.Strategy):
 
     def _oncepost(self, dt):
         """Add tick counter."""
+
         for indicator in self._lineiterators[LineIterator.IndType]:
             if len(indicator._clock) > len(indicator):
                 indicator.advance()
@@ -111,19 +127,24 @@ def prepare_candles_for_backtrader(candles: pd.DataFrame) -> pd.DataFrame:
     return candles
 
 
-def reindex_pandas_for_backtrader(df: pd.DataFrame, start, end, bucket):
-    """Backtrader does not allow sparsedata, but all data must be filled"""
+def reindex_pandas_for_backtrader(df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp, bucket: TimeBucket):
+    """Backtrader does not allow sparse data, but all data must be filled.
+
+    Sparse data: not trades at the beginning, end of the time series. Missed trading days.
+    """
+
+    freq = bucket.to_frequency()
+    idx = pd.date_range(start, end, freq=freq)
 
     # https://stackoverflow.com/a/19324591/315168
     # https://stackoverflow.com/questions/47231496/pandas-fill-missing-dates-in-time-series
-    assert bucket == TimeBucket.d1, "Only daily candles supported ATM"
-    idx = pd.date_range(start, end)
     # df.index = idx
     # Backtrader only cares about OHLCV values,
     # so we set everything to zero on missing days
     # TODO: Copy previous day open/close/high/etc here.
-    df.index = pd.DatetimeIndex(df.index)
-    return df.reindex(idx, fill_value=0)
+    # df.index = pd.DatetimeIndex(df.index)
+    reindexed = df.reindex(idx, fill_value=0)
+    return reindexed
 
 
 def add_dataframes_as_feeds(
@@ -156,7 +177,7 @@ def add_dataframes_as_feeds(
         pair_id = df["pair_id"][0]
         pair_data = pair_universe.get_pair_by_id(pair_id)
 
-        # Drop unnecessary columsn
+        # Drop unnecessary columns
         df = df[["open", "high", "low", "close", "volume"]]
 
         # Reindex so that backtrader can read data
@@ -193,27 +214,27 @@ def analyse_strategy_trades(trades: List[Trade]) -> TradeAnalyzer:
 
             status = histentry.status
 
-            if status.status == Trade.Open:
-                open = True
-            elif status.status == Trade.Closed:
-                open = False
-            else:
-                raise RuntimeError("NO idea what Backtrader is doing")
+            assert status.status in (Trade.Open, Trade.Closed), f"Got status {status}"
 
-            quantity = t.size if open else -t.size
+            order: Union[BuyOrder, SellOrder] = histentry.event
 
-            import ipdb ; ipdb.set_trace()
+            # Internally negative quantities are for sells
+            quantity = order.size
+            timestamp = convert_backtrader_timestamp(status.dt)
+            price = order.price
+
+            assert quantity != 0, f"Got bad quantity for {status}"
+            assert price > 0
+
             trade = SpotTrade(
                 pair_id=pair_id,
                 trade_id=trade_id,
-                timestamp=t.timestamp,
-                price=histentry.status.price,
+                timestamp=timestamp,
+                price=price,
                 quantity=quantity,
-                commission=0,
-                slippage=0,
+                commission=0,  # TODO
+                slippage=0,  # TODO
             )
-            assert t.size
-            assert t.price > 0
             history.add_trade(trade)
             trade_id += 1
 

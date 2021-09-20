@@ -164,7 +164,7 @@ class Double7(DEXStragety):
             # only swaps, we do not manual stop loss here by
             # brute market sell in the case the price falls below the stop loss threshold
 
-            entry_price = self.last_opened_trade.price
+            entry_price = self.last_opened_buy.price
             if close <= entry_price * STOP_LOSS:
                 print(f"Stop loss triggered. Now {close}, opened at {entry_price}")
                 self.stop_loss_triggers += 1

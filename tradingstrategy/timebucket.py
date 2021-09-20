@@ -1,6 +1,9 @@
 """Time window presentation."""
-
+import datetime
 import enum
+
+import pandas as pd
+from pandas.tseries.frequencies import to_offset
 
 
 class TimeBucket(enum.Enum):
@@ -43,3 +46,33 @@ class TimeBucket(enum.Enum):
 
     #: Monthly candles
     d30 = "30d"
+
+    def to_timedelta(self) -> datetime.timedelta:
+        """Get delta object for a TimeBucket definition.
+
+        You can use this to construct arbitrary timespans or iterate candle data.
+        """
+        return _DELTAS[self]
+
+    def to_frequency(self) -> pd.DateOffset:
+        """Get frequncy input for Pandas fuctions.
+
+        You can use this to construct arbitrary timespans or iterate candle data.
+        """
+        delta = self.to_timedelta()
+        return to_offset(delta)
+
+
+# datetime.timedelta equivalents of different time buckets
+_DELTAS = {
+    TimeBucket.m1: datetime.timedelta(minutes=1),
+    TimeBucket.m5: datetime.timedelta(minutes=5),
+    TimeBucket.m15: datetime.timedelta(minutes=15),
+    TimeBucket.h1: datetime.timedelta(hours=1),
+    TimeBucket.h4: datetime.timedelta(hours=4),
+    TimeBucket.d1: datetime.timedelta(days=1),
+    TimeBucket.d7: datetime.timedelta(days=7),
+    TimeBucket.d30: datetime.timedelta(days=30),
+}
+
+
