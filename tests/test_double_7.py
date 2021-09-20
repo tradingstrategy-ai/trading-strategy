@@ -7,7 +7,9 @@ import pandas as pd
 import backtrader as bt
 from backtrader import analyzers, Position
 from backtrader import indicators
+from tradingstrategy.analysis.tradehint import TradeHintType
 
+from tradingstrategy.analysis.tradehint import TradeHint
 from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
@@ -132,7 +134,11 @@ class Double7(DEXStragety):
         high = self.highest[-1]
         avg = self.moving_average[0]
 
+        # Sanity check for the time tracking
         current_time = self.get_timestamp()
+        assert current_time >= pd.Timestamp("2020-09-01")
+        assert current_time <= pd.Timestamp("2021-09-01")
+
         print(f"Tick: {self.tick}, time: {current_time}, close: {close}, avg: {avg}, low: {low}, high: {high}")
 
         if not all([close, low, high, avg]):
@@ -143,24 +149,26 @@ class Double7(DEXStragety):
 
         # Enter when we are above moving average and the daily close was
         if close >= avg and close <= low and not position:
-            self.buy(price=close)
+            self.buy(price=close, hint=TradeHint(type=TradeHintType.open))
             self.enters += 1
 
-        # If the price closes above its 7 day high, exit from the markets
         if close >= high and position:
+            # If the price closes above its 7 day high, exit from the markets
             print("Exited the position")
             self.exits += 1
-            self.close()
+            self.close(hint=TradeHint(type=TradeHintType.close))
+        elif position:
+            # Check the exit from the market through stop loss
 
-        # Because AMMs do not support complex order types,
-        # only swaps, we do not manual stop loss here by
-        # brute market sell in the case the price falls below the stop loss threshold
-        if position:
-            entry_price = self.last_order.price
+            # Because AMMs do not support complex order types,
+            # only swaps, we do not manual stop loss here by
+            # brute market sell in the case the price falls below the stop loss threshold
+
+            entry_price = self.last_opened_trade.price
             if close <= entry_price * STOP_LOSS:
                 print(f"Stop loss triggered. Now {close}, opened at {entry_price}")
                 self.stop_loss_triggers += 1
-                self.close()
+                self.close(hint=TradeHint(type=TradeHintType.stop_loss_triggered))
 
 
 def test_double_77(logger, persistent_test_client: Client):
@@ -228,7 +236,7 @@ def test_double_77(logger, persistent_test_client: Client):
     assert returns.rets["rtot"] == pytest.approx(0.06752856668009004)
 
     # How many days the strategy run
-    assert strategy.ticks == 336
+    assert strategy.tick == 335
     assert strategy.enters == 9
     assert strategy.exits == 6
     assert strategy.stop_loss_triggers == 3

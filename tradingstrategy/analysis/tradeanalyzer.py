@@ -38,7 +38,7 @@ class SpotTrade:
     #: Asset price at buy in
     price: USDollarAmount
 
-    #: How much we bought the asset
+    #: How much we bought the asset. Negative value for sells.
     quantity: float
 
     #: How much fees we paid to the exchange

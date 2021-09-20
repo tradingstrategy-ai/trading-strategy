@@ -13,7 +13,7 @@ from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
+from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, DEXFeed
 from tradingstrategy.frameworks.fastquant import to_human_readable_result
 from tradingstrategy.pair import PandasPairUniverse
 

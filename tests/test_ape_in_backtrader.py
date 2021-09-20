@@ -15,7 +15,7 @@ from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.liquidity import GroupedLiquidityUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
-from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
+from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, DEXFeed
 from tradingstrategy.pair import PandasPairUniverse
 
 
@@ -119,8 +119,8 @@ class ApeTheLatestStrategy(bt.Strategy):
         #: Map Capitalgram pair_id to Backtrader internal "pair" preseentation,
         #: because we mostly operate on raw Pandas data and not try to use
         #: Backtrader facilities for our custom data formats like liquidity
-        self.backtrader_pair_map: Dict[int, CapitalgramFeed] = {}
-        pair: CapitalgramFeed
+        self.backtrader_pair_map: Dict[int, DEXFeed] = {}
+        pair: DEXFeed
         for pair in self.datas:
             pair_info = pair.pair_info
             self.backtrader_pair_map[pair_info.pair_id] = pair
@@ -219,7 +219,7 @@ class ApeTheLatestStrategy(bt.Strategy):
             logger.info("Already owning %s", latest_pair_name)
         else:
             # Close the existing single position
-            ticker: CapitalgramFeed
+            ticker: DEXFeed
             trade = None
             for ticker in self.datas:
                 if self.getposition(ticker).size > 0:

@@ -14,7 +14,7 @@ from backtrader import analyzers
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
-from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
+from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, DEXFeed
 from tradingstrategy.pair import PandasPairUniverse
 
 
@@ -51,7 +51,7 @@ class EntropyMonkey(bt.Strategy):
 
         #: Cumulative volume indicator for each of the data feed
         self.indicators = {}
-        pair: CapitalgramFeed
+        pair: DEXFeed
         for pair in self.datas:
             self.indicators[pair] = PastTradeVolumeIndicator(pair.lines.volume)
 
@@ -76,7 +76,7 @@ class EntropyMonkey(bt.Strategy):
 
         # Pick a new token to buy
         for i in range(self.pick_attempts):
-            random_pair: CapitalgramFeed = self.dice.choice(self.datas)
+            random_pair: DEXFeed = self.dice.choice(self.datas)
             pair_info = random_pair.pair_info
             cum_volume_indicator = self.indicators[random_pair]
             volume = cum_volume_indicator.lines.cum_volume[0]

@@ -14,7 +14,7 @@ from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, CapitalgramFeed
+from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, DEXFeed
 from tradingstrategy.pair import PandasPairUniverse
 
 
@@ -52,7 +52,7 @@ class IntegrationTestStrategy(bt.Strategy):
     def __init__(self):
         self.ticks = 0
         first_feed = self.datas[0]
-        assert isinstance(first_feed, CapitalgramFeed)
+        assert isinstance(first_feed, DEXFeed)
         assert first_feed.pair_info.base_token_symbol == "WETH"
         assert first_feed.pair_info.quote_token_symbol == "USDT"
 

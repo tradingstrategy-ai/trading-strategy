@@ -1,10 +1,10 @@
 """Helper methods and classes to integrate :term:`Backtrader` with Capitalgram based :term:`Pandas` data."""
 
 import datetime
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 import backtrader as bt
-from backtrader import Trade, LineIterator
+from backtrader import Trade, LineIterator, TradeHistory
 from backtrader.feeds import PandasData
 import pandas as pd
 
@@ -13,7 +13,12 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.pair import DEXPair, PandasPairUniverse
 
 
-class CapitalgramFeed(PandasData):
+def convert_backtrader_timestamp(dt: float) -> pd.Timestamp:
+    """Convert traderader internal timestamps to Pandas."""
+    pass
+
+
+class DEXFeed(PandasData):
     """A Pandas data feed with token metadata added.
 
     This feed serves Backtrader Cerebro engine. It contains only raw OHLVC info.
@@ -21,31 +26,43 @@ class CapitalgramFeed(PandasData):
 
     def __init__(self, pair_info: DEXPair):
         self.pair_info = pair_info
-        super(CapitalgramFeed, self).__init__()
+        super(DEXFeed, self).__init__()
 
 
 class DEXStragety(bt.Strategy):
     """A strategy base class with support for Trading Strategy DEX specific use cases."""
 
-    def buy(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(DEXStragety, self).__init__(*args, **kwargs)
+
+        #: Currently open position
+        self.last_opened_trade: Optional[Trade] = None
+
+        #: The next() tick counter
+        self.tick: Optional[int] = None
+
+        self._tradehistoryon = True
+
+    def buy(self, *args, **kwargs) -> Trade:
         """Stamps each trade with a timestamp.
 
         Normal Backtrader does not have this functionality.
         """
-        trade: Trade = super(self).buy(*args, **kwargs)
-        import ipdb ; ipdb.set_trace()
-        self.last_trade = trade
+        trade: Trade = super().buy(*args, **kwargs)
+        # Save the trade for the stop loss management
+        self.last_opened_trade = trade
+        return trade
 
     def close(self, *args, **kwargs):
-        super(self).close(*args, **kwargs)
-        self.last_trade = None
+        super().close(*args, **kwargs)
+        self.last_opened_trade = None
 
     def get_timestamp(self) -> pd.Timestamp:
         return pd.Timestamp.utcfromtimestamp(self.datetime[0])
 
     def _start(self):
         """"Add tick counter"""
-        super(self)._start(self)
+        super()._start()
         self.tick = 0
 
     def _oncepost(self, dt):
@@ -145,7 +162,7 @@ def add_dataframes_as_feeds(
         # Reindex so that backtrader can read data
         df = reindex_pandas_for_backtrader(df, start, end, bucket)
 
-        backtrader_feed = CapitalgramFeed(pair_data, dataname=df, plot=plot)
+        backtrader_feed = DEXFeed(pair_data, dataname=df, plot=plot)
         cerebro.adddata(backtrader_feed)
 
 
@@ -155,32 +172,50 @@ def analyse_strategy_trades(trades: List[Trade]) -> TradeAnalyzer:
 
     trade_id = 1
 
-    import ipdb ; ipdb.set_trace()
-
+    # Each Backtrader Trade instance presents a position
+    # Trade instances contain TradeHistory entries that present change to this position
+    # with Order instances attached
     for t in trades:
 
-        feed: CapitalgramFeed = t.data
-        pair_info = feed.pair_info
+        assert t.historyon, "Trade history must be on in Backtrader to analyse trades"
 
+        feed: DEXFeed = t.data
+        pair_info = feed.pair_info
         pair_id = pair_info.pair_id
         assert type(pair_id) == int
-        history = histories.get(pair_id)
-        if not history:
-            history = histories[pair_id] = AssetTradeHistory()
 
-        trade = SpotTrade(
-            pair_id=pair_id,
-            trade_id=trade_id,
-            timestamp=txn.dt,
-            price=txn.price,
-            quantity=txn.quantity,
-            commission=0,
-            slippage=0,
-        )
-        assert txn.quantity
-        assert txn.price
-        history.add_trade(trade)
-        trade_id += 1
+        histentry: TradeHistory
+        for histentry in t.history:
+
+            history = histories.get(pair_id)
+            if not history:
+                history = histories[pair_id] = AssetTradeHistory()
+
+            status = histentry.status
+
+            if status.status == Trade.Open:
+                open = True
+            elif status.status == Trade.Closed:
+                open = False
+            else:
+                raise RuntimeError("NO idea what Backtrader is doing")
+
+            quantity = t.size if open else -t.size
+
+            import ipdb ; ipdb.set_trace()
+            trade = SpotTrade(
+                pair_id=pair_id,
+                trade_id=trade_id,
+                timestamp=t.timestamp,
+                price=histentry.status.price,
+                quantity=quantity,
+                commission=0,
+                slippage=0,
+            )
+            assert t.size
+            assert t.price > 0
+            history.add_trade(trade)
+            trade_id += 1
 
     return TradeAnalyzer(asset_histories=histories)
 
