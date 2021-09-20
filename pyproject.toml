@@ -31,8 +31,8 @@ fastquant = "^0.1.5"
 trading-strategy-qstrader = "^0.3.0"
 # qstrader = {path = "../code/qstrader", develop = true}
 #qstrader = {git = "https://github.com/miohtama/qstrader", rev="ee011745531e0cab412bd3a98f65976840821c4f"}
-trading-strategy-backtrader = {path = "../backtrader", develop = true}
 
+trading-strategy-backtrader = "^0.1"
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
 nbsphinx = "^0.8.6"

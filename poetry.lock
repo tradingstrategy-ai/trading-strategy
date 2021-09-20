@@ -1873,6 +1873,17 @@ notebook = ["ipywidgets (>=6)"]
 telegram = ["requests"]
 
 [[package]]
+name = "trading-strategy-backtrader"
+version = "0.1"
+description = "BackTesting Engine (forked)"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+plotting = ["matplotlib"]
+
+[[package]]
 name = "trading-strategy-qstrader"
 version = "0.3"
 description = "QSTrader backtesting simulation engine (forked)"
@@ -2060,7 +2071,7 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.2"
-content-hash = "c4a05caa4c5661e6f9ec26204ba6e06573293c60444a6ff4ad88dab7666dfb00"
+content-hash = "740d23c89d7fd812dafb8440d97d0dae52e16be31f4bbd9eea865f50ca8faeb0"
 
 [metadata.files]
 aiodns = [
@@ -3310,6 +3321,10 @@ tornado = [
 tqdm = [
     {file = "tqdm-4.62.3-py2.py3-none-any.whl", hash = "sha256:8dd278a422499cd6b727e6ae4061c40b48fce8b76d1ccbf5d34fca9b7f925b0c"},
     {file = "tqdm-4.62.3.tar.gz", hash = "sha256:d359de7217506c9851b7869f3708d8ee53ed70a1b8edbba4dbcb47442592920d"},
+]
+trading-strategy-backtrader = [
+    {file = "trading-strategy-backtrader-0.1.tar.gz", hash = "sha256:2fcb342e0383a55aeb5e56948c6d8b3eb30c4375ad004637aeac8f96ff6a4e30"},
+    {file = "trading_strategy_backtrader-0.1-py3-none-any.whl", hash = "sha256:230d878f5284d3525283787339fa4694f9243304d40f55e71e876dbbdb87e740"},
 ]
 trading-strategy-qstrader = [
     {file = "trading-strategy-qstrader-0.3.tar.gz", hash = "sha256:3aea326dd5c4ee639f7af85245a9f416be969ebffc68baadc6193df929697088"},

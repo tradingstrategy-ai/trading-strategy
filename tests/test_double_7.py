@@ -16,7 +16,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, \
-    TradeRecorder, analyse_strategy_trades, DEXStragety
+    TradeRecorder, analyse_strategy_trades, DEXStrategy
 from tradingstrategy.pair import PandasPairUniverse
 
 # Which pair we analyse
@@ -99,7 +99,7 @@ if (strategy.position_size > 0)
 """
 
 
-class Double7(DEXStragety):
+class Double7(DEXStrategy):
     """An example of double-77 strategy for DEX spot trading.
 
     The original description: https://www.thechartist.com.au/double-7-s-strategy/

@@ -38,11 +38,11 @@ class DEXFeed(PandasData):
         super(DEXFeed, self).__init__()
 
 
-class DEXStragety(bt.Strategy):
+class DEXStrategy(bt.Strategy):
     """A strategy base class with support for Trading Strategy DEX specific use cases."""
 
     def __init__(self, *args, **kwargs):
-        super(DEXStragety, self).__init__(*args, **kwargs)
+        super(DEXStrategy, self).__init__(*args, **kwargs)
 
         #: Currently open position
         self.last_opened_buy: Optional[BuyOrder] = None
