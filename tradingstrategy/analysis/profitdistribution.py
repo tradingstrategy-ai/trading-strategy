@@ -11,7 +11,7 @@ from matplotlib.figure import Figure
 
 
 
-def plot_trade_profit_distribution(df: pd.DataFrame, bins=25) -> Figure:
+def plot_trade_profit_distribution(df: pd.DataFrame, bins=25, vmin=-1, vmax=0.5) -> Figure:
     """Create a histogram of won and lost trades based on trade analyzer expanded timeline output.
 
     See also :py:meth:`tradingstrategy.analysis.tradeanalyizer.expand_timeline`.
@@ -36,11 +36,17 @@ def plot_trade_profit_distribution(df: pd.DataFrame, bins=25) -> Figure:
 
     C = []
     for x in X:
+
         # Map x back to the range -100% to 100% - 100% is the max green.
         # Do not directly use the x co-ordinate on the bar diagram for the color
         # as middle is not zero
-        profit_pct = min(1.0, x)
-        colormap_adjusted = profit_pct/2 + 0.5  # 0 ... 1.0
+
+        # CLip
+        profit_clipped = min(vmax, x)
+        profit_clipped = max(vmin, profit_clipped)
+        green_percent = profit_clipped / (vmax - vmin)
+        colormap_adjusted = green_percent/2 + 0.5  # 0 ... 1.0
+
         c = colormap(colormap_adjusted)
         # print(c, x, profit_pct, X.min(), x_span)
         C.append(c)
