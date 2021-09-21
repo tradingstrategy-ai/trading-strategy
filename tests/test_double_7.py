@@ -144,7 +144,7 @@ class Double7(DEXStrategy):
         assert current_time >= pd.Timestamp("2020-09-01")
         assert current_time <= pd.Timestamp("2021-09-01")
 
-        print(f"Tick: {self.tick}, time: {current_time}, close: {close}, avg: {avg}, low: {low}, high: {high}")
+        # print(f"Tick: {self.tick}, time: {current_time}, close: {close}, avg: {avg}, low: {low}, high: {high}")
 
         if not all([close, low, high, avg]):
             # Do not try to make any decision if we have nan or zero data
@@ -152,28 +152,31 @@ class Double7(DEXStrategy):
 
         position: Optional[Position] = self.position
 
-        # Enter when we are above moving average and the daily close was
-        if close >= avg and close <= low and not position:
-            self.buy(price=close, hint=TradeHint(type=TradeHintType.open))
-            self.enters += 1
+        if not position:
+            # We are not in the markets, check entry
+            if close >= avg and close <= low and not position:
+                # Enter when we are above moving average and the daily close was
+                self.buy(price=close, hint=TradeHint(type=TradeHintType.open))
+                self.enters += 1
+        else:
+            # We are in the markets, check exit
+            if close >= high:
+                # If the price closes above its 7 day high, exit from the markets
+                #print("Exited the position")
+                self.exits += 1
+                self.close(hint=TradeHint(type=TradeHintType.close))
+            else:
+                # Check the exit from the market through stop loss
 
-        if close >= high and position:
-            # If the price closes above its 7 day high, exit from the markets
-            print("Exited the position")
-            self.exits += 1
-            self.close(hint=TradeHint(type=TradeHintType.close))
-        elif position:
-            # Check the exit from the market through stop loss
+                # Because AMMs do not support complex order types,
+                # only swaps, we do not manual stop loss here by
+                # brute market sell in the case the price falls below the stop loss threshold
 
-            # Because AMMs do not support complex order types,
-            # only swaps, we do not manual stop loss here by
-            # brute market sell in the case the price falls below the stop loss threshold
-
-            entry_price = self.last_opened_buy.price
-            if close <= entry_price * STOP_LOSS:
-                print(f"Stop loss triggered. Now {close}, opened at {entry_price}")
-                self.stop_loss_triggers += 1
-                self.close(hint=TradeHint(type=TradeHintType.stop_loss_triggered))
+                entry_price = self.last_opened_buy.price
+                if close <= entry_price * STOP_LOSS:
+                    # print(f"Stop loss triggered. Now {close}, opened at {entry_price}")
+                    self.stop_loss_triggers += 1
+                    self.close(hint=TradeHint(type=TradeHintType.stop_loss_triggered))
 
 
 def test_double_77(logger, persistent_test_client: Client):
@@ -258,7 +261,8 @@ def test_double_77(logger, persistent_test_client: Client):
     summary: TradeSummary = trade_analysis.calculate_summary_statistics(INITIAL_CASH, cash_left)
     output = HTML(summary.to_dataframe().to_html(header=False))
 
-    # Percents
-    assert summary.won == 68
-    assert summary.lost == 38
+    # Check we match with Backtrade analytics
+    assert summary.won == 34
+    assert summary.lost == 19
+    assert summary.stop_losses == 19
 

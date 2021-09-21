@@ -3,8 +3,7 @@
 A simplified trade analysis that only understands spots buys and sells, not margined trading or short positions.
 Unlike Backtrader, this one is good for multiasset portfolio analysis.
 """
-
-
+import datetime
 from dataclasses import dataclass, field
 from typing import List, Dict, Iterable, Optional, Tuple, Callable
 
@@ -12,10 +11,12 @@ import numpy as np
 import pandas as pd
 from pandas.io.formats.style import Styler
 
+from tradingstrategy.analysis.tradehint import TradeHint, TradeHintType
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.pair import PairUniverse, PandasPairUniverse
 from tradingstrategy.types import PrimaryKey, USDollarAmount
-from tradingstrategy.utils.format import format_value, format_percent, format_price
+from tradingstrategy.utils.format import format_value, format_percent, format_price, format_duration_days_hours_mins, \
+    format_percent_2_decimals
 from tradingstrategy.utils.summarydataframe import as_dollar, as_integer, create_summary_table, as_percent
 
 
@@ -46,6 +47,9 @@ class SpotTrade:
 
     #: How much we lost against the midprice due to the slippage
     slippage: USDollarAmount
+
+    #: Any hints applied for this trade why it was performed
+    hint: Optional[TradeHint] = None
 
     def is_buy(self):
         return self.quantity > 0
@@ -102,6 +106,16 @@ class TradePosition:
     def pair_id(self) -> PrimaryKey:
         """Position id is the same as the opening trade id."""
         return self.trades[0].pair_id
+
+    @property
+    def duration(self) -> Optional[datetime.timedelta]:
+        """How long this position was held.
+
+        :return: None if the position is still open
+        """
+        if not self.is_closed():
+            return None
+        return self.closed_at - self.opened_at
 
     def is_open(self):
         return self.closed_at is None
@@ -178,6 +192,14 @@ class TradePosition:
         assert not self.is_open()
         return self.realised_profit < 0
 
+    def is_stop_loss(self) -> bool:
+        """Was stop loss triggered for this position"""
+        for t in self.trades:
+            if t.hint:
+                if t.hint.type == TradeHintType.stop_loss_triggered:
+                    return True
+        return False
+
     def add_trade(self, t: SpotTrade):
         if self.trades:
             last_trade = self.trades[-1]
@@ -248,6 +270,7 @@ class TradeSummary:
     won: int
     lost: int
     zero_loss: int
+    stop_losses: int
     undecided: int
     realised_profit: USDollarAmount
     open_value: USDollarAmount
@@ -258,12 +281,16 @@ class TradeSummary:
         """Creates a human-readable Pandas dataframe table from the object."""
         total_trades = self.won + self.lost
         human_data = {
+            "Return %": as_percent(self.realised_profit / self.initial_cash),
             "Cash at start": as_dollar(self.initial_cash),
             "Value at end": as_dollar(self.open_value + self.uninvested_cash),
             "Trade win percent": as_percent(self.won / total_trades),
             "Total trades done": as_integer(self.won + self.lost + self.zero_loss),
             "Won trades": as_integer(self.won),
             "Lost trades": as_integer(self.lost),
+            "Stop losses triggered": as_integer(self.stop_losses),
+            "Stop loss % of all": as_percent(self.stop_losses / total_trades),
+            "Stop loss % of lost": as_percent(self.stop_losses / self.lost) if self.lost else "-",
             "Zero profit trades": as_integer(self.zero_loss),
             "Positions open at the end": as_integer(self.undecided),
             "Realised profit and loss": as_dollar(self.realised_profit),
@@ -309,9 +336,8 @@ class TradeAnalyzer:
                     yield pair_id, position
 
     def calculate_summary_statistics(self, initial_cash, uninvested_cash) -> TradeSummary:
-        """Calculate some statistics how our trades went.
-        """
-        won = lost = zero_loss = undecided = 0
+        """Calculate some statistics how our trades went."""
+        won = lost = zero_loss = stop_losses = undecided = 0
         open_value: USDollarAmount = 0
         profit: USDollarAmount = 0
         for pair_id, position in self.get_all_positions():
@@ -319,6 +345,9 @@ class TradeAnalyzer:
                 open_value += position.open_value
                 undecided += 1
                 continue
+
+            if position.is_stop_loss():
+                stop_losses += 1
 
             if position.is_win():
                 won += 1
@@ -334,6 +363,7 @@ class TradeAnalyzer:
             won=won,
             lost=lost,
             zero_loss=zero_loss,
+            stop_losses=stop_losses,
             undecided=undecided,
             realised_profit=profit,
             open_value=open_value,
@@ -357,7 +387,13 @@ class TradeAnalyzer:
         return df
 
 
-def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PandasPairUniverse, timeline: pd.DataFrame) -> Tuple[pd.DataFrame, Callable]:
+def expand_timeline(
+        exchange_universe: ExchangeUniverse,
+        pair_universe: PandasPairUniverse,
+        timeline: pd.DataFrame,
+        vmin=-0.3,
+        vmax=0.2,
+        hidden_columns = ["Id", "PnL % raw"]) -> Tuple[pd.DataFrame, Callable]:
     """Expand trade history timeline to human readable table.
 
     This will the outputting much easier in Python Notebooks.
@@ -367,6 +403,12 @@ def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PandasPa
     Instaqd of applying styles or returning a styled dataframe, we return a callable that applies the styles.
     This is because of Pandas issue https://github.com/pandas-dev/pandas/issues/40675 - hidden indexes, columns,
     etc. are not exported.
+
+    :param vmax: Trade success % to have the extreme green color.
+
+    :param vmin: The % of lost capital on the trade to have the extreme red color. Default -0.3
+
+    :param hidden_columns: Hide columns in the output table
 
     :return: DataFrame with human readable position win/loss information, having DF indexed by timestamps and a styler function
     """
@@ -378,15 +420,20 @@ def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PandasPa
         pair_id = position.pair_id
         pair_info = pair_universe.get_pair_by_id(pair_id)
         exchange = exchange_universe.get_by_id(pair_info.exchange_id)
+
+        remarks = "SL" if position.is_stop_loss() else ""
+
         r = {
             # "timestamp": timestamp,
             "Id": position.position_id,
+            "Remarks": remarks,
             "Opened at": position.opened_at,
+            "Duration": format_duration_days_hours_mins(position.duration) if position.duration else np.nan,
             "Exchange": exchange.name,
             "Base asset": pair_info.base_token_symbol,
             "Quote asset": pair_info.quote_token_symbol,
             "PnL USD": format_value(position.realised_profit) if position.is_closed() else np.nan,
-            "PnL %": format_percent(position.realised_profit_percent) if position.is_closed() else np.nan,
+            "PnL %": format_percent_2_decimals(position.realised_profit_percent) if position.is_closed() else np.nan,
             "PnL % raw": position.realised_profit_percent if position.is_closed() else 0,
             "Open price USD": format_price(position.open_price),
             "Close price USD": format_price(position.close_price) if position.is_closed() else np.nan,
@@ -408,12 +455,12 @@ def expand_timeline(exchange_universe: ExchangeUniverse, pair_universe: PandasPa
         # Dynamically color the background of trade outcome coluns # https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.background_gradient.html
         return df.style\
             .hide_index()\
-            .hide_columns(["Id", "PnL % raw"])\
+            .hide_columns(hidden_columns)\
             .background_gradient(
                 axis=0,
                 gmap=applied_df['PnL % raw'],
                 cmap='RdYlGn',
-                vmin=-1,  # We can only lose 100% of our money on position
-                vmax=1)  # 50% profit is 21.5 position. Assume this is the max success color we can hit over
+                vmin=vmin,  # We can only lose 100% of our money on position
+                vmax=vmax)  # 50% profit is 21.5 position. Assume this is the max success color we can hit over
 
     return applied_df, apply_styles

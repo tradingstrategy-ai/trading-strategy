@@ -1,16 +1,20 @@
 """Helper methods and classes to integrate :term:`Backtrader` with Capitalgram based :term:`Pandas` data."""
 
+import logging
 import datetime
-from typing import Iterable, List, Optional, Union
+from typing import Iterable, List, Optional, Union, Set
 
 import backtrader as bt
-from backtrader import Trade, LineIterator, TradeHistory, num2date, BuyOrder, SellOrder
+from backtrader import Trade, LineIterator, TradeHistory, num2date, BuyOrder, SellOrder, AutoOrderedDict
 from backtrader.feeds import PandasData
 import pandas as pd
 
 from tradingstrategy.analysis.tradeanalyzer import TradeAnalyzer, AssetTradeHistory, SpotTrade
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.pair import DEXPair, PandasPairUniverse
+
+
+logger = logging.getLogger(__name__)
 
 
 def convert_backtrader_timestamp(bt_time: float) -> pd.Timestamp:
@@ -64,7 +68,7 @@ class DEXStrategy(bt.Strategy):
         # Save the trade for the stop loss management
         self.last_opened_buy = buy
 
-        # Hint will be available as trade.info.hint
+        # Hint will be available as order.info.hint
         return buy
 
     def close(self, *args, **kwargs):
@@ -209,6 +213,8 @@ def analyse_strategy_trades(trades: List[Trade]) -> TradeAnalyzer:
         histentry: TradeHistory
         for histentry in t.history:
 
+            logger.debug("Processing history entry %s: %s", t.tradeid, histentry)
+
             history = histories.get(pair_id)
             if not history:
                 history = histories[pair_id] = AssetTradeHistory()
@@ -217,12 +223,14 @@ def analyse_strategy_trades(trades: List[Trade]) -> TradeAnalyzer:
 
             assert status.status in (Trade.Open, Trade.Closed), f"Got status {status}"
 
-            order: Union[BuyOrder, SellOrder] = histentry.event
+            event: AutoOrderedDict = histentry.event
+            order: Union[BuyOrder, SellOrder] = event.order
 
             # Internally negative quantities are for sells
-            quantity = order.size
+            quantity = event.size
             timestamp = convert_backtrader_timestamp(status.dt)
-            price = order.price
+            price = event.price
+            hint = histentry.event.order.info.hint
 
             assert quantity != 0, f"Got bad quantity for {status}"
             assert price > 0
@@ -235,6 +243,7 @@ def analyse_strategy_trades(trades: List[Trade]) -> TradeAnalyzer:
                 quantity=quantity,
                 commission=0,  # TODO
                 slippage=0,  # TODO
+                hint=hint,
             )
             history.add_trade(trade)
             trade_id += 1
@@ -247,13 +256,18 @@ class TradeRecorder(bt.Analyzer):
 
     def create_analysis(self):
         self.trades: List[Trade] = []
+        self.existing_trades: Set[int] = set()
 
     def stop(self):
         pass
 
     def notify_trade(self, trade: Trade):
         assert isinstance(trade, Trade)
-        self.trades.append(trade)
+        if trade.ref not in self.existing_trades:
+            # One trade got multiple notifications,
+            # see if start tracking a new trade
+            self.trades.append(trade)
+            self.existing_trades.add(trade.ref)
 
     def get_analysis(self) -> dict:
          # Internally called by Backtrader

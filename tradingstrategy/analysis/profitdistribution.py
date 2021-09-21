@@ -24,13 +24,14 @@ def plot_trade_profit_distribution(df: pd.DataFrame, bins=25) -> Figure:
 
     # A single successfuk trade might be something like 400% or 4.0
     max_profit_pct = df["PnL % raw"].max()
+    min_profit_pct = df["PnL % raw"].min()
 
     # https://stackoverflow.com/questions/23061657/plot-histogram-with-colors-taken-from-colormap
     Y: np.array
     X: np.array
     # https://numpy.org/doc/stable/reference/generated/numpy.histogram.html
     # Always adjust left X to -100% or trade lost all money
-    Y, X = np.histogram(df, bins, range=(-1, max_profit_pct))
+    Y, X = np.histogram(df, bins, range=(min_profit_pct, max_profit_pct))
     x_span = X.max() - X.min()
 
     C = []
