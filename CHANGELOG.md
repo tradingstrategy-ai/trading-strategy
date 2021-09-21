@@ -1,3 +1,7 @@
+# 0.2.6
+
+- Allow to customise color range for the trade success distribution diagram
+
 # 0.2.5
 
 - Added custom `DEXTrader` base class, as the default logic with Backtrader was a bit insufficient 
