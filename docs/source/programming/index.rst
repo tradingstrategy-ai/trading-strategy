@@ -37,6 +37,7 @@ Trading strategy examples
    algorithms/entropy-monkey
    algorithms/ape-in
    algorithms/double-7
+   algorithms/double-7-advanced
 
 API documentation
 -----------------

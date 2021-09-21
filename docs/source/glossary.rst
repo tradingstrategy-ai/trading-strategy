@@ -173,7 +173,7 @@ Glossary
 
     Pine Script
 
-        A proprietary trading strategy programming language for :ref:`TradingView`. `Read more <https://www.tradingview.com/support/solutions/43000561836-what-is-pine-script/>`__.
+        A proprietary trading strategy programming language for :term:`TradingView`. `Read more <https://www.tradingview.com/support/solutions/43000561836-what-is-pine-script/>`__.
 
     TradingView
 

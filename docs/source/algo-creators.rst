@@ -9,7 +9,7 @@ If you are an algorithmic trading strategy programmer, systematic trader or a qu
 
 
 How to create a strategy
-----------------------
+------------------------
 
 Trading Strategy offers decentralised finance :ref:`trading data` as the starting point for the strategy development. Register an API key and start exploring the datasets.
 

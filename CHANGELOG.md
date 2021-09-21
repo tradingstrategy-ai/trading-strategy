@@ -1,10 +1,12 @@
 # 0.2.5
 
-- Added trade analysis support for Backtrader
+- Added custom `DEXTrader` base class, as the default logic with Backtrader was a bit insufficient 
+
+- Added trade analysis support for Backtrader strategies (earlier was QSTrader only)
 
 - Reworked trade analysis summaries and views 
 
-- Added [advanced example for Double 7 trading strategy](https://tradingstrategy.ai/docs/programming/algorithms/double-7.html)
+- Added [advanced example for Double 7 trading strategy](https://tradingstrategy.ai/docs/programming/algorithms/double-7-advanced.html)
 
 # 0.2.4
 
