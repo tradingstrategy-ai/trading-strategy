@@ -1,5 +1,7 @@
 [![CI Status](https://github.com/tradingstrategy-ai/client/actions/workflows/python-app.yml/badge.svg)](https://github.com/tradingstrategy-ai/client/actions/workflows/python-app.yml)
 
+[![pip installation works](https://github.com/tradingstrategy-ai/client/actions/workflows/pip-install.yml/badge.svg)](https://github.com/tradingstrategy-ai/client/actions/workflows/pip-install.yml)
+
 # Trading Strategy protocol client
 
 Trading Strategy client is a Python library for on-chain algorithmic trading and trading bots. 

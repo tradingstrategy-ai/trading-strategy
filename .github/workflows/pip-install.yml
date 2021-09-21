@@ -1,6 +1,6 @@
 # Check that the latest PyPi release is kosher
 
-name: pip installation
+name: Pip installation
 
 on:
   push:
