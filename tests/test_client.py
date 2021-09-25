@@ -56,10 +56,13 @@ def test_client_download_exchange_universe(client: Client, cache_path: str):
     # Check universe has data
     assert len(universe.exchanges) > 0
     assert universe.exchanges[1].name == "Uniswap v2"
+    assert universe.exchanges[1].exchange_slug == "uniswap-v2"
+    assert universe.exchanges[1].chain_slug == "ethereum"
     assert universe.exchanges[1].address == "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f"
     assert universe.exchanges[22].name == "Sushiswap"
     assert universe.exchanges[22].address == "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac"
     assert universe.exchanges[225].name == "Shiba Swap"
+    assert universe.exchanges[225].exchange_slug == "shiba-swap"
 
 
 def test_client_download_all_pairs(client: Client, cache_path: str):
