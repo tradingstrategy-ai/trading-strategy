@@ -88,6 +88,7 @@ class CachedHTTPTransport:
         """Download a file to the cache and display a pretty progress bar while doing it."""
         os.makedirs(self.get_abs_cache_path(), exist_ok=True)
         url = f"{self.endpoint}/{api_path}"
+        logger.debug("Saving %s to %s", url, fpath)
         # https://stackoverflow.com/a/14114741/315168
         self.download_func(self.requests, fpath, url, params)
 
