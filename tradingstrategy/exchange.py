@@ -23,6 +23,9 @@ class ExchangeType(enum.Enum):
     #: Uniswap v3 style exchange
     uniswap_v3 = "uni_v3"
 
+    #: Sushiswap v3 style exchange
+    sushi_v3 = "uni_v3"
+
 
 @dataclass_json
 @dataclass
@@ -48,6 +51,10 @@ class Exchange:
 
     #: The exchange where this token trades
     exchange_id: PrimaryKey
+
+    #: The URL slug derived from the exchange name.
+    #: Used as the primary key in URLs and other user facing addressers.
+    slug: str
 
     #: The factory smart contract address of Uniswap based exchanges
     address: NonChecksummedAddress
