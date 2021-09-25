@@ -1,3 +1,7 @@
+# 0.2.7
+
+- Adding `exchange_slug` and `chain_slug` on the `Exchange` object
+
 # 0.2.6
 
 - Allow to customise color range for the trade success distribution diagram
