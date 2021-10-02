@@ -25,6 +25,10 @@ class ChainId(enum.Enum):
         # TODO: Use chain id JSON data in the future
         return "https://ethereum.org"
 
+    def get_svg_icon_link(self) -> str:
+        """Get an absolute SVG image link to a chain icon, transparent background"""
+        return "https://upload.wikimedia.org/wikipedia/commons/0/05/Ethereum_logo_2014.svg"
+
     def get_explorer(self) -> str:
         """Get explorer landing page for this blockchain"""
         return "https://etherscan.io"
