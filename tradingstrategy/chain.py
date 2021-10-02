@@ -14,3 +14,7 @@ class ChainId(enum.Enum):
 
     #: Ethereum mainnet chain id
     ethereum = 1
+
+    def to_name(self) -> str:
+        """Get full human readab name for this blockchain"""
+        return self.name.title()
