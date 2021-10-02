@@ -18,4 +18,9 @@ def test_caip_bad_checksum():
 
 def test_chain_name():
     c = ChainId(1)
-    assert c.to_name() == "Ethereum"
+    assert c.get_name() == "Ethereum"
+
+
+def test_chain_homepage():
+    c = ChainId(1)
+    assert c.get_homepage() == "https://ethereum.org"
