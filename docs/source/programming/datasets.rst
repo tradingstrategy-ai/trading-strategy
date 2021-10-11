@@ -11,14 +11,14 @@ List of available DEX datasets
 ------------------------------
 
 Trading Strategy provides real-time and historical DEX trading data as :term:`datasets <dataset>`.
-See `the available datasets <https://mightyeagle.capitalgram.com/datasets>`__.
+See `the available datasets <http://localhost:3000/trading-view/backtesting>`__.
 
 API endpoints
 -------------
 
 Datasets can be downloaded over authenticated HTTPS API endpoints.
 
-At the moment, all API endpoints are served by a private beta server `https://candlelightdinner.capitalgram.com`.
+At the moment, all API endpoints are served by a private beta server `https://candlelightdinner.tradingstrategy.ai`.
 
 APIs are described by Python dataclasses. For more information about the dataset data structure, see the API documentation and relevant source code.
 
@@ -30,7 +30,7 @@ At the moment, the API key registration is only available through the interactiv
 Parquet endpoints
 ~~~~~~~~~~~~~~~~~
 
-These take HTTP GET parameter `bucket`. See available values in :py:class:`capitalgram.timebucket.TimeBucket`.
+These take HTTP GET parameter `bucket`. See available values in :py:class:`tradingstrategy.timebucket.TimeBucket`.
 They return a Parquet file download.
 
 .. code-block:: none

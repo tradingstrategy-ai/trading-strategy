@@ -1,3 +1,7 @@
+# 0.2.8
+
+- Adding more metadata information on `ChainId` objects
+
 # 0.2.7
 
 - Adding `exchange_slug` and `chain_slug` on the `Exchange` object

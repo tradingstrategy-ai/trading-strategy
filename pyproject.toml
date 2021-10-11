@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tradingstrategy"
-version = "0.2.6"
+version = "0.2.8"
 description = "Trading algorithm and quantitative financial analysis framework for decentralised exchanges and blockchains"
 authors = ["Mikko Ohtamaa <mikko@capitalgram.com>"]
 homepage = "https://tradingstrategy.ai"
