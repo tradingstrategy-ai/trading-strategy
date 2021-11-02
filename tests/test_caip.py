@@ -24,3 +24,8 @@ def test_chain_name():
 def test_chain_homepage():
     c = ChainId(1)
     assert c.get_homepage() == "https://ethereum.org"
+
+
+def test_bsc():
+    c = ChainId(56)
+    assert c.get_name() == "Binance Smart Chain"

@@ -1,6 +1,39 @@
-"""Data structures and information about EVM based blockchains."""
+"""Data structures and information about EVM based blockchains.
 
+We embed the chain list data from https://github.com/ethereum-lists/chains as the submodule for the Python package.
+"""
+
+import os
 import enum
+import json
+
+
+#: In-process cached chain data, so we do not need to hit FS every time we access
+_chain_data = {}
+
+
+class ChainDataDoesNotExist(Exception):
+    """Cannot find data for a specific chain"""
+
+
+def _get_chain_data(chain_id: int):
+    global _chain_data
+
+    if chain_id not in _chain_data:
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "chains", "_data", "chains"))
+        if not os.path.exists(path):
+            raise RuntimeError(f"Chain data folder {path} not found. Make sure you have initialised git submodules or Python packaking is correct")
+
+        data_file = os.path.join(path, f"eip155-{chain_id}.json")
+        if not os.path.exists(data_file):
+            raise ChainDataDoesNotExist(f"Chain data does not exist: {data_file}")
+
+        _chain_data[chain_id] = json.load(open(data_file, "rt"))
+
+        # Apply our own chain data records
+        _chain_data[chain_id].update(_CHAIN_DATA_OVERRIDES.get(chain_id, {}))
+
+    return _chain_data[chain_id]
 
 
 class ChainId(enum.Enum):
@@ -9,35 +42,61 @@ class ChainId(enum.Enum):
     Chain id is an integer that defines the identity of a blockchain,
     all running on same or different EVM implementations.
 
-    See https://chainid.network/ for the full list.
+    See https://chainid.network/ and https://github.com/ethereum-lists/chains for the full list.
     """
 
     #: Ethereum mainnet chain id
     ethereum = 1
 
+    #: Binance Smarrt Chain mainnet chain id
+    bsc = 56
+
+    @property
+    def data(self) -> dict:
+        """Get chain data entry for this chain."""
+        return _get_chain_data(self.value)
+
     def get_name(self) -> str:
         """Get full human readab name for this blockchain"""
-        return self.name.title()
+        return self.data["name"]
 
     def get_homepage(self) -> str:
         """Get homepage link for this blockchain"""
 
         # TODO: Use chain id JSON data in the future
-        return "https://ethereum.org"
+        return self.data["infoURL"]
 
     def get_svg_icon_link(self) -> str:
         """Get an absolute SVG image link to a chain icon, transparent background"""
-        return "https://upload.wikimedia.org/wikipedia/commons/0/05/Ethereum_logo_2014.svg"
+        return self.data["svg_icon"]
 
     def get_explorer(self) -> str:
         """Get explorer landing page for this blockchain"""
-        return "https://etherscan.io"
+        return self.data["explorers"][0]["url"]
 
     def get_address_link(self, address) -> str:
-        """Get one address link"""
-        return f"https://etherscan.io/address/{address}"
+        """Get one address link.
+
+        Use EIP3091 format.
+
+        https://eips.ethereum.org/EIPS/eip-3091
+        """
+        return f"{self.get_explorer()}/address/{address}"
 
     def get_tx_link(self, tx) -> str:
         """Get one tx link"""
-        return f"https://etherscan.io/tx/{tx}"
+        return f"{self.get_explorer()}/tx/{tx}"
 
+
+#: Override stuff we do not like in Chain data repo
+_CHAIN_DATA_OVERRIDES = {
+    1: {
+        "name": "Ethereum",
+        "svg_icon": "https://upload.wikimedia.org/wikipedia/commons/0/05/Ethereum_logo_2014.svg",
+    },
+
+    # BSC
+    56: {
+        "name": "Binance Smart Chain"
+    }
+}

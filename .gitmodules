@@ -1,0 +1,3 @@
+[submodule "tradingstrategy/chains"]
+	path = tradingstrategy/chains
+	url = https://github.com/ethereum-lists/chains
