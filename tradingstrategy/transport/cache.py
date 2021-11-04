@@ -31,7 +31,7 @@ class CachedHTTPTransport:
         if endpoint:
             self.endpoint = endpoint
         else:
-            self.endpoint = "https://candlelightdinner.tradingstrategy.ai"
+            self.endpoint = "https://tradingstrategy.ai/api"
 
         self.cache_period = cache_period
 
