@@ -1,3 +1,8 @@
+# 0.2.9
+
+- Adding embedded chain list repository
+- Adding support for Binance Smart Chain
+
 # 0.2.8
 
 - Adding more metadata information on `ChainId` objects
