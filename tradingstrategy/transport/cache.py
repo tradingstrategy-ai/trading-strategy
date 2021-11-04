@@ -148,7 +148,6 @@ class CachedHTTPTransport:
         self.save_response(path, "liquidity-all", params={"bucket": bucket.value})
         return self.get_cached_item(path)
 
-
     def ping(self) -> dict:
         reply = self.get_json_response("ping")
         return reply
