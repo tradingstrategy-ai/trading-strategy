@@ -1,3 +1,7 @@
+# 0.2.10
+
+- Fix the default API endpoint URL
+
 # 0.2.9
 
 - Adding embedded chain list repository
