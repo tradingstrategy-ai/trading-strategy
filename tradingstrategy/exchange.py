@@ -100,6 +100,10 @@ class Exchange:
     #: Denormalised exchange statistics
     sell_volume_30d: Optional[float] = None
 
+    #: Human-readable name of the blockchain e.g. `Binance Smart Chain`
+    #: TODO: Bump to a mandatory attribute in the future
+    chain_name: Optional[str] = None
+
     def __repr__(self):
         chain_name = self.chain_id.name.capitalize()
         name = self.name or "<unknown>"

@@ -1,6 +1,10 @@
+# 0.2.13
+
+- Add `chain_name` output field for exchange data
+ 
 # 0.2.12
 
-- Adding `ChainId.get_slug()` to have 
+- Adding slug lookups for chains 
 
 # 0.2.11
 

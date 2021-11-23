@@ -6,6 +6,7 @@ def test_create_exchange():
     exchange = Exchange(
         chain_id=ChainId.ethereum,
         chain_slug="ethereum",
+        chain_name="Ethereum",
         exchange_slug="null-swap",
         exchange_id=1,
         address="0x0000000000000000000000000000000000000000",
