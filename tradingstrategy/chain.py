@@ -6,25 +6,30 @@ We embed the chain list data from https://github.com/ethereum-lists/chains as th
 import os
 import enum
 import json
-
-
-#: In-process cached chain data, so we do not need to hit FS every time we access
 from typing import Optional, Dict
 
-_chain_data = {}
+#: In-process cached chain data, so we do not need to hit FS every time we access
+_chain_data: Dict[int, dict] = {}
 
 #: Slug to chain id mapping
-_slug_data: Dict[str, int] = {}
+_slug_map: Dict[str, int] = {}
 
 
 class ChainDataDoesNotExist(Exception):
     """Cannot find data for a specific chain"""
 
 
-def _get_chain_data(chain_id: int):
-    global _chain_data
+def _ensure_chain_data_lazy_init():
 
-    if chain_id not in _chain_data:
+    global _chain_data
+    global _slug_map
+
+    if _chain_data:
+        # Already initialized
+        return
+
+    for chain_id in ChainId:
+        chain_id = chain_id.value
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), "chains", "_data", "chains"))
         if not os.path.exists(path):
             raise RuntimeError(f"Chain data folder {path} not found. Make sure you have initialised git submodules or Python packaking is correct")
@@ -38,20 +43,31 @@ def _get_chain_data(chain_id: int):
         # Apply our own chain data records
         _chain_data[chain_id].update(_CHAIN_DATA_OVERRIDES.get(chain_id, {}))
 
-        # Build slug -> chain id reverse mapping
-        for chain_id, data in _chain_data.items():
-            _slug_data[data["slug"]] = chain_id
+    # Build slug -> chain id reverse mapping
+    for chain_id, data in _chain_data.items():
+        _slug_map[data["slug"]] = chain_id
 
+
+def _get_chain_data(chain_id: int):
+    _ensure_chain_data_lazy_init()
     return _chain_data[chain_id]
 
 
+def _get_slug_map() -> Dict[str, int]:
+    _ensure_chain_data_lazy_init()
+    return _slug_map
+
+
 class ChainId(enum.Enum):
-    """Ethereum EVM chain ids.
+    """Ethereum EVM chain ids and chain metadata.
 
     Chain id is an integer that defines the identity of a blockchain,
     all running on same or different EVM implementations.
 
     See https://chainid.network/ and https://github.com/ethereum-lists/chains for the full list.
+
+    This class also provides various other metadata attributes besides `ChainId.value`, like `ChainId.get_slug()`.
+    These are pulled from chaindata git submodule.
     """
 
     #: Ethereum mainnet chain id
@@ -109,7 +125,8 @@ class ChainId(enum.Enum):
 
         Most useful for resolving URLs.
         """
-        chain_id_value = _slug_data.get(slug)
+        slug_map = _get_slug_map()
+        chain_id_value = slug_map.get(slug)
         if chain_id_value is None:
             return None
         return ChainId(chain_id_value)

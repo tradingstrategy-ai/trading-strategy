@@ -47,6 +47,8 @@ class Exchange:
     """
 
     #: The chain id on which chain this pair is trading. 1 for Ethereum.
+    #: For JSON, this is serialised as one of the name of enum memmbers of ChainId
+    #: e.g. `"ethereum"`.
     chain_id: ChainId
 
     #: The URL slug derived from the blockchain name.
@@ -100,12 +102,8 @@ class Exchange:
     #: Denormalised exchange statistics
     sell_volume_30d: Optional[float] = None
 
-    #: Human-readable name of the blockchain e.g. `Binance Smart Chain`
-    #: TODO: Bump to a mandatory attribute in the future
-    chain_name: Optional[str] = None
-
     def __repr__(self):
-        chain_name = self.chain_id.name.capitalize()
+        chain_name = self.chain_id.get_name()
         name = self.name or "<unknown>"
         return f"<Exchange {name} at {self.address} on {chain_name}>"
 

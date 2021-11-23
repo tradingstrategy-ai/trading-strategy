@@ -1,3 +1,7 @@
+# 0.2.14
+
+- Make `ChainId` database more deterministic by loading all supported chains once and only once
+
 # 0.2.13
 
 - Add `chain_name` output field for exchange data
