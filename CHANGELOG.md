@@ -1,3 +1,7 @@
+# 0.2.12
+
+- Adding `ChainId.get_slug()` to have 
+
 # 0.2.11
 
 - Add Binance Smart Chain and Polygon logos

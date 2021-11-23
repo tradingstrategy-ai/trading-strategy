@@ -5,6 +5,7 @@ import logging
 from typing import Dict
 
 import pandas as pd
+import pytest
 from tqdm import tqdm
 from IPython.core.display import display
 
@@ -193,6 +194,7 @@ class LiquidityThresholdReachedAlphaModel(AlphaModel):
         return picked
 
 
+@pytest.mark.skip(msg="Disabled for now until 0.3.0 release")
 def test_qstrader_ape_in(persistent_test_client):
     """Run QSTrader buy and hold against SUSHI-WETH pair on SushiSwap."""
 
