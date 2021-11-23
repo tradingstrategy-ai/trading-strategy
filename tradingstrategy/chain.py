@@ -51,6 +51,9 @@ class ChainId(enum.Enum):
     #: Binance Smarrt Chain mainnet chain id
     bsc = 56
 
+    #: Polygon chain id
+    polygon = 137
+
     @property
     def data(self) -> dict:
         """Get chain data entry for this chain."""
@@ -89,6 +92,11 @@ class ChainId(enum.Enum):
 
 
 #: Override stuff we do not like in Chain data repo
+#:
+#: Arweave permaweb dropped
+#: https://hv4gxzchk24cqfezebn3ujjz6oy2kbtztv5vghn6kpbkjc3vg4rq.arweave.net/PXhr5EdWuCgUmSBbuiU587GlBnmde1MdvlPCpIt1NyM/
+#: with free AR from the faucet https://faucet.arweave.net/
+#:
 _CHAIN_DATA_OVERRIDES = {
     1: {
         "name": "Ethereum",
@@ -97,6 +105,16 @@ _CHAIN_DATA_OVERRIDES = {
 
     # BSC
     56: {
-        "name": "Binance Smart Chain"
-    }
+        "name": "Binance Smart Chain",
+        # Deployed on Arweave for good
+        "svg_icon": "https://hv4gxzchk24cqfezebn3ujjz6oy2kbtztv5vghn6kpbkjc3vg4rq.arweave.net/fgp9wHyH92hION8E6CuPtUNbmiTlqsl23QbQlwA8cZQ",
+    },
+
+    # Polygon
+    #
+    137: {
+        "name": "Polygon",
+        "svg_icon": "https://hv4gxzchk24cqfezebn3ujjz6oy2kbtztv5vghn6kpbkjc3vg4rq.arweave.net/nLW0IfMZnhhaqdN1AbzC4d1NLZSpBlIMEHhXq-KcOws",
+    },
+
 }

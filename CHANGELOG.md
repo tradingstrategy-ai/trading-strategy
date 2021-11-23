@@ -1,3 +1,7 @@
+# 0.2.11
+
+- Add Binance Smart Chain and Polygon logos
+
 # 0.2.10
 
 - Fix the default API endpoint URL
