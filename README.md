@@ -2,15 +2,21 @@
 
 [![pip installation works](https://github.com/tradingstrategy-ai/client/actions/workflows/pip-install.yml/badge.svg)](https://github.com/tradingstrategy-ai/client/actions/workflows/pip-install.yml)
 
+[![Trading Strategy logo](https://hv4gxzchk24cqfezebn3ujjz6oy2kbtztv5vghn6kpbkjc3vg4rq.arweave.net/n8pMe2r9Wv3oQsPk4Swie55CZLgXWuExDsBOtczNdCY)](https://tradingstrategy.ai)
+
 # Trading Strategy protocol client
 
-Trading Strategy client is a Python library for on-chain algorithmic trading and trading bots. 
+Trading Strategy client is a Python library for on-chain algorithmic trading. 
+It is using [backtesting data](https://tradingstrategy.ai/trading-view/backtesting) and [real-time price feeds](https://tradingstrategy.ai/trading-view)
+from [Trading Strategy Protocol](https://tradingstrategy.ai/). 
 
 # Use cases
 
-* Analysing of cryptocurrency investment opportunities
+* Analyse cryptocurrency investment opportunities on decentralised exchhanges (DEXes)
 
-* Creating trading algorithms and bots that operate on on-chain data
+* Creating trading algorithms and trading bots that trade on DEXes
+
+* Deploy investable trading strategies as on-chain smart contracts
 
 # Features
 
@@ -18,9 +24,7 @@ Trading Strategy client is a Python library for on-chain algorithmic trading and
 
 * Integration with [Jupyter Notebook](https://jupyter.org/) for easy manipulation of data 
 
-* Use Python quant toolkits like [Backtrader](https://tradingstrategy.ai/docs/glossary.html#term-Backtrader) to create, analyse and backtest DEX trading algorithms 
-
-* (*soon*) Decentralised execution of trading algorithms through smart contracts
+* Utilise Python quant frameworks like [Backtrader](https://github.com/tradingstrategy-ai/backtrader) and [QSTrader](https://github.com/tradingstrategy-ai/qstrader) to create, analyse and backtest DEX trading algorithms 
 
 # Example and getting started 
 
