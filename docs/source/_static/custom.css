@@ -184,3 +184,17 @@ img.logo-smaller {
 div[role="search"] {
     display: none;
 }
+
+/* Tables in the documentation */
+
+.table-doc {
+    width: 100%;
+    margin: 20px 0;
+}
+
+.table-doc td,
+.table-doc th {
+    padding: 5px;
+    text-align: left;
+    vertical-align: top;
+}

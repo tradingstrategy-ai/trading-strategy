@@ -10,6 +10,7 @@ Overview
 
    examples/getting-started
    running
+   tracking
    datasets
    learn
    troubleshooting
