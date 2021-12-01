@@ -73,7 +73,7 @@ Below is the criteria for a trading pair to be considered active:
             </tr>
 
             <tr>
-                <td>#3</td>
+                <td>#4</td>
                 <td>
                     Supported quote token
                 </td>
@@ -88,7 +88,7 @@ Below is the criteria for a trading pair to be considered active:
 
 
             <tr>
-                <td>#4</td>
+                <td>#5</td>
                 <td>
                     Minimum activity threshold
                 </td>
