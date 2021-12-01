@@ -13,7 +13,7 @@ Trading pair filtering
 
 The following criteria is applied for trading pairs.
 
-We have the followig kinds of data collection for a trading pair.
+We have the following kinds of data collection for a trading pair.
 
 * **Untracked pairs**: The data exist on a blockchain, but the oracle indexer does not
   read it at all. For example, trading pairs on incompatible exchanges.
@@ -69,6 +69,20 @@ Below is the criteria for a trading pair to be considered active:
                 <td>
                     The trading pair tokens must have valid metadata. This includes
                     token names, symbols and decimals.
+                </td>
+            </tr>
+
+            <tr>
+                <td>#3</td>
+                <td>
+                    Supported quote token
+                </td>
+                <td>
+                    Each trading pair consists of base token and quote token. In decentralised exchange, the token order does not matter.
+                    However, for the sake of better data research, trading strategy converts all trading pairs to the format where
+                    we have a well known quote token and the quote token price can be directly translated to a US dollar price.
+                    Thus, the quote token will be always be one of the likes of USDC, USDT, ETH, BNB or similar high liquidity
+                    pair with direct dollar reference price available.
                 </td>
             </tr>
 
