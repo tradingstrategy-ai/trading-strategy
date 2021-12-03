@@ -179,3 +179,10 @@ Glossary
 
         Trading view is the world most ppopular trading strategy platform. It lets you discover investment ideas and showcase your talents to a large and active community of traders. Easy and intuitive for beginners, and powerful enough for advanced chartists. Trading View has all the charting tools you need to share and view trading ideas. Real-time data and browser-based charts let you do your research from anywhere, since there are no installations or complex setups. `Read more <https://www.quora.com/What-is-TradingView>`__.
 
+    EVM compatible
+
+        EVM refers to Ethereum Virtual Machine. EVM compatible blockchain is a blockchain that runs Ethereum Virtual Machine that can run smart contracts written for Ethereum.
+        Having EVM compatibility makes it efficient to bring existing Ethereum projects to alternative L1 and L2 blockchains. EVM compatible blockchains started to get popular in 2020,
+        though they exist as far back as 2018 (Tron, RSK). Smart contract programmers do not need to modify their existing Solidity or Vyper code and they can re-deploy contracts
+        on any EVM chain.
+
