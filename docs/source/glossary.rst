@@ -182,7 +182,9 @@ Glossary
     EVM compatible
 
         EVM refers to Ethereum Virtual Machine. EVM compatible blockchain is a blockchain that runs Ethereum Virtual Machine that can run smart contracts written for Ethereum.
-        Having EVM compatibility makes it efficient to bring existing Ethereum projects to alternative L1 and L2 blockchains. EVM compatible blockchains started to get popular in 2020,
-        though they exist as far back as 2018 (Tron, RSK). Smart contract programmers do not need to modify their existing Solidity or Vyper code and they can re-deploy contracts
+        Having EVM compatibility makes it efficient to bring existing Ethereum projects to alternative L1 and L2 blockchains.
+        EVM compatible blockchains started to get popular in 2020.
+        A well-known EVM compatible blockchains include Polygon, Avalanche, Binance Smart Chain, Harmony, Telos EVM and Fantom.
+        Smart contract programmers do not need to modify their existing Solidity or Vyper code and they can re-deploy contracts
         on any EVM chain.
 
