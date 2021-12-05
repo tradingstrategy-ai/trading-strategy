@@ -12,6 +12,7 @@ Overview
    running
    tracking
    datasets
+   referenceprice
    learn
    troubleshooting
    development

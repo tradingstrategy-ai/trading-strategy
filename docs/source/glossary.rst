@@ -62,6 +62,8 @@ Glossary
 
         The (time) bucket to a time period for :term:`candle` data. For example, you can have one minute, one hour or time buckets, describing for the what period of a time the candle includes the trades.
 
+        Also known as time frame, candle length or candle duration.
+
     OHLCV
 
         A typical :term:`candle` contains open, high, low and close price and trade volume for a :term:`time bucket <bucket>`. Because on-chain exposes more data than centralised exchanges, Trading Strategy data also contains individual buys and sells, US dollar exchange rate and so forth.
@@ -205,3 +207,4 @@ Glossary
         Anyone can buy or sell coins by essentially shifting the market maker’s, also known as a liquidity provider, position on the x*y=k curve.
 
         `Read more about XY liquidity model <https://medium.com/phoenix-finance/understanding-the-xyk-model-of-pooled-liquidity-7340fdc20d9c>`_.
+
