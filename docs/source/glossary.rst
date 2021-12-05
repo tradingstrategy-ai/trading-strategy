@@ -190,13 +190,15 @@ Glossary
 
     Bonding curve
 
-        In a bonding curve based exchange, like an :ref:`AMM <automated market maker>`, market makers do not set limit
+        In a bonding curve based exchange, like an :term:`AMM <automated market maker>`, market makers do not set limit
         orders to provide liquidity. Instead, the liquidity follows a predefined mathematical function. Every time
         there is a buy or a sell, the price moves up or down defined by this function.
 
+        See also: :term:`XY liquidity model`.
+
     XY liquidity model
 
-        XY liquidity model, as known as XYK, is a :ref:`bonding curve` model where the price of an assets follows the equation:
+        XY liquidity model, as known as XYK, is a :term:`bonding curve` model where the price of an assets follows the equation:
 
         `x*y=k market maker`
 
