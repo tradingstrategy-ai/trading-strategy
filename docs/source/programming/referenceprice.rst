@@ -10,9 +10,9 @@ Introduction
 
 Each trading pair consists of two tokens
 
-* Base token e.g. AAVE
+* Base token e.g. AAVE: (the token you are going to buy)
 
-* Quote token e.g. ETH
+* Quote token e.g. ETH (the token you are going to use as the payment)
 
 A lot of decentralised exchange trades happens against these non-fiat quote tokens like ETH and BNB.
 
