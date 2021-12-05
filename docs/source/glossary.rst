@@ -188,3 +188,18 @@ Glossary
         Smart contract programmers do not need to modify their existing Solidity or Vyper code and they can re-deploy contracts
         on any EVM chain.
 
+    Bonding curve
+
+        In a bonding curve based exchange, like an :ref:`AMM <automated market maker>`, market makers do not set limit
+        orders to provide liquidity. Instead, the liquidity follows a predefined mathematical function. Every time
+        there is a buy or a sell, the price moves up or down defined by this function.
+
+    XY liquidity model
+
+        XY liquidity model, as known as XYK, is a :ref:`bonding curve` model where the price of an assets follows the equation:
+
+        `x*y=k market maker`
+
+        Anyone can buy or sell coins by essentially shifting the market maker’s, also known as a liquidity provider, position on the x*y=k curve.
+
+        `Read more about XY liquidity model <https://medium.com/phoenix-finance/understanding-the-xyk-model-of-pooled-liquidity-7340fdc20d9c>`_.
