@@ -3,8 +3,6 @@ For investors
 
 Trading Strategy offers investor direct investments in algorithm trading strategies.
 
-* Easy user experienced Users can directly invest and withdraw from their wallet
-
 * Algorithms trade on decentralised exchanges across different blockchains
 
 * Algorithm trades real-time, based on technical analysis data, and it is likely to beat any non-professional trader doing trades themselves
@@ -13,12 +11,9 @@ Trading Strategy offers investor direct investments in algorithm trading strateg
 
 * Algorithms aim to beat the index yield that could be e.g. hold BTC, hold ETH, hold DeFi top 10 tokens
 
-* Investors see the backtested and the live performance of a strategy and can assess the risk themselves
+* Easy user experienced wher users can directly access strategies from their wallet
 
-How to invest
--------------
-
-* The investor needs to hold the reserve currency of the strategy. In most cases, this is :term:`USDC` coin.
+* Investors and strategy developers see the backtested and the live performance of a strategy and can assess the risk themselves
 
 Smart contract benefits
 -----------------------
