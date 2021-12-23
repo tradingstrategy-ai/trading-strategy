@@ -72,8 +72,9 @@ class DEXStrategy(bt.Strategy):
         return buy
 
     def close(self, *args, **kwargs):
-        super().close(*args, **kwargs)
+        ret = super().close(*args, **kwargs)
         self.last_opened_buy = None
+        return ret
 
     def get_timestamp(self) -> pd.Timestamp:
         """Get the timestamp of the current candle"""
@@ -229,11 +230,14 @@ def analyse_strategy_trades(trades: List[Trade]) -> TradeAnalyzer:
             # Internally negative quantities are for sells
             quantity = event.size
             timestamp = convert_backtrader_timestamp(status.dt)
-            price = event.price
+            price = event.price or status.price or order.price or 0
+            # price = order.price
             hint = histentry.event.order.info.hint
 
+            # print("Got event", event, status)
             assert quantity != 0, f"Got bad quantity for {status}"
-            assert price > 0
+            # import ipdb ; ipdb.set_trace()
+            assert price > 0, f"Got invalid trade event {event}, status {status}, order {order}"
 
             trade = SpotTrade(
                 pair_id=pair_id,
@@ -241,7 +245,7 @@ def analyse_strategy_trades(trades: List[Trade]) -> TradeAnalyzer:
                 timestamp=timestamp,
                 price=price,
                 quantity=quantity,
-                commission=0,  # TODO
+                commission=event.commission,
                 slippage=0,  # TODO
                 hint=hint,
             )

@@ -163,17 +163,17 @@ class TradePosition:
 
     @property
     def buy_value(self) -> USDollarAmount:
-        return sum([t.value for t in self.trades if t.is_buy()])
+        return sum([t.value - t.commission for t in self.trades if t.is_buy()])
 
     @property
     def sell_value(self) -> USDollarAmount:
-        return sum([t.value for t in self.trades if t.is_sell()])
+        return sum([t.value - t.commission for t in self.trades if t.is_sell()])
 
     @property
     def realised_profit(self) -> USDollarAmount:
         """Calculated life-time profit over this position."""
         assert not self.is_open()
-        return -sum([t.quantity * t.price for t in self.trades])
+        return -sum([t.quantity * t.price - t.commission for t in self.trades])
 
     @property
     def realised_profit_percent(self) -> float:
@@ -276,6 +276,7 @@ class TradeSummary:
     open_value: USDollarAmount
     uninvested_cash: USDollarAmount
     initial_cash: USDollarAmount
+    extra_return: USDollarAmount
 
     def to_dataframe(self) -> pd.DataFrame:
         """Creates a human-readable Pandas dataframe table from the object."""
@@ -295,6 +296,7 @@ class TradeSummary:
             "Positions open at the end": as_integer(self.undecided),
             "Realised profit and loss": as_dollar(self.realised_profit),
             "Portfolio unrealised value": as_dollar(self.open_value),
+            "AAVE boost: Extra returns on interest": as_dollar(self.extra_return),
             "Cash left at the end": as_dollar(self.uninvested_cash),
         }
         return create_summary_table(human_data)
@@ -335,7 +337,7 @@ class TradeAnalyzer:
                 if position.is_open():
                     yield pair_id, position
 
-    def calculate_summary_statistics(self, initial_cash, uninvested_cash) -> TradeSummary:
+    def calculate_summary_statistics(self, initial_cash, uninvested_cash, extra_return=0) -> TradeSummary:
         """Calculate some statistics how our trades went."""
         won = lost = zero_loss = stop_losses = undecided = 0
         open_value: USDollarAmount = 0
@@ -365,10 +367,11 @@ class TradeAnalyzer:
             zero_loss=zero_loss,
             stop_losses=stop_losses,
             undecided=undecided,
-            realised_profit=profit,
+            realised_profit=profit + extra_return,
             open_value=open_value,
             uninvested_cash=uninvested_cash,
             initial_cash=initial_cash,
+            extra_return=extra_return,
         )
 
     def create_timeline(self) -> pd.DataFrame:

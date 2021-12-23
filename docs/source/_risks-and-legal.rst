@@ -8,13 +8,6 @@ Trading Strategy protocol operates as a decentralised finance service that consi
 
 The non-custodial nature of the Trading Strategy protocol makes is safer for the investor as traditional fund structures. `Misappriration of the investor funds <https://www.justice.gov/usao-sdny/pr/founder-90-million-cryptocurrency-hedge-fund-sentenced-more-seven-years-prison>`_ or `charging unreasonable fees <https://www.ici.org/viewpoints/21_view_processingfees>`_ cannot happen.
 
-Legal and jurisdictional
-------------------------
-
-Trading Strategy protocol is not a fund. The protocol governance or the algorithm vendors do not have discretionary control over how the user assets are invested of whether the user can exit.
-
-Trading Strategy protocol development is operated by a Gibraltar based company. Because the development team does not transfer value or store value on the behalf of investors, the development team is unlikely to be a subject for the DLT licensing regime.
-
 Other algorithmic trading signal and copy trading services
 ----------------------------------------------------------
 
