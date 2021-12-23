@@ -14,7 +14,7 @@ The ready strategies, or trading bots, can be deployed as :term:`autonomous agen
 
 Trading Strategy integrates with :term:`Jupyter notebook`, :term:`Pandas`, :term:`Backtrader` and other popular quantitative finance toolkits popular in `Python data science ecosystem <http://python.org/>`_.
 
-Build on
+Built on
 --------
 
 .. raw:: html
