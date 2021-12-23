@@ -84,27 +84,6 @@ There are three major stakeholders in the ecosystem
 
 * **Operators** run oracles. Operators need specialised IT, cloud service and data center knowledge. Operators do not need any finance knowledge. Operators are incencitived to run the oracle network as high quality and cost efficiently as possible, as the operator profit. Anyone can become an operator.
 
-Fee sharing
------------
-
-The fee sharing model can be decided agent-by-agent. Here is an example what fee sharing protocol could look like:
-
-* 0.5% transactional fee for investments that is
-
-    * 0.2% on deposit
-
-    * 0.3% on withdraw
-
-The fee is distributed to the stakeholders so that
-
-* 40% goes to the algorithm vendor
-
-* 40% goes to the protocol treasury
-
-* 10% goes to the user referrals and marketing partners
-
-* 10% goes to oracle operators
-
 Risks
 -----
 
