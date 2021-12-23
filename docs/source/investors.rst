@@ -3,11 +3,6 @@ For investors
 
 Trading Strategy offers investor direct investments in algorithm trading strategies.
 
-.. raw:: html
-
-   <img class="intro" src="_static/how-to-invest.png" alt="How to invest in decentralised trading strategies">
-
-
 * Easy user experienced Users can directly invest and withdraw from their wallet
 
 * Algorithms trade on decentralised exchanges across different blockchains
@@ -24,8 +19,6 @@ How to invest
 -------------
 
 * The investor needs to hold the reserve currency of the strategy. In most cases, this is :term:`USDC` coin.
-
-* Investors click *Invest* on the chosen strategy on `Trading Strategy <https://tradingstrategy.ai>`_.
 
 Smart contract benefits
 -----------------------
