@@ -19,6 +19,14 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
     """The default downloader does not display any fancy progress bar."""
 
     start = time.time()
+
+    head = session.head(url)
+    if "content-length" in head:
+        human_size = "{:,}".format(head["content-length"])
+    else:
+        human_size = "unknown"
+    logger.info("Downloading %s to path %s, size is %s", url, path, human_size)
+
     response = session.get(url, params=params)
     fsize = 0
     with open(path, 'wb') as handle:

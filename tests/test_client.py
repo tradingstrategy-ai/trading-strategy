@@ -1,9 +1,13 @@
 import os
+import logging
 
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import PairUniverse
+
+
+logger = logging.getLogger(__name__)
 
 
 def test_client_ping(client: Client):
@@ -32,6 +36,9 @@ def test_client_fetch_chain_status(client: Client):
 
 def test_client_download_pair_universe(client: Client, cache_path: str):
     """Download pair mapping data"""
+
+    logger.info("Starting test_client_download_pair_universe")
+
     pairs = client.fetch_pair_universe()
     # Check we cached the file correctly
     assert os.path.exists(f"{cache_path}/pair-universe.parquet")
@@ -41,6 +48,7 @@ def test_client_download_pair_universe(client: Client, cache_path: str):
     # The first ever pair in Uniswap v2
     # ETH-USDC
     universe = PairUniverse.create_from_pyarrow_table(pairs)
+    import ipdb ; ipdb.set_trace()
     first_pair = universe.pairs[1]
     assert first_pair.base_token_symbol == "WETH"
     assert first_pair.quote_token_symbol == "USDC"
