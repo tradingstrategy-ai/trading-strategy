@@ -38,6 +38,9 @@ class Exchange:
     The :term:`dataset server` server automatically discovers exchanges
     and tries to add meaningful label and risk data for them.
 
+    Most of the fields are optionally and having values them depends
+    on the oracle data indexinb phase.
+
     Regarding 30d and life time stats like `buy_volume_30d`:
     These stats calculated only if exchanged deemed active and we
     can convert the volume to a supported quote token.
@@ -86,7 +89,7 @@ class Exchange:
     name: Optional[str] = None
 
     #: Exchange homepage if available as https:// linkk
-    homepage: Optional[str] = Non
+    homepage: Optional[str] = None
 
     #: Denormalised exchange statistics
     buy_count_all_time: Optional[int] = None

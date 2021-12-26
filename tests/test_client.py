@@ -24,9 +24,10 @@ def test_client_fetch_chain_status(client: Client):
     status = client.fetch_chain_status(ChainId.ethereum)
     assert status["chain_id"] == 1
     assert status["pairs"] > 0
-    assert status["swaps"] > 0
-    assert status["minute_candles"] > 0
-    assert status["first_swap_at"] == '2020-05-05T21:09:32'
+    # Removed as too slow
+    # assert status["swaps"] > 0
+    # assert status["minute_candles"] > 0
+    # assert status["first_swap_at"] == '2020-05-05T21:09:32'
 
 
 def test_client_download_pair_universe(client: Client, cache_path: str):

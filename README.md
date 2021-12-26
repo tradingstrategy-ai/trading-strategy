@@ -48,6 +48,14 @@ pip install tradindstrategy
 poetry add tradindstrategy
 ```
 
+# Development
+
+This git repository contains submodules. Remember to do:
+
+```shell
+git submodule update --init --recursive  
+```
+
 # License
 
 GNU AGPL 3.0. 

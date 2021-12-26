@@ -60,6 +60,7 @@ class IntegrationTestStrategy(bt.Strategy):
         self.ticks += 1
 
 
+@pytest.mark.skip(msg="SUSHI-USDT pair has been removed from the dataset as it was too illiquid - rewrite this test using another pair")
 def test_backtrader_sma(logger, persistent_test_client: Client):
     """Run Backtrader SMA on a single pair over Capitalgram API."""
 
