@@ -72,11 +72,21 @@ class Exchange:
     #: How many pairs we have discovered for this exchange so far
     pair_count: int
 
+    #: How many supported trading pairs we have
+    #: See https://tradingstrategy.ai/docs/programming/tracking.html for more information
+    active_pair_count: Optional[int] = None
+
+    #: When someone traded on this exchange for the first time
+    first_trade_at: Optional[UNIXTimestamp] = None
+
     #: When someone traded on this exchange last time
     last_trade_at: Optional[UNIXTimestamp] = None
 
     #: Exchange name - if known or guessed
     name: Optional[str] = None
+
+    #: Exchange homepage if available as https:// linkk
+    homepage: Optional[str] = Non
 
     #: Denormalised exchange statistics
     buy_count_all_time: Optional[int] = None
