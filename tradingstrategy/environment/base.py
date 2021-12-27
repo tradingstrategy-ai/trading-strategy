@@ -20,14 +20,15 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
 
     start = time.time()
 
-    head = session.head(url)
-    if "content-length" in head:
-        human_size = "{:,}".format(head["content-length"])
+    response = session.get(url, params=params)
+
+    headers = response.headers
+    if "content-length" in headers:
+        human_size = "{:,}".format(headers["content-length"])
     else:
         human_size = "unknown"
-    logger.info("Downloading %s to path %s, size is %s", url, path, human_size)
+    logger.info(f"Downloading %s to path %s, size is {human_size:,} bytes", url, path)
 
-    response = session.get(url, params=params)
     fsize = 0
     with open(path, 'wb') as handle:
         for block in response.iter_content(8 * 1024):

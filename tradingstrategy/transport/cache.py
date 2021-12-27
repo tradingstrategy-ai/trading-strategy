@@ -129,6 +129,7 @@ class CachedHTTPTransport:
         return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> io.BytesIO:
+        assert isinstance(bucket, TimeBucket)
         fname = f"candles-{bucket.value}.parquet"
         cached = self.get_cached_item(fname)
         if cached:
