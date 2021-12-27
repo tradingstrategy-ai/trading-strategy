@@ -1,3 +1,4 @@
+import datetime
 import logging
 import time
 from abc import ABC
@@ -18,7 +19,7 @@ class Environment(ABC):
 def download_with_progress_plain(session: Session, path: str, url: str, params: dict):
     """The default downloader does not display any fancy progress bar."""
 
-    start = time.time()
+    start = datetime.datetime.utcnow()
 
     response = session.get(url, params=params)
 
@@ -34,5 +35,5 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
         for block in response.iter_content(8 * 1024):
             handle.write(block)
             fsize += len(block)
-    duration = time.time() - start
-    logger.debug("Saved %s. Downloaded %s bytes in %f seconds.", path, fsize, duration)
+    duration = datetime.datetime.utcnow() - start
+    logger.debug("Saved %s. Downloaded %d bytes in %s.", path, fsize, duration)
