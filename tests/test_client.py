@@ -1,3 +1,5 @@
+"""Client dataset download and integrity tests"""
+
 import os
 import logging
 
@@ -28,33 +30,10 @@ def test_client_fetch_chain_status(client: Client):
     status = client.fetch_chain_status(ChainId.ethereum)
     assert status["chain_id"] == 1
     assert status["pairs"] > 0
-    # Removed as too slow
+    # Removed as too slow to compute on the server-side for now
     # assert status["swaps"] > 0
     # assert status["minute_candles"] > 0
     # assert status["first_swap_at"] == '2020-05-05T21:09:32'
-
-
-def test_client_download_pair_universe(client: Client, cache_path: str):
-    """Download pair mapping data"""
-
-    logger.info("Starting test_client_download_pair_universe")
-
-    pairs = client.fetch_pair_universe()
-    # Check we cached the file correctly
-    assert os.path.exists(f"{cache_path}/pair-universe.parquet")
-    # Check universe has data
-    assert len(pairs) > 0
-
-    # The first ever pair in Uniswap v2
-    # ETH-USDC
-    universe = PairUniverse.create_from_pyarrow_table(pairs)
-    import ipdb ; ipdb.set_trace()
-    first_pair = universe.pairs[1]
-    assert first_pair.base_token_symbol == "WETH"
-    assert first_pair.quote_token_symbol == "USDC"
-
-    # The total pair count on Ethereum is quite high
-    assert len(universe.pairs) > 40_000
 
 
 def test_client_download_exchange_universe(client: Client, cache_path: str):
@@ -72,6 +51,34 @@ def test_client_download_exchange_universe(client: Client, cache_path: str):
     assert universe.exchanges[22].address == "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac"
     assert universe.exchanges[225].name == "Shiba Swap"
     assert universe.exchanges[225].exchange_slug == "shiba-swap"
+
+
+def test_client_download_pair_universe(client: Client, cache_path: str):
+    """Download pair mapping data"""
+
+    logger.info("Starting test_client_download_pair_universe")
+
+    exchange_universe = client.fetch_exchange_universe()
+
+    pairs = client.fetch_pair_universe()
+    # Check we cached the file correctly
+    assert os.path.exists(f"{cache_path}/pair-universe.parquet")
+    # Check universe has data
+    assert len(pairs) > 50_000
+
+    pair_universe = PairUniverse.create_from_pyarrow_table(pairs)
+
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
+    assert exchange, "Uniswap v2 not found"
+
+    # Uniswap v2 has more than 2k eligible trading pairs
+    pairs = list(pair_universe.get_all_pairs_on_exchange(exchange.exchange_id))
+    assert len(pairs) > 2000
+
+    pair = pair_universe.get_pair_by_ticker_by_exchange(exchange.exchange_id, "WETH", "DAI")
+    assert pair, "WETH-DAI not found"
+    assert pair.base_token_symbol == "WETH"
+    assert pair.quote_token_symbol == "DAI"
 
 
 def test_client_download_all_pairs(client: Client, cache_path: str):

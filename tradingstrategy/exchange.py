@@ -172,6 +172,20 @@ class ExchangeUniverse:
                 return xchg
         return None
 
+    def get_by_chain_and_slug(self, chain_id: ChainId, slug: str) -> Optional[Exchange]:
+        """Get the exchange implementation on a specific chain.
+
+        :param chain_id: Blockchain this exchange is on
+
+        :param slug: Machine readable exchange name. Like `uniswap-v2`. Case sensitive.
+        """
+        assert isinstance(chain_id, ChainId)
+        for xchg in self.exchanges.values():
+            if xchg.exchange_slug == slug:
+                return xchg
+        return None
+
+
 
 
 

@@ -2,7 +2,6 @@
 
 import enum
 from dataclasses import dataclass
-from functools import partial
 from typing import Optional, List, Iterable, Dict
 
 import pandas as pd
@@ -53,6 +52,18 @@ class DEXPair:
     * Non-optional fields are always available
 
     * Optional fields may be available if the candle server 1) detected the pair popular enough 2) managed to fetch the third party service information related to the token
+
+    .. note ::
+
+        Currently all flags are disabled and will be removed in the future. The historical dataset does not contain any filtering flags,
+        because the data has to be filtered prior to download, to keep the download dump in a reasonasble size.
+        The current data set of 800k trading pairs produce 100 MB dataset of which most of the pairs
+        are useless. The server prefilters trading pairs and thus you cannot access historical data of pairs
+        that have been prefiltered.
+
+        For the very same reason, first and last trade data is not available in the client version 0.3 onwards.
+
+    For more information see see :ref:`trading pair tracking <tracking>`.
     """
 
     #: Internal primary key for any trading pair
@@ -170,8 +181,8 @@ class DEXPair:
     clone_pairs: Optional[List[PrimaryKey]] = None
 
     def __repr__(self):
-        chain_name = self.chain_id.name.capitalize()
-        return f"<Pair {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange #{self.exchange_id} on {chain_name}>"
+        chain_name = self.chain_id.get_slug()
+        return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange #{self.exchange_id} on {chain_name}>"
 
     def get_friendly_name(self, exchange_universe: ExchangeUniverse) -> str:
         """Get a very human readable name for this trading pair.
@@ -307,6 +318,59 @@ class PairUniverse:
             return pairs[0]
 
         return None
+
+    def get_pair_by_ticker_by_exchange(self, exchange_id: int, base_token: str, quote_token: str) -> Optional[DEXPair]:
+        """Get a trading pair by its ticker symbols.
+
+        Note that this method works only very simple universes, as any given pair
+        is poised to have multiple tokens and multiple trading pairs on different exchanges.
+
+        :param exchange_id: E.g. `1` for uniswap_v2
+
+        :raise DuplicatePair:
+            If the universe contains more than single entry for the pair.
+            Because we are looking by a token symbol there might be fake tokens with the same symbol.
+
+        :return: None if there is no match
+        """
+
+        # Don't let ints slip through as they are unsupported
+        assert type(exchange_id) == int
+
+        pairs = [p for p in self.pairs.values()
+                 if p.base_token_symbol == base_token
+                 and p.quote_token_symbol == quote_token
+                 and p.exchange_id == exchange_id]
+
+        if len(pairs) > 1:
+            raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token} on exchange {exchange_id}")
+
+        if pairs:
+            return pairs[0]
+
+        return None
+
+    def get_all_pairs_on_exchange(self, exchange_id: int) -> Iterable[DEXPair]:
+        """Get all trading pair on a decentralsied exchange.
+
+        Use `ExchangeUniverse.get_by_chain_and_slug` to resolve the `exchange_id` first.
+        :param chain_id: E.g. `ChainId.ethereum`
+
+        :param exchange_id: E.g. `1` for uniswap_v2
+
+        :raise DuplicatePair:
+            If the universe contains more than single entry for the pair.
+            Because we are looking by a token symbol there might be fake tokens with the same symbol.
+
+        :return: None if there is no match
+        """
+
+        # Don't let ints slip through as they are unsupported
+        assert type(exchange_id) == int
+
+        for p in self.pairs.values():
+            if p.exchange_id == exchange_id:
+                yield p
 
     def get_active_pairs(self) -> Iterable["DEXPair"]:
         """Filter for pairs that have see a trade for the last 30 days"""
