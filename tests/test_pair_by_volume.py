@@ -17,7 +17,7 @@ def test_pair_by_volume(logger, persistent_test_client: Client):
     columnar_pair_table = capitalgram.fetch_pair_universe()
     pair_universe = PandasPairUniverse(columnar_pair_table.to_pandas())
 
-    uniswap = exchange_universe.get_by_name_and_chain(ChainId.ethereum, "uniswap v2")
+    uniswap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "uniswap v2")
 
     # AAVE-WETH has fake trading pairs
     with pytest.raises(DuplicatePair):

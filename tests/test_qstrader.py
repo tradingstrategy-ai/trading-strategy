@@ -79,7 +79,7 @@ def test_qstrader_buy_and_hold_crypto(persistent_test_client):
     pair_universe = PandasPairUniverse(columnar_pair_table.to_pandas())
 
     # Pick SUSHI-USDT trading on SushiSwap
-    sushi_swap = exchange_universe.get_by_name_and_chain(ChainId.ethereum, "sushiswap")
+    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushiswap")
     sushi_eth: DEXPair = pair_universe.get_one_pair_from_pandas_universe(
         sushi_swap.exchange_id,
         "SUSHI",

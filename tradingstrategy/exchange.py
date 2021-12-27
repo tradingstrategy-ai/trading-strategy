@@ -159,13 +159,14 @@ class ExchangeUniverse:
         exchanges = sorted(list(self.exchanges.values()), key=vol, reverse=True)
         return exchanges
 
-    def get_by_name_and_chain(self, chain_id: ChainId, name: str) -> Optional[Exchange]:
+    def get_by_chain_and_name(self, chain_id: ChainId, name: str) -> Optional[Exchange]:
         """Get the exchange implementation on a specific chain.
 
         :param chain_id: Blockchain this exchange is on
 
         :param name: Like `sushiswap` or `uniswap v2`. Case insensitive.
         """
+        name = name.lower()
         assert isinstance(chain_id, ChainId)
         for xchg in self.exchanges.values():
             if xchg.name.lower() == name:
