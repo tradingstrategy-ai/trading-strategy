@@ -27,7 +27,7 @@ def cache_path(client: Client):
 def persistent_test_client() -> Client:
     """Create a client that never redownloads data in a local dev env.
     """
-    c = Client.create_test_client("/tmp/capitalgram-tests")
+    c = Client.create_test_client("/tmp/trading-strategy-tests")
     return c
 
 

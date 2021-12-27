@@ -52,7 +52,7 @@ class CachedHTTPTransport:
 
         def exception_hook(response: Response, *args, **kwargs):
             if response.status_code >= 400:
-                raise APIError(response.text)
+                raise APIError(f"Server error reply: code:${response.status_code} ${response.text}")
 
         session.hooks = {
             "response": exception_hook,
