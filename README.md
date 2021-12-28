@@ -58,6 +58,8 @@ pip install tradindstrategy
 Community
 ---------
 
+* [Trading Strategy website](https://tradingstrategy.ai)
+
 * [Blog](https://tradingstrategy.ai/blog)
 
 * [Twitter](https://twitter.com/TradingProtocol)
