@@ -7,7 +7,7 @@ from tradingstrategy.liquidity import GroupedLiquidityUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import PandasPairUniverse, DEXPair
+from tradingstrategy.pair import PandasPairUniverse, DEXPair, PairUniverse
 
 
 def test_grouped_liquidity(persistent_test_client: Client):
@@ -92,10 +92,19 @@ def test_liquidity_index_is_datetime(persistent_test_client: Client):
     Avoid raw running counter indexes. This makes manipulating data much easier.
     """
     client = persistent_test_client
-    pair_id = 1  # ETH-USDC
+
+    exchange_universe = client.fetch_exchange_universe()
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
+    pairs = client.fetch_pair_universe()
+    pair_universe = PairUniverse.create_from_pyarrow_table(pairs)
+    pair = pair_universe.get_pair_by_ticker_by_exchange(exchange.exchange_id, "WETH", "DAI")
+
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
+    assert exchange, "Uniswap v2 not found"
+
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
-    liq1 = liquidity_universe.get_liquidity_samples_by_pair(pair_id)
+    liq1 = liquidity_universe.get_liquidity_samples_by_pair(pair.id)
     assert isinstance(liq1.index, pd.DatetimeIndex)
 
 
