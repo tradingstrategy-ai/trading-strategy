@@ -4,7 +4,12 @@
 
 # 0.3.0
 
-- Multiple changes to make the multichain backtesting possible
+- Multiple changes to make the multichain backtesting possible.
+
+- [The documentation code examples](https://tradingstrategy.ai/docs/programming/index.html#code-examples)
+  will be updated to reflect multichain support over time and may work incorrectly
+  at the moment. [Getting Started](https://tradingstrategy.ai/docs/programming/examples/getting-started.html) 
+  tutorial is already updated. 
 
 - This is a major release deprecating activity flags in the trading pair universe.
   The multichain trading pair data is too big to include inactivate trading pairs (800k+ total trading pairs).

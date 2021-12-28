@@ -13,7 +13,7 @@ You can reset the API key by deleting the config file:
 
 .. code-block:: shell
 
-    rm ~/.capitalgram/settings.json
+    rm ~/.tradingstrategy/settings.json
 
 Resetting the download cache
 ----------------------------
