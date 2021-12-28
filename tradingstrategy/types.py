@@ -14,7 +14,9 @@ class CapitalgramType:
 class PrimaryKey(CapitalgramType, int):
     """64-bit integer based primary key.
 
-    Alias to int.
+    Also referred as "internal id" on website and data streams.
+
+    This is a type alias to Python integer type.
 
     Primary keys are not stable across different dataset. Blockchain data healing process
     may require to regenerate the data which means the old data is purged,

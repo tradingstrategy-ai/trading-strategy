@@ -6,13 +6,13 @@
 
 # Trading Strategy protocol client
 
-Trading Strategy client is a Python library for on-chain algorithmic trading. 
+Trading Strategy client is a Python library for algorithmic trading on blockchains. 
 It is using [backtesting data](https://tradingstrategy.ai/trading-view/backtesting) and [real-time price feeds](https://tradingstrategy.ai/trading-view)
 from [Trading Strategy Protocol](https://tradingstrategy.ai/). 
 
 # Use cases
 
-* Analyse cryptocurrency investment opportunities on decentralised exchhanges (DEXes)
+* Analyse cryptocurrency investment opportunities on decentralised exchanges (DEXes)
 
 * Creating trading algorithms and trading bots that trade on DEXes
 
@@ -20,11 +20,13 @@ from [Trading Strategy Protocol](https://tradingstrategy.ai/).
 
 # Features
 
-* Getting trading data from on-chain decentralised exchanges like Uniswap and PancakeSwap
+* Supports multiple blockchains like [Ethereum mainnet](https://tradingstrategy.ai/trading-view/ethereum), [Binance Smart Chain](https://tradingstrategy.ai/trading-view/binance) and [Polygon](https://tradingstrategy.ai/trading-view/polygon)
+
+* Access trading data from on-chain decentralised exchanges like [SushiSwap](https://tradingstrategy.ai/trading-view/ethereum/sushiswap), [QuickSwap](https://tradingstrategy.ai/trading-view/polygon/quickswap) and [PancakeSwap](https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2)
 
 * Integration with [Jupyter Notebook](https://jupyter.org/) for easy manipulation of data 
 
-* Utilise Python quant frameworks like [Backtrader](https://github.com/tradingstrategy-ai/backtrader) and [QSTrader](https://github.com/tradingstrategy-ai/qstrader) to create, analyse and backtest DEX trading algorithms 
+* Utilise Python quantita frameworks like [Backtrader](https://github.com/tradingstrategy-ai/backtrader) and [QSTrader](https://github.com/tradingstrategy-ai/qstrader) to create, analyse and backtest DEX trading algorithms 
 
 # Example and getting started 
 
@@ -38,19 +40,32 @@ Python 3.8+
 
 **Note**: Unless you are an experienced Python developer, [the suggested usage of Trading Algorithm framework is using Google Colab hosted environments](https://tradingstrategy.ai/docs/programming/examples/getting-started.html).
 
-You can install this package with `pip` or `poetry`
-
-```shell
-pip install tradindstrategy 
-```
+You can install this package with `poetry` or `pip`
 
 ```shell
 poetry add tradindstrategy
 ```
 
+
+```shell
+pip install tradindstrategy 
+```
+
 # Documentation
 
 [Read documentation online](https://tradingstrategy.ai/docs/).
+
+Community
+---------
+
+* [Blog](https://tradingstrategy.ai/blog)
+
+* [Twitter](https://twitter.com/TradingProtocol)
+
+* [Discord](https://tradingstrategy.ai/community#discord) 
+
+* [Telegram channel](https://twitter.com/TradingProtocol)
+
 
 # Development
 
@@ -59,6 +74,8 @@ This git repository contains submodules. Remember to do:
 ```shell
 git submodule update --init --recursive  
 ```
+
+[Read more documentation how to develop this package](https://tradingstrategy.ai/docs/programming/development.html).
 
 # License
 

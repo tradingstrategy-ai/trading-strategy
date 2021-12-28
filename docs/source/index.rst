@@ -5,7 +5,6 @@ Trading Strategy documentation
 
    <img class="intro" src="_static/intro.png" alt="Decentralised trading bots">
 
-
 **Trading Strategy protocol is still under development. Any documentation is preliminary and not final.**
 
 Trading Strategy is a protocol for :term:`on-chain` quantitative finance and trade automation. You can develop and :term:`backtest` trading strategies based on all trades ever happened on any blockchain. Live `data <https://tradingstrategy.ai/trading-view>`_ is available to one minute accuracy.
@@ -59,5 +58,14 @@ Find the documentation for research notebooks and Python APIs below.
 Community
 ---------
 
-`Github repository <https://github.com/miohtama/capitalgram-onchain-dex-quant-data>`_.
+Community
+---------
+
+* `Blog <https://tradingstrategy.ai/blog>`_
+
+* `Twitter <https://twitter.com/TradingProtocol>`_
+
+* `Discord <https://tradingstrategy.ai/community#discord>`_
+
+* `Telegram channel <https://twitter.com/TradingProtocol>`_
 

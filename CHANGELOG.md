@@ -1,3 +1,7 @@
+# 0.3.1
+
+- Polish README, release process and docs
+
 # 0.3.0
 
 - Multiple changes to make the multichain backtesting possible
