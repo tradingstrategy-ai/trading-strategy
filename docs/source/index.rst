@@ -20,17 +20,19 @@ Built on
 
 .. raw:: html
 
-   <img class="logo" src="_static/logos/ethereum.png" alt="Ethereum">
+   <div class="logo-wall">
+       <img class="logo" src="_static/logos/ethereum.png" alt="Ethereum">
 
-   <img class="logo logo-smaller" src="_static/logos/python.png" alt="Python">
+       <img class="logo logo-smaller" src="_static/logos/python.png" alt="Python">
 
-   <img class="logo" src="_static/logos/pandas.png" alt="Pandas">
+       <img class="logo" src="_static/logos/pandas.png" alt="Pandas">
 
-   <img class="logo" src="_static/logos/pyarrow.png" alt="PyArrow">
+       <img class="logo" src="_static/logos/pyarrow.png" alt="PyArrow">
 
-   <img class="logo" src="_static/logos/colab.png" alt="Google Colab">
+       <img class="logo" src="_static/logos/colab.png" alt="Google Colab">
 
-   <img class="logo" src="_static/logos/plotly.png" alt="Plotly">
+       <img class="logo" src="_static/logos/plotly.png" alt="Plotly">
+    </div>
 
 Find the protocol documentation, Python documentation and example research notebooks below.
 

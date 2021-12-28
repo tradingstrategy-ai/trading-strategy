@@ -54,6 +54,10 @@ a:hover {
     border: 0 !important;
 }
 
+/* Top left logo */
+.logo {
+    width: 192px !important;
+}
 
 
 .wy-menu-vertical header, .wy-menu-vertical p.caption {
@@ -170,13 +174,13 @@ img.intro {
     width: 100%;
 }
 
-img.logo {
-    width: 192px !important;
+.logo-wall img.logo {
+    width: 128px !important;
     margin: 20px;
 }
 
-img.logo-smaller {
-    width: 64px;
+.logo-wall img.logo-smaller {
+    width: 64px !important;
 }
 
 /* Hide until fixed */
