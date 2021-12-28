@@ -16,6 +16,7 @@ Overview
    learn
    troubleshooting
    development
+   release-notes
 
 Code examples
 -------------
