@@ -1,3 +1,7 @@
+# 0.3.2
+
+- Updated inline interactive setup from within Jupyter notebook
+
 # 0.3.1
 
 - Polish README, release process and docs
