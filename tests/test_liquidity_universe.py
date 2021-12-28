@@ -104,7 +104,7 @@ def test_liquidity_index_is_datetime(persistent_test_client: Client):
 
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
-    liq1 = liquidity_universe.get_liquidity_samples_by_pair(pair.id)
+    liq1 = liquidity_universe.get_liquidity_samples_by_pair(pair.pair_id)
     assert isinstance(liq1.index, pd.DatetimeIndex)
 
 
