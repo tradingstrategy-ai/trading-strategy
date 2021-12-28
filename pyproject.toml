@@ -7,7 +7,7 @@ homepage = "https://tradingstrategy.ai"
 repository = "https://github.com/tradingstrategy-ai/client"
 license = "AGPL"
 readme = "README.md"
-keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance", "binance"]
+keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance", "binance", "blockchain", "pancakeswap"]
 
 [tool.poetry.dependencies]
 python = "^3.7.2"
