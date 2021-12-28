@@ -30,11 +30,11 @@ from [Trading Strategy Protocol](https://tradingstrategy.ai/).
 
 See [the Getting Started notebook](https://tradingstrategy.ai/docs/programming/examples/getting-started.html) and the rest of the [Trading Strategy documentation](https://tradingstrategy.ai/docs/).
 
-## Prerequisites
+# Prerequisites
 
-Python 3.7+
+Python 3.8+
 
-## Adding the package
+# Installing the package
 
 **Note**: Unless you are an experienced Python developer, [the suggested usage of Trading Algorithm framework is using Google Colab hosted environments](https://tradingstrategy.ai/docs/programming/examples/getting-started.html).
 
@@ -47,6 +47,10 @@ pip install tradindstrategy
 ```shell
 poetry add tradindstrategy
 ```
+
+# Documentation
+
+[Read documentation online](https://tradingstrategy.ai/docs/).
 
 # Development
 
