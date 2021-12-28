@@ -15,6 +15,10 @@ class PrimaryKey(CapitalgramType, int):
     """64-bit integer based primary key.
 
     Alias to int.
+
+    Primary keys are not stable across different dataset. Blockchain data healing process
+    may require to regenerate the data which means the old data is purged,
+    reimported, with new primary keys.
     """
 
 

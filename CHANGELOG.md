@@ -1,10 +1,20 @@
 # 0.3.0
 
+- Multiple changes to make the multichain backtesting possible
+
 - This is a major release deprecating activity flags in the trading pair universe.
   The multichain trading pair data is too big to include inactivate trading pairs (800k+ total trading pairs).
   Thus, the pair universe set only contains [active trading pairs](https://tradingstrategy.ai/docs/programming/tracking.html) after this release, 
   making the trading pair universe less than 100k trading pairs again, making it more feasible to download the data.
 
+- `ExchangeUniverse.get_by_chain_and_slug()` is now canonical way to refer to an exchange
+ 
+- `PairUniverse.get_pair_by_ticker_by_exchange()` is now canonical way to refer to a trading pair
+
+- Clarify primary keys may not be stable and should no longer referred permanently 
+
+- `Exchange.homepage` and `Exchange.active_pair_count` fields added
+  
 # 0.2.14
 
 - Make `ChainId` database more deterministic by loading all supported chains once and only once

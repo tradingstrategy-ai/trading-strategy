@@ -88,7 +88,7 @@ class Exchange:
     #: Exchange name - if known or guessed
     name: Optional[str] = None
 
-    #: Exchange homepage if available as https:// linkk
+    #: Exchange homepage if available as https:// link
     homepage: Optional[str] = None
 
     #: Denormalised exchange statistics

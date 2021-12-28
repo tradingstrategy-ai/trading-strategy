@@ -25,10 +25,10 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
 
     headers = response.headers
     if "content-length" in headers:
-        human_size = "{:,}".format(headers["content-length"])
+        human_size = "{:,}".format(int(headers["content-length"]))
     else:
         human_size = "unknown"
-    logger.info(f"Downloading %s to path %s, size is {human_size:,} bytes", url, path)
+    logger.info(f"Downloading %s to path %s, size is %s bytes", url, path, human_size)
 
     fsize = 0
     with open(path, 'wb') as handle:
