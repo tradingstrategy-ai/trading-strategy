@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "tradingstrategy"
 version = "0.3.2"
-description = "Trading algorithm and quantitative financial analysis framework for decentralised exchanges and blockchains"
-authors = ["Mikko Ohtamaa <mikko@capitalgram.com>"]
+description = "Algorithmic trading and quantitative financial analysis framework for decentralised exchanges and blockchains"
+authors = ["Mikko Ohtamaa <mikko@tradingstrategy.ai>"]
 homepage = "https://tradingstrategy.ai"
 repository = "https://github.com/tradingstrategy-ai/client"
 license = "AGPL"
 readme = "README.md"
-keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance", "binance", "blockchain", "pancakeswap"]
+keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance", "binance", "blockchain", "pancakeswap", "polygon", "web3"]
 
 [tool.poetry.dependencies]
 python = "^3.7.2"
@@ -27,7 +27,10 @@ mplfinance = "^0.12.7-alpha.17"
 # https://github.com/mementum/backtrader/pull/418
 # backtrader = {git = "https://github.com/mementum/backtrader", rev="e2674b1690f6366e08646d8cfd44af7bb71b3970"}
 # trading-strategy-backtrader = {path = "../backtrader", develop = true}
-fastquant = "^0.1.5"
+
+# 2021-12-29: Removed for now, because has dependencies with uninstallation problems with ccxt
+# fastquant = "^0.1.5"
+
 trading-strategy-qstrader = "^0.3.0"
 # qstrader = {path = "../code/qstrader", develop = true}
 #qstrader = {git = "https://github.com/miohtama/qstrader", rev="ee011745531e0cab412bd3a98f65976840821c4f"}

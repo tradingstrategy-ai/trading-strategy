@@ -90,8 +90,15 @@ class Client:
         assert pandas_version >= version.parse("1.3"), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
 
         # Fix Backtrader / Pandas 1.3 issue that breaks FastQuant
-        from tradingstrategy.frameworks.fastquant_monkey_patch import apply_patch
-        apply_patch()
+        try:
+            import fastquant
+            fastquant_enabled = True
+        except ImportError:
+            fastquant_enabled = False
+
+        if fastquant_enabled:
+            from tradingstrategy.frameworks.fastquant_monkey_patch import apply_patch
+            apply_patch()
 
     @classmethod
     def setup_notebook(cls):
