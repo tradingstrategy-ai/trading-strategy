@@ -1,6 +1,6 @@
 # 0.3.3
 
-- Make fastque
+- Make fastquant dependency optional, as it was causing installation issues with its ccxt dependency
 
 # 0.3.2
 
