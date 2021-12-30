@@ -117,3 +117,9 @@ Like trading pairs, tokens themselves have some eligibility criteria to be inclu
 * **Active tokens**: Tokens appear in any of active trading pairs. These tokens have a token page created, showing the
   the token market cap, available trading pairs and volume.
 
+Volume calculations
+-------------------
+
+Volume can be only calculated for trading pairs with a supported quote token.
+If a trading pair has an unsupported quote token, as explained above, any trade on this pair is not included
+in the exchange or blockchain trading volume.
