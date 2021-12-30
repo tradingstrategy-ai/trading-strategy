@@ -123,3 +123,5 @@ Volume calculations
 Volume can be only calculated for trading pairs with a supported quote token.
 If a trading pair has an unsupported quote token, as explained above, any trade on this pair is not included
 in the exchange or blockchain trading volume.
+
+This is because there must exist a stable, liquid, path to convert any trading volume to US dollar.
