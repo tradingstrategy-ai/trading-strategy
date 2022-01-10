@@ -17,6 +17,44 @@ This is the easiest method to start your research if you are not familiar with P
 
 Click "Open Colab" badge on the top of the example page in the documentation. You need a Google account. A Google cloud server will be automatically allocated for you to run the code. Currently Colab servers are free.
 
+Visual Studio Code
+------------------
+
+This is the recommended method for advanced strategy development.
+
+Install `Jupyter Visual Studio Code extension <https://code.visualstudio.com/docs/datascience/jupyter-notebooks>`_. Choosing a black-on-white theme recommended, because the default charts assume white background.
+
+Git clone the `Trading Strategy client repository from Github <https://github.com/tradingstrategy-ai/client/>`_.
+
+Install the client and its dependencies using `Poetry <https://python-poetry.org/>`_:
+
+.. code-block:: shell
+
+    cd client
+    poetry shell
+    poetry install
+
+Configure Visual Studio Code to use Python interpreter from Poetry installation.
+
+First in Poetry shell figure where Poetry installed the Python interpreter:
+
+.. code-block:: shell
+
+    which python
+
+This gives you the full path of `python` command.
+
+::
+
+    /Users/moo/Library/Caches/pypoetry/virtualenvs/tradingstrategy-lMEetNwg-py3.8/bin/python
+
+Then use Visual Studio Code *Python: Select Interpreter* command from *Command palette* to configure this interpreter by choosing *Enter interpreter path* option for the interpreter.
+
+Now you can run `Getting started <https://tradingstrategy.ai/docs/programming/examples/getting-started.html>`_ and other example notebooks. Open `ipynb` file in Visual Studio Code. Then choose *Run All* on the open notebook.
+
+.. image:: vscode.png
+    :alt: Visual Studio Code example how to run a Jupyter Notebook
+
 Local Jupyter Server
 --------------------
 
