@@ -204,7 +204,11 @@ Glossary
 
         `x*y=k market maker`
 
+        This model was popularised by :term:`Uniswap` version 2 :term:`decentralised exchange`.
         Anyone can buy or sell coins by essentially shifting the market maker’s, also known as a liquidity provider, position on the x*y=k curve.
+
+        On Trading Strategy, the available liquidity is usually expressed as the US dollar amount of one side of the pair. For example adding 100 BNB + 5000 USD to the liquidity
+        is presented as 5000 USD available liquidity.
 
         `Read more about XY liquidity model <https://medium.com/phoenix-finance/understanding-the-xyk-model-of-pooled-liquidity-7340fdc20d9c>`_.
 
