@@ -196,6 +196,8 @@ Glossary
         orders to provide liquidity. Instead, the liquidity follows a predefined mathematical function. Every time
         there is a buy or a sell, the price moves up or down defined by this function.
 
+        `Read more about xy=k curve slippage, price impact on Paradigm's post <https://research.paradigm.xyz/amm-price-impact>`_.
+
         See also: :term:`XY liquidity model`.
 
     XY liquidity model
@@ -210,5 +212,8 @@ Glossary
         On Trading Strategy, the available liquidity is usually expressed as the US dollar amount of one side of the pair. For example adding 100 BNB + 5000 USD to the liquidity
         is presented as 5000 USD available liquidity.
 
+        `Read more about slippage and price impact on Paradigm's post <https://research.paradigm.xyz/amm-price-impact>`_.
+
         `Read more about XY liquidity model <https://medium.com/phoenix-finance/understanding-the-xyk-model-of-pooled-liquidity-7340fdc20d9c>`_.
+
 
