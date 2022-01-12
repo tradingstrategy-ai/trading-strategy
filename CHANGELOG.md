@@ -1,3 +1,7 @@
+# 0.3.4
+
+- Adding the preliminaty price impact analysis. [See the example notebook](https://tradingstrategy.ai/docs/programming/examples/price-impact.html).
+
 # 0.3.3
 
 - Make fastquant dependency optional, as it was causing installation issues with its ccxt dependency
