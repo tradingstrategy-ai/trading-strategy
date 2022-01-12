@@ -30,6 +30,7 @@ Code examples
    examples/technical-analysis
    examples/pairs
    examples/liquidity-analysis
+   examples/price-impact
    examples/fastquant
 
 Trading strategy examples
