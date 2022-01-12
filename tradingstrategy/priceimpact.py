@@ -43,6 +43,8 @@ class PriceImpact:
 
     This `PriceImpact` data also includes separate liquidity provider and protocol fees,
     as for trading companies these fees might be tax deductible.
+
+    TODO: These fees are not yet confirmed with a live exchange.
     """
 
     #: Liquidity that was used for the price impact calculation, as expressed US dollars of one sided liquidity, see :py:class:`XYLiquidity`.
@@ -134,6 +136,8 @@ class HistoricalXYPriceImpactCalculator:
     Routing finds the optimal path for the swaps between different tokens and can include three hop
     trades or even four hop trades to find the best price for the swapper. Thus, in real life
     the price impact might be less than what this model gives to you.
+
+    TODO: These fees are not yet confirmed with a live exchange.
 
     .. note ::
 
