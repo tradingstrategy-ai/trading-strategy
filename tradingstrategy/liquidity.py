@@ -146,5 +146,11 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
     """
 
     def get_liquidity_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
-        """Get samples for a single pair."""
-        return self.get_samples_by_pair(pair_id)
+        """Get samples for a single pair.
+
+        If the pair does not exist return `None`.
+        """
+        try:
+            return self.get_samples_by_pair(pair_id)
+        except KeyError:
+            return None

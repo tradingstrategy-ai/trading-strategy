@@ -16,6 +16,15 @@ class LiquidityDataMissing(Exception):
     """We try to get a price impact for a pair for which we have no data."""
 
 
+class NoTradingPair(LiquidityDataMissing):
+    """Trading pair is missing."""
+
+
+class SampleTooFarOff(LiquidityDataMissing):
+    """There are no samples in this timeset for a specific timepoint."""
+
+
+
 class LiquiditySampleMeasure(enum.Enum):
     """For liquidity samples, which measurement we use for a price impact."""
     open = "open"
@@ -31,6 +40,9 @@ class PriceImpact:
     Because how Uniswap v2 operates, liquidity provider
     fees are included within the price impact.
     """
+
+    #: Liquidity that was used for the price impact calculation, as expressed US dollars of one sided liquidity, see :py:class:`XYLiquidity.
+    available_liquidity: USDollarAmount
 
     #: Slippage in the terms of trade amout 0...1
     price_impact: float
@@ -101,8 +113,10 @@ def estimate_xyk_price_impact(liquidity: float, trade_amount: float, lp_fee: flo
     market_price = amount_in_with_fee / amount_out
     mid_price = reserve_a_initial / reserve_b_initial
     price_impact = 1 - (mid_price / market_price)
+    price_impact = abs(price_impact)
 
     return PriceImpact(
+        available_liquidity=liquidity,
         delivered=amount_out,
         price_impact=price_impact,
         slippage_amount=trade_amount - amount_out,
@@ -134,19 +148,20 @@ class HistoricalXYPriceImpactCalculator:
 
         :param measurement: By default, we check the liquidity based on the liquidity available at the sample openining time.
 
-        :param max_distance: If the sample is too far off, then abort because of gaps in data.
+        :param max_distance: If the sample is too far off, then abort because of gaps in data. Depending on the candle time frame you operate, you might need to adjust `max_distance`  to account the sample timestamp skew. For example, if you are using weekly candles, you need to set this to seven days.
+
         """
 
         liquidity_samples = self.liquidity_universe.get_liquidity_samples_by_pair(pair_id)
         if liquidity_samples is None:
-            raise LiquidityDataMissing(f"The universe does not contain liquidity data for pair {pair_id}")
+            raise NoTradingPair(f"The universe does not contain liquidity data for pair {pair_id}")
 
         # measurement_samples = liquidity_samples[when:]
 
         ranged_samples = liquidity_samples[when:]
 
         if len(ranged_samples) == 0:
-            raise LiquidityDataMissing(f"Pair {pair_id} has no liquidity samples before {when}")
+            raise SampleTooFarOff(f"Pair {pair_id} has no liquidity samples before {when}")
 
         # pair_id                        74846
         # timestamp        2021-06-07 00:00:00
@@ -170,7 +185,7 @@ class HistoricalXYPriceImpactCalculator:
 
         distance = abs(ts - when)
         if distance > max_distance:
-            raise LiquidityDataMissing(f"Pair {pair_id} has liquidity samples, but the sample we got at {ts} is too far off from {when}. Distance is {distance} when we want at least {max_distance}")
+            raise SampleTooFarOff(f"Pair {pair_id} has liquidity samples, but the sample we got at {ts} is too far off from {when}. Distance is {distance} when we want at least {max_distance}")
 
         # "open", "close", etc.
         liquidity_at_sample = first_sample[measurement.value]

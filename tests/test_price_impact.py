@@ -6,8 +6,8 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.liquidity import GroupedLiquidityUniverse
 from tradingstrategy.pair import PandasPairUniverse
-from tradingstrategy.priceimpact import estimate_xyk_price_impact, HistoricalXYPriceImpactCalculator, \
-    LiquidityDataMissing
+from tradingstrategy.priceimpact import estimate_xyk_price_impact, HistoricalXYPriceImpactCalculator, SampleTooFarOff, \
+    NoTradingPair
 from tradingstrategy.timebucket import TimeBucket
 
 
@@ -57,9 +57,20 @@ def test_calculate_slippage_from_dataset(persistent_test_client: Client):
     trading_date = pd.Timestamp("2021-06-01")
     trade_size = 6000.0  # USD
 
-    impact = price_impact_calculator.calculate_price_impact(trading_date, sushi_eth.pair_id, trade_size)
-    print(impact)
-    import ipdb ; ipdb.set_trace()
+    impact = price_impact_calculator.calculate_price_impact(trading_date, sushi_eth.pair_id, trade_size,
+                                                            max_distance=pd.Timedelta(days=7))
+
+    # we get 4 bps slippage
+    assert impact.price_impact == pytest.approx(0.0004355944207343754)
+
+    # 15 USD slippage
+    assert impact.slippage_amount == pytest.approx(15.394274175167084)
+
+    # We get 5984 USD worth of SUSHI
+    assert impact.delivered == pytest.approx(5984.605725824833)
+
+    # We pay 18 USD to the liquidity providers
+    assert impact.lp_fees_paid == pytest.approx(18.0)
 
 
 def test_unknown_pair(persistent_test_client: Client):
@@ -78,7 +89,7 @@ def test_unknown_pair(persistent_test_client: Client):
     trading_date = pd.Timestamp("2021-06-01")
     trade_size = 6000.0  # USD
 
-    with pytest.raises(LiquidityDataMissing):
+    with pytest.raises(NoTradingPair):
         price_impact_calculator.calculate_price_impact(trading_date, 0, trade_size)
 
 
@@ -89,7 +100,7 @@ def test_calculate_slippage_sample_too_far_in_past(persistent_test_client: Clien
 
     exchange_universe = client.fetch_exchange_universe()
     raw_pairs = client.fetch_pair_universe().to_pandas()
-    raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
+    raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d1).to_pandas()
 
     pair_universe = PandasPairUniverse(raw_pairs)
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
@@ -100,8 +111,11 @@ def test_calculate_slippage_sample_too_far_in_past(persistent_test_client: Clien
 
     price_impact_calculator = HistoricalXYPriceImpactCalculator(liquidity_universe)
 
-    # SUSHI-WETH started trading around 2020-09-01
-    trading_date = pd.Timestamp("2021-06-01")
+    # SUSHI-WETH started trading around 2020-09-01, we are asking price impact
+    # way before it started trading
+    trading_date = pd.Timestamp("2020-06-01")
     trade_size = 6000.0  # USD
 
-    impact = price_impact_calculator.calculate_price_impact(trading_date, sushi_eth.pair_id, trade_size)
+    with pytest.raises(SampleTooFarOff):
+        price_impact_calculator.calculate_price_impact(trading_date, sushi_eth.pair_id, trade_size,
+                                                       max_distance=pd.Timedelta(days=7))
