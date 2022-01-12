@@ -212,7 +212,7 @@ Glossary
         On Trading Strategy, the available liquidity is usually expressed as the US dollar amount of one side of the pair. For example adding 100 BNB + 5000 USD to the liquidity
         is presented as 5000 USD available liquidity.
 
-        See also :term:`slippage`.
+        See also :term:`price impact` and :term:`slippage`.
 
         `Read more about slippage and price impact on Paradigm's post <https://research.paradigm.xyz/amm-price-impact>`_.
 
@@ -220,18 +220,43 @@ Glossary
 
     Price impact
 
-        See :term:`Slippage`.
+        Price impact is the difference between the current market price and the price you will actually pay when performing a swap on a decentralized exchange.
 
-    Slippage
-
-        Slippage, also known as price impact, tells how much less your market taker order gets filled because there is not available liquidity.
+        Price impact tells how much less your market taker order gets filled because there is not available liquidity.
         For example, if you are trying to buy 5000 USD worth of BNB token, but there isn't available liquidity
-        you end up with 4980 USD worth of token at the end of the trade. The missing fill is called slippage.
+        you end up with 4980 USD worth of token at the end of the trade when you pay 5000 USD.
+        The missing fill is the price impact.
         It can be expressed as USD value or as percent of the trade amount.
+
         Illiquid pairs have more slippage than liquid pairs.
+
+        Liquidity provider fees are included in the price impact in AMM models.
+
+        Another way to see this: AMMs usually have a trading fee, of 0.30%, for liquidity providers and sometimes for the protocol.
+        This translates to a spread of 0.6% between the best buy order and the best sell order.
+        In other words, even the most liquid AMM trade has an implicit 0.3% price impact. Note that due to competition, the LP fees
+        are going down on newer AMMs.
 
         `Read detailed analysis how price impact is calculated on Uniswap v2 style AMMs https://ethereum.stackexchange.com/a/111334/620>`_.
 
+        `See ParaSwap documentation on price impact <https://doc.paraswap.network/price-impact-slippage>`_.
+
         See also :term:`XY liquidity model`.
+
+        See also :term:`Slippage`.
+
+    Slippage
+
+        Slippage occurs because of changing market conditions between the moment the transaction is submitted and its verification.
+        Slippage cannot be backtested easily, because it is based on the trade execution delays and those cannot be usually simulated
+        (but can be measured).
+
+        DEX swap orders have a slippage parameter with them. You set it when the order is created.
+        If the price changes more then the slippage between the creation of the order and the execution of the order,
+        the DEX will cancel the order (revert).
+
+        `See ParaSwap documentation on slippage <https://doc.paraswap.network/price-impact-slippage>`_.
+
+        See also :term:`Price impact`.
 
 

@@ -11,7 +11,7 @@ from tradingstrategy.priceimpact import estimate_xyk_price_impact, HistoricalXYP
 from tradingstrategy.timebucket import TimeBucket
 
 
-def test_calculate_slippage_simple():
+def test_calculate_price_impact_simple():
     """Simple slippage calculation example.
 
     https://dailydefi.org/articles/price-impact-and-how-to-calculate/
@@ -25,18 +25,34 @@ def test_calculate_slippage_simple():
 
     We sell 100,000 USDC worth of ETH.
     """
+    # 30 bps
+    uniswap_v2_lp_fee = 0.0030
+    uniswap_protocol_fee = 0
+    impact = estimate_xyk_price_impact(2_000_000, 100_000, uniswap_v2_lp_fee, uniswap_protocol_fee)
+    assert impact.price_impact == pytest.approx(0.04748297375815547)
+    assert impact.delivered == pytest.approx(94965.94751631189)
+    assert impact.lp_fees_paid == pytest.approx(300.0)
+
+
+def test_calculate_price_impact_simple_2():
+    """Verify price impact calculations using a different example.
+
+    Assume you are swapping 1 USDT to 1 USDC and there is 1_000 USD liquidity in the pool
+    (1_000 USDC, 1_000 USDT).
+    """
 
     # 30 bps
     uniswap_v2_lp_fee = 0.0030
-    impact = estimate_xyk_price_impact(2_000_000, 100_000, uniswap_v2_lp_fee)
-    assert impact.delivered == pytest.approx(94965.94751631189)
-    assert impact.lp_fees_paid == pytest.approx(300.0)
-    assert impact.slippage_amount == pytest.approx(5034.052483688109)
+    uniswap_protocol_fee = 0
+    impact = estimate_xyk_price_impact(1_000, 1, uniswap_v2_lp_fee, uniswap_protocol_fee)
+    assert impact.price_impact == pytest.approx(0.0009960069811025818)
+    assert impact.delivered == pytest.approx(0.9960069810398409)
+    assert impact.lp_fees_paid == pytest.approx(0.003)
+    assert impact.protocol_fees_paid == 0
 
 
-def test_calculate_slippage_from_dataset(persistent_test_client: Client):
-    """Calculate the slippage from a downloaded dataset.
-    """
+def test_calculate_price_impact_from_dataset(persistent_test_client: Client):
+    """Calculate the price impact from a downloaded dataset."""
 
     client = persistent_test_client
 
@@ -51,26 +67,36 @@ def test_calculate_slippage_from_dataset(persistent_test_client: Client):
     sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushiswap")
     sushi_eth = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "WETH")
 
-    price_impact_calculator = HistoricalXYPriceImpactCalculator(liquidity_universe)
+    # See https://help.sushidocs.com/products/sushiswap-exchange
+    sushi_lp_fee = 0.0025
+    sushi_protocol_fee = 0.0005
+
+    price_impact_calculator = HistoricalXYPriceImpactCalculator(liquidity_universe, lp_fee=sushi_lp_fee, protocol_fee=sushi_protocol_fee)
 
     # SUSHI-WETH started trading around 2020-09-01
     trading_date = pd.Timestamp("2021-06-01")
     trade_size = 6000.0  # USD
 
-    impact = price_impact_calculator.calculate_price_impact(trading_date, sushi_eth.pair_id, trade_size,
-                                                            max_distance=pd.Timedelta(days=7))
+    impact = price_impact_calculator.calculate_price_impact(
+        trading_date,
+        sushi_eth.pair_id,
+        trade_size,
+        max_distance=pd.Timedelta(days=7))
 
-    # we get 4 bps slippage
+    # we get ~4.5 bps slippage
     assert impact.price_impact == pytest.approx(0.0004355944207343754)
-
-    # 15 USD slippage
-    assert impact.slippage_amount == pytest.approx(15.394274175167084)
 
     # We get 5984 USD worth of SUSHI
     assert impact.delivered == pytest.approx(5984.605725824833)
 
+    # We pay 18 USD in fees
+    assert impact.lp_fees_paid == pytest.approx(15.0)
+
     # We pay 18 USD to the liquidity providers
-    assert impact.lp_fees_paid == pytest.approx(18.0)
+    assert impact.protocol_fees_paid == pytest.approx(3)
+
+    # The cost of trade is smaller than the fees paid
+    assert impact.cost_of_trade == pytest.approx(15.394274175167084)
 
 
 def test_unknown_pair(persistent_test_client: Client):
