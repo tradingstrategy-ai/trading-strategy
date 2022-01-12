@@ -6,7 +6,7 @@ import enum
 
 import pandas as pd
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 from tradingstrategy.liquidity import GroupedLiquidityUniverse
 from tradingstrategy.types import PrimaryKey, USDollarAmount
@@ -55,6 +55,12 @@ class PriceImpact:
 
     # How much LP fees are paid in this transaction
     lp_fees_paid: USDollarAmount
+
+    def as_dataframe(self) -> pd.DataFrame:
+        """Convert to Pandas dataframe to display in interactive notebooks."""
+        # https://stackoverflow.com/a/50194296/315168
+        d = asdict(self)
+        return pd.DataFrame({k: [v] for k, v in d.items()})
 
 
 def estimate_xyk_price_impact(liquidity: float, trade_amount: float, lp_fee: float) -> PriceImpact:

@@ -288,7 +288,7 @@ def test_qstrader_ape_in(persistent_test_client):
     trade_analysis = analyse_portfolio(portfolio.history)
 
     timeline = trade_analysis.create_timeline()
-    expanded_timeline, styler = expand_timeline(exchange_universe, pair_universe, timeline)
+    expanded_timeline, styler =     expand_timeline(exchange_universe, pair_universe, timeline)
 
     # Test trade success distribution diagram (even though never plot)
     plot_trade_profit_distribution(expanded_timeline, bins=10)
