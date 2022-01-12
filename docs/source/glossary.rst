@@ -212,8 +212,26 @@ Glossary
         On Trading Strategy, the available liquidity is usually expressed as the US dollar amount of one side of the pair. For example adding 100 BNB + 5000 USD to the liquidity
         is presented as 5000 USD available liquidity.
 
+        See also :term:`slippage`.
+
         `Read more about slippage and price impact on Paradigm's post <https://research.paradigm.xyz/amm-price-impact>`_.
 
         `Read more about XY liquidity model <https://medium.com/phoenix-finance/understanding-the-xyk-model-of-pooled-liquidity-7340fdc20d9c>`_.
+
+    Price impact
+
+        See :term:`Slippage`.
+
+    Slippage
+
+        Slippage, also known as price impact, tells how much less your market taker order gets filled because there is not available liquidity.
+        For example, if you are trying to buy 5000 USD worth of BNB token, but there isn't available liquidity
+        you end up with 4980 USD worth of token at the end of the trade. The missing fill is called slippage.
+        It can be expressed as USD value or as percent of the trade amount.
+        Illiquid pairs have more slippage than liquid pairs.
+
+        `Read detailed analysis how price impact is calculated on Uniswap v2 style AMMs https://ethereum.stackexchange.com/a/111334/620>`_.
+
+        See also :term:`XY liquidity model`.
 
 

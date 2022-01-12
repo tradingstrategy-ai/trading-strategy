@@ -58,6 +58,7 @@ API documentation
    api/chain
    api/timebucket
    api/caip
+   api/priceimpact
    api/types
    api/backtrader
    api/matplotlib
