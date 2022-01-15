@@ -27,8 +27,6 @@ jobs:
       run: |
         pip install poetry
         poetry install
-        # Add optional fastquant dependency
-        poetry add fastquant
     - name: Run test scripts
       run: |
         poetry run pytest

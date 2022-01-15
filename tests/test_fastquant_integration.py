@@ -7,7 +7,6 @@ import pytest
 from IPython.core.display import display
 from backtrader import analyzers
 import pandas as pd
-from fastquant import backtest
 
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -19,8 +18,15 @@ from tradingstrategy.pair import PandasPairUniverse
 
 
 
+#   Because tradingstrategy depends on fastquant (^0.1.7)
+#    and fastquant (0.1.7.1) depends on pandas (1.1.5), either pandas (1.1.5) or fastquant (>=0.1.7,<0.1.7.1 || >0.1.7.1,<0.2.0).
+#   And because no versions of fastquant match >=0.1.7,<0.1.7.1 || >0.1.7.1,<0.2.0, either pandas (1.1.5) or fastquant (>=0.1.7,<0.1.7.1).
+#   So, because tradingstrategy depends on both pandas (^1.3.0) and fastquant (^0.1.7), version solving failed.
+@pytest.mark.skip(msg="Disabled because FastQuant dependency problem")
 def test_fastquant_smac(logger, persistent_test_client: Client):
     """Run Fasttrader SMAC on a single pair over Capitalgram API."""
+
+    from fastquant import backtest
 
     capitalgram = persistent_test_client
 

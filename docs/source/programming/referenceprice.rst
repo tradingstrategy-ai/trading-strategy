@@ -31,6 +31,8 @@ complexity to the internal processing for the benefit of better user experience.
 It also adds another source of risk, as pricing information may not be correctly
 determined in the high volatility market movement.
 
+Not having a good US dollar conversion path also affects to <>
+
 Internal oracle process
 -----------------------
 
