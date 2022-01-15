@@ -1,6 +1,7 @@
 """Liquidity data feed manipulation.
 
-For more information about liquidity in automatic market making pools see :term:`AMM`.
+For more information about liquidity in automatic market making pools see :term:`AMM`
+and :term:`XY liquidity model`.
 """
 
 import datetime
