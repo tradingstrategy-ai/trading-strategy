@@ -200,7 +200,7 @@ Glossary
 
         See also: :term:`XY liquidity model`.
 
-    XY liquidity model
+        XY liquidity model
 
         XY liquidity model, as known as XYK, is a :term:`bonding curve` model where the price of an assets follows the equation:
 
