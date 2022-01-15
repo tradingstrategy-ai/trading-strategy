@@ -32,7 +32,7 @@ def _ensure_chain_data_lazy_init():
         chain_id = chain_id.value
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), "chains", "_data", "chains"))
         if not os.path.exists(path):
-            raise RuntimeError(f"Chain data folder {path} not found. Make sure you have initialised git submodules or Python packaking is correct")
+            raise RuntimeError(f"Chain data folder {path} not found. Make sure you have initialised git submodules or Python packaking is correct.\nHint: git submodule update --recursive --init")
 
         data_file = os.path.join(path, f"eip155-{chain_id}.json")
         if not os.path.exists(data_file):

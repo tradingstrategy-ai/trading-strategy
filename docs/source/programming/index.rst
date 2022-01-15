@@ -31,6 +31,7 @@ Code examples
    examples/pairs
    examples/liquidity-analysis
    examples/price-impact
+   examples/pool-liquidity
    examples/fastquant
 
 Trading strategy examples
