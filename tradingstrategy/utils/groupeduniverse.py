@@ -57,3 +57,8 @@ class PairGroupedUniverse:
         """Get all pairs present in the dataset"""
         for pair_id, data in self.pairs:
             yield pair_id
+
+    def get_all_samples_by_timestamp(self, ts: pd.Timestamp):
+        """Get list of candles/samples for all pairs at a certain timepoint."""
+        samples = self.df.loc[self.df["timestamp"] == ts]
+        return samples

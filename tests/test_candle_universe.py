@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 from tradingstrategy.candle import GroupedCandleUniverse
@@ -44,3 +45,26 @@ def test_grouped_candles(persistent_test_client: Client):
     # Min and max prices of SUSHI-USDT ever
     assert max_price == pytest.approx(22.4612)
     assert min_price == pytest.approx(0.49680945)
+
+
+def test_samples_by_timestamp(persistent_test_client: Client):
+    """Get all OHLCV candles at a certain timestamp."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    raw_pairs = client.fetch_pair_universe().to_pandas()
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+
+    pair_universe = PandasPairUniverse(raw_pairs)
+    candle_universe = GroupedCandleUniverse(raw_candles)
+
+    # The internal weekly start before Dec 2021
+    ts = pd.Timestamp("2021-11-29")
+    candles = candle_universe.get_all_samples_by_timestamp(ts)
+    assert len(candles) > 1000
+    assert candles.iloc[0].timestamp == ts
+    assert candles.iloc[0].open > 0
+    assert candles.iloc[0].close > 0
+    assert candles.iloc[0].buys > 0
+    assert candles.iloc[0].sells > 0
