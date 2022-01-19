@@ -25,7 +25,7 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.analysis.tradeanalyzer import expand_timeline, TradePosition
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.frameworks.qstrader import analyse_portfolio
+from tradingstrategy.frameworks.qstrader import analyse_trade_history
 
 logger = logging.getLogger(__name__)
 
@@ -285,7 +285,7 @@ def test_qstrader_ape_in(persistent_test_client):
     assert strategy_backtest.rebalances == 5  # One week minus days burn in
 
     portfolio = strategy_backtest.broker.portfolios["000001"]
-    trade_analysis = analyse_portfolio(portfolio.history)
+    trade_analysis = analyse_trade_history(portfolio.history)
 
     timeline = trade_analysis.create_timeline()
     expanded_timeline, styler =     expand_timeline(exchange_universe, pair_universe, timeline)

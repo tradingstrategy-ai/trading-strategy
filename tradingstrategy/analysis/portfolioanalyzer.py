@@ -57,11 +57,18 @@ class PortfolioSnapshot:
     #: It also allows you to reconstruct the portfolio state over the time.
     state_details: Optional[Dict] = None
 
-    def get_ordered_assets(self) -> List[Tuple[PrimaryKey, AssetSnapshot]]:
+    def get_ordered_assets_stable(self) -> List[Tuple[PrimaryKey, AssetSnapshot]]:
         """Return asset snapshots in a stable order between days.
         """
         assets = [(pair_id, s) for pair_id, s in self.asset_snapshots.items()]
         assets.sort(key=lambda a: a[0])
+        return assets
+
+    def get_ordered_assets_by_weight(self) -> List[Tuple[PrimaryKey, AssetSnapshot]]:
+        """Return asset snapshots in an order where the heaviest asset is first.
+        """
+        assets = [(pair_id, s) for pair_id, s in self.asset_snapshots.items()]
+        assets.sort(key=lambda a: a[1].market_value, reverse=True)
         return assets
 
 
@@ -95,25 +102,36 @@ def expand_snapshot_to_row(
         "Id": snapshot.tick,
         "At": ts,
         "NAV": 0,
-        "Cash USD": snapshot.cash_balances["USD"],
+        "Cash USD": f"{snapshot.cash_balances['USD']:,.0f}",
     }
+
+    assets = snapshot.get_ordered_assets_by_weight()
 
     # Initialize empty asset columns
     for i in range(max_assets):
         idx = i + 1
         r[f"#{idx} asset"] = pd.NA
         r[f"#{idx} value"] = pd.NA
+        r[f"#{idx} weight %"] = pd.NA
         r[f"#{idx} PnL"] = pd.NA
 
     total_asset_value = 0
-    for i, asset_tuple in enumerate(snapshot.get_ordered_assets()):
+    for i, asset_tuple in enumerate(assets):
         idx = i + 1
         pair_id, asset_snapshot = asset_tuple
         pair = pair_universe.get_pair_by_id(pair_id)
-        r[f"#{idx} asset"] = pair.base_token_symbol
-        r[f"#{idx} value"] = asset_snapshot.market_value
-        r[f"#{idx} PnL"] = asset_snapshot.total_pnl
+        r[f"#{idx} asset"] = pair.base_token_symbol[0:8]  # Cut long ticker names
+        r[f"#{idx} value"] = f"{asset_snapshot.market_value:,.0f}"
+        r[f"#{idx} PnL"] = f"{asset_snapshot.total_pnl:,.2f}"
+        r[f"#{idx} PnL raw"] = asset_snapshot.total_pnl
         total_asset_value += asset_snapshot.market_value
+
+    for i, asset_tuple in enumerate(assets):
+        idx = i + 1
+        pair_id, asset_snapshot = asset_tuple
+        value = r[f"#{idx} value"]
+        if value:
+            r[f"#{idx} weight %"] = f"{asset_snapshot.market_value / total_asset_value * 100:.0f}"
 
     r["NAV"] = f"{snapshot.cash_balances['USD'] + total_asset_value:,.2f}"
 
@@ -124,10 +142,17 @@ def expand_timeline(
         exchange_universe: ExchangeUniverse,
         pair_universe: PairUniverse,
         analyzer: PortfolioAnalyzer,
+        create_html_styles=True,
         vmin=-0.3,
         vmax=0.2,
 ) -> pd.DataFrame:
     """Console output for the portfolio development over the time.
+
+    Each row presents the portfolio status at the end of the day/candle.
+
+    The outputted data frame is intented to be human readable and not for programmatic manipulation.
+
+    :param create_html_styles: Create a formatter function that can be applied to hide and recolour columns.
 
     :return: pd.Dataframe rendering the portfolio development over the time
     """
@@ -152,16 +177,26 @@ def expand_timeline(
         # https://www.geeksforgeeks.org/make-a-gradient-color-mapping-on-a-specified-column-in-pandas/
         # Dynamically color the background of trade outcome coluns # https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.background_gradient.html
         styles = df.style.hide_index()
+        hidden_columns = []
         for i in range(asset_column_count):
             # Add a background color for each asset column group
             idx = i + 1
             styles = styles.background_gradient(
                 axis=0,
                 subset=[f"#{idx} asset", f"#{idx} value", f"#{idx} PnL"],
-                gmap=applied_df[f"#{idx} PnL"],
+                gmap=applied_df[f"#{idx} PnL raw"],
                 cmap='RdYlGn',
                 vmin=vmin,  # We can only lose 100% of our money on position
                 vmax=vmax)  # 50% profit is 21.5 position. Assume this is the max success color we can hit over
+            hidden_columns.append(f"#{idx} PnL raw")
+        styles = styles.hide_columns(hidden_columns)
         return styles
 
-    return applied_df, apply_styles
+    if create_html_styles:
+        return applied_df, apply_styles
+    else:
+        # Format for console
+        for i in range(asset_column_count):
+            idx = i + 1
+            del applied_df[f"#{idx} PnL raw"]
+        return applied_df,  None

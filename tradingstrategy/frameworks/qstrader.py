@@ -150,9 +150,9 @@ class TradingStrategyDataSource:
         asset_bid_ask_frames = {}
         for asset_symbol, bar_df in self.asset_bar_frames.items():
             if settings.PRINT_EVENTS:
-                logger.debug("Adjusting CSV file for symbol '%s'...", asset_symbol)
-            asset_bid_ask_frames[asset_symbol] = \
-                self._convert_bar_frame_into_bid_ask_df(bar_df)
+                # logger.debug("Adjusting CSV file for symbol '%s'...", asset_symbol)
+                pass
+            asset_bid_ask_frames[asset_symbol] = self._convert_bar_frame_into_bid_ask_df(bar_df)
         return asset_bid_ask_frames
 
     @functools.lru_cache(maxsize=1024 * 1024)
@@ -261,15 +261,20 @@ def create_portfolio_snapshot(state_details: Dict) -> PortfolioSnapshot:
             total_pnl=asset_data["total_pnl"],
         )
 
+    assert portfolio["currency"] == "USD", "Supporting USD only for now"
+    cash_balances = {
+        "USD": portfolio["cash"]
+    }
+
     return PortfolioSnapshot(
         tick=state_details["event_index"],
-        cash_balances=state_details["broker"]["cash_balances"].copy(),
+        cash_balances=cash_balances,
         asset_snapshots=asset_snapshots,
         state_details=state_details,
     )
 
 
-def analyse_portfolio(events: List[PortfolioEvent]) -> (TradeAnalyzer, PortfolioAnalyzer):
+def analyse_trade_history(events: List[PortfolioEvent]) -> TradeAnalyzer:
     """Build algorithm performance analyzers from QSTrader backtesting events."""
 
     histories = {}
@@ -310,13 +315,22 @@ def analyse_portfolio(events: List[PortfolioEvent]) -> (TradeAnalyzer, Portfolio
             history.add_trade(trade)
             trade_id += 1
 
-            # Add the portfolio snapshot to the histories if we do not have it yet.
-            # Because we can have multiple transactions per day, we just take the snapshot from the first transaction.
-            event_ts = debug_details["timestamp"]
-            if event_ts not in snapshots:
-                snapshots[event_ts] = create_portfolio_snapshot(debug_details)
-
     trade_analyzer = TradeAnalyzer(asset_histories=histories)
+
+    return trade_analyzer
+
+
+def analyse_portfolio_development(events: List[dict]) -> PortfolioAnalyzer:
+    """Build algorithm performance analyzers from QSTrader backtesting events."""
+
+    snapshots = {}
+
+    for e in events:
+        # Add the portfolio snapshot to the histories if we do not have it yet.
+        # Because we can have multiple transactions per day, we just take the snapshot from the first transaction.
+        event_ts = e["timestamp"]
+        snapshots[event_ts] = create_portfolio_snapshot(e)
+
     portfolio_analyzer = PortfolioAnalyzer(snapshots=snapshots)
 
-    return trade_analyzer, portfolio_analyzer
+    return portfolio_analyzer
