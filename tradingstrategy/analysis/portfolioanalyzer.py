@@ -1,4 +1,10 @@
-"""Analyse the portfolio development over the time."""
+"""Analyse the portfolio development over the time.
+
+- Portfolio situation at the start of the each tick
+- Currently held assets
+- Net asset value (NAV)
+- Asset valuation change
+"""
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Iterable, Optional, Tuple, Callable
@@ -103,8 +109,8 @@ def expand_snapshot_to_row(
     r = {
         # "timestamp": timestamp,
         "Id": snapshot.tick,
-        "At": ts,
-        "NAV": 0,
+        "Timestamp": ts,
+        "NAV USD": 0,
         "Cash USD": f"{snapshot.cash_balances['USD']:,.0f}",
     }
 
@@ -138,7 +144,7 @@ def expand_snapshot_to_row(
         if value:
             r[f"#{idx} weight %"] = f"{asset_snapshot.market_value / total_asset_value * 100:.0f}"
 
-    r["NAV"] = f"{snapshot.cash_balances['USD'] + total_asset_value:,.2f}"
+    r["NAV USD"] = f"{snapshot.cash_balances['USD'] + total_asset_value:,.2f}"
 
     return r
 
@@ -183,6 +189,7 @@ def expand_timeline(
         # Dynamically color the background of trade outcome coluns # https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.background_gradient.html
         styles = df.style.hide_index()
         hidden_columns = []
+        asset_colums = []
         for i in range(asset_column_count):
             # Add a background color for each asset column group
             idx = i + 1
@@ -195,11 +202,17 @@ def expand_timeline(
                 vmax=vmax)  # 50% profit is 21.5 position. Assume this is the max success color we can hit over
 
             # Add more border between assets
-            styles = styles.set_table_styles({
-                f"#{idx} asset": [{'selector': '', 'props': [('border-left', '3 px solid black')]}]
-            })
-
+            # https://coderzcolumn.com/tutorials/python/simple-guide-to-style-display-of-pandas-dataframes
+            # https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.set_table_styles.html
             hidden_columns.append(f"#{idx} PnL raw")
+            asset_colums.append(f"#{idx} asset")
+
+        # Build table col styles
+        styles_dict = {}
+        for col in asset_colums:
+            styles_dict[col] = [{'selector': 'td', 'props': [('border-left', '3px solid #888'), ("font-weight", "bold")]}]
+
+        styles = styles.set_table_styles(styles_dict)
         styles = styles.hide_columns(hidden_columns)
         return styles
 

@@ -81,7 +81,7 @@ the form where we have easier to understand base - quote token pair.
 The quote token is always determined to be a well-known token. Currently we use this
 priority to determine which of the trading pairs tokens is a quote token.
 
-* An USD stablecoin (**v0 beta note: any stablecoin is assumed to be 1:1 with US dollar)
+* An USD stablecoin (**beta note**: any stablecoin is assumed to be 1:1 with US dollar)
 
 * BTC
 

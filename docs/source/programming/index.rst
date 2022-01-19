@@ -44,6 +44,7 @@ Trading strategy examples
    algorithms/ape-in
    algorithms/double-7
    algorithms/double-7-advanced
+   algorithms/pancakeswap-momentum-naive
 
 API documentation
 -----------------
@@ -62,6 +63,8 @@ API documentation
    api/caip
    api/priceimpact
    api/types
+   api/tradeanalyzer
+   api/portfolioanalyzer
    api/backtrader
    api/matplotlib
    api/fastquant

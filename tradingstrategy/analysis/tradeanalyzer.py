@@ -1,7 +1,10 @@
-"""Analyze spot trades: figure out how we won or lost trades.
+"""Analyze the trade performance of algorithm
 
-A simplified trade analysis that only understands spots buys and sells, not margined trading or short positions.
-Unlike Backtrader, this one is good for multiasset portfolio analysis.
+- Trade summary
+- Won and lost trades
+- Trade won/lost distribution graph
+- Trade timeline and analysis of individual trades made
+
 """
 import datetime
 from dataclasses import dataclass, field

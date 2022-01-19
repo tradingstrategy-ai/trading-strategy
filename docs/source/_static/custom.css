@@ -134,6 +134,10 @@ div.rendered_html table {
     font-size: 14px !important;
 }
 
+div.rendered_html table th {
+    white-space: nowrap;
+}
+
 .pre,
 div[class^="highlight"] {
     font-family: 'JetBrains Mono', monospace !important;
