@@ -3,6 +3,7 @@ from typing import Optional, Tuple, Iterable, Dict
 
 import pandas as pd
 
+from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
 
 
@@ -18,8 +19,11 @@ class PairGroupedUniverse:
     recompile the data on the client side.
     """
 
-    def __init__(self, df: pd.DataFrame, timestamp_column="timestamp", index_automatically=True):
+    def __init__(self, df: pd.DataFrame, time_bucket=TimeBucket.d1, timestamp_column="timestamp", index_automatically=True):
         """
+
+        :param time_bucket: What bar size candles we are operating at. Default to daily.
+
         :param timestamp_column: What column use to build a time index. Used for QStrader / Backtrader compatibility.
 
         :param index_automatically: Convert the index to use time series. You might avoid this with QSTrader kind of data.
@@ -28,8 +32,8 @@ class PairGroupedUniverse:
         if index_automatically:
             self.df = df.set_index(timestamp_column, drop=False)
         self.pairs: pd.GroupBy = self.df.groupby(["pair_id"])
-
         self.timestamp_column = timestamp_column
+        self.time_bucket = time_bucket
 
     def get_columns(self) -> pd.Index:
         """Get column names from the underlying pandas.GroupBy object"""

@@ -11,16 +11,18 @@ from matplotlib.figure import Figure
 
 
 
-def plot_trade_profit_distribution(df: pd.DataFrame, bins=25, vmin=-1, vmax=0.5) -> Figure:
+def plot_trade_profit_distribution(df: pd.DataFrame, bins=25, cap_profit=1.1, vmin=-1, vmax=0.5) -> Figure:
     """Create a histogram of won and lost trades based on trade analyzer expanded timeline output.
 
     See also :py:meth:`tradingstrategy.analysis.tradeanalyizer.expand_timeline`.
 
     :param df: A DataFrame with a column `PnL % raw`
+
+    :param cap_profit: If profit is higher than this, cap the value so that one off mega profits to not break the diagram
     """
 
     colormap: LinearSegmentedColormap = pyplot.cm.get_cmap("RdYlGn")
-    df = df[["PnL % raw"]]
+    df = df[["PnL % raw"]].clip(-1, cap_profit)
 
     # A single successfuk trade might be something like 400% or 4.0
     max_profit_pct = df["PnL % raw"].max()

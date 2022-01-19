@@ -31,8 +31,8 @@ mplfinance = "^0.12.7-alpha.17"
 # 2021-12-29: Removed for now, because has dependencies with uninstallation problems with ccxt
 # fastquant = "^0.1.5"
 
-# trading-strategy-qstrader = "^0.3.0"
-trading-strategy-qstrader = {path = "../qstrader", develop = true}
+trading-strategy-qstrader = "^0.4.0"
+#trading-strategy-qstrader = {path = "../qstrader", develop = true}
 #qstrader = {git = "https://github.com/miohtama/qstrader", rev="ee011745531e0cab412bd3a98f65976840821c4f"}
 
 trading-strategy-backtrader = "^0.1"

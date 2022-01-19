@@ -1,8 +1,10 @@
 # Current
 
-- Add `seaborn` dependency required for `qstrader` plot output
-- 
+- Reworked how QSTrader integration works. **Warning**: QSTrader and its integration are both in beta.
+- Added `portfolioanalyzer` to make timeline of portfolio construction over the time
+- Include `seaborn` as a dependency as it is required for `qstrader` plot output
 - `PairUniverse` supports indexed look ups to deal with the high pair count
+
 
 # 0.3.4
 

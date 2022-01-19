@@ -17,6 +17,7 @@ from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.pair import DEXPair, PairUniverse, PandasPairUniverse
 from qstrader.broker.portfolio.portfolio_event import PortfolioEvent
 from qstrader.broker.transaction.transaction import Transaction
+from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,15 @@ class TradingStrategyDataSource:
     def __init__(self,
                 exchange_universe: ExchangeUniverse,
                 pair_universe: PandasPairUniverse,
-                candle_universe: GroupedCandleUniverse):
+                candle_universe: GroupedCandleUniverse,
+                price_look_back_candles=5):
+        """
+
+        :param exchange_universe:
+        :param pair_universe:
+        :param candle_universe:
+        :param price_look_back_candles: For low liquidity assets that may have no data at the certain data point, how many candles look back t
+        """
 
         # These are column names that QSTrader expects
         assert "Date" in candle_universe.get_columns()
@@ -85,6 +94,9 @@ class TradingStrategyDataSource:
         self.adjust_prices = False
         self.asset_bid_ask_frames = self._convert_bars_into_bid_ask_dfs()
         # self.asset_bid_ask_frames = self._convert_bars_into_bid_ask_dfs()
+
+        # For low liquidt y
+        self.price_look_back_candles = price_look_back_candles
 
     def _convert_bar_frame_into_bid_ask_df(self, bar_df):
         """
@@ -159,72 +171,54 @@ class TradingStrategyDataSource:
             asset_bid_ask_frames[asset_symbol] = self._convert_bar_frame_into_bid_ask_df(bar_df)
         return asset_bid_ask_frames
 
+    def get_price(self, dt: pd.Timestamp, pair_id: PrimaryKey, ohlc="Open", complain=False) -> float:
+        """Get a price for a trading pair base pair from candle data.
+
+        If there is no candle (no trades at the day), look for a previous day.
+        """
+        assert complain, "Get rid of bad data accesses"
+
+        dt = dt.replace(hour=0, minute=0)
+        pair = self.pair_universe.get_pair_by_id(pair_id)
+        if not pair:
+            raise RuntimeError(f"Tried to access unknown pair {pair_id}")
+        candles = self.candle_universe.get_candles_by_pair(pair_id)
+
+        if len(candles) == 0:
+            raise RuntimeError(f"Pair has no candles {pair}")
+
+        ohlc_value = candles[ohlc]
+
+        first_attempt_ts = dt
+        for attempt in range(self.price_look_back_candles):
+            try:
+                val = ohlc_value[dt]
+                return val
+            except KeyError:
+                # Try candle at previous timestamp
+                bucket: TimeBucket = self.candle_universe.time_bucket
+                dt -= bucket.to_timedelta()
+
+        if complain:
+            raise RuntimeError(f"Pair {pair} has no price using candles at {first_attempt_ts}, tried range {dt} - {first_attempt_ts}")
+
+        return np.NaN
+
     @functools.lru_cache(maxsize=1024 * 1024)
-    def get_bid(self, dt: pd.Timestamp, pair_id: PrimaryKey) -> float:
+    def get_bid(self, dt: pd.Timestamp, pair_id: PrimaryKey, complain=False) -> float:
         """Get a bid price for an asset at a certain timestamp.
 
         LIMITATIONS:
         - Assume using daily bars
         - Use opening price of each candle
+
+        :param complain: Do not fail silently on data gaps
         """
-
-        # TODO: This needs by fixed when we start to operate on hourly candles
-        dt = dt.replace(hour=0, minute=0)
-        candles = self.candle_universe.get_candles_by_pair(pair_id)
-        ohlc_value = candles["Open"]
-        try:
-            return ohlc_value[dt]
-        except KeyError:
-            return np.NaN
-
-        #date = pd.to_datetime(df.date).dt.date
-        #bid_ask_df = self.asset_bid_ask_frames[asset]
-        #try:
-        #    bid = bid_ask_df.iloc[bid_ask_df.index.get_loc(dt, method='pad')]['Bid']
-        #except KeyError:  # Before start date
-        #    return np.NaN
-        #return bid
+        return self.get_price(dt, pair_id, "Open", complain)
 
     @functools.lru_cache(maxsize=1024 * 1024)
-    def get_ask(self, dt: pd.Timestamp, pair_id: PrimaryKey) -> float:
-        """
-        Obtain the ask price of an asset at the provided timestamp.
-
-        Parameters
-        ----------
-        dt : `pd.Timestamp`
-            When to obtain the ask price for.
-        asset : `str`
-            The asset symbol to obtain the ask price for.
-
-        Returns
-        -------
-        `float`
-            The ask price.
-        """
-
-        assert type(dt.tz) != pytz.UTC, "Trying to get rid of timestamps in the processing as it is slowing down"
-
-        # TODO: This needs by fixed when we start to operate on hourly candles
-        dt = dt.replace(hour=0, minute=0)
-        candles = self.candle_universe.get_candles_by_pair(pair_id)
-        ohlc_value = candles["Open"]
-        try:
-            return ohlc_value[dt]
-        except KeyError:
-            return np.NaN
-
-        # bid_ask_df = self.asset_bid_ask_frames[asset]
-        #try:
-            # This tries to interpolate missing data? It is veery slow
-            # ask = bid_ask_df.iloc[bid_ask_df.index.get_loc(dt, method='pad')]['Ask']
-        #    ask = bid_ask_df["Ask"][dt]
-        #except KeyError:  # Before start date
-        #    pair_info = self.pair_universe.get_pair_by_id(asset)
-        #    asset_name = pair_info.get_friendly_name(self.exchange_universe)
-        #    raise RuntimeError(f"Tried to get price for an asset that does not have a price yet: {asset_name} at {dt}")
-            # return np.NaN
-        #return ask
+    def get_ask(self, dt: pd.Timestamp, pair_id: PrimaryKey, complain=False) -> float:
+        return self.get_price(dt, pair_id, "Open", complain)
 
     def get_assets_historical_closes(self, start_dt, end_dt, assets):
         """
@@ -271,9 +265,9 @@ def create_portfolio_snapshot(state_details: Dict) -> PortfolioSnapshot:
         asset_snapshots[pair_id] = AssetSnapshot(
             quantity=asset_data["quantity"],
             market_value=asset_data["market_value"],
-            realised_pnl=asset_data["realised_pnl"],
-            unrealised_pnl=asset_data["unrealised_pnl"],
-            total_pnl=asset_data["total_pnl"],
+            realised_pnl=float(asset_data["realised_pnl"]),   # Convert from numpy.float64
+            unrealised_pnl=float(asset_data["unrealised_pnl"]),
+            total_pnl=float(asset_data["total_pnl"]),
         )
 
     assert portfolio["currency"] == "USD", "Supporting USD only for now"

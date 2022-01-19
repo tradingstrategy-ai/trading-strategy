@@ -32,6 +32,9 @@ class AssetSnapshot:
     def __post_init__(self):
         assert self.quantity > 0, f"Bad quantity {self.quantity}"
         assert self.market_value > 0, f"Bad market value {self.market_value}"
+        assert type(self.total_pnl) == float
+        assert type(self.realised_pnl) == float
+        assert type(self.unrealised_pnl) == float
 
 
 @dataclass
@@ -114,6 +117,7 @@ def expand_snapshot_to_row(
         r[f"#{idx} value"] = pd.NA
         r[f"#{idx} weight %"] = pd.NA
         r[f"#{idx} PnL"] = pd.NA
+        r[f"#{idx} PnL raw"] = 0
 
     total_asset_value = 0
     for i, asset_tuple in enumerate(assets):
@@ -124,6 +128,7 @@ def expand_snapshot_to_row(
         r[f"#{idx} value"] = f"{asset_snapshot.market_value:,.0f}"
         r[f"#{idx} PnL"] = f"{asset_snapshot.total_pnl:,.2f}"
         r[f"#{idx} PnL raw"] = asset_snapshot.total_pnl
+        assert type(asset_snapshot.total_pnl) == float
         total_asset_value += asset_snapshot.market_value
 
     for i, asset_tuple in enumerate(assets):
@@ -183,11 +188,17 @@ def expand_timeline(
             idx = i + 1
             styles = styles.background_gradient(
                 axis=0,
-                subset=[f"#{idx} asset", f"#{idx} value", f"#{idx} PnL"],
+                subset=[f"#{idx} asset", f"#{idx} value", f"#{idx} PnL", f"#{idx} weight %"],
                 gmap=applied_df[f"#{idx} PnL raw"],
                 cmap='RdYlGn',
                 vmin=vmin,  # We can only lose 100% of our money on position
                 vmax=vmax)  # 50% profit is 21.5 position. Assume this is the max success color we can hit over
+
+            # Add more border between assets
+            styles = styles.set_table_styles({
+                f"#{idx} asset": [{'selector': '', 'props': [('border-left', '3 px solid black')]}]
+            })
+
             hidden_columns.append(f"#{idx} PnL raw")
         styles = styles.hide_columns(hidden_columns)
         return styles
