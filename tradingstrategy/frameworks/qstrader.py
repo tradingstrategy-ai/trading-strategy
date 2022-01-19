@@ -17,6 +17,7 @@ from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.pair import DEXPair, PairUniverse, PandasPairUniverse
 from qstrader.broker.portfolio.portfolio_event import PortfolioEvent
 from qstrader.broker.transaction.transaction import Transaction
+from tradingstrategy.types import PrimaryKey
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,7 @@ class TradingStrategyDataSource:
 
         self.exchange_universe = exchange_universe
         self.pair_universe = pair_universe
+        self.candle_universe = candle_universe
         self.asset_bar_frames = {pair_id: df for pair_id, df in candle_universe.get_all_pairs()}
         self.asset_type = DEXAsset
         self.adjust_prices = False
@@ -128,8 +130,10 @@ class TradingStrategyDataSource:
         seq_oc_df.loc[seq_oc_df['Market'] == 'Open', 'Date'] += pd.Timedelta(hours=14, minutes=30)
         seq_oc_df.loc[seq_oc_df['Market'] == 'Close', 'Date'] += pd.Timedelta(hours=21, minutes=00)
 
-        # TODO: Unable to distinguish between Bid/Ask, implement later
+        # TODO: Make this more DEX compatible, now assume
+        # Close price on everything
         dp_df = seq_oc_df[['Date', 'Price']]
+        #import ipdb ; ipdb.set_trace()
         dp_df['Bid'] = dp_df['Price']
         dp_df['Ask'] = dp_df['Price']
         dp_df = dp_df.loc[:, ['Date', 'Bid', 'Ask']].fillna(method='ffill').set_index('Date').sort_index()
@@ -156,31 +160,33 @@ class TradingStrategyDataSource:
         return asset_bid_ask_frames
 
     @functools.lru_cache(maxsize=1024 * 1024)
-    def get_bid(self, dt, asset):
-        """
-        Obtain the bid price of an asset at the provided timestamp.
+    def get_bid(self, dt: pd.Timestamp, pair_id: PrimaryKey) -> float:
+        """Get a bid price for an asset at a certain timestamp.
 
-        Parameters
-        ----------
-        dt : `pd.Timestamp`
-            When to obtain the bid price for.
-        asset : `str`
-            The asset symbol to obtain the bid price for.
-
-        Returns
-        -------
-        `float`
-            The bid price.
+        LIMITATIONS:
+        - Assume using daily bars
+        - Use opening price of each candle
         """
-        bid_ask_df = self.asset_bid_ask_frames[asset]
+
+        # TODO: This needs by fixed when we start to operate on hourly candles
+        dt = dt.replace(hour=0, minute=0)
+        candles = self.candle_universe.get_candles_by_pair(pair_id)
+        ohlc_value = candles["Open"]
         try:
-            bid = bid_ask_df.iloc[bid_ask_df.index.get_loc(dt, method='pad')]['Bid']
-        except KeyError:  # Before start date
+            return ohlc_value[dt]
+        except KeyError:
             return np.NaN
-        return bid
+
+        #date = pd.to_datetime(df.date).dt.date
+        #bid_ask_df = self.asset_bid_ask_frames[asset]
+        #try:
+        #    bid = bid_ask_df.iloc[bid_ask_df.index.get_loc(dt, method='pad')]['Bid']
+        #except KeyError:  # Before start date
+        #    return np.NaN
+        #return bid
 
     @functools.lru_cache(maxsize=1024 * 1024)
-    def get_ask(self, dt: pd.Timestamp, asset: int):
+    def get_ask(self, dt: pd.Timestamp, pair_id: PrimaryKey) -> float:
         """
         Obtain the ask price of an asset at the provided timestamp.
 
@@ -199,17 +205,26 @@ class TradingStrategyDataSource:
 
         assert type(dt.tz) != pytz.UTC, "Trying to get rid of timestamps in the processing as it is slowing down"
 
-        bid_ask_df = self.asset_bid_ask_frames[asset]
+        # TODO: This needs by fixed when we start to operate on hourly candles
+        dt = dt.replace(hour=0, minute=0)
+        candles = self.candle_universe.get_candles_by_pair(pair_id)
+        ohlc_value = candles["Open"]
         try:
+            return ohlc_value[dt]
+        except KeyError:
+            return np.NaN
+
+        # bid_ask_df = self.asset_bid_ask_frames[asset]
+        #try:
             # This tries to interpolate missing data? It is veery slow
             # ask = bid_ask_df.iloc[bid_ask_df.index.get_loc(dt, method='pad')]['Ask']
-            ask = bid_ask_df["Ask"][dt]
-        except KeyError:  # Before start date
-            pair_info = self.pair_universe.get_pair_by_id(asset)
-            asset_name = pair_info.get_friendly_name(self.exchange_universe)
-            raise RuntimeError(f"Tried to get price for an asset that does not have a price yet: {asset_name} at {dt}")
+        #    ask = bid_ask_df["Ask"][dt]
+        #except KeyError:  # Before start date
+        #    pair_info = self.pair_universe.get_pair_by_id(asset)
+        #    asset_name = pair_info.get_friendly_name(self.exchange_universe)
+        #    raise RuntimeError(f"Tried to get price for an asset that does not have a price yet: {asset_name} at {dt}")
             # return np.NaN
-        return ask
+        #return ask
 
     def get_assets_historical_closes(self, start_dt, end_dt, assets):
         """
