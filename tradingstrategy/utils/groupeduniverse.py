@@ -20,13 +20,16 @@ class PairGroupedUniverse:
 
     def __init__(self, df: pd.DataFrame, timestamp_column="timestamp", index_automatically=True):
         """
-        :param timestamp_column: What column use to build a time index
+        :param timestamp_column: What column use to build a time index. Used for QStrader / Backtrader compatibility.
+
         :param index_automatically: Convert the index to use time series. You might avoid this with QSTrader kind of data.
         """
         assert isinstance(df, pd.DataFrame)
         if index_automatically:
             self.df = df.set_index(timestamp_column, drop=False)
         self.pairs: pd.GroupBy = self.df.groupby(["pair_id"])
+
+        self.timestamp_column = timestamp_column
 
     def get_columns(self) -> pd.Index:
         """Get column names from the underlying pandas.GroupBy object"""
@@ -58,7 +61,21 @@ class PairGroupedUniverse:
         for pair_id, data in self.pairs:
             yield pair_id
 
-    def get_all_samples_by_timestamp(self, ts: pd.Timestamp):
-        """Get list of candles/samples for all pairs at a certain timepoint."""
-        samples = self.df.loc[self.df["timestamp"] == ts]
+    def get_all_samples_by_timestamp(self, ts: pd.Timestamp) -> pd.DataFrame:
+        """Get list of candles/samples for all pairs at a certain timepoint.
+
+        :raise KeyError: The universe does not contain a sample for a given timepoint
+        :return: A DataFrame that contains candles/samples at the specific timeout
+        """
+        samples = self.df.loc[self.df[self.timestamp_column] == ts]
         return samples
+
+    def get_timestamp_range(self) -> Tuple[pd.Timestamp, pd.Timestamp]:
+        """Return the time range of data we have for.
+
+        :return: (start timestamp, end timestamp) tuple
+        """
+        start = min(self.df[self.timestamp_column])
+        end = max(self.df[self.timestamp_column])
+        return start, end
+

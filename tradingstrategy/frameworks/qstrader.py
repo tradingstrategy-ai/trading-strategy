@@ -1,11 +1,12 @@
 import logging
 import functools
-from typing import List
+from typing import List, Dict
 
 import pytz
 import pandas as pd
 import numpy as np
 
+from tradingstrategy.analysis.portfolioanalyzer import PortfolioAnalyzer, PortfolioSnapshot, AssetSnapshot
 from tradingstrategy.analysis.tradeanalyzer import AssetTradeHistory, SpotTrade, TradeAnalyzer
 from qstrader import settings
 from qstrader.asset.asset import Asset
@@ -62,7 +63,7 @@ def prepare_candles_for_qstrader(candles: pd.DataFrame) -> pd.DataFrame:
 
 
 
-class CapitalgramDataSource:
+class TradingStrategyDataSource:
     """QSTrader daily price integration for Capitalgram dataframe object."""
 
     def __init__(self,
@@ -241,17 +242,53 @@ class CapitalgramDataSource:
         return prices_df
 
 
-def analyse_portfolio(events: List[PortfolioEvent]) -> TradeAnalyzer:
-    """Build a trade analyzer from QSTrader portfolio events."""
+def create_portfolio_snapshot(state_details: Dict) -> PortfolioSnapshot:
+    """Convert QSTrader internal debug_details trace to a portfolio snapshot."""
+    assert state_details
+
+    portfolios = state_details["broker"]["portfolios"]
+    assert len(portfolios) == 1, "We support analysing only 1 portfolio runs for now"
+
+    asset_snapshots = {}
+
+    portfolio = portfolios["000001"]
+    for pair_id, asset_data in portfolio["assets"].items():
+        asset_snapshots[pair_id] = AssetSnapshot(
+            quantity=asset_data["quantity"],
+            market_value=asset_data["market_value"],
+            realised_pnl=asset_data["realised_pnl"],
+            unrealised_pnl=asset_data["unrealised_pnl"],
+            total_pnl=asset_data["total_pnl"],
+        )
+
+    return PortfolioSnapshot(
+        tick=state_details["event_index"],
+        cash_balances=state_details["broker"]["cash_balances"].copy(),
+        asset_snapshots=asset_snapshots,
+        state_details=state_details,
+    )
+
+
+def analyse_portfolio(events: List[PortfolioEvent]) -> (TradeAnalyzer, PortfolioAnalyzer):
+    """Build algorithm performance analyzers from QSTrader backtesting events."""
+
     histories = {}
+    snapshots = {}
 
     trade_id = 1
 
     for e in events:
+
         txn: Transaction = e.txn
 
-        # Portfolio generates multiple prevents, but transaction is only present in buys and sells
+        # Portfolio generates multiple prevents, but transaction is only present in buys and sells.
+        # QSTrader PortfolioEvents are separated by event.description string
         if txn:
+
+            # Build the trading history and different positions
+            debug_details: Dict = txn.debug_details
+            assert debug_details
+
             pair_id = txn.asset
             assert type(pair_id) == int
             history = histories.get(pair_id)
@@ -266,10 +303,20 @@ def analyse_portfolio(events: List[PortfolioEvent]) -> TradeAnalyzer:
                 quantity=txn.quantity,
                 commission=0,
                 slippage=0,
+                state_details=debug_details,
             )
             assert txn.quantity
             assert txn.price
             history.add_trade(trade)
             trade_id += 1
 
-    return TradeAnalyzer(asset_histories=histories)
+            # Add the portfolio snapshot to the histories if we do not have it yet.
+            # Because we can have multiple transactions per day, we just take the snapshot from the first transaction.
+            event_ts = debug_details["timestamp"]
+            if event_ts not in snapshots:
+                snapshots[event_ts] = create_portfolio_snapshot(debug_details)
+
+    trade_analyzer = TradeAnalyzer(asset_histories=histories)
+    portfolio_analyzer = PortfolioAnalyzer(snapshots=snapshots)
+
+    return trade_analyzer, portfolio_analyzer

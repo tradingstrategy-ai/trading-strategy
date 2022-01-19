@@ -18,7 +18,7 @@ from qstrader.simulation.everyday import EverydaySimulationEngine
 from qstrader.statistics.tearsheet import TearsheetStatistics
 from qstrader.trading.backtest import BacktestTradingSession
 
-from tradingstrategy.frameworks.qstrader import prepare_candles_for_qstrader, CapitalgramDataSource
+from tradingstrategy.frameworks.qstrader import prepare_candles_for_qstrader, TradingStrategyDataSource
 from tradingstrategy.liquidity import GroupedLiquidityUniverse
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -233,7 +233,7 @@ def test_qstrader_ape_in(persistent_test_client):
                 candle_universe.get_candle_count(),
                 liquidity_universe.get_sample_count())
 
-    data_source = CapitalgramDataSource(exchange_universe, pair_universe, candle_universe)
+    data_source = TradingStrategyDataSource(exchange_universe, pair_universe, candle_universe)
 
     strategy_assets = list(data_source.asset_bar_frames.keys())
     strategy_universe = StaticUniverse(strategy_assets)

@@ -94,8 +94,8 @@ Then start Jupyter server at the root folder.
 
 Navigate to a file you want to edit in your web browser.
 
-Terminal IPython
-----------------
+Terminal IPython and debugging with ipdb
+----------------------------------------
 
 You might want to run notebooks in a terminal using `ipython` command e.g. for better debugging facilities.
 
@@ -103,6 +103,6 @@ You can run example notebooks in a terminal after git checkout and poetry instal
 
 .. code-block:: shell
 
-    ipython --TerminalIPythonApp.file_to_run=docs/source/examples/getting-started.ipynb
+    ipython --TerminalIPythonApp.file_to_run=docs/source/programming/algorithms/pancakeswap-momentum.ipynb
 
 This is especially useful if you want to use `ipdb` or other well-established Python command line debuggers.

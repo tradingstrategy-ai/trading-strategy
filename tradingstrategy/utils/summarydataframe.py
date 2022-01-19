@@ -14,11 +14,15 @@ class Format(enum.Enum):
     percent = "percent"
     dollar = "dollar"
 
+    #: Value cannot be calculated, e.g division by zero
+    missing = "missing"
+
 
 FORMATTERS = {
     Format.integer: "{v:.0f}",
     Format.percent: "{v:.0%}",
     Format.dollar: "${v:,.2f}",
+    Format.missing: "-",
 }
 
 
@@ -38,15 +42,24 @@ def as_integer(v)-> Value:
     return Value(v, Format.integer)
 
 
-def as_percent(v)-> Value:
+def as_percent(v) -> Value:
     """Format value as a percent"""
     return Value(v, Format.percent)
+
+
+def as_missing() -> Value:
+    """Format a missing value e.g. because of division by zero"""
+    return Value(None, Format.missing)
 
 
 def format_value(v_instance: Value) -> str:
     assert isinstance(v_instance, Value), f"Expected Value instance, got {v_instance}"
     formatter = FORMATTERS[v_instance.format]
-    return formatter.format(v=float(v_instance.v))
+    if v_instance.v is not None:
+        return formatter.format(v=float(v_instance.v))
+    else:
+        # missing values
+        return formatter.format(v=v_instance.v)
 
 
 def create_summary_table(data: dict) -> pd.DataFrame:

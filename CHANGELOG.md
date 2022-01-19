@@ -1,3 +1,9 @@
+# Current
+
+- Add `seaborn` dependency required for `qstrader` plot output
+- 
+- `PairUniverse` supports indexed look ups to deal with the high pair count
+
 # 0.3.4
 
 - Adding the preliminaty price impact analysis. [See the example notebook](https://tradingstrategy.ai/docs/programming/examples/price-impact.html). [Read the blog post about the liquidity formation](https://tradingstrategy.ai/blog/announcing-support-for-liquidity-charts).

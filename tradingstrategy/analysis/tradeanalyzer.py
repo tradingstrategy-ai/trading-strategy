@@ -17,7 +17,7 @@ from tradingstrategy.pair import PairUniverse, PandasPairUniverse
 from tradingstrategy.types import PrimaryKey, USDollarAmount
 from tradingstrategy.utils.format import format_value, format_percent, format_price, format_duration_days_hours_mins, \
     format_percent_2_decimals
-from tradingstrategy.utils.summarydataframe import as_dollar, as_integer, create_summary_table, as_percent
+from tradingstrategy.utils.summarydataframe import as_dollar, as_integer, create_summary_table, as_percent, as_missing
 
 
 @dataclass
@@ -50,6 +50,12 @@ class SpotTrade:
 
     #: Any hints applied for this trade why it was performed
     hint: Optional[TradeHint] = None
+
+    #: Internal state dump of the algorithm when this trade was made.
+    #: This is mostly useful when doing the trade analysis try to understand
+    #: why some trades were made.
+    #: It also allows you to reconstruct the portfolio state over the time.
+    state_details: Optional[Dict] = None
 
     def is_buy(self):
         return self.quantity > 0
@@ -139,19 +145,28 @@ class TradePosition:
 
         Supports only simple enter/exit positions.
         """
+        return self.get_first_entry_price()
+
+    def get_first_entry_price(self) -> float:
+        """What was the price when the first entry buy for this position was made.
+        """
         buys = list(self.buys)
-        assert len(buys) == 1
         return buys[0].price
+
+    def get_last_exit_price(self) -> float:
+        """What was the time when the last sell for this position was executd.
+        """
+        sells = list(self.sells)
+        return sells[-1].price
+        assert len(sells) == 1
 
     @property
     def close_price(self) -> float:
-        """At what price we opened this position.
+        """At what price we exited this position.
 
         Supports only simple enter/exit positions.
         """
-        sells = list(self.sells)
-        assert len(sells) == 1
-        return sells[0].price
+        return self.get_last_exit_price()
 
     @property
     def buys(self) -> Iterable[SpotTrade]:
@@ -214,6 +229,19 @@ class TradePosition:
         closing_quantity = -t.quantity
         assert closing_quantity <= open_quantity, "Cannot sell more than we have in balance sheet"
         return closing_quantity == open_quantity
+
+    def get_max_size(self) -> USDollarAmount:
+        """Get the largest size of this position over the time"""
+        cur_size = 0
+        max_size = 0
+        for t in self.trades:
+            cur_size += t.value
+            max_size = max(cur_size, max_size)
+        return max_size
+
+    def get_trade_count(self) -> int:
+        """How many individual trades was done to manage this position."""
+        return len(self.trades)
 
 
 @dataclass
@@ -285,18 +313,18 @@ class TradeSummary:
             "Return %": as_percent(self.realised_profit / self.initial_cash),
             "Cash at start": as_dollar(self.initial_cash),
             "Value at end": as_dollar(self.open_value + self.uninvested_cash),
-            "Trade win percent": as_percent(self.won / total_trades),
+            "Trade win percent": as_percent(self.won / total_trades) if total_trades else as_missing(),
             "Total trades done": as_integer(self.won + self.lost + self.zero_loss),
             "Won trades": as_integer(self.won),
             "Lost trades": as_integer(self.lost),
             "Stop losses triggered": as_integer(self.stop_losses),
-            "Stop loss % of all": as_percent(self.stop_losses / total_trades),
-            "Stop loss % of lost": as_percent(self.stop_losses / self.lost) if self.lost else "-",
+            "Stop loss % of all": as_percent(self.stop_losses / total_trades) if total_trades else as_missing(),
+            "Stop loss % of lost": as_percent(self.stop_losses / self.lost) if self.lost else as_missing(),
             "Zero profit trades": as_integer(self.zero_loss),
             "Positions open at the end": as_integer(self.undecided),
             "Realised profit and loss": as_dollar(self.realised_profit),
             "Portfolio unrealised value": as_dollar(self.open_value),
-            "AAVE boost: Extra returns on interest": as_dollar(self.extra_return),
+            "Extra returns on lending pool interest": as_dollar(self.extra_return),
             "Cash left at the end": as_dollar(self.uninvested_cash),
         }
         return create_summary_table(human_data)
@@ -435,11 +463,13 @@ def expand_timeline(
             "Exchange": exchange.name,
             "Base asset": pair_info.base_token_symbol,
             "Quote asset": pair_info.quote_token_symbol,
+            "Position max size": format_value(position.get_max_size()),
             "PnL USD": format_value(position.realised_profit) if position.is_closed() else np.nan,
             "PnL %": format_percent_2_decimals(position.realised_profit_percent) if position.is_closed() else np.nan,
             "PnL % raw": position.realised_profit_percent if position.is_closed() else 0,
             "Open price USD": format_price(position.open_price),
             "Close price USD": format_price(position.close_price) if position.is_closed() else np.nan,
+            "Trade count": position.get_trade_count(),
         }
         return r
 

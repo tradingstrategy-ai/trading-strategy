@@ -184,6 +184,10 @@ class DEXPair:
         chain_name = self.chain_id.get_slug()
         return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange #{self.exchange_id} on {chain_name}>"
 
+    def get_ticker(self) -> str:
+        """Return trading 'ticker'"""
+        return f"{self.base_token_symbol}-{self.quote_token_symbol}"
+
     def get_friendly_name(self, exchange_universe: ExchangeUniverse) -> str:
         """Get a very human readable name for this trading pair.
 
@@ -397,6 +401,17 @@ class PandasPairUniverse:
         assert isinstance(df, pd.DataFrame)
         self.df = df.set_index(df["pair_id"])
 
+        # pair_id -> DEXPair index
+        self.pair_map = {}
+
+    def build_index(self):
+        """Create pair_id -> data mapping.
+
+        Allows fast lookup of individual pairs.
+        """
+        for pair_id, data in self.df.iterrows():
+            self.pair_map[pair_id] = DEXPair.from_dict(data)
+
     def get_all_pair_ids(self) -> List[PrimaryKey]:
         return self.df["pair_id"].unique()
 
@@ -413,6 +428,10 @@ class PandasPairUniverse:
 
         :return: Nicely presented :py:class:`DEXPair`.
         """
+
+        if self.pair_map:
+            # TODO: Eliminate non-indexed code path?
+            return self.pair_map.get(pair_id)
 
         df = self.df
 
