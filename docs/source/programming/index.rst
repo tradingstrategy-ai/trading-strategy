@@ -45,6 +45,7 @@ Trading strategy examples
    algorithms/double-7
    algorithms/double-7-advanced
    algorithms/pancakeswap-momentum-naive
+   algorithms/pancakeswap-momentum-liquidity-aware
 
 API documentation
 -----------------

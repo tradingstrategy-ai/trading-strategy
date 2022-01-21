@@ -427,7 +427,8 @@ def expand_timeline(
         timeline: pd.DataFrame,
         vmin=-0.3,
         vmax=0.2,
-        hidden_columns = ["Id", "PnL % raw"]) -> Tuple[pd.DataFrame, Callable]:
+        timestamp_format="%Y-%m-%d",
+        hidden_columns=["Id", "PnL % raw"]) -> Tuple[pd.DataFrame, Callable]:
     """Expand trade history timeline to human readable table.
 
     This will the outputting much easier in Python Notebooks.
@@ -440,7 +441,9 @@ def expand_timeline(
 
     :param vmax: Trade success % to have the extreme green color.
 
-    :param vmin: The % of lost capital on the trade to have the extreme red color. Default -0.3
+    :param vmin: The % of lost capital on the trade to have the extreme red color.
+
+    :param timestamp_format: How to format Opened at column, as passed to `strftime()`
 
     :param hidden_columns: Hide columns in the output table
 
@@ -461,7 +464,7 @@ def expand_timeline(
             # "timestamp": timestamp,
             "Id": position.position_id,
             "Remarks": remarks,
-            "Opened at": position.opened_at,
+            "Opened at": position.opened_at.strftime(timestamp_format),
             "Duration": format_duration_days_hours_mins(position.duration) if position.duration else np.nan,
             "Exchange": exchange.name,
             "Base asset": pair_info.base_token_symbol,
@@ -489,7 +492,7 @@ def expand_timeline(
     def apply_styles(df: pd.DataFrame):
         # Create a Pandas Styler with multiple styling options applied
         # Dynamically color the background of trade outcome coluns # https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.background_gradient.html
-        return df.style\
+        styles = df.style\
             .hide_index()\
             .hide_columns(hidden_columns)\
             .background_gradient(
@@ -498,5 +501,12 @@ def expand_timeline(
                 cmap='RdYlGn',
                 vmin=vmin,  # We can only lose 100% of our money on position
                 vmax=vmax)  # 50% profit is 21.5 position. Assume this is the max success color we can hit over
+
+        # Don't let the text inside a cell to wrap
+        styles = styles.set_table_styles({
+            "Opened at": [{'selector': 'td', 'props': [('white-space', 'no-wrap')]}],
+            "Exchange": [{'selector': 'td', 'props': [('white-space', 'no-wrap')]}],
+        })
+        return styles
 
     return applied_df, apply_styles

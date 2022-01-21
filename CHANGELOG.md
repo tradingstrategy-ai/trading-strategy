@@ -1,9 +1,10 @@
-# Current
+# 0.4.0
 
-- Reworked how QSTrader integration works. **Warning**: QSTrader and its integration are both in beta.
-- Added `portfolioanalyzer` to make timeline of portfolio construction over the time
-- Include `seaborn` as a dependency as it is required for `qstrader` plot output
-- `PairUniverse` supports indexed look ups to deal with the high pair count
+- Reworked how QSTrader framework integration works. QSTrader was originally designed for stock markets, so it required few changes to make it more suitable for 24/7 cryptomarkets. **Warning**: QSTrader and its integration are both in beta. More work is needed to be done e.g. in fee calculations to make the integration smooth. See example on [PancakeSwap momentum trading algorithm](https://tradingstrategy.ai/docs/programming/algorithms/pancakeswap-momentum-naive.html).
+- Added [portfolioanalyzer](https://tradingstrategy.ai/docs/programming/api/portfolioanalyzer.html) to make timeline of portfolio construction over the time. See example on [PancakeSwap momentum trading algorithm](https://tradingstrategy.ai/docs/programming/algorithms/pancakeswap-momentum-naive.html).
+- Include `seaborn` as a dependency as it is required for `qstrader` plot output, otherwise `qstrader` was crashing.
+- `PairUniverse` supports indexed lookups to deal with the high pair count.
+- More convenience methods for candle and liquidity manipulation. 
 
 
 # 0.3.4

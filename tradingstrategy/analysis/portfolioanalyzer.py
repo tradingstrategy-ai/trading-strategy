@@ -100,7 +100,8 @@ def expand_snapshot_to_row(
         pair_universe: PairUniverse,
         ts: pd.Timestamp,
         snapshot: PortfolioSnapshot,
-        max_assets: int) -> dict:
+        max_assets: int,
+        timestamp_format: str) -> dict:
     """Create DataFrame rows from each portfolio snapshot."""
 
     # timestamp = row.name  # ???
@@ -109,7 +110,7 @@ def expand_snapshot_to_row(
     r = {
         # "timestamp": timestamp,
         "Id": snapshot.tick,
-        "Timestamp": ts,
+        "Holdings at": ts.strftime(timestamp_format),
         "NAV USD": 0,
         "Cash USD": f"{snapshot.cash_balances['USD']:,.0f}",
     }
@@ -156,6 +157,7 @@ def expand_timeline(
         create_html_styles=True,
         vmin=-0.3,
         vmax=0.2,
+        timestamp_format="%Y-%m-%d",
 ) -> pd.DataFrame:
     """Console output for the portfolio development over the time.
 
@@ -165,12 +167,18 @@ def expand_timeline(
 
     :param create_html_styles: Create a formatter function that can be applied to hide and recolour columns.
 
+    :param vmax: Trade success % to have the extreme green color.
+
+    :param vmin: The % of lost capital on the trade to have the extreme red color.
+
+    :param timestamp_format: How to format Opened at column, as passed to `strftime()`
+
     :return: pd.Dataframe rendering the portfolio development over the time
     """
 
     asset_column_count = analyzer.get_max_assets_held_once()
 
-    raw_output = [expand_snapshot_to_row(exchange_universe, pair_universe, ts, s, asset_column_count) for ts, s in analyzer.snapshots.items()]
+    raw_output = [expand_snapshot_to_row(exchange_universe, pair_universe, ts, s, asset_column_count, timestamp_format) for ts, s in analyzer.snapshots.items()]
 
     applied_df = pd.DataFrame(raw_output) # timeline.apply(expander, axis='columns', result_type='expand')
 
@@ -208,9 +216,15 @@ def expand_timeline(
             asset_colums.append(f"#{idx} asset")
 
         # Build table col styles
-        styles_dict = {}
+
+        styles_dict = {
+            # Don't break timestamp value to multiple lines
+            "Holdings at": [{'selector': 'td', 'props': [('white-space', 'no-wrap')]}],
+        }
+
+        # Format asset column groups
         for col in asset_colums:
-            styles_dict[col] = [{'selector': 'td', 'props': [('border-left', '3px solid #888'), ("font-weight", "bold")]}]
+            styles_dict[col] = [{'selector': 'td', 'props': [('border-left', '3px solid #888'), ("font-weight", "bold"), ("text-align", "left")]}]
 
         styles = styles.set_table_styles(styles_dict)
         styles = styles.hide_columns(hidden_columns)
