@@ -504,8 +504,8 @@ def expand_timeline(
 
         # Don't let the text inside a cell to wrap
         styles = styles.set_table_styles({
-            "Opened at": [{'selector': 'td', 'props': [('white-space', 'no-wrap')]}],
-            "Exchange": [{'selector': 'td', 'props': [('white-space', 'no-wrap')]}],
+            "Opened at": [{'selector': 'td', 'props': [('white-space', 'nowrap')]}],
+            "Exchange": [{'selector': 'td', 'props': [('white-space', 'nowrap')]}],
         })
         return styles
 

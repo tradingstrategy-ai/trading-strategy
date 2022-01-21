@@ -219,7 +219,7 @@ def expand_timeline(
 
         styles_dict = {
             # Don't break timestamp value to multiple lines
-            "Holdings at": [{'selector': 'td', 'props': [('white-space', 'no-wrap')]}],
+            "Holdings at": [{'selector': 'td', 'props': [('white-space', 'nowrap')]}],
         }
 
         # Format asset column groups
