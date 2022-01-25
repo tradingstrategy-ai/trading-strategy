@@ -22,7 +22,7 @@ class JupyterOutputMode(enum.Enum):
     html = "html"
 
 
-def get_notebook_execution_mode() -> JupyterOutputMode:
+def get_notebook_output_mode() -> JupyterOutputMode:
     """Determine if the Jupyter Notebook supports HTML output."""
 
     # See https://stackoverflow.com/questions/70768390/detecting-if-ipython-notebook-is-outputting-to-a-terminal
@@ -58,7 +58,7 @@ def display_with_styles(df: pd.DataFrame, apply_styles_func: Callable):
         Thus, we need to separate the procses of creating dataframe and creating styles and applying them.
 
     """
-    mode = get_notebook_execution_mode()
+    mode = get_notebook_output_mode()
     if mode == JupyterOutputMode.html:
         display(apply_styles_func(df))
     else:
