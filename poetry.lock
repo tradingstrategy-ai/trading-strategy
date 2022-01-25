@@ -1060,7 +1060,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "pyparsing"
-version = "3.0.6"
+version = "3.0.7"
 description = "Python parsing module"
 category = "main"
 optional = false
@@ -1496,6 +1496,7 @@ description = "QSTrader backtesting simulation engine (forked)"
 category = "main"
 optional = false
 python-versions = "*"
+develop = true
 
 [package.dependencies]
 Click = ">=7.1.2"
@@ -1503,6 +1504,10 @@ matplotlib = ">=3.0.3"
 numpy = ">=1.18.4"
 pandas = ">=1.1.5"
 seaborn = ">=0.10.1"
+
+[package.source]
+type = "directory"
+url = "../qstrader"
 
 [[package]]
 name = "traitlets"
@@ -1604,7 +1609,7 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.2"
-content-hash = "2518b1f0d4a73e73f73e01e99eaf5eb99332895b5601eed16dbb0050a5a2aee8"
+content-hash = "9677164e0de6b157389d7a833bac265d1c93444d5fdd67e8e0ca5637ed4e3458"
 
 [metadata.files]
 alabaster = [
@@ -2299,8 +2304,8 @@ pygments = [
     {file = "Pygments-2.11.2.tar.gz", hash = "sha256:4e426f72023d88d03b2fa258de560726ce890ff3b630f88c21cbb8b2503b8c6a"},
 ]
 pyparsing = [
-    {file = "pyparsing-3.0.6-py3-none-any.whl", hash = "sha256:04ff808a5b90911829c55c4e26f75fa5ca8a2f5f36aa3a51f68e27033341d3e4"},
-    {file = "pyparsing-3.0.6.tar.gz", hash = "sha256:d9bdec0013ef1eb5a84ab39a3b3868911598afa494f5faa038647101504e2b81"},
+    {file = "pyparsing-3.0.7-py3-none-any.whl", hash = "sha256:a6c06a88f252e6c322f65faf8f418b16213b51bdfaece0524c1c1bc30c63c484"},
+    {file = "pyparsing-3.0.7.tar.gz", hash = "sha256:18ee9022775d270c55187733956460083db60b37d0d0fb357445f3094eed3eea"},
 ]
 pyreadline = [
     {file = "pyreadline-2.1.win-amd64.exe", hash = "sha256:9ce5fa65b8992dfa373bddc5b6e0864ead8f291c94fbfec05fbd5c836162e67b"},
@@ -2575,10 +2580,7 @@ trading-strategy-backtrader = [
     {file = "trading-strategy-backtrader-0.1.tar.gz", hash = "sha256:2fcb342e0383a55aeb5e56948c6d8b3eb30c4375ad004637aeac8f96ff6a4e30"},
     {file = "trading_strategy_backtrader-0.1-py3-none-any.whl", hash = "sha256:230d878f5284d3525283787339fa4694f9243304d40f55e71e876dbbdb87e740"},
 ]
-trading-strategy-qstrader = [
-    {file = "trading-strategy-qstrader-0.4.tar.gz", hash = "sha256:6453af269ebd5de3d5f216130e400dfcb83726aef102c906284ad750ff22daf2"},
-    {file = "trading_strategy_qstrader-0.4-py3-none-any.whl", hash = "sha256:4798e752a9e8303fe638ff3b078a5b2124b4d7c4fce1ee26aa050f25d7965345"},
-]
+trading-strategy-qstrader = []
 traitlets = [
     {file = "traitlets-5.1.1-py3-none-any.whl", hash = "sha256:2d313cc50a42cd6c277e7d7dc8d4d7fedd06a2c215f78766ae7b1a66277e0033"},
     {file = "traitlets-5.1.1.tar.gz", hash = "sha256:059f456c5a7c1c82b98c2e8c799f39c9b8128f6d0d46941ee118daace9eb70c7"},

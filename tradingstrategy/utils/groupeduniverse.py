@@ -1,8 +1,12 @@
+"""Helpers to create Pandas dataframes for per-pair analytics."""
+
 import logging
-from typing import Optional, Tuple, Iterable, Dict
+from typing import Optional, Tuple, Iterable, Dict, List
 
 import pandas as pd
 
+from tradingstrategy.exchange import Exchange
+from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
 
@@ -77,9 +81,39 @@ class PairGroupedUniverse:
     def get_timestamp_range(self) -> Tuple[pd.Timestamp, pd.Timestamp]:
         """Return the time range of data we have for.
 
-        :return: (start timestamp, end timestamp) tuple
+        :return: (start timestamp, end timestamp) tuple, UTC-timezone aware
         """
-        start = min(self.df[self.timestamp_column])
-        end = max(self.df[self.timestamp_column])
+        start = min(self.df[self.timestamp_column]).tz_localize(tz='UTC')
+        end = max(self.df[self.timestamp_column]).tz_localize(tz='UTC')
         return start, end
 
+
+def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:
+    """Filter dataset so that it only contains data for the trading pairs from a certain exchange.
+
+    Useful as a preprocess step for creating :py:class:`tradingstrategy.candle.GroupedCandleUniverse`
+    or :py:class:`tradingstrategy.liquidity.GroupedLiquidityUniverse`.
+
+    :param samples: Candles or liquidity dataframe
+
+    :param pairs: Pandas dataframe with :py:class:`tradingstrategy.pair.DEXPair` content.
+    """
+    ids = pairs["pair_id"]
+    our_pairs: pd.DataFrame = samples.loc[
+        (samples['pair_id'].isin(ids))
+    ]
+    return our_pairs
+
+
+def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame:
+    """Filter dataset so that it only contains data for a single trading pair.
+
+    Useful to construct single trading pair universe.
+
+    :param samples: Candles or liquidity dataframe
+    """
+    assert isinstance(pair, DEXPair), f"We got {pair}"
+    our_pairs: pd.DataFrame = samples.loc[
+        (samples['pair_id'] == pair.pair_id)
+    ]
+    return our_pairs

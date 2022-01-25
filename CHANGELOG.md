@@ -1,3 +1,10 @@
+# Current
+
+- Created `tradingstrategy.universe.Universe` helper class to encapsulate trading universe
+- Added convenience method `PairUniverse.create_from_pyarrow_table_with_filters` so creating different trading universes is less lines of code
+- Added convenience method `tradingstrategy.utils.groupeduniverse.filter_for_pairs_on_exchanges`
+- Added helper methods to construct single trading pair universe
+
 # 0.4.0
 
 - Reworked how QSTrader framework integration works. QSTrader was originally designed for stock markets, so it required few changes to make it more suitable for 24/7 cryptomarkets. **Warning**: QSTrader and its integration are both in beta. More work is needed to be done e.g. in fee calculations to make the integration smooth. See example on [PancakeSwap momentum trading algorithm](https://tradingstrategy.ai/docs/programming/algorithms/pancakeswap-momentum-naive.html).
