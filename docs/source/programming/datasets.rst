@@ -119,6 +119,12 @@ Example how to download:
 
     print(f"Downloaded {size:,} bytes")
 
+Here is a `curl` example for getting 1d liquidity candles and save the file in the current folder:
+
+.. code-block:: shell
+
+    export TRADING_STRATEGY_API_KEY="secret-token:tradingstrategy-..."
+    curl -v -H "Authorization: $TRADING_STRATEGY_API_KEY" "https://tradingstrategy.ai/api/liquidity-all?bucket=1d" --output liquidity-1d.parquet
 
 Reading datasets
 ~~~~~~~~~~~~~~~~

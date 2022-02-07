@@ -29,6 +29,6 @@ jobs:
         poetry install -E qstrader
     - name: Run test scripts
       run: |
-        poetry run pytest
+        poetry run pytest --tb=native
       env:
         TRADING_STRATEGY_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}

@@ -130,7 +130,7 @@ class Client:
     def create_test_client(cls, cache_path=None) -> "Client":
         """Create a new Capitalgram clienet to be used with automated test suites.
 
-        Reads the API key from the environment variable `CAPITALGRAM_API_KEY`.
+        Reads the API key from the environment variable `TRADING_STRATEGY_API_KEY`.
         A temporary folder is used as a cache path.
         """
         if cache_path:
