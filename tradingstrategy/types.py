@@ -7,11 +7,11 @@ TODO: Clean up after Explicit Type Aliases have been merged and is widely suppor
 """
 
 
-class CapitalgramType:
+class TradingStrategyType:
     """Market class for our internal type definitions."""
 
 
-class PrimaryKey(CapitalgramType, int):
+class PrimaryKey(TradingStrategyType, int):
     """64-bit integer based primary key.
 
     Also referred as "internal id" on website and data streams.
@@ -24,7 +24,7 @@ class PrimaryKey(CapitalgramType, int):
     """
 
 
-class NonChecksummedAddress(CapitalgramType, str):
+class NonChecksummedAddress(TradingStrategyType, str):
     """Ethereum address that does *not* use EIP-55 checksumming.
 
      EIP-55 https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md
@@ -33,7 +33,7 @@ class NonChecksummedAddress(CapitalgramType, str):
     """
 
 
-class USDollarAmount(CapitalgramType, float):
+class USDollarAmount(TradingStrategyType, float):
     """Express USD monetary amount.
 
     Used in exchange rates, volumes and prices in candle data.
@@ -44,13 +44,13 @@ class USDollarAmount(CapitalgramType, float):
     """
 
 
-class UNIXTimestamp(CapitalgramType, int):
+class UNIXTimestamp(TradingStrategyType, int):
     """Seconds since 1.1.1970 as UTC time as integer."""
 
 
-class BlockNumber(CapitalgramType, int):
+class BlockNumber(TradingStrategyType, int):
     """EVM block number from 1 to infinity"""
 
 
-class BasisPoint(CapitalgramType, int):
+class BasisPoint(TradingStrategyType, int):
     """Multiplier as 1/10000 or 0.01%"""

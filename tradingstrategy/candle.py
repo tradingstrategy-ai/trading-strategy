@@ -17,6 +17,11 @@ from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, Pr
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
 
+
+class PriceUnavailable(Exception):
+    """We tried to look up price for a trading pair, but count not find a candle close to the timestamp."""
+
+
 @dataclass_json
 @dataclass
 class Candle:
@@ -189,3 +194,34 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """Get candles for a single pair."""
         return self.get_samples_by_pair(pair_id)
 
+
+    def get_closest_price(self, pair_id: PrimaryKey, when: pd.Timestamp, kind="close", look_back_time_frames=5) -> USDollarAmount:
+        """Get the available liuqidity for a trading pair at a specific timepoint or some candles before the timepoint.
+
+        The liquidity is defined as one-sided as in :term:`XY liquidity model`.
+
+        :param pair_id: Traing pair id
+        :param when: Timestamp to query
+        :param kind: One of OHLC data points: "open", "close", "low", "high"
+        :param look_back_timeframes: If there is no liquidity sample available at the exact timepoint,
+            look to the past to the get the nearest sample
+        :return: We always return
+        :raise LiquidityDataUnavailable: There was no liquidity sample available
+        """
+
+        assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
+
+        start_when = when
+        samples_per_pair = self.get_candles_by_pair(pair_id)
+        assert samples_per_pair is not None, f"No candle data available for pair {pair_id}"
+
+        samples_per_kind = samples_per_pair[kind]
+        for attempt in range(look_back_time_frames):
+            try:
+                sample = samples_per_kind[when]
+                return sample
+            except KeyError:
+                # Go to the previous sample
+                when -= self.time_bucket.to_timedelta()
+
+        raise PriceUnavailable(f"Could not find any liquidity samples for pair {pair_id} between {when} - {start_when}")

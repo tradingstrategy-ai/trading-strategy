@@ -439,8 +439,11 @@ class PandasPairUniverse:
         assert isinstance(df, pd.DataFrame)
         self.df = df.set_index(df["pair_id"])
 
-        # pair_id -> DEXPair index
+        # pair_id -> DEXPair
         self.pair_map = {}
+
+        # pair smart contract address -> DEXPair
+        self.smart_contract_map = {}
 
         if build_index:
             self.build_index()
@@ -451,7 +454,9 @@ class PandasPairUniverse:
         Allows fast lookup of individual pairs.
         """
         for pair_id, data in self.df.iterrows():
-            self.pair_map[pair_id] = DEXPair.from_dict(data)
+            pair: DEXPair = DEXPair.from_dict(data)
+            self.pair_map[pair_id] = pair
+            self.smart_contract_map[pair.address.lower()] = pair
 
     def get_all_pair_ids(self) -> List[PrimaryKey]:
         return self.df["pair_id"].unique()
@@ -474,6 +479,8 @@ class PandasPairUniverse:
             # TODO: Eliminate non-indexed code path?
             return self.pair_map.get(pair_id)
 
+        # TODO: Remove
+
         df = self.df
 
         pairs: pd.DataFrame= df.loc[df["pair_id"] == pair_id]
@@ -486,6 +493,13 @@ class PandasPairUniverse:
             return DEXPair.from_dict(data)
 
         return None
+
+    def get_pair_by_smart_contract(self, address: str) -> Optional[DEXPair]:
+        """Resolve a trading pair by its pool smart contract address.
+
+        :param address: Ethereum smart contract address
+        """
+        return self.smart_contract_map.get(address)
 
     def get_single(self) -> DEXPair:
         """For strategies that trade only a single trading pair, get the only pair in the universe.

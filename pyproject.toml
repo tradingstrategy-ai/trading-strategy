@@ -10,11 +10,10 @@ readme = "README.md"
 keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance", "binance", "blockchain", "pancakeswap", "polygon", "web3"]
 
 [tool.poetry.dependencies]
-python = "^3.7.2"
+python = "^3.9"
 eth-utils = "^1.10.0"
 dataclasses-json = "^0.5.4"
-zstandard = "^0.15.2"
-pandas = "^1.3.0"
+pandas = "^1.3.5"
 pyarrow = "^4.0.1"
 eth-hash = {extras = ["pycryptodome"], version = "^0.3.1"}
 tqdm = "^4.61.2"
@@ -22,7 +21,7 @@ plotly = "^5.1.0"
 cufflinks = "^0.17.3"
 chart-studio = "^1.1.0"
 mplfinance = "^0.12.7-alpha.17"
-# Cannot use release, because new maplotlib compatibiltiy
+# Cannot use release, because new maplotlib compat[]ibiltiy
 # Fixes
 # https://github.com/mementum/backtrader/pull/418
 # backtrader = {git = "https://github.com/mementum/backtrader", rev="e2674b1690f6366e08646d8cfd44af7bb71b3970"}
@@ -31,12 +30,12 @@ mplfinance = "^0.12.7-alpha.17"
 # 2021-12-29: Removed for now, because has dependencies with uninstallation problems with ccxt
 # fastquant = "^0.1.5"
 
-trading-strategy-qstrader = "^0.4.0"
+trading-strategy-qstrader = {version="^0.5.0", extras = ["qstrader"]}
 # trading-strategy-qstrader = {path = "../qstrader", develop = true}
 #qstrader = {git = "https://github.com/miohtama/qstrader", rev="ee011745531e0cab412bd3a98f65976840821c4f"}
 
 trading-strategy-backtrader = "^0.1"
-seaborn = "^0.11.2"
+
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
 nbsphinx = "^0.8.6"
@@ -47,6 +46,11 @@ sphinx = "^4.2.0"
 # sphinx = {git = "https://github.com/miohtama/sphinx.git", rev="c0b0a26bdaf5c1c9e9cdbe7eb68e29b938f5cd0b"}
 sphinx-sitemap = "^2.2.0"
 coloredlogs = "^15.0.1"
+
+# See discussion https://github.com/python-poetry/poetry/issues/3348#issuecomment-726534462
+[tool.poetry.extras]
+qstrader = ["trading-strategy-qstrader"]
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

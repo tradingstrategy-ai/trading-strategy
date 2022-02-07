@@ -51,6 +51,12 @@ poetry add tradindstrategy
 pip install tradindstrategy 
 ```
 
+For `QSTrader <https://pypi.org/project/trading-strategy-qstrader/>`_ based trading algorithm support you need to do:
+
+```shell
+poetry add tradindstrategy[qstrader]
+```
+
 # Documentation
 
 [Read documentation online](https://tradingstrategy.ai/docs/).

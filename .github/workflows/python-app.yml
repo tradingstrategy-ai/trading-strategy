@@ -26,7 +26,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install poetry
-        poetry install
+        poetry install -E qstrader
     - name: Run test scripts
       run: |
         poetry run pytest
