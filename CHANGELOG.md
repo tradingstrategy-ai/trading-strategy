@@ -1,11 +1,14 @@
 # Current
 
+This is a release to get Trading Strategy client towards live trading.
+
 - Created `tradingstrategy.universe.Universe` helper class to encapsulate trading universe
 - Added convenience method `PairUniverse.create_from_pyarrow_table_with_filters` so creating different trading universes is less lines of code
 - Added convenience method `tradingstrategy.utils.groupeduniverse.filter_for_pairs_on_exchanges`
-- Added helper methods to construct single trading pair universe
+- Added helper methods to construct single trading pair universe, see `PandasPairUniverse.create_single_pair_universe`
 - Separate QSTrader to an optional dependency. Please install as `pip install tradingstrategy[qstrader]`.
   This is because QSTrader depends on Seaborn that depends on SciPy that does not work so good on Apple M1 macs.
+- Add the default connection and read timeout 15 seconds to all client downloads
  
 # 0.4.0
 

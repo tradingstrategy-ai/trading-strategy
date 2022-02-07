@@ -24,7 +24,21 @@ class CachedHTTPTransport:
     The download files are very large and expect to need several gigabytes of space for them.
     """
 
-    def __init__(self, download_func: Callable, endpoint: Optional[str]=None, cache_period=datetime.timedelta(days=3), cache_path: Optional[str]=None, api_key: Optional[str]=None):
+    def __init__(self,
+                 download_func: Callable,
+                 endpoint: Optional[str] = None,
+                 cache_period =datetime.timedelta(days=3),
+                 cache_path: Optional[str] = None,
+                 api_key: Optional[str] = None,
+                 timeout: float = 15.0):
+        """
+        :param download_func: Interactive download progress bar displayed during the download
+        :param endpoint: API server we are using - default is `https://tradingstrategy.ai/api`
+        :param cache_period: How many days we store the downloaded files
+        :param cache_path: Where we store the downloaded files
+        :param api_key: Trading Strategy API key to use download
+        :param timeout: requests HTTP lib timeout
+        """
 
         self.download_func = download_func
 
@@ -41,6 +55,8 @@ class CachedHTTPTransport:
             self.cache_path = os.path.expanduser("~/.cache/trading-strategy")
 
         self.requests = self.create_requests_client(api_key=api_key)
+
+        self.timeout = timeout
 
     def create_requests_client(self, api_key: Optional[str] = None):
         """Create HTTP 1.1 keep-alive connection to the server with optional authorization details."""
@@ -90,7 +106,7 @@ class CachedHTTPTransport:
         url = f"{self.endpoint}/{api_path}"
         logger.debug("Saving %s to %s", url, fpath)
         # https://stackoverflow.com/a/14114741/315168
-        self.download_func(self.requests, fpath, url, params)
+        self.download_func(self.requests, fpath, url, params, self.timeout)
 
     def get_json_response(self, api_path, params=None):
         url = f"{self.endpoint}/{api_path}"

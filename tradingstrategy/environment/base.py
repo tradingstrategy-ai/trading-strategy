@@ -16,12 +16,15 @@ class Environment(ABC):
     """
 
 
-def download_with_progress_plain(session: Session, path: str, url: str, params: dict):
-    """The default downloader does not display any fancy progress bar."""
+def download_with_progress_plain(session: Session, path: str, url: str, params: dict, timeout: float):
+    """The default downloader does not display any fancy progress bar.
+
+    :param timeout: Timeout in seconds.
+    """
 
     start = datetime.datetime.utcnow()
 
-    response = session.get(url, params=params)
+    response = session.get(url, params=params, timeout=timeout)
 
     headers = response.headers
     if "content-length" in headers:
