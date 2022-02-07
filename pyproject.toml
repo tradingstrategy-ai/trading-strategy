@@ -21,6 +21,7 @@ plotly = "^5.1.0"
 cufflinks = "^0.17.3"
 chart-studio = "^1.1.0"
 mplfinance = "^0.12.7-alpha.17"
+
 # Cannot use release, because new maplotlib compat[]ibiltiy
 # Fixes
 # https://github.com/mementum/backtrader/pull/418
@@ -47,7 +48,7 @@ sphinx = "^4.2.0"
 sphinx-sitemap = "^2.2.0"
 coloredlogs = "^15.0.1"
 
-# See discussion https://github.com/python-poetry/poetry/issues/3348#issuecomment-726534462
+# qstrader depends on Seaborn that depends on Scipy that is a problematic dependency
 [tool.poetry.extras]
 qstrader = ["trading-strategy-qstrader"]
 

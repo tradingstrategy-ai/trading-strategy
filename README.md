@@ -12,7 +12,7 @@ from [Trading Strategy Protocol](https://tradingstrategy.ai/).
 
 # Use cases
 
-* Analyse cryptocurrency investment opportunities on decentralised exchanges (DEXes)
+* Analyse cryptocurrency investment opportunities on [decentralised exchanges (DEXes)](https://tradingstrategy.ai/trading-view/exchanges)
 
 * Creating trading algorithms and trading bots that trade on DEXes
 

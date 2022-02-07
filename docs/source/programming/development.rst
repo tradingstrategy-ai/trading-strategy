@@ -8,7 +8,7 @@ Development
 Preface
 -------
 
-In this chapter, we will discuss how to use `capitalgram` locally with your Python or Jupyter Notebook to development new strategies or the library itself.
+In this chapter, we will discuss how to use `tradingstrategy` locally with your Python or Jupyter Notebook to development new strategies or the library itself.
 
 Installation for developer
 --------------------------
@@ -17,15 +17,31 @@ To install Trading Strategy using pip do:
 
 .. code-block:: shell
 
-    pip install -e "https://github.com/miohtama/capitalgram-onchain-dex-quant-data.git
+    git clone # Get clone from the Github ...
+    cd tradingstrategy
+    poetry shell
+    poetry install -E qstrader
+
+Run tests
+---------
+
+To run tests you need to have a Trading Strategy API key. Tests use the production server.
+
+.. code-block:: shell
+
+    poetry shell
+    export TRADING_STRATEGY_API_KEY="secret-token:tradingstrategy-xxx"
+    pytest
+
+Tests are very slow.
 
 Dataset cache
 -------------
 
-The default cacle location for the downloaded datasets is `~/.cache/capitalgram`.
+The default cacle location for the downloaded datasets is `~/.cache/tradingstrategy`.
 
 ```shell
-ls -lha ~/.cache/capitalgram
+ls -lha ~/.cache/tradingstrategy
 ```
 
 ```
@@ -40,24 +56,8 @@ drwx------ 14 moo staff  448 Jul 18 15:49 ../
 You can clear this out manually from the UNIX shell
 
 ```shell
-rm -rf ~/.cache/capitalgram
+rm -rf ~/.cache/tradingstrategy
 ```
-
-Developing the library itself
------------------------------
-
-Developing locally
-~~~~~~~~~~~~~~~~~~
-
-Check out from Github.
-
-Then
-
-.. code-block::
-
-    poetry shell
-    poetry install
-
 
 Deploying new documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
