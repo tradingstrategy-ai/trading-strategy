@@ -179,6 +179,7 @@ class Double7(DEXStrategy):
                     self.close(hint=TradeHint(type=TradeHintType.stop_loss_triggered))
 
 
+@pytest.mark.skip(msg="4h candles will cause read timeout on Github Actions - too large file?")
 def test_double_77(logger, persistent_test_client: Client):
     """Mutliasset strategy runs correct number of days."""
 

@@ -126,7 +126,7 @@ def test_calculate_slippage_sample_too_far_in_past(persistent_test_client: Clien
 
     exchange_universe = client.fetch_exchange_universe()
     raw_pairs = client.fetch_pair_universe().to_pandas()
-    raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d1).to_pandas()
+    raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()  # Same as in above test to use the cache
 
     pair_universe = PandasPairUniverse(raw_pairs)
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
