@@ -13,17 +13,17 @@ How to create a strategy
 
 Trading Strategy offers decentralised finance :ref:`trading data` as the starting point for the strategy development. Register an API key and start exploring the datasets.
 
-Plan your strategy type: Single pair strategy or portfolio optimisation strategy. Based on this Trading Strategy offers you too popular Python backtesting and trading framework to choose from.
+Plan your strategy type: Single pair strategy or portfolio optimisation strategy. Based on this Trading Strategy offers you two popular Python backtesting and trading frameworks to choose from.
 
-* :ref:`Backtrader` for single-pair strategies, or strategies that trade few well-known trading pairs
+* :ref:`Backtrader` for single-pair strategies, or strategies that trade a few well-known trading pairs
 
-* :ref:`QSTrader` for portfolio optimisations strategies.
+* :ref:`QSTrader` for portfolio optimisation strategies.
 
 * You can also do backtesting in your own tool and on your own infrastructure
 
 Backtest your strategy using Python, as based on Trading Strategy provided code examples. Then, write your live trading strategy script.
 
-Trading Strategy governance accept your request for a new algorithm, with proposed fee structure, and deploys a corresponding smart contract.
+Trading Strategy governance accept your request for a new algorithm, with a proposed fee structure, and deploys a corresponding smart contract.
 
 Trading can start.
 
@@ -39,7 +39,7 @@ Private strategies
 
 You can choose to keep your algorithm source code secret. In this case, you are responsible to run the oracle server yourself that sends the trading instructions to the smart contract.
 
-Private strategies can contain trade secrets ("the secret sauce"). They can be complex. Private strategy vendor can choose to whitelist the participants that are allowed to invest in their strategy.
+Private strategies can contain trade secrets ("the secret sauce"). They can be complex. A private strategy vendor can choose to whitelist the participants that are allowed to invest in their strategy.
 
 Public strategies
 ~~~~~~~~~~~~~~~~~
