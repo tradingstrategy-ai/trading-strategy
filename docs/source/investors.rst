@@ -7,7 +7,7 @@ Trading Strategy offers investor direct investments in algorithm trading strateg
 
 * Algorithm trades real-time, based on technical analysis data, and it is likely to beat any non-professional trader doing trades themselves
 
-* Algorithms aim to offer better yield than decentralised finance:term:`risk-free rate`, but less:term:`drawdown` risk than buy-and-hold strategies
+* Algorithms aim to offer better yield than decentralised finance :term:`risk-free rate`, but less :term:`drawdown` risk than buy-and-hold strategies
 
 * Algorithms aim to beat the index yield that could be e.g. hold BTC, hold ETH, hold DeFi top 10 tokens
 
