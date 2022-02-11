@@ -10,7 +10,7 @@ Hedge funds, bank trading desks, and such engage in algorithmic trading as well.
 
 The major differences are
 
-* Hedge funds open for accredited investors only and marketed privately.
+* Hedge funds open for accredited investors only and are marketed privately.
 
 * Hedge funds do not have community or open source ecosystem around them.
 
@@ -46,15 +46,15 @@ Crypto trading bot services allow you to connect your cryptocurrency exchange ac
 
 Some of the popular crypto trading bot services include 3Commas, Crypto Hopper and TradeSanta.
 
-* Crypto trading bot services are monthly fee based, which is often steep. Whereas Trading Strategy ha a transactional fee based business model and is more flexible how it can charge the users (fee on profits only).
+* Crypto trading bot services are monthly fee based, which is often steep. Whereas Trading Strategy has a transactional fee based business model and is more flexible on how it can charge the users (fee on profits only).
 
-* Crypto trading bot services are centralised, there is no visibility how they operate inside and how secure they are. Giving an exchange API key to any service to makes it possible to `steal all your money on your cryptocurrenct exechange account <https://www.techradar.com/news/cybercriminals-have-abused-api-keys-to-steal-millions-in-crypto>`_.
+* Crypto trading bot services are centralised, there is no visibility how they operate inside and how secure they are. Giving an exchange API key to any service makes it possible to `steal all your money on your cryptocurrency exchange account <https://www.techradar.com/news/cybercriminals-have-abused-api-keys-to-steal-millions-in-crypto>`_.
 
 * `The centralised exchanges themselves are prone to insider hacks <https://www.coindesk.com/token-swaps-after-kucoin-280m-hack>`_ (see `another incident <https://www.reddit.com/r/CryptoHopper/comments/ldo4pe/api_keys_are_invalid/>`_).
 
 * There is no visibility if these centralised services sell their order flow data to traders to trade against you, or trade against you themselves.
 
-* Anyone can verify that Trading Strategy protocol has act fair and honestly due to on-chain transparency.
+* Anyone can verify that Trading Strategy protocol acts fairly and honestly due to on-chain transparency.
 
-* Trading Strategy has a community and open source ecosystem around it.
+* Trading Strategy has a community and an open source ecosystem built around it.
 
