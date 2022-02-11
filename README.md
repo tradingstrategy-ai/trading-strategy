@@ -34,7 +34,7 @@ See [the Getting Started notebook](https://tradingstrategy.ai/docs/programming/e
 
 # Prerequisites
 
-Python 3.8+
+Python 3.9+
 
 # Installing the package
 
