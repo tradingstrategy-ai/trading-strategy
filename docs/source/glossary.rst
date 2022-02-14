@@ -259,4 +259,8 @@ Glossary
 
         See also :term:`Price impact`.
 
+    Oracle
 
+        Blockchain oracles are entities that connect blockchains to external systems, thereby
+        enabling smart contracts to execute based upon inputs and outputs from the real world.
+        `Read More <https://chain.link/education/blockchain-oracles>`_
