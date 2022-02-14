@@ -38,7 +38,7 @@ Tests are very slow.
 Dataset cache
 -------------
 
-The default cacle location for the downloaded datasets is `~/.cache/tradingstrategy`.
+The default cache location for the downloaded datasets is `~/.cache/tradingstrategy`.
 
 .. code-block:: shell
 

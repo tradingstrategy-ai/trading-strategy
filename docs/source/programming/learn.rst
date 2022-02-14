@@ -107,7 +107,7 @@ Performance and risk analysis for portfolios. `Read more <https://github.com/qua
 PyAlgoTrade
 -----------
 
-Was originally written for Bitstamp. Offers backtesting, paper trading, live trading. Looks abandon now. `Read more <https://github.com/gbeced/pyalgotrade>`_.
+Was originally written for Bitstamp. Offers backtesting, paper trading, live trading. Looks abandoned now. `Read more <https://github.com/gbeced/pyalgotrade>`_.
 
 Communities
 ~~~~~~~~~~~
@@ -143,7 +143,7 @@ Jupyter Notebook run-time environments
 Other Notebook services
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-* `Binder <https://mybinder.org/>`_ turns a Github repository to executable Jupyter Python notebooks
+* `Binder <https://mybinder.org/>`_ turns a Github repository to executable Jupyter Python notebooks.
 
 Charts
 ~~~~~~
