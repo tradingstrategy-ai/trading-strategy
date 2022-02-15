@@ -79,6 +79,11 @@ class ChainId(enum.Enum):
     #: Polygon chain id
     polygon = 137
 
+    #: Ethereum Classic chain id.
+    #: This is also the value used by EthereumTester in unit tests.
+    #: https://github.com/ethereum/eth-tester
+    ethereum_classic = 61
+
     @property
     def data(self) -> dict:
         """Get chain data entry for this chain."""
@@ -159,6 +164,16 @@ _CHAIN_DATA_OVERRIDES = {
         "name": "Polygon",
         "slug": "polygon",
         "svg_icon": "https://hv4gxzchk24cqfezebn3ujjz6oy2kbtztv5vghn6kpbkjc3vg4rq.arweave.net/nLW0IfMZnhhaqdN1AbzC4d1NLZSpBlIMEHhXq-KcOws",
+    },
+
+    #
+    # Ethereum Classic / Ethereum Tester
+    #
+    61: {
+        "name": "Ethereum Classic",
+        "slug": "etc",
+        "svg_icon": "https://upload.wikimedia.org/wikipedia/commons/0/05/Ethereum_logo_2014.svg",
+        "active": False,
     },
 
 }

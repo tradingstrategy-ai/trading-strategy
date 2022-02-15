@@ -225,3 +225,8 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                 when -= self.time_bucket.to_timedelta()
 
         raise PriceUnavailable(f"Could not find any liquidity samples for pair {pair_id} between {when} - {start_when}")
+
+    @staticmethod
+    def create_empty() -> "GroupedCandleUniverse":
+        """Return an empty GroupedCandleUniverse"""
+        return GroupedCandleUniverse(df=Candle.to_dataframe())

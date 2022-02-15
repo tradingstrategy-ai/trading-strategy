@@ -123,6 +123,29 @@ class XYLiquidity:
         ])
         return schema
 
+    @classmethod
+    def to_dataframe(cls) -> pd.DataFrame:
+        """Return emptry Pandas dataframe presenting liquidity sample."""
+
+        # TODO: Does not match the spec 1:1 - but only used as empty in tests
+        fields = dict([
+            ("pair_id", "int"),
+            ("timestamp", "datetime64[s]"),
+            ("exchange_rate", "float"),
+            ("open", "float"),
+            ("close", "float"),
+            ("high", "float"),
+            ("low", "float"),
+            ("buys", "float"),
+            ("sells", "float"),
+            ("add_volume", "float"),
+            ("remove_volume", "float"),
+            ("start_block", "float"),
+            ("end_block", "float"),
+        ])
+        df = pd.DataFrame(columns=fields.keys())
+        return df.astype(fields)
+
 
 @dataclass_json
 @dataclass
@@ -190,3 +213,8 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
                 when -= self.time_bucket.to_timedelta()
 
         raise LiquidityDataUnavailable(f"Could not find any liquidity samples for pair {pair_id} between {when} - {start_when}")
+
+    @staticmethod
+    def create_empty() -> "GroupedLiquidityUniverse":
+        """Create a liquidity universe without any data."""
+        return GroupedLiquidityUniverse(df=XYLiquidity.to_dataframe(), index_automatically=False)

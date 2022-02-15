@@ -259,4 +259,11 @@ Glossary
 
         See also :term:`Price impact`.
 
+    Mid Price
 
+        The mid price, in the context of AMM, is the price that reflects the ratio of reserves in one or more pairs. There are three ways we can think about this price. Perhaps most simply, it defines the relative value of one token in terms of the other. It also represents the price at which you could theoretically trade an infinitesimal amount (ε) of one token for the other. Finally, it can be interpreted as the current market-clearing or fair value price of the assets.
+
+        The mid price, in the context of order book based exchange is the `(best bid + best ask) / 2`,
+        e.g. the price between the best sell offer and the best buy offer.
+
+        `More information about the mid price on Uniswap documentation <https://docs.uniswap.org/sdk/2.0.0/guides/pricing>`_.

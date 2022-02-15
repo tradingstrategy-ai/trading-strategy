@@ -73,6 +73,7 @@ class Exchange:
     exchange_type: ExchangeType
 
     #: How many pairs we have discovered for this exchange so far
+    #: TODO: Make optional - not needed in the tester deployments.
     pair_count: int
 
     #: How many supported trading pairs we have

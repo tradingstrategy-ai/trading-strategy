@@ -68,3 +68,8 @@ def test_samples_by_timestamp(persistent_test_client: Client):
     assert candles.iloc[0].close > 0
     assert candles.iloc[0].buys > 0
     assert candles.iloc[0].sells > 0
+
+
+def test_empty_candle_universe():
+    universe = GroupedCandleUniverse.create_empty()
+    assert universe.get_candle_count() == 0
