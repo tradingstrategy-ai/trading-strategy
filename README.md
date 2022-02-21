@@ -34,7 +34,7 @@ See [the Getting Started notebook](https://tradingstrategy.ai/docs/programming/e
 
 # Prerequisites
 
-Python 3.8+
+Python 3.9+
 
 # Installing the package
 
@@ -51,7 +51,7 @@ poetry add tradindstrategy
 pip install tradindstrategy 
 ```
 
-For [QSTrader](https://pypi.org/project/trading-strategy-qstrader/>) based trading algorithm support you need to install the related optional dependencies:
+For [QSTrader](https://pypi.org/project/trading-strategy-qstrader/) based trading algorithm support you need to install the related optional dependencies:
 
 ```shell
 poetry add tradindstrategy[qstrader]

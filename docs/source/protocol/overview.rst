@@ -37,12 +37,12 @@ Oracles
 
 Trading Strategy network consists of oracle nodes. Oracles have two functions
 
-* Read blockchain and and manage :term:`candle` :term:`dataset` that serves as a source for
-  algorithms to make decision. This function is not much different from any other market data service that
-  solicites and distributed trading data, e.g. like the popular TradingView. The only major difference is oracles
+* Read blockchain and manage :term:`candle` :term:`dataset` that serves as a source for
+  algorithms to make decisions. This function is not much different from any other market data service that
+  solicites and distributes trading data, e.g. like the popular TradingView. The only major difference is that oracles
   use trading data that is solely sourced from a blockchain. This makes it possible for anyone to launch and run an oracle, as there is no barrier to entry like buying expensive data feed licenses.
 
-* Execute algorithms, also referred as a :term:`strategy`:, themselves: read market data , read algorithm state, decide on the next trade, send trade instructions to trading agents.
+* Execute algorithms, also referred as a :term:`strategy`:, themselves: read market data, read algorithm state, decide on the next trade, send trade instructions to trading agents.
 
 Oracles co-ordinate trades for algorithms on a blockchain. The blockchain can be any third party blockchain that supports smart contracts. All oracle-to-oracle communication happens over the blockchain and there is no peer-to-peer network.
 

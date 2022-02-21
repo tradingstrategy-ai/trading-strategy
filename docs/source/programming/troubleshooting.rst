@@ -18,7 +18,7 @@ You can reset the API key by deleting the config file:
 Resetting the download cache
 ----------------------------
 
-Downloaded files might get corrupted e.g. due to partial download.
+Downloaded files might get corrupted e.g. due to a partial download.
 
 You can see a message like:
 

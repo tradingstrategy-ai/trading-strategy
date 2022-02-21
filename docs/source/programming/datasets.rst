@@ -12,7 +12,8 @@ Preface
 
 Trading data feeds establish the foundation of any algorithmic trading. Here is information on Trading Strategy data feeds and datasets.
 
-*Note*: This service is still in early beta and subject to change. Reach out in `Discord for any questions <https://tradingstrategy.ai/community>`_.
+.. note::
+    This service is still in early beta and subject to change. Reach out in `Discord for any questions <https://tradingstrategy.ai/community>`_.
 
 Available data
 --------------
@@ -45,7 +46,7 @@ At the moment, the API key registration is only available through the interactiv
 Downloading datasets by hand
 -----------------------------
 
-After you have obtained an API key `you can download datasets from the backteting page <https://tradingstrategy.ai/trading-view/backtesting>`_.
+After you have obtained an API key `you can download datasets from the backtesting page <https://tradingstrategy.ai/trading-view/backtesting>`_.
 
 Accessing datasets programmatically
 -----------------------------------
@@ -53,21 +54,21 @@ Accessing datasets programmatically
 You should access `the datasets using the Python client library <https://pypi.org/project/tradingstrategy/>`_.
 See :doc:`the first example Jupyter notebook how to do this <examples/getting-started>`.
 
-If you wish not to use Python here are instructions how to construct dataset download URLs by hand.
+If you don't wish to use Python, here are the instructions on how to construct dataset download URLs by hand.
 
 API endpoints
 ~~~~~~~~~~~~~
 
 Datasets can be downloaded over authenticated HTTPS API endpoints.
 
-At the moment, all API endpoints are served by a private beta server `https://tradingstrategy.ai/api`.
+At the moment, all API endpoints are served by a private beta server https://tradingstrategy.ai/api.
 
-APIs are described by Python dataclasses. For more information about the dataset data structure, see the API documentation and relevant source code.
+APIs are described by Python dataclasses. For more information about the dataset data structure, see the API documentation and the relevant source code.
 
 Parquet endpoints
 ~~~~~~~~~~~~~~~~~
 
-These take HTTP GET parameter `bucket`. See available values in :py:class:`tradingstrategy.timebucket.TimeBucket`.
+These take HTTP GET parameter ``bucket``. See available values in :py:class:`tradingstrategy.timebucket.TimeBucket`.
 They return a Parquet file download.
 
 .. code-block:: none
@@ -88,9 +89,9 @@ These do not take parameters. They return a JSON file download.
 Downloading datasets programmatically
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-All endpoints need your API key in the `Authorisation` header.
+All endpoints need your API key in the ``Authorisation`` header.
 
-Because files are large, you need to stream them, as they are unlikely to fit to the RAM.
+Because files are large, you need to stream them, as they are unlikely to fit in the RAM.
 
 Example how to download:
 
@@ -131,7 +132,7 @@ Reading datasets
 
 Datasets are distributed as compressed :term:`Parquet` files, using Parquet version 2.0.
 
-You can read files using PyArrow:
+You can read the files using PyArrow:
 
 .. code-block:: python
 
@@ -140,4 +141,4 @@ You can read files using PyArrow:
 
     table: pa.Table = pq.read_table("candles.parquet")
 
-Then, you can directly import the table to your database or convert the table to Pandas DataFrame for further manipulation.
+Then, you can directly import the table into your database or convert the table to a Pandas DataFrame for further manipulation.

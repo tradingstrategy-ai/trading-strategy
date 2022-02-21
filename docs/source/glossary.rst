@@ -30,8 +30,8 @@ Glossary
 
     Smart contract
 
-        An automated transactional service running on any of blockchains supporting smart contracts. Typically
-        runs on Ethereum based blockchain and is written in Solidity programming language.
+        An automated transactional service running on any of the blockchains supporting smart contracts. Typically
+        runs on Ethereum based blockchain and is written in the Solidity programming language.
 
     Jupyter notebook
 
@@ -99,7 +99,7 @@ Glossary
 
     Strategy
 
-        Also known as trading strategy or algorithm. The trading strategy is the rulebook what trades to make an how. In the context of quantative finance, and especially automated trading, this rulebook can be expressed as an algorithm and trading bot that has programmed rules for every situation the strategy may encounter.
+        Also known as trading strategy or algorithm. A trading strategy is a rulebook of what trades to make an how. In the context of quantative finance, and especially automated trading, this rulebook can be expressed as an algorithm and trading bot that has programmed rules for every situation the strategy may encounter.
 
     Technical analysis
 
@@ -143,7 +143,7 @@ Glossary
 
     High-frequency trading
 
-        High-frequency trading, or HFT for short, is a trading strategy where you do arbitration, cross-market market making or such and compete against the other actors with your technical speed. Trading Strategy is not suitable framework for HFT trading, though its data can aid to come up with good HFT strategiees.
+        High-frequency trading, or HFT for short, is a trading strategy where you do arbitration, cross-market market making or such and compete against the other actors with your technical speed. Trading Strategy is not a suitable framework for HFT trading, though its data can aid to come up with good HFT strategies.
 
     Directional strategy
 
@@ -159,7 +159,7 @@ Glossary
 
     Private strategy
 
-        A trading strategy where the source code of the strategy is not disclosed to public. Private strategies can still be :term:`non-custodial` and enjoy the benefits of Trading Strategy protocol trade execution and fee distribution. :ref`Read more <Private strategies>`.
+        A trading strategy where the source code of the strategy is not disclosed to public. Private strategies can still be :term:`non-custodial` and enjoy the benefits of Trading Strategy protocol trade execution and fee distribution.
 
     Risk-free rate
 
@@ -179,7 +179,7 @@ Glossary
 
     TradingView
 
-        Trading view is the world most ppopular trading strategy platform. It lets you discover investment ideas and showcase your talents to a large and active community of traders. Easy and intuitive for beginners, and powerful enough for advanced chartists. Trading View has all the charting tools you need to share and view trading ideas. Real-time data and browser-based charts let you do your research from anywhere, since there are no installations or complex setups. `Read more <https://www.quora.com/What-is-TradingView>`__.
+        Trading view is the world most popular trading strategy platform. It lets you discover investment ideas and showcase your talents to a large and active community of traders. Easy and intuitive for beginners, and powerful enough for advanced chartists. Trading View has all the charting tools you need to share and view trading ideas. Real-time data and browser-based charts let you do your research from anywhere, since there are no installations or complex setups. `Read more <https://www.quora.com/What-is-TradingView>`__.
 
     EVM compatible
 
@@ -202,12 +202,12 @@ Glossary
 
     XY liquidity model
 
-        XY liquidity model, as known as XYK, is a :term:`bonding curve` model where the price of an assets follows the equation:
+        XY liquidity model, as known as XYK, is a :term:`bonding curve` model where the price of an asset follows the equation:
 
-        `x*y=k market maker`
+        :math:`x*y=k_{market\_maker}`
 
         This model was popularised by :term:`Uniswap` version 2 :term:`decentralised exchange`.
-        Anyone can buy or sell coins by essentially shifting the market maker’s, also known as a liquidity provider, position on the x*y=k curve.
+        Anyone can buy or sell coins by essentially shifting the market maker's, also known as a liquidity provider, position on the ``x*y=k`` curve.
 
         On Trading Strategy, the available liquidity is usually expressed as the US dollar amount of one side of the pair. For example adding 100 BNB + 5000 USD to the liquidity
         is presented as 5000 USD available liquidity.
@@ -237,7 +237,7 @@ Glossary
         In other words, even the most liquid AMM trade has an implicit 0.3% price impact. Note that due to competition, the LP fees
         are going down on newer AMMs.
 
-        `Read detailed analysis how price impact is calculated on Uniswap v2 style AMMs https://ethereum.stackexchange.com/a/111334/620>`_.
+        `Read a detailed analysis of how price impact is calculated on Uniswap v2 style AMMs <https://ethereum.stackexchange.com/a/111334/620>`_.
 
         `See ParaSwap documentation on price impact <https://doc.paraswap.network/price-impact-slippage>`_.
 
@@ -259,11 +259,18 @@ Glossary
 
         See also :term:`Price impact`.
 
+    Oracle
+
+        Blockchain oracles are entities that connect blockchains to external systems, thereby
+        enabling smart contracts to execute based upon inputs and outputs from the real world.
+        `Read More <https://chain.link/education/blockchain-oracles>`_
+
     Mid Price
 
         The mid price, in the context of AMM, is the price that reflects the ratio of reserves in one or more pairs. There are three ways we can think about this price. Perhaps most simply, it defines the relative value of one token in terms of the other. It also represents the price at which you could theoretically trade an infinitesimal amount (ε) of one token for the other. Finally, it can be interpreted as the current market-clearing or fair value price of the assets.
 
-        The mid price, in the context of order book based exchange is the `(best bid + best ask) / 2`,
-        e.g. the price between the best sell offer and the best buy offer.
+        The mid price, in the context of order book based exchange is :math:`(best bid + best ask) / 2`,
+        i.e. the price between the best sell offer and the best buy offer.
 
         `More information about the mid price on Uniswap documentation <https://docs.uniswap.org/sdk/2.0.0/guides/pricing>`_.
+
