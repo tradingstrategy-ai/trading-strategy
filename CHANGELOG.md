@@ -1,4 +1,9 @@
-# Current
+# 0.5.1
+
+- Adding chain id 61 for Ethereum Classic / [Ethereum Tester](https://github.com/ethereum/eth-tester/)
+- Adding `GroupedCandleUniverse.create_empty()` and `GroupedLiquidityUniverse.create_empty()`
+
+# 0.5.0
 
 This is a release to get Trading Strategy client towards live trading.
 

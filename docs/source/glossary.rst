@@ -264,3 +264,13 @@ Glossary
         Blockchain oracles are entities that connect blockchains to external systems, thereby
         enabling smart contracts to execute based upon inputs and outputs from the real world.
         `Read More <https://chain.link/education/blockchain-oracles>`_
+
+    Mid Price
+
+        The mid price, in the context of AMM, is the price that reflects the ratio of reserves in one or more pairs. There are three ways we can think about this price. Perhaps most simply, it defines the relative value of one token in terms of the other. It also represents the price at which you could theoretically trade an infinitesimal amount (ε) of one token for the other. Finally, it can be interpreted as the current market-clearing or fair value price of the assets.
+
+        The mid price, in the context of order book based exchange is :math:`(best bid + best ask) / 2`,
+        i.e. the price between the best sell offer and the best buy offer.
+
+        `More information about the mid price on Uniswap documentation <https://docs.uniswap.org/sdk/2.0.0/guides/pricing>`_.
+

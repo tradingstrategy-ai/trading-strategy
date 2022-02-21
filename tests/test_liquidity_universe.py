@@ -155,3 +155,7 @@ def test_merge_liquidity_samples(persistent_test_client: Client):
     df = pd.merge_ordered(sushi, uni, fill_method="ffill")
     df = df.rename(columns={"close_x": "Sushi", "close_y": "Uni"})
 
+
+def test_empty_liquididty_universe():
+    universe = GroupedLiquidityUniverse.create_empty()
+    assert universe.get_sample_count() == 0

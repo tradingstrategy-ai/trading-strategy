@@ -35,6 +35,8 @@ class PairGroupedUniverse:
         assert isinstance(df, pd.DataFrame)
         if index_automatically:
             self.df = df.set_index(timestamp_column, drop=False)
+        else:
+            self.df = df
         self.pairs: pd.GroupBy = self.df.groupby(["pair_id"])
         self.timestamp_column = timestamp_column
         self.time_bucket = time_bucket
