@@ -1,3 +1,7 @@
+# Current
+
+- More helper functions to help unit testing
+
 # 0.5.1
 
 - Adding chain id 61 for Ethereum Classic / [Ethereum Tester](https://github.com/ethereum/eth-tester/)

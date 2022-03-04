@@ -133,6 +133,31 @@ class Candle:
         df = pd.DataFrame(columns=fields.keys())
         return df.astype(fields)
 
+    @classmethod
+    def to_qstrader_dataframe(cls) -> pd.DataFrame:
+        """Return emptry Pandas dataframe presenting candle data for QStrader.
+
+        TODO: Fix QSTrader to use "standard" column names.
+        """
+
+        fields = dict([
+            ("pair_id", "int"),
+            ("Date", "datetime64[s]"),
+            ("exchange_rate", "float"),
+            ("Open", "float"),
+            ("Close", "float"),
+            ("High", "float"),
+            ("Low", "float"),
+            ("buys", "float"),
+            ("sells", "float"),
+            ("buy_volume", "float"),
+            ("sell_volume", "float"),
+            ("avg", "float"),
+            ("start_block", "float"),
+            ("end_block", "float"),
+        ])
+        df = pd.DataFrame(columns=fields.keys())
+        return df.astype(fields)
 
     @classmethod
     def to_pyarrow_schema(cls, small_candles=False) -> pa.Schema:
@@ -230,3 +255,11 @@ class GroupedCandleUniverse(PairGroupedUniverse):
     def create_empty() -> "GroupedCandleUniverse":
         """Return an empty GroupedCandleUniverse"""
         return GroupedCandleUniverse(df=Candle.to_dataframe())
+
+    @staticmethod
+    def create_empty_qstrader() -> "GroupedCandleUniverse":
+        """Return an empty GroupedCandleUniverse.
+
+        TODO: Fix QSTrader to use "standard" column names.
+        """
+        return GroupedCandleUniverse(df=Candle.to_qstrader_dataframe(), timestamp_column="Date")

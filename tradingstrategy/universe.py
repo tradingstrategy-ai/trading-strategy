@@ -45,3 +45,11 @@ class Universe:
         :return: start,end range
         """
         return self.candles.get_timestamp_range()
+
+    def get_single_exchange(self) -> Exchange:
+        """For strategies that use only one exchange, get the exchange instance.
+
+        :raise: AssertationError if multiple exchanges preset
+        """
+        assert len(self.exchanges) == 1
+        return self.exchanges[0]

@@ -466,7 +466,10 @@ class PandasPairUniverse:
         return len(self.df)
 
     def get_unflagged_count(self) -> int:
-        """How many trading pairs there are that seem to be legit for analysis."""
+        """How many trading pairs there are that seem to be legit for analysis.
+
+        TODO: This will be removed in the future releases.
+        """
         raise NotImplementedError()
 
     def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
@@ -483,7 +486,7 @@ class PandasPairUniverse:
 
         df = self.df
 
-        pairs: pd.DataFrame= df.loc[df["pair_id"] == pair_id]
+        pairs: pd.DataFrame = df.loc[df["pair_id"] == pair_id]
 
         if len(pairs) > 1:
             raise DuplicatePair(f"Multiple pairs found for id {pair_id}")
