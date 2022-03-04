@@ -3,7 +3,7 @@
 Internal ids
 ============
 
-Trading Strategy has several datasets that refer to each other. For example pair dataset refers to exchange dataset via `exchange_id`.
+Trading Strategy has several datasets that refer to each other. For example pair dataset refers to exchange dataset via ``exchange_id``.
 
 These foreign keys, or primary keys, are not stable. They can across different datasets, when data is being healed or reimported.
 Always access the data using symbolic notation, called *slugs* or token symbols.
@@ -12,8 +12,11 @@ Duplicate token symbols
 -----------------------
 
 Exchanges may have duplicate trading pairs with the same token symbol. The duplicates are usually scam tokens.
-Trading Strategy access methods try automatically picked the real trading pair amount multiple entries by its trading volume.
-There is no curated list availble, so be careful when accessing tokens and trading pairs by their symbol.
+Trading Strategy access methods try to automatically pick the real trading pair among multiple entries by
+the pair's trading volume.
+
+.. warning::
+    There is no curated list available, so be careful when accessing tokens and trading pairs by their symbol.
 
 More information
 ----------------

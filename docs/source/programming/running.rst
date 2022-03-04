@@ -67,11 +67,11 @@ Writing your own notebook
 
 TODO
 
-[Get an example as a starting point from Github](https://github.com/miohtama/capitalgram-onchain-dex-quant-data/tree/master/docs/source).
+`Get an example as a starting point from GitHub <https://github.com/tradingstrategy-ai/client/tree/master/docs/source>`_.
 
-Check `examples and `algoritms` folder.
+Check the ``examples`` and the ``algoritms`` folder.
 
-Save `.ipynb` file locally.
+Save ``.ipynb`` file locally.
 
 Editing examples
 ~~~~~~~~~~~~~~~~
@@ -80,13 +80,13 @@ This is the best method if you want to edit the existing examples in the project
 
 Take a git checkout.
 
-Install using poetry.
+Install using poetry:
 
 .. code-block:: shell
 
     poetry install
 
-Then start Jupyter server at the root folder.
+Then start Jupyter server at the root folder:
 
 .. code-block:: shell
 
@@ -97,7 +97,7 @@ Navigate to a file you want to edit in your web browser.
 Terminal IPython and debugging with ipdb
 ----------------------------------------
 
-You might want to run notebooks in a terminal using `ipython` command e.g. for better debugging facilities.
+You might want to run notebooks in a terminal using ``ipython`` command e.g. for better debugging facilities.
 
 You can run example notebooks in a terminal after git checkout and poetry install:
 
@@ -105,4 +105,4 @@ You can run example notebooks in a terminal after git checkout and poetry instal
 
     ipython --TerminalIPythonApp.file_to_run=docs/source/programming/algorithms/pancakeswap-momentum.ipynb
 
-This is especially useful if you want to use `ipdb` or other well-established Python command line debuggers.
+This is especially useful if you want to use ``ipdb`` or other well-established Python command line debuggers.

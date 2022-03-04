@@ -11,7 +11,7 @@ a filtering criteria is applied to tokens and trading pairs being tracked.
 Trading pair filtering
 ----------------------
 
-The following criteria is applied for trading pairs.
+The following criteria is applied to trading pairs.
 
 We have the following kinds of data collection for a trading pair.
 
@@ -24,7 +24,7 @@ We have the following kinds of data collection for a trading pair.
   produced.
 
 * **Active pairs**: The oracle indexer is generating the market data
-  feed for this pairs. The market data feed includes data like OHLCV candles,
+  feed for this pair. The market data feed includes data like OHLCV candles,
   momentum, market cap and so on.
 
 Below is the criteria for a trading pair to be considered active:
@@ -94,9 +94,9 @@ Below is the criteria for a trading pair to be considered active:
                 </td>
                 <td>
                     The pair must meet the minimum trading activity threshold.
-                    This is a different for each blockchain (Ethereum, Binance Smart Chain).
+                    This is different for each blockchain (Ethereum, Binance Smart Chain).
                     The threshold may include numbers like the minimum number of swaps,
-                    and the minimum liquity.
+                    and the minimum liquidity.
                 </td>
             </tr>
 
@@ -112,10 +112,9 @@ Like trading pairs, tokens themselves have some eligibility criteria to be inclu
 * **Untracked tokens**: The data exist on a blockchain, but the oracle indexer does not
   read it at all. For example, tokens that are not being traded on any compatible exchange.
 
-* **Tracked tokens**: Tokens appear in any of tracked trading pairs.
+* **Tracked tokens**: Tokens appear in any of the tracked trading pairs.
 
-* **Active tokens**: Tokens appear in any of active trading pairs. These tokens have a token page created, showing the
-  the token market cap, available trading pairs and volume.
+* **Active tokens**: Tokens appear in any of active trading pairs. These tokens have a token page created, showing the  token market cap, available trading pairs and volume.
 
 Volume calculations
 -------------------
@@ -124,4 +123,4 @@ Volume can be only calculated for trading pairs with a supported quote token.
 If a trading pair has an unsupported quote token, as explained above, any trade on this pair is not included
 in the exchange or blockchain trading volume.
 
-This is because there must exist a stable, liquid, path to convert any trading volume to US dollar.
+This is because there must exist a stable, liquid path to convert any trading volume to US dollar.
