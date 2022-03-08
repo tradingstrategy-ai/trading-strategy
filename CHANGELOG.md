@@ -1,6 +1,9 @@
 # Current
 
+- Added `Client.create_live_client` for live trading
 - More helper functions to help unit testing
+- `tradingstrategy.utils.time` to check for incompatible `pandas.Timestamp` formats
+- Added `tradingstrategy.pair.filter_for_quote_tokens`
 
 # 0.5.1
 

@@ -1,6 +1,7 @@
 import os
 import tempfile
 from typing import Optional
+from pathlib import Path
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 from tqdm import TqdmExperimentalWarning
@@ -110,17 +111,14 @@ class Client:
         import matplotlib as mpl
         mpl.rcParams['figure.dpi'] = 600
 
-
     @classmethod
     def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
         """Create a new API client.
 
         :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
         """
-
         cls.preflight_check()
         cls.setup_notebook()
-
         env = JupyterEnvironment()
         config = env.setup_on_demand()
         transport = CachedHTTPTransport(download_with_progress_jupyter, cache_path=env.get_cache_path(), api_key=config.api_key)
@@ -141,4 +139,25 @@ class Client:
         env = JupyterEnvironment(cache_path=cache_path)
         config = Configuration(api_key=os.environ["TRADING_STRATEGY_API_KEY"])
         transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", api_key=config.api_key, cache_path=env.get_cache_path())
+        return Client(env, transport)
+
+    @classmethod
+    def create_live_client(cls, api_key: Optional[str]=None, cache_path: Optional[Path]=None) -> "Client":
+        """Create a live trading instance of the client.
+
+        The live client is non-interactive and logs using Python logger.
+
+        :param api_key: Trading Strategy oracle API key, starts with ``
+
+        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
+        """
+        cls.preflight_check()
+        cls.setup_notebook()
+        env = JupyterEnvironment()
+        if cache_path:
+            cache_path = cache_path.as_posix()
+        else:
+            cache_path = env.get_cache_path()
+        config = Configuration(api_key)
+        transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", cache_path=cache_path, api_key=config.api_key)
         return Client(env, transport)

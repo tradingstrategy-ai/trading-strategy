@@ -585,3 +585,24 @@ def filter_for_exchanges(pairs: pd.DataFrame, exchanges: List[Exchange]) -> pd.D
         (pairs['exchange_id'].isin(exchange_ids))
     ]
     return our_pairs
+
+
+def filter_for_quote_tokens(pairs: pd.DataFrame, quote_token_addresses: List[str]) -> pd.DataFrame:
+    """Filter dataset so that it only contains data for the trading pairs that have a certain quote tokens.
+
+    Useful as a preprocess step for creating :py:class:`tradingstrategy.candle.GroupedCandleUniverse`
+    or :py:class:`tradingstrategy.liquidity.GroupedLiquidityUniverse`.
+
+    You might, for example, want to construct a trading universe where you have only BUSD pairs.
+
+    :param quote_token_addresses: List of Ethereum addresses of the tokens - most be lowercased, as Ethereum addresses in our raw data are.
+    """
+    assert type(quote_token_addresses) == list
+
+    for addr in quote_token_addresses:
+        assert addr == addr.lower(), f"Address was not lowercased {addr}"
+
+    our_pairs: pd.DataFrame = pairs.loc[
+        (pairs['token0_address'].isin(quote_token_addresses) | pairs['token1_address'].isin(quote_token_addresses))
+    ]
+    return our_pairs

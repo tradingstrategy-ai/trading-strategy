@@ -184,7 +184,6 @@ class Candle:
         return schema
 
 
-
 @dataclass_json
 @dataclass
 class CandleResult:
@@ -218,7 +217,6 @@ class GroupedCandleUniverse(PairGroupedUniverse):
     def get_candles_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
         """Get candles for a single pair."""
         return self.get_samples_by_pair(pair_id)
-
 
     def get_closest_price(self, pair_id: PrimaryKey, when: pd.Timestamp, kind="close", look_back_time_frames=5) -> USDollarAmount:
         """Get the available liuqidity for a trading pair at a specific timepoint or some candles before the timepoint.

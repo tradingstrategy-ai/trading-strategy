@@ -9,7 +9,7 @@ from tradingstrategy.exchange import Exchange
 from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
-
+from tradingstrategy.utils.time import is_compatible_timestamp, assert_compatible_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,7 @@ class PairGroupedUniverse:
         :raise KeyError: The universe does not contain a sample for a given timepoint
         :return: A DataFrame that contains candles/samples at the specific timeout
         """
+        assert_compatible_timestamp(ts)
         samples = self.df.loc[self.df[self.timestamp_column] == ts]
         return samples
 
