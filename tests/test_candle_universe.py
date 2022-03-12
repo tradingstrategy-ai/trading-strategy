@@ -108,3 +108,36 @@ def test_samples_by_timestamp_range(persistent_test_client: Client):
     assert len(candles.loc[middle]) >= 1000
     assert len(candles.loc[end]) >= 1000
 
+
+def test_iterate_pairs_by_timestamp_range(persistent_test_client: Client):
+    """Iterate pairs candles by given timestamp range."""
+
+    client = persistent_test_client
+
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+    candle_universe = GroupedCandleUniverse(raw_candles)
+
+    # Calibrate our week
+    random_date = pd.Timestamp("2021-10-29")
+    end = candle_universe.get_prior_timestamp(random_date)
+
+    assert end == pd.Timestamp("2021-10-25")
+
+    # Because we ar using weekly candles,
+    # and start and end are inclusive endpoints,
+    # we should get 3 weeks of samples
+    start = pd.Timestamp(end) - pd.Timedelta(weeks=2)
+
+    for pair_id, pair_df in candle_universe.iterate_samples_by_pair_range(start, end):
+        # Because of missing samples, some pairs may have different ranges.
+        # In this example, we iterate 3 weeks ranges, so we can have data for
+        # 1, 2 or 3 weeks.
+        # If there was no data at all pair_id is not present in the result.
+        range_start = pair_df.index[0]
+        range_end = pair_df.index[-1]
+        assert range_start <= range_end
+        # Calculate the momentum for the full range of all samples
+        first_candle = pair_df.iloc[0]
+        last_candle = pair_df.iloc[-1]
+        # Calculate
+        momentum = (last_candle["close"] - first_candle["open"]) / first_candle["open"] - 1
