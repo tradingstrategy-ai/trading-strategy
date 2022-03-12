@@ -4,6 +4,8 @@
 - More helper functions to help unit testing
 - `tradingstrategy.utils.time` to check for incompatible `pandas.Timestamp` formats
 - Added `tradingstrategy.pair.filter_for_quote_tokens`
+- Added `get_all_samples_by_range` shortcut to get pair data
+- Added `get_prior_timestamp` to calibrate your clock with the existing time index
 
 # 0.5.1
 

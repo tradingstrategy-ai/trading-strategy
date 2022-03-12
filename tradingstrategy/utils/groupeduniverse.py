@@ -81,6 +81,49 @@ class PairGroupedUniverse:
         samples = self.df.loc[self.df[self.timestamp_column] == ts]
         return samples
 
+    def get_all_samples_by_range(self, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
+        """Get list of candles/samples for all pairs at a certain range.
+
+        Useful to get the last few samples for multiple pairs.
+
+        Example:
+
+        .. code-block:: python
+
+                # Set up timestamps for 3 weeks range, one week in middle
+                end = Timestamp('2021-10-25 00:00:00')
+                start = Timestamp('2021-10-11 00:00:00')
+                middle = start + (end - start) / 2
+
+                # Get weekly candles
+                raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+                candle_universe = GroupedCandleUniverse(raw_candles)
+                candles = candle_universe.get_all_samples_by_range(start, end)
+
+                # We have pair data for 3 different weeks
+                assert len(candles.index.unique()) == 3
+
+                # Each week has its of candles broken down by a pair
+                # and can be unique addressed by their pair_id
+                assert len(candles.loc[start]) >= 1000
+                assert len(candles.loc[middle]) >= 1000
+                assert len(candles.loc[end]) >= 1000
+
+        :param start: start of the range (inclusive)
+        :param end: end of the range (inclusive)
+        :return: A DataFrame that contains candles/samples for all pairs at the range.
+        """
+        assert_compatible_timestamp(start)
+        assert_compatible_timestamp(end)
+        assert start < end, f"Got reverse timestamp range {start} - {end}"
+
+        # https://stackoverflow.com/a/69605701/315168
+        samples = self.df.loc[
+            (self.df.index >= start) &
+            (self.df.index <= end)
+        ]
+        return samples
+
     def get_timestamp_range(self) -> Tuple[pd.Timestamp, pd.Timestamp]:
         """Return the time range of data we have for.
 
@@ -89,6 +132,29 @@ class PairGroupedUniverse:
         start = min(self.df[self.timestamp_column]).tz_localize(tz='UTC')
         end = max(self.df[self.timestamp_column]).tz_localize(tz='UTC')
         return start, end
+
+    def get_prior_timestamp(self, ts: pd.Timestamp) -> pd.Timestamp:
+        """Get the first timestamp in the index that is before the given timestamp.
+
+        This allows us to calibrate weekly/4 hours/etc. indexes to any given time..
+
+        Example:
+
+        .. code-block:: python
+
+            raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+            candle_universe = GroupedCandleUniverse(raw_candles)
+
+            # Calibrate our week
+            random_date = pd.Timestamp("2021-10-29")
+            weekly_ts_before = candle_universe.get_prior_timestamp(random_date)
+
+            assert weekly_ts_before == pd.Timestamp("2021-10-25")
+
+        :return: Any timestamp from the index that is before or at the same time of the given timestamp.
+        """
+        index = self.df.index
+        return index[index <= ts][-1]
 
 
 def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:

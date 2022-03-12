@@ -47,6 +47,11 @@ def test_grouped_candles(persistent_test_client: Client):
     assert min_price == pytest.approx(0.49680945)
 
 
+def test_empty_candle_universe():
+    universe = GroupedCandleUniverse.create_empty()
+    assert universe.get_candle_count() == 0
+
+
 def test_samples_by_timestamp(persistent_test_client: Client):
     """Get all OHLCV candles at a certain timestamp."""
 
@@ -70,6 +75,36 @@ def test_samples_by_timestamp(persistent_test_client: Client):
     assert candles.iloc[0].sells > 0
 
 
-def test_empty_candle_universe():
-    universe = GroupedCandleUniverse.create_empty()
-    assert universe.get_candle_count() == 0
+def test_samples_by_timestamp_range(persistent_test_client: Client):
+    """Get samples for multiple pairs by range."""
+
+    client = persistent_test_client
+
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+    candle_universe = GroupedCandleUniverse(raw_candles)
+
+    # Calibrate our week
+    random_date = pd.Timestamp("2021-10-29")
+    end = candle_universe.get_prior_timestamp(random_date)
+
+    assert end == pd.Timestamp("2021-10-25")
+
+    # Because we ar using weekly candles,
+    # and start and end are inclusive endpoints,
+    # we should get 3 weeks of samples
+    start = pd.Timestamp(end) - pd.Timedelta(weeks=2)
+
+    # there is one week between the start and the end
+    middle = start + (end - start) / 2
+
+    candles = candle_universe.get_all_samples_by_range(start, end)
+
+    # We have pair data for 3 different weeks
+    assert len(candles.index.unique()) == 3
+
+    # Each week has its of candles broken down by a pair
+    # and can be unique addressed by their pair_id
+    assert len(candles.loc[start]) >= 1000
+    assert len(candles.loc[middle]) >= 1000
+    assert len(candles.loc[end]) >= 1000
+
