@@ -34,6 +34,13 @@ class Client:
         self.env = env
         self.transport = transport
 
+    def clear_caches(self):
+        """Remove any cached data.
+
+        Cache is specific to the current transport.
+        """
+        self.transport.purge_cache()
+
     def fetch_pair_universe(self) -> pa.Table:
         """Fetch pair universe from local cache or the candle server.
 
