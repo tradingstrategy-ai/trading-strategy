@@ -98,7 +98,8 @@ class CachedHTTPTransport:
 
     def purge_cache(self):
         """Delete all cached files on the filesystem."""
-        shutil.rmtree(self.cache_period)
+        if os.path.exists(self.cache_path):
+            shutil.rmtree(self.cache_path)
 
     def save_response(self, fpath, api_path, params=None):
         """Download a file to the cache and display a pretty progress bar while doing it."""
