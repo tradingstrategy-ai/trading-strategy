@@ -43,3 +43,26 @@ def test_write_pyarrow_table():
     assert len(table) == 1
 
 
+def test_pair_info_url():
+    """We get a good info URLs"""
+
+    p = DEXPair(
+            pair_id=1,
+            chain_id=ChainId.ethereum,
+            exchange_id=1,
+            address="0x0000000000000000000000000000000000000000",
+            dex_type=PairType.uniswap_v2,
+            base_token_symbol="WETH",
+            quote_token_symbol="USDC",
+            token0_symbol="USDC",
+            token1_symbol="WETH",
+            token0_address="0x0000000000000000000000000000000000000000",
+            token1_address="0x0000000000000000000000000000000000000000",
+            exchange_slug="uniswap-v2",
+            pair_slug="eth-usdc",
+            flag_inactive=False,
+            flag_blacklisted_manually=False,
+            flag_unsupported_quote_token=False,
+            flag_unknown_exchange=False,
+        )
+    assert p.get_trading_pair_page_url() == "https://tradingstrategy.ai/trading-view/ethereum/uniswap-v2/eth-usdc"

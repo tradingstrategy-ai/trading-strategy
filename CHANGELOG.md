@@ -7,6 +7,7 @@
 - Added `get_all_samples_by_range`, `iterate_samples_by_pair_range` shortcut to get pair data
 - Added `get_prior_timestamp` to calibrate your clock with the existing time index
 - Added `Client.clear_caches` to ensure fresh data downloads
+- Added `DEXPair.exchange_slug` and `DEXPair.pair_slug` so we can point to web page URLs 
 
 # 0.5.1
 
