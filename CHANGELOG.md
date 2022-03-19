@@ -4,10 +4,11 @@
 - More helper functions to help unit testing
 - `tradingstrategy.utils.time` to check for incompatible `pandas.Timestamp` formats
 - Added `tradingstrategy.pair.filter_for_quote_tokens`
-- Added `get_all_samples_by_range`, `iterate_samples_by_pair_range` shortcut to get pair data
+- Added `get_all_samples_by_range`, `iterate_samples_by_pair_range` shortcuts to consume trading pair data in strategies
 - Added `get_prior_timestamp` to calibrate your clock with the existing time index
 - Added `Client.clear_caches` to ensure fresh data downloads
-- Added `DEXPair.exchange_slug` and `DEXPair.pair_slug` so we can point to web page URLs 
+- Added `DEXPair.exchange_slug` and `DEXPair.pair_slug` so we can point to web page URLs
+- Renamed `Sushiswap` -> `Sushi` as per their branding
 
 # 0.5.1
 

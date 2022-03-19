@@ -1,5 +1,6 @@
 """Test fixtures."""
 import logging
+import os
 
 import pytest
 import coloredlogs
@@ -28,6 +29,10 @@ def persistent_test_client() -> Client:
     """Create a client that never redownloads data in a local dev env.
     """
     c = Client.create_test_client("/tmp/trading-strategy-tests")
+
+    if os.environ.get("CLEAR_CACHES"):
+        c.clear_caches()
+
     return c
 
 

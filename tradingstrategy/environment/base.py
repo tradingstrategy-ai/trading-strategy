@@ -24,7 +24,10 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
 
     start = datetime.datetime.utcnow()
 
+    logger.info("Starting download %s", url)
+
     response = session.get(url, params=params, timeout=timeout)
+    initial_response = datetime.datetime.utcnow() - start
 
     headers = response.headers
     if "content-length" in headers:
@@ -38,5 +41,6 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
         for block in response.iter_content(8 * 1024):
             handle.write(block)
             fsize += len(block)
+            time_to_first_byte = datetime.datetime.utcnow() - start
     duration = datetime.datetime.utcnow() - start
-    logger.debug("Saved %s. Downloaded %d bytes in %s.", path, fsize, duration)
+    logger.info("Saved %s to %s. Downloaded %d bytes in %s. Time to initial response was: %s. Time to first byte was: %s.", url, path, fsize, duration, initial_response, time_to_first_byte)

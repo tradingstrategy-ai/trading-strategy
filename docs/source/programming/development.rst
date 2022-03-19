@@ -35,6 +35,13 @@ To run tests you need to have a Trading Strategy API key. Tests use the producti
 
 Tests are very slow.
 
+By default, tests cache any downloaded blobs. You can force the redownload with:
+
+.. code-block:: shell
+
+    CLEAR_CACHES=true pytest --log-cli-level=debug -k test_grouped_liquidity
+
+
 Dataset cache
 -------------
 
