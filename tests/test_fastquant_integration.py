@@ -37,7 +37,7 @@ def test_fastquant_smac(logger, persistent_test_client: Client):
     pair_universe = PandasPairUniverse(columnar_pair_table.to_pandas())
 
     # Pick SUSHI-USDT trading on SushiSwap
-    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushiswap")
+    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
     sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(
         sushi_swap.exchange_id,
         "SUSHI",

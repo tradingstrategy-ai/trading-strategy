@@ -21,7 +21,7 @@ def test_grouped_candles(persistent_test_client: Client):
     candle_universe = GroupedCandleUniverse(raw_candles)
 
     # Do some test calculations for a single pair
-    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushiswap")
+    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
     sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "USDT")
 
     sushi_usdt_candles = candle_universe.get_candles_by_pair(sushi_usdt.pair_id)

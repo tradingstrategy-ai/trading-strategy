@@ -64,7 +64,7 @@ def test_calculate_price_impact_from_dataset(persistent_test_client: Client):
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
 
     # Do some test calculations for a single pair
-    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushiswap")
+    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
     sushi_eth = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "WETH")
 
     # See https://help.sushidocs.com/products/sushiswap-exchange
@@ -132,7 +132,7 @@ def test_calculate_slippage_sample_too_far_in_past(persistent_test_client: Clien
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
 
     # Do some test calculations for a single pair
-    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushiswap")
+    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
     sushi_eth = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "WETH")
 
     price_impact_calculator = HistoricalXYPriceImpactCalculator(liquidity_universe)

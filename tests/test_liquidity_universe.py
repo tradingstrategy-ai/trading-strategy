@@ -23,7 +23,7 @@ def test_grouped_liquidity(persistent_test_client: Client):
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
 
     # Do some test calculations for a single pair
-    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushiswap")
+    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
     sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "USDT")
 
     sushi_usdt_liquidity_samples = liquidity_universe.get_samples_by_pair(sushi_usdt.pair_id)
@@ -120,7 +120,7 @@ def test_merge_liquidity_samples(persistent_test_client: Client):
     exchange_universe = client.fetch_exchange_universe()
 
     uniswap_v2 = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "uniswap v2")
-    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushiswap")
+    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
 
     raw_pairs = client.fetch_pair_universe().to_pandas()
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()

@@ -76,7 +76,7 @@ def test_backtrader_sma(logger, persistent_test_client: Client):
     candle_universe = GroupedCandleUniverse(raw_candles)
 
     # Do some test calculations for a single pair
-    # sushi_swap = exchange_universe.get_by_name_and_chain(ChainId.ethereum, "sushiswap")
+    # sushi_swap = exchange_universe.get_by_name_and_chain(ChainId.ethereum, "sushi")
     sushi_swap_exchange_id = 22  # Test Speed up
     sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap_exchange_id, "SUSHI", "USDT")
 

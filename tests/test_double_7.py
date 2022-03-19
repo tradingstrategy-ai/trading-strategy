@@ -194,7 +194,7 @@ def test_double_77(logger, persistent_test_client: Client):
     pair_universe = PandasPairUniverse(all_pairs_dataframe)
 
     # Filter down to pairs that only trade on Sushiswap
-    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushiswap")
+    sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
     pair = pair_universe.get_one_pair_from_pandas_universe(
         sushi_swap.exchange_id,
         TARGET_PAIR[0],

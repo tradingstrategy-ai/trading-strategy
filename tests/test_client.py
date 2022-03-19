@@ -47,7 +47,7 @@ def test_client_download_exchange_universe(client: Client, cache_path: str):
     assert universe.exchanges[1].exchange_slug == "uniswap-v2"
     assert universe.exchanges[1].chain_slug == "ethereum"
     assert universe.exchanges[1].address == "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f"
-    exchange = universe.get_by_chain_and_slug(ChainId.ethereum, "sushiswap")
+    exchange = universe.get_by_chain_and_slug(ChainId.ethereum, "sushi")
     assert exchange.name == "Sushiswap"
     assert exchange.address == "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac"
     exchange = universe.get_by_chain_and_name(ChainId.ethereum, "Shiba Swap")
