@@ -1,4 +1,4 @@
-# Current
+# 0.5.2
 
 - Added `Client.create_live_client` for live trading
 - More helper functions to help unit testing
