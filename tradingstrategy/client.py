@@ -145,7 +145,7 @@ class Client:
 
         env = JupyterEnvironment(cache_path=cache_path)
         config = Configuration(api_key=os.environ["TRADING_STRATEGY_API_KEY"])
-        transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", api_key=config.api_key, cache_path=env.get_cache_path())
+        transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", api_key=config.api_key, cache_path=env.get_cache_path(), timeout=60)
         return Client(env, transport)
 
     @classmethod
