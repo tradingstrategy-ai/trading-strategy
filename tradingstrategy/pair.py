@@ -228,11 +228,16 @@ class DEXPair:
             exchange_name = f"Exchange #{self.exchange_id}"
         return f"{self.base_token_symbol} - {self.quote_token_symbol}, pair #{self.pair_id} on {exchange_name}"
 
-    def get_trading_pair_page_url(self) -> str:
-        """Get information page for this trading pair."""
+    def get_trading_pair_page_url(self) -> Optional[str]:
+        """Get information page for this trading pair.
+
+        :return: URL of the trading pair page or None if page/data not available.
+        """
         chain_slug = self.chain_id.get_slug()
-        assert self.exchange_slug
-        assert self.pair_slug
+        if not self.exchange_slug:
+            return None
+        if not self.pair_slug:
+            return None
         return f"https://tradingstrategy.ai/trading-view/{chain_slug}/{self.exchange_slug}/{self.pair_slug}"
 
     def __json__(self, request):
