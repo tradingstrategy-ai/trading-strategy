@@ -22,17 +22,19 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
     :param timeout: Timeout in seconds.
     """
 
+    assert timeout > 0
+
     start = datetime.datetime.utcnow()
 
     logger.info("Starting download %s", url)
 
     # Work around the issue that HTTPS request get stuck on Github CI
     # https://github.com/tradingstrategy-ai/client/runs/5614200499?check_suite_focus=true
-    # https://docs.python-requests.org/en/v1.2.3/user/advanced/#body-content-workflow
     attempts = 5
     response = None
     while attempts > 0:
         try:
+            # https://docs.python-requests.org/en/v1.2.3/user/advanced/#body-content-workflow
             response = session.get(url, params=params, timeout=timeout, stream=True)
             break
         except ReadTimeout:
