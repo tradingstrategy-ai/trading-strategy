@@ -23,7 +23,7 @@ def test_grouped_candles(persistent_test_client: Client):
     # Do some test calculations for a single pair
     sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
     sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "USDT")
-
+    assert sushi_usdt.get_trading_pair_page_url() == "https://tradingstrategy.ai/trading-view/ethereum/sushi/sushi-usdt"
     sushi_usdt_candles = candle_universe.get_candles_by_pair(sushi_usdt.pair_id)
 
     # Get max and min weekly candle of SUSHI-USDT on SushiSwap

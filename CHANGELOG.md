@@ -1,3 +1,8 @@
+# Current
+
+- Fix download responses being buffered in CLI
+- Test for `get_trading_pair_page_url()` in the downloaded dataset
+
 # 0.5.2
 
 - Added `Client.create_live_client` for live trading

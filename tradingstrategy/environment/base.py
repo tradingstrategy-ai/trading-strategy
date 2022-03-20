@@ -29,7 +29,18 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
     # Work around the issue that HTTPS request get stuck on Github CI
     # https://github.com/tradingstrategy-ai/client/runs/5614200499?check_suite_focus=true
     # https://docs.python-requests.org/en/v1.2.3/user/advanced/#body-content-workflow
-    response = session.get(url, params=params, timeout=timeout, stream=True)
+    attempts = 5
+    response = None
+    while attempts > 0:
+        try:
+            response = session.get(url, params=params, timeout=timeout, stream=True)
+            break
+        except ReadTimeout:
+            attempts -= 1
+            timeout *= 2
+            if attempts <= 0:
+                raise
+            logger.warning("Timeout when reading URL %s. Attempts left: %d, current timeout %f", url, attempts, timeout)
 
     initial_response = datetime.datetime.utcnow() - start
 
