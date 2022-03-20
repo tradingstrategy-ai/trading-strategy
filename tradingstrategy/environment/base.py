@@ -3,7 +3,7 @@ import logging
 import time
 from abc import ABC
 
-from requests import Session
+from requests import Session, ReadTimeout
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,11 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
 
     logger.info("Starting download %s", url)
 
-    response = session.get(url, params=params, timeout=timeout)
+    # Work around the issue that HTTPS request get stuck on Github CI
+    # https://github.com/tradingstrategy-ai/client/runs/5614200499?check_suite_focus=true
+    # https://docs.python-requests.org/en/v1.2.3/user/advanced/#body-content-workflow
+    response = session.get(url, params=params, timeout=timeout, stream=True)
+
     initial_response = datetime.datetime.utcnow() - start
 
     headers = response.headers

@@ -56,6 +56,7 @@ class CachedHTTPTransport:
 
         self.requests = self.create_requests_client(api_key=api_key)
 
+        self.api_key = api_key
         self.timeout = timeout
 
     def create_requests_client(self, api_key: Optional[str] = None):
