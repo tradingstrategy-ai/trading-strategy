@@ -14,6 +14,7 @@ from tradingstrategy.timebucket import TimeBucket
 
 logger = logging.getLogger(__name__)
 
+
 class APIError(Exception):
     pass
 
@@ -100,6 +101,7 @@ class CachedHTTPTransport:
     def purge_cache(self):
         """Delete all cached files on the filesystem."""
         if os.path.exists(self.cache_path):
+            logger.info("Purging caches at %s", self.cache_path)
             shutil.rmtree(self.cache_path)
 
     def save_response(self, fpath, api_path, params=None):
