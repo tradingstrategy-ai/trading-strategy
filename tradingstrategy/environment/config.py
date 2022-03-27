@@ -1,4 +1,4 @@
-"""Clienet configuration."""
+"""Client configuration."""
 
 from dataclasses import dataclass
 from typing import Optional

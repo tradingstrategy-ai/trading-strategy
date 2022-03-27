@@ -9,6 +9,15 @@ import warnings
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
+
+with warnings.catch_warnings():
+    # Work around this warning
+    # ../../../Library/Caches/pypoetry/virtualenvs/tradeexecutor-Fzci9y7u-py3.9/lib/python3.9/site-packages/marshmallow/__init__.py:17
+    #   /Users/mikkoohtamaa/Library/Caches/pypoetry/virtualenvs/tradeexecutor-Fzci9y7u-py3.9/lib/python3.9/site-packages/marshmallow/__init__.py:17: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.
+    #     __version_info__ = tuple(LooseVersion(__version__).version)
+    warnings.simplefilter("ignore")
+    import dataclasses_json
+
 import pyarrow
 import pyarrow as pa
 from pyarrow import Table
