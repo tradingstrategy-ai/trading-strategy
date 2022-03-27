@@ -84,7 +84,7 @@ class CachedHTTPTransport:
         path = os.path.join(self.get_abs_cache_path(), fname)
         return path
 
-    def get_cached_item(self, fname) -> Optional[io.BytesIO]:
+    def get_cached_item(self, fname) -> Optional[pathlib.Path]:
 
         path = self.get_cached_file_path(fname)
         if not os.path.exists(path):
@@ -96,7 +96,7 @@ class CachedHTTPTransport:
             # File cache expired
             return None
 
-        return open(path, "rb")
+        return f
 
     def purge_cache(self):
         """Delete all cached files on the filesystem."""
@@ -126,7 +126,7 @@ class CachedHTTPTransport:
         """Not cached."""
         return self.get_json_response("chain-status", params={"chain_id": chain_id})
 
-    def fetch_pair_universe(self) -> io.BytesIO:
+    def fetch_pair_universe(self) -> pathlib.Path:
         fname = "pair-universe.parquet"
         cached = self.get_cached_item(fname)
         if cached:
@@ -137,7 +137,7 @@ class CachedHTTPTransport:
         self.save_response(path, "pair-universe")
         return self.get_cached_item(fname)
 
-    def fetch_exchange_universe(self) -> io.BytesIO:
+    def fetch_exchange_universe(self) -> pathlib.Path:
         fname = "exchange-universe.json"
         cached = self.get_cached_item(fname)
         if cached:
@@ -148,7 +148,7 @@ class CachedHTTPTransport:
         self.save_response(path, "exchange-universe")
         return self.get_cached_item(fname)
 
-    def fetch_candles_all_time(self, bucket: TimeBucket) -> io.BytesIO:
+    def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         assert isinstance(bucket, TimeBucket)
         fname = f"candles-{bucket.value}.parquet"
         cached = self.get_cached_item(fname)
@@ -159,7 +159,7 @@ class CachedHTTPTransport:
         self.save_response(path, "candles-all", params={"bucket": bucket.value})
         return self.get_cached_item(path)
 
-    def fetch_liquidity_all_time(self, bucket: TimeBucket) -> io.BytesIO:
+    def fetch_liquidity_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         fname = f"liquidity-samples-{bucket.value}.parquet"
         cached = self.get_cached_item(fname)
         if cached:
