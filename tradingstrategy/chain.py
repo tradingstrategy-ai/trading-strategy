@@ -42,7 +42,8 @@ def _ensure_chain_data_lazy_init():
             if not os.path.exists(data_file):
                 raise ChainDataDoesNotExist(f"Chain data does not exist: {data_file}")
 
-            _chain_data[chain_id] = json.load(open(data_file, "rt"))
+            with open(data_file, "rt") as inp:
+                _chain_data[chain_id] = json.load(inp)
 
         else:
 
