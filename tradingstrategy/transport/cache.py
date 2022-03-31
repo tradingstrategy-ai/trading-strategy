@@ -2,8 +2,7 @@ import datetime
 import io
 import os
 import pathlib
-import time
-from typing import List, Optional, Callable
+from typing import Optional, Callable
 import shutil
 import logging
 
