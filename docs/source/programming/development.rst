@@ -17,7 +17,7 @@ To install Trading Strategy using pip do:
 
 .. code-block:: shell
 
-    git clone # Get clone from the Github ...
+    git clone https://github.com/tradingstrategy-ai/trading-strategy.git
     # We have chains submodule
     git submodule update --recursive --init
     cd tradingstrategy
