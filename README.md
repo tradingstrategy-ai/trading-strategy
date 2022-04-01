@@ -43,18 +43,18 @@ Python 3.9+
 You can install this package with `poetry` or `pip`
 
 ```shell
-poetry add tradindstrategy
+poetry add trading-strategy
 ```
 
 
 ```shell
-pip install tradindstrategy 
+pip install trading-strategy 
 ```
 
 For [QSTrader](https://pypi.org/project/trading-strategy-qstrader/) based trading algorithm support you need to install the related optional dependencies:
 
 ```shell
-poetry add tradindstrategy[qstrader]
+poetry add trading-strategy[qstrader]
 ```
 
 # Documentation
