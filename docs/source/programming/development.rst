@@ -10,14 +10,16 @@ Preface
 
 In this chapter, we will discuss how to use `tradingstrategy` locally with your Python or Jupyter Notebook to development new strategies or the library itself.
 
-Installation for developer
---------------------------
+Installation for local development
+----------------------------------
 
 To install Trading Strategy using pip do:
 
 .. code-block:: shell
 
     git clone # Get clone from the Github ...
+    # We have chains submodule
+    git submodule update --recursive --init
     cd tradingstrategy
     poetry shell
     poetry install -E qstrader
