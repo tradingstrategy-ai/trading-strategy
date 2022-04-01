@@ -1,3 +1,8 @@
+# 0.6
+
+- Renaming the package `tradingstrategy` -> `trading-strategy` to be consistent with the package naming practices.
+  [See the new Github repository](https://github.com/tradingstrategy-ai/trading-strategy).
+
 # 0.5.3
 
 - Fix download responses being buffered in CLI

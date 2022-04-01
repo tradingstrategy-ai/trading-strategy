@@ -28,7 +28,7 @@ This is the recommended method for advanced strategy development.
 
 Install `Jupyter Visual Studio Code extension <https://code.visualstudio.com/docs/datascience/jupyter-notebooks>`_. Choosing a black-on-white theme recommended, because the default charts assume white background.
 
-Git clone the `Trading Strategy client repository from Github <https://github.com/tradingstrategy-ai/client/>`_.
+Git clone the `Trading Strategy client repository from Github <https://github.com/tradingstrategy-ai/trading-strategy/>`_.
 
 Install the client and its dependencies using `Poetry <https://python-poetry.org/>`_:
 
@@ -67,7 +67,7 @@ Writing your own notebook
 
 TODO
 
-`Get an example as a starting point from GitHub <https://github.com/tradingstrategy-ai/client/tree/master/docs/source>`_.
+`Get an example as a starting point from GitHub <https://github.com/tradingstrategy-ai/trading-strategy/tree/master/docs/source>`_.
 
 Check the ``examples`` and the ``algoritms`` folder.
 
