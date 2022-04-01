@@ -1,12 +1,12 @@
-[![CI Status](https://github.com/tradingstrategy-ai/client/actions/workflows/python-app.yml/badge.svg)](https://github.com/tradingstrategy-ai/client/actions/workflows/python-app.yml)
+[![CI Status](https://github.com/tradingstrategy-ai/trading-strategy/actions/workflows/python-app.yml/badge.svg)](https://github.com/tradingstrategy-ai/trading-strategy/actions/workflows/python-app.yml)
 
-[![pip installation works](https://github.com/tradingstrategy-ai/client/actions/workflows/pip-install.yml/badge.svg)](https://github.com/tradingstrategy-ai/client/actions/workflows/pip-install.yml)
+[![pip installation works](https://github.com/tradingstrategy-ai/trading-strategy/actions/workflows/pip-install.yml/badge.svg)](https://github.com/tradingstrategy-ai/trading-strategy/actions/workflows/pip-install.yml)
 
 [![Trading Strategy logo](https://hv4gxzchk24cqfezebn3ujjz6oy2kbtztv5vghn6kpbkjc3vg4rq.arweave.net/n8pMe2r9Wv3oQsPk4Swie55CZLgXWuExDsBOtczNdCY)](https://tradingstrategy.ai)
 
-# Trading Strategy protocol client
+# Trading Strategy Python framework
 
-Trading Strategy client is a Python library for algorithmic trading on blockchains. 
+Trading Strategy framework is a Python framework for algorithmic trading on decentralised exchanges. 
 It is using [backtesting data](https://tradingstrategy.ai/trading-view/backtesting) and [real-time price feeds](https://tradingstrategy.ai/trading-view)
 from [Trading Strategy Protocol](https://tradingstrategy.ai/). 
 
@@ -74,7 +74,7 @@ Community
 
 * [Telegram channel](https://twitter.com/TradingProtocol)
 
-* [Change log and release notes](https://github.com/tradingstrategy-ai/client/blob/master/CHANGELOG.md)
+* [Change log and release notes](https://github.com/tradingstrategy-ai/trading-strategy/blob/master/CHANGELOG.md)
 
 
 # Development
