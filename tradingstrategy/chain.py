@@ -34,11 +34,20 @@ def _ensure_chain_data_lazy_init():
         if not os.path.exists(path):
             raise RuntimeError(f"Chain data folder {path} not found. Make sure you have initialised git submodules or Python packaking is correct.\nHint: git submodule update --recursive --init")
 
-        data_file = os.path.join(path, f"eip155-{chain_id}.json")
-        if not os.path.exists(data_file):
-            raise ChainDataDoesNotExist(f"Chain data does not exist: {data_file}")
+        # Ganache does not have chain data entry
+        dataless = _CHAIN_DATA_OVERRIDES.get(chain_id, {}).get("dataless", False)
+        if not dataless:
 
-        _chain_data[chain_id] = json.load(open(data_file, "rt"))
+            data_file = os.path.join(path, f"eip155-{chain_id}.json")
+            if not os.path.exists(data_file):
+                raise ChainDataDoesNotExist(f"Chain data does not exist: {data_file}")
+
+            with open(data_file, "rt") as inp:
+                _chain_data[chain_id] = json.load(inp)
+
+        else:
+
+            _chain_data[chain_id] = {}
 
         # Apply our own chain data records
         _chain_data[chain_id].update(_CHAIN_DATA_OVERRIDES.get(chain_id, {}))
@@ -83,6 +92,10 @@ class ChainId(enum.Enum):
     #: This is also the value used by EthereumTester in unit tests.
     #: https://github.com/ethereum/eth-tester
     ethereum_classic = 61
+
+    #: Ganache test chain.
+    #: This is the chain id for Ganache local tester / mainnet forks.
+    ganache = 1337
 
     @property
     def data(self) -> dict:
@@ -174,6 +187,17 @@ _CHAIN_DATA_OVERRIDES = {
         "slug": "etc",
         "svg_icon": "https://upload.wikimedia.org/wikipedia/commons/0/05/Ethereum_logo_2014.svg",
         "active": False,
+    },
+
+    #
+    # Ganache test chain
+    #
+    1337: {
+        "name": "Ganache",
+        "slug": "ganache",
+        "svg_icon": None,
+        "active": False,
+        "dataless": True,
     },
 
 }

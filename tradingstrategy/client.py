@@ -1,13 +1,25 @@
 import os
 import tempfile
+import time
+from functools import wraps
 from typing import Optional
 from pathlib import Path
+import logging
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 from tqdm import TqdmExperimentalWarning
 import warnings
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
+
+
+with warnings.catch_warnings():
+    # Work around this warning
+    # ../../../Library/Caches/pypoetry/virtualenvs/tradeexecutor-Fzci9y7u-py3.9/lib/python3.9/site-packages/marshmallow/__init__.py:17
+    #   /Users/mikkoohtamaa/Library/Caches/pypoetry/virtualenvs/tradeexecutor-Fzci9y7u-py3.9/lib/python3.9/site-packages/marshmallow/__init__.py:17: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.
+    #     __version_info__ = tuple(LooseVersion(__version__).version)
+    warnings.simplefilter("ignore")
+    import dataclasses_json
 
 import pyarrow
 import pyarrow as pa
@@ -23,10 +35,41 @@ from tradingstrategy.environment.jupyter import JupyterEnvironment, download_wit
 from tradingstrategy.transport.cache import CachedHTTPTransport
 
 
+logger = logging.getLogger(__name__)
+
+
+def _retry_corrupted_parquet_fetch(method):
+    """A helper decorator to down with download/Parquet corruption issues.
+
+    Attempt download and read 3 times. If download is corrpted, clear caches.
+    """
+    # https://stackoverflow.com/a/36944992/315168
+    @wraps(method)
+    def impl(self, *method_args, **method_kwargs):
+        attempts = 3
+        while attempts > 0:
+            try:
+                return method(self, *method_args, **method_kwargs)
+            # TODO: Build expection list over the time by
+            # observing issues in production
+            except OSError as e:
+                if attempts > 0:
+                    logger.error("Damaged Parquet file fetch detected for method %s, attempting to re-fetch. Error was: %s", method, e)
+                    logger.exception(e)
+                    self.clear_caches()
+                    attempts -= 1
+                    time.sleep(30)
+                else:
+                    raise
+    return impl
+
+
 class Client:
     """An API client for querying the Capitalgram candle server.
 
     This client will download and manage cached datasets.
+    There is limited logic to retry downloads and dataset reads in the case of
+    data corruption.
     """
 
     def __init__(self, env: Environment, transport: CachedHTTPTransport):
@@ -41,21 +84,25 @@ class Client:
         """
         self.transport.purge_cache()
 
+    @_retry_corrupted_parquet_fetch
     def fetch_pair_universe(self) -> pa.Table:
         """Fetch pair universe from local cache or the candle server.
 
         The compressed file size is around 5 megabytes.
+
+        If the download seems to be corrupted, it will be attempted 3 times.
         """
-        stream = self.transport.fetch_pair_universe()
-        return read_parquet(stream)
+        path = self.transport.fetch_pair_universe()
+        return read_parquet(path)
 
     def fetch_exchange_universe(self) -> ExchangeUniverse:
         """Fetch list of all exchanges form the :term:`dataset server`.
         """
-        stream = self.transport.fetch_exchange_universe()
-        data = stream.read()
-        return ExchangeUniverse.from_json(data)
+        path = self.transport.fetch_exchange_universe()
+        with path.open("rt") as inp:
+            return ExchangeUniverse.from_json(inp.read())
 
+    @_retry_corrupted_parquet_fetch
     def fetch_all_candles(self, bucket: TimeBucket) -> pyarrow.Table:
         """Get cached blob of candle data of a certain candle width.
 
@@ -65,10 +112,13 @@ class Client:
         The returned data is saved in PyArrow Parquet format.
 
         For more information see :py:class:`tradingstrategy.candle.Candle`.
-        """
-        stream = self.transport.fetch_candles_all_time(bucket)
-        return read_parquet(stream)
 
+        If the download seems to be corrupted, it will be attempted 3 times.
+        """
+        path = self.transport.fetch_candles_all_time(bucket)
+        return read_parquet(path)
+
+    @_retry_corrupted_parquet_fetch
     def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:
         """Get cached blob of liquidity events of a certain time window.
 
@@ -78,9 +128,11 @@ class Client:
         The returned data is saved in PyArrow Parquet format.
         
         For more information see :py:class:`tradingstrategy.liquidity.XYLiquidity`.
+
+        If the download seems to be corrupted, it will be attempted 3 times.
         """
-        stream = self.transport.fetch_liquidity_all_time(bucket)
-        return read_parquet(stream)
+        path = self.transport.fetch_liquidity_all_time(bucket)
+        return read_parquet(path)
 
     def fetch_chain_status(self, chain_id: ChainId) -> dict:
         """Get live information about how a certain blockchain indexing and candle creation is doing."""

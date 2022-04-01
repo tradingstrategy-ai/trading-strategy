@@ -87,14 +87,6 @@ class DEXPair:
     #: What kind of exchange this pair is on
     dex_type: PairType
 
-    #: Naturalised base and quote token.
-    #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
-    #: However we humans always want the quote token to be USD, or ETH or BTC.
-    #: For the reverse token orders, the candle serve swaps the token order
-    #: so that the quote token is the more natural token of the pair (in the above case USD)
-    base_token_symbol: str
-    quote_token_symbol: str
-
     #: token0 as in raw Uniswap data
     token0_symbol: str
 
@@ -122,6 +114,14 @@ class DEXPair:
 
     #: Pair is listed on an exchange we do not if it is good or not
     flag_unknown_exchange: bool
+
+    #: Naturalised base and quote token.
+    #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
+    #: However we humans always want the quote token to be USD, or ETH or BTC.
+    #: For the reverse token orders, the candle serve swaps the token order
+    #: so that the quote token is the more natural token of the pair (in the above case USD)
+    base_token_symbol: Optional[str] = None
+    quote_token_symbol: Optional[str] = None
 
     #: Denormalised web page and API look up information
     exchange_slug: Optional[str] = None

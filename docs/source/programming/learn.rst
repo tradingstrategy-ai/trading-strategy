@@ -46,6 +46,12 @@ Backtesting option strategy with Backtrader
 
 An example tutorial. `Read post <https://www.programmersought.com/article/53086652859/>`__.
 
+ML Algotrading Wiki
+-------------------
+
+A wiki website with research and various news sources.
+`MLTraders’ Algotrading and Machine Learning work for everybody. <https://mltraders.wiki/>`_.
+
 Books, tutorials and courses on Jupyter Notebook
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

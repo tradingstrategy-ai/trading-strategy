@@ -2,6 +2,7 @@
 
 - Fix download responses being buffered in CLI
 - Test for `get_trading_pair_page_url()` in the downloaded dataset
+- Added support for Ganacher tester chain
 
 # 0.5.2
 
