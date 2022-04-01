@@ -1,4 +1,8 @@
-"""Test code for double-77 trading strategy on ETH-USDC pair."""
+"""Test code for double-77 trading strategy on ETH-USDC pair.
+
+See the https://tradingstrategy.ai/docs/programming/algorithms/double-7.html
+"""
+
 from ipywidgets import HTML
 from typing import Optional
 
