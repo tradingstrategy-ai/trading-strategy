@@ -59,6 +59,22 @@ Now you can run `Getting started <https://tradingstrategy.ai/docs/programming/ex
 .. image:: vscode.png
     :alt: Visual Studio Code example how to run a Jupyter Notebook
 
+Apple macOS on M1 ARM CPUs
+--------------------------
+
+Some dependencies, namely `numpy` are notorious difficult to install on new M1 CPU based Macs.
+Here are some instructions for Macs only:
+
+Before running installer, make sure you use OpenBLAS correctly from Homebrew:
+
+.. code-block::shell
+
+    brew install openblas
+    export OPENBLAS="$(brew --prefix openblas)"
+
+
+
+
 Local Jupyter Server
 --------------------
 

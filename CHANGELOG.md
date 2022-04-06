@@ -1,3 +1,7 @@
+# 0.6.1
+
+- Fix Macbook M1, macOS, arm64 compatibility. Updated Scipy, Pyarrow and Numpy dependencies.
+
 # 0.6
 
 - Renaming the package `tradingstrategy` -> `trading-strategy` to be consistent with the package naming practices.
