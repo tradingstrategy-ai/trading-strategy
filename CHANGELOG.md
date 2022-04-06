@@ -1,3 +1,7 @@
+# 0.6.2
+
+- Fix broken build
+
 # 0.6.1
 
 - Fix Macbook M1, macOS, arm64 compatibility. Updated Scipy, Pyarrow and Numpy dependencies.

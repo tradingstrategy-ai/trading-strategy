@@ -16,7 +16,7 @@ from [Trading Strategy Protocol](https://tradingstrategy.ai/).
 
 * Creating trading algorithms and trading bots that trade on DEXes
 
-* Deploy investable trading strategies as on-chain smart contracts
+* Deploy trading strategies as on-chain smart contracts where users can invest and withdraw with their wallets
 
 # Features
 
