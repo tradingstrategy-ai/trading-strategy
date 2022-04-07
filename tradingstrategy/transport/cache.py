@@ -30,7 +30,8 @@ class CachedHTTPTransport:
                  cache_period =datetime.timedelta(days=3),
                  cache_path: Optional[str] = None,
                  api_key: Optional[str] = None,
-                 timeout: float = 15.0):
+                 timeout: float = 15.0,
+                 add_exception_hook=True):
         """
         :param download_func: Interactive download progress bar displayed during the download
         :param endpoint: API server we are using - default is `https://tradingstrategy.ai/api`
@@ -38,6 +39,7 @@ class CachedHTTPTransport:
         :param cache_path: Where we store the downloaded files
         :param api_key: Trading Strategy API key to use download
         :param timeout: requests HTTP lib timeout
+        :param add_exception_hook: Automatically raise an error in the case of HTTP error. Prevents auto retries.
         """
 
         self.download_func = download_func
@@ -59,17 +61,21 @@ class CachedHTTPTransport:
         self.api_key = api_key
         self.timeout = timeout
 
-    def create_requests_client(self, api_key: Optional[str] = None):
-        """Create HTTP 1.1 keep-alive connection to the server with optional authorization details."""
+    def create_requests_client(self, api_key: Optional[str] = None, add_exception_hook=True):
+        """Create HTTP 1.1 keep-alive connection to the server with optional authorization details.
+
+        :param add_exception_hook: Automatically raise an error in the case of HTTP error
+        """
 
         session = requests.Session()
 
         if api_key:
             session.headers.update({'Authorization': api_key})
 
-        def exception_hook(response: Response, *args, **kwargs):
-            if response.status_code >= 400:
-                raise APIError(f"Server error reply: code:{response.status_code} message:{response.text}")
+        if add_exception_hook:
+            def exception_hook(response: Response, *args, **kwargs):
+                if response.status_code >= 400:
+                    raise APIError(f"Server error reply: code:{response.status_code} message:{response.text}")
 
         session.hooks = {
             "response": exception_hook,

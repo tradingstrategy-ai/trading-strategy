@@ -64,15 +64,6 @@ def _retry_corrupted_parquet_fetch(method):
                     time.sleep(30)
                 else:
                     raise
-            except APIError as e:
-                # This happens when we get HTTP 502 from the server
-                if attempts > 0:
-                    logger.error("Got bad reply from the oracle data API method %s, attempting to call again. Error was: %s", method, e)
-                    logger.exception(e)
-                    attempts -= 1
-                    time.sleep(30)
-                else:
-                    raise
 
     return impl
 
@@ -231,5 +222,10 @@ class Client:
         else:
             cache_path = env.get_cache_path()
         config = Configuration(api_key)
-        transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", cache_path=cache_path, api_key=config.api_key)
+        transport = CachedHTTPTransport(
+            download_with_progress_plain,
+            "https://tradingstrategy.ai/api",
+            cache_path=cache_path,
+            api_key=config.api_key,
+            add_exception_hook=False)
         return Client(env, transport)

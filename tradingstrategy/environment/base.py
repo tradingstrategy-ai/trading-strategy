@@ -30,7 +30,7 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
 
     # Work around the issue that HTTPS request get stuck on Github CI
     # https://github.com/tradingstrategy-ai/client/runs/5614200499?check_suite_focus=true
-    attempts = 5
+    attempts = max_attempts = 5
     response = None
     while attempts > 0:
         try:
@@ -39,10 +39,14 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
             break
         except ReadTimeout:
             attempts -= 1
-            timeout *= 2
             if attempts <= 0:
                 raise
             logger.warning("Timeout when reading URL %s. Attempts left: %d, current timeout %f", url, attempts, timeout)
+            time.sleep(timeout)
+            timeout *= 2
+
+    if attempts != max_attempts:
+        logger.warning("Recovered download with attempts left: %d, %s", attempts, url)
 
     initial_response = datetime.datetime.utcnow() - start
 
