@@ -53,14 +53,27 @@ def _retry_corrupted_parquet_fetch(method):
             # TODO: Build expection list over the time by
             # observing issues in production
             except OSError as e:
+                # This happens when we download Parquet file, but it is missing half
+                # e.g. due to interrupted download
                 if attempts > 0:
                     logger.error("Damaged Parquet file fetch detected for method %s, attempting to re-fetch. Error was: %s", method, e)
                     logger.exception(e)
+                    # TODO: Only clear the damaged file, not all caches
                     self.clear_caches()
                     attempts -= 1
                     time.sleep(30)
                 else:
                     raise
+            except APIError as e:
+                # This happens when we get HTTP 502 from the server
+                if attempts > 0:
+                    logger.error("Got bad reply from the oracle data API method %s, attempting to call again. Error was: %s", method, e)
+                    logger.exception(e)
+                    attempts -= 1
+                    time.sleep(30)
+                else:
+                    raise
+
     return impl
 
 
