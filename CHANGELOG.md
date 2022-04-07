@@ -1,3 +1,7 @@
+# Current
+
+- Fix download retries in live trading
+
 # 0.6.2
 
 - Fix broken build
