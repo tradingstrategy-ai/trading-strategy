@@ -1,4 +1,4 @@
-# Current
+# 0.6.3
 
 - Fix download retries in live trading
 - Add `stablecoin` module for upcoming stablecoin support fuctions

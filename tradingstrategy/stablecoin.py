@@ -20,6 +20,9 @@ def is_stablecoin_like(token_symbol: str, symbol_list=ALL_STABLECOIN_LIKE) -> bo
     Useful for quickly filtering stable/stable pairs in the pools.
     However, you should never rely on this check alone.
 
+    Note that new stablecoins might be introduced, so this check
+    is never going to be future proof.
+
     :param token_symbol:
         Token symbol as it is written on the contract.
         May contain lower and uppercase latter.

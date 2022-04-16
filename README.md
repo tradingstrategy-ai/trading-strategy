@@ -74,7 +74,7 @@ Community
 
 * [Telegram channel](https://twitter.com/TradingProtocol)
 
-* [Change log and release notes](https://github.com/tradingstrategy-ai/trading-strategy/blob/master/CHANGELOG.md)
+* [Changelog and version history](https://github.com/tradingstrategy-ai/trading-strategy/blob/master/CHANGELOG.md)
 
 
 [Read more documentation how to develop this package](https://tradingstrategy.ai/docs/programming/development.html).
