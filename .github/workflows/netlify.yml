@@ -32,7 +32,8 @@ jobs:
       run: |
         poetry env use '3.9'
         python -V
-        sphinx-build -M html "docs/source" "docs/build"
+        echo $PATH
+        poetry run sphinx-build -M html "docs/source" "docs/build"
     - name: Pre-check
       run: |
         mkdir /tmp/site
