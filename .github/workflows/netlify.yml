@@ -28,6 +28,7 @@ jobs:
         sudo apt-get install -y pandoc
         poetry env use '3.9'
         poetry install
+        pip install importlib-resources
     - name: Build documentation
       run: |
         poetry env use '3.9'
