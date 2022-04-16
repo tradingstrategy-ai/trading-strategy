@@ -31,7 +31,7 @@ jobs:
         pip install importlib-resources
     - name: Build documentation
       run: |
-        rm /usr/bin/python3.8
+        sudo rm /usr/bin/python3.8
         poetry env use '3.9'
         python -V
         which python
