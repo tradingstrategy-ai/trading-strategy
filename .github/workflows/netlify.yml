@@ -30,7 +30,8 @@ jobs:
         poetry install
     - name: Build documentation
       run: |
-        make build-docs
+        poetry env use '3.9'
+        poetry run sphinx-build -M html "docs/source" "docs/build"
     - name: Pre-check
       run: |
         mkdir /tmp/site
