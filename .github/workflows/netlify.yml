@@ -31,14 +31,17 @@ jobs:
         pip install importlib-resources
     - name: Build documentation
       run: |
+        rm /usr/bin/python3.8
         poetry env use '3.9'
         python -V
         which python
         echo $PATH
         PYTHON=`poetry env info -p`/bin/python
         SPHINX=`poetry env info -p`/bin/sphinx-build
+        LIB=`poetry env info -p`/lib        
         echo "Using Python $PYTHON"
         echo "Using Sphinx $SPHINX"
+        ls -lha $LIB
         $PYTHON $SPHINX -M html "docs/source" "docs/build" -vv
     - name: Pre-check
       run: |
