@@ -34,9 +34,11 @@ jobs:
         python -V
         which python
         echo $PATH
+        PYTHON=`poetry env info -p`/bin/python
         SPHINX=`poetry env info -p`/bin/sphinx-build
+        echo "Using Python $PYTHON"
         echo "Using Sphinx $SPHINX"
-        $SPHINX -M html "docs/source" "docs/build"
+        $PYTHON $SPHINX -M html "docs/source" "docs/build"
     - name: Pre-check
       run: |
         mkdir /tmp/site
