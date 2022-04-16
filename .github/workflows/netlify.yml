@@ -22,13 +22,11 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: 3.9
-        cache: 'poetry'
     - name: Install dependencies
       run: |
         sudo apt-get install -y pandoc
         poetry env use '3.9'
         poetry install
-        pip install importlib-resources
     - name: Build documentation
       run: |        
         poetry env use '3.9'
