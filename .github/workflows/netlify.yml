@@ -31,7 +31,7 @@ jobs:
     - name: Build documentation
       run: |
         poetry env use '3.9'
-        cd docs && poetry run make html
+        cd docs && make html
     - name: Pre-check
       run: |
         mkdir /tmp/site
