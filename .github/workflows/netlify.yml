@@ -30,6 +30,7 @@ jobs:
         poetry install
     - name: Build documentation
       run: |
+        poetry env use '3.9'
         cd docs && poetry run make html
     - name: Pre-check
       run: |
