@@ -26,9 +26,10 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get install -y pandoc
+        poetry env use '3.9'
+        poetry install
     - name: Build documentation
       run: |
-        poetry --help
         cd docs && poetry run make html
     - name: Pre-check
       run: |
