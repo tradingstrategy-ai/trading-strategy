@@ -30,8 +30,7 @@ jobs:
         poetry install
     - name: Build documentation
       run: |
-        poetry env use '3.9'
-        cd docs && make html
+        make build-docs
     - name: Pre-check
       run: |
         mkdir /tmp/site
