@@ -60,6 +60,11 @@ Jupyter Notebook basics
 
 A tutorial by Dataquest. `Read more <https://www.dataquest.io/blog/jupyter-notebook-tutorial/>`__.
 
+Vectorised backtesting with Pandas
+----------------------------------
+
+A tutorial by Yao Lei Xu. `Read more <https://towardsdatascience.com/backtest-trading-strategies-with-pandas-vectorized-backtesting-26001b0ba3a5>`__.
+
 Algorithmic trading frameworks for Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
