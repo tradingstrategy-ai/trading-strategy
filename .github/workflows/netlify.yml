@@ -31,6 +31,7 @@ jobs:
     - name: Build documentation
       run: |
         poetry env use '3.9'
+        python -V
         poetry run sphinx-build -M html "docs/source" "docs/build"
     - name: Pre-check
       run: |
