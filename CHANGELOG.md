@@ -1,6 +1,9 @@
 # Current
 
 - Fix download retries in live trading
+- Add `stablecoin` module for upcoming stablecoin support fuctions
+- Add `DEXPair.convert_to_dataframe` 
+- Add `filter_for_stablecoins` 
 
 # 0.6.2
 

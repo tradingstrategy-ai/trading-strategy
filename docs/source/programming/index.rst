@@ -63,6 +63,7 @@ API documentation
    api/timebucket
    api/caip
    api/priceimpact
+   api/stablecoin
    api/types
    api/tradeanalyzer
    api/portfolioanalyzer
