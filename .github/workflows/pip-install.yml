@@ -9,7 +9,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  check-pip-install:
 
     runs-on: ubuntu-latest
 
