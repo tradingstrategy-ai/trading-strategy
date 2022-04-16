@@ -20,13 +20,15 @@ jobs:
       run: pipx install poetry
     - name: Set up Python 3.9
       uses: actions/setup-python@v3
+      # If caches were enabled, it was caching Python 3.8 interpreter
+      # causing the docs build to fails
       with:
         python-version: 3.9
     - name: Install dependencies
       run: |
         sudo apt-get install -y pandoc
         poetry env use '3.9'
-        poetry install
+        poetry install -vv
     - name: Build documentation
       run: |        
         poetry env use '3.9'
@@ -39,8 +41,11 @@ jobs:
         echo "Using Python $PYTHON"
         echo "Using Sphinx $SPHINX"
         ls -lha $LIB
+        # This was an issue with cached builds
+        # Make sure there is no wrong version 
+        # of Python on the system
         sudo rm /usr/bin/python3.8
-        $PYTHON $SPHINX -M html "docs/source" "docs/build" -vv
+        $PYTHON $SPHINX -M html "docs/source" "docs/build"
     - name: Pre-check
       run: |
         mkdir /tmp/site
