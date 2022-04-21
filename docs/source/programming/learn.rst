@@ -191,4 +191,5 @@ Other
 
 - `Detecting scams on Uniswap <https://arxiv.org/abs/2109.00229>`__.
 
+- `Backtesting Uniswap v3 strategies <https://medium.com/coinmonks/a-real-world-framework-for-backtesting-uniswap-v3-strategies-88825abdcd17>`_
 
