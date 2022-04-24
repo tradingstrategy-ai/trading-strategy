@@ -125,10 +125,6 @@ Glossary
 
         Liquidity refers to the depth of the order books: how much volume a single trade can achieve without moving the price. It can be expressed as :term:`slippage` or absolute depth of the order book. The latter is very easy for :term:`AMM` based exchanges where the liquidity is a continuous function. Trading Strategy provides :term:`datasets <dataset>` for AMM liquidity in :py:mod:`capitalgram.liquidity` module.
 
-    Slippage
-
-        Slippage tells you how much you will lose in a trade because there is not enough :term:`liquidity` to satisfy the deal. `More information <https://www.investopedia.com/terms/s/slippage.asp>`__.
-
     Yield farming
 
         Pooling assets of multiple people for passive trading strategies. Usually yield farming pools rely on liquidity mining token distribution which they immediately sell (auto compounding). Yield farms operate solely on smart contracts and their strategies are limited. Yield farms almost always take zero market risk agains their :term:`quote token`.
