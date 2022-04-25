@@ -193,3 +193,5 @@ Other
 
 - `Backtesting Uniswap v3 strategies <https://medium.com/coinmonks/a-real-world-framework-for-backtesting-uniswap-v3-strategies-88825abdcd17>`_
 
+- `The 7 Reasons Most Machine Learning Funds Fail <https://youtu.be/BRUlSm4gdQ4>`_
+
