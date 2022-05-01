@@ -20,24 +20,25 @@ Deflationary tokens have a transfer fee feature:
 - The token tax term is not used for the native gas token on a blockchain,
   like Ether (ETH) on Ethereum, where any transfer fee is considered to be a natural part of the core protocol.
   The token tax term applies more to ERC-20 like tokens which historically have lacked
-  transfer fee features.
+  transfer fee features. There is no terminology standard, so different terms
+  are applied in different contexts.
 
 - Different "taxes" may apply to different type of of transactions like
   buy, sell and treasury management.
 
-Deflationary rationale
-----------------------
+Token and deflationary rationale
+--------------------------------
 
 Token tax and deflationary tokens attempts to create more sustainable tokenomics,
 where some of the fees captured from token transfers are redirected to the protocol revenue
 and development.
 
-The most successful deflationary token has been `ZCash <https://www.coindesk.com/tech/2020/11/18/zcash-undergoes-first-halving-as-major-upgrade-drops-founders-reward/>`_
+The most successful taxed token has been `ZCash <https://www.coindesk.com/tech/2020/11/18/zcash-undergoes-first-halving-as-major-upgrade-drops-founders-reward/>`_
 with its "Founder reward":
 
 - 80% of ZCash transaction fee went to miners.
 
-- 20% of ZCash tranaction fee went to the founders, to offset the cost of developing the protocol.
+- 20% of ZCash tranaction fee went to the founders (Electric Coin co.), to offset the cost of developing the protocol.
 
 Instead of raising large amount of capital upfront to support the
 software development related to ZCash, the development was feed from stable revenue streams
