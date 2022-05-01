@@ -14,9 +14,13 @@ Deflationary tokens have a transfer fee feature:
 
 - Token tax usually reduces the token supply, thus creating deflationary tokens.
 
+- Token tax can redirect some of transfer and trading fees to the
+  development fund and grants of the protocol, to guarantee sustainable protocol development.
+
 - The token tax term is not used for the native gas token on a blockchain,
-  like Ether (ETH) on Ethereum where any transfer fee is considered to be a natural part of the core protocol,
-  whereas this is not the case for ERC-20 tokens.
+  like Ether (ETH) on Ethereum, where any transfer fee is considered to be a natural part of the core protocol.
+  The token tax term applies more to ERC-20 like tokens which historically have lacked
+  transfer fee features.
 
 - Different "taxes" may apply to different type of of transactions like
   buy, sell and treasury management.
