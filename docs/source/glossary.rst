@@ -270,3 +270,14 @@ Glossary
 
         `More information about the mid price on Uniswap documentation <https://docs.uniswap.org/sdk/2.0.0/guides/pricing>`_.
 
+    Technical analysis
+
+        A branch of finance that tries to predict prices and good trades based on market data.
+
+        `Read more on Wikipedia <https://en.wikipedia.org/wiki/Technical_analysis>`_.
+
+    Rug pull
+
+        A project where the development team or founders decide to maliciously cash out early, not
+        fulfilling their promises and disappear with the investor money.
+

@@ -11,6 +11,7 @@ Overview
    examples/getting-started
    running
    tracking
+   token-tax
    datasets
    referenceprice
    internal-id
