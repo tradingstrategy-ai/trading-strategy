@@ -26,8 +26,8 @@ Deflationary tokens have a transfer fee feature:
 - Different "taxes" may apply to different type of of transactions like
   buy, sell and treasury management.
 
-Token and deflationary rationale
---------------------------------
+Transfer fee and deflationary rationale
+---------------------------------------
 
 Token tax and deflationary tokens attempts to create more sustainable tokenomics,
 where some of the fees captured from token transfers are redirected to the protocol revenue
@@ -49,6 +49,12 @@ of the protocol.
 Many of deflationary tokens have strong "ponzinomcs", although they are not real ponzis
 by the definiton of a ponzi. The tokenomics are designed in a way that it discourages
 short term holding or active trading and encourages long term investing.
+
+.. note ::
+
+    Although Bitcoin is claimed to be deflationary, it is currently inflationary
+    and is going to be non-inflationary after all 21 million coins have been mined.
+    Bitcoin protocol does not burn, redirect or otherwise reduce supply on transfers.
 
 Issues
 ------
