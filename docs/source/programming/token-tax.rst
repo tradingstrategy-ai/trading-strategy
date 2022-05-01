@@ -147,6 +147,39 @@ Trading Strategy attempts to measure in the different life cycles of token tradi
     won't change their tax structure, creating a honey pot and effective rug pull.
     Never trade taxed tokens unless you are willing to lose all of your capital.
 
+Real-time API example
+~~~~~~~~~~~~~~~~~~~~~
+
+Here is an example to get a token tax for popular Sushiswap v2 trading pair on Ethereum mainnet:
+
+.. code-block:: shell
+
+    curl -X GET "https://tradingstrategy.ai/api/pair-details?exchange_slug=sushiswap&chain_slug=ethereum&pair_slug=ETH-USDC" -H  "accept: application/json"
+
+.. code-block:: json
+
+    {
+      "additional_details": {
+        "chain_name": "Ethereum",
+        "chain_link": "https://ethereum.org",
+        "chain_logo": "https://upload.wikimedia.org/wikipedia/commons/0/05/Ethereum_logo_2014.svg",
+        "exchange_name": "Sushi",
+        "pair_contract_address": "0x397ff1542f962076d0bfe58ea045ffa2d347aca0",
+        "first_trade_at": "2020-09-09T21:31:51",
+        "last_trade_at": "2022-05-01T17:35:02",
+        "trade_link": "https://app.sushi.com/swap?inputCurrency=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48&outputCurrency=ETH",
+        "buy_link": "https://app.sushi.com/swap?inputCurrency=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48&outputCurrency=ETH",
+        "sell_link": "https://app.sushi.com/swap?inputCurrency=ETH&outputCurrency=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "explorer_link": "https://etherscan.io/address/0x397ff1542f962076d0bfe58ea045ffa2d347aca0",
+        "pair_explorer_link": "https://etherscan.io/address/0x397ff1542f962076d0bfe58ea045ffa2d347aca0",
+        "base_token_explorer_link": "https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "quote_token_explorer_link": "https://etherscan.io/address/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "buy_tax": 0,
+        "transfer_tax": 0,
+        "sell_tax": 0
+      }
+    }
+
 Token tax error codes
 ~~~~~~~~~~~~~~~~~~~~~
 
