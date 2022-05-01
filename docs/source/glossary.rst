@@ -281,3 +281,5 @@ Glossary
         A project where the development team or founders decide to maliciously cash out early, not
         fulfilling their promises and disappear with the investor money.
 
+        `One of the most famous rug pulls is Anubis ($60M taken) <https://decrypt.co/84924/anubisdao-investors-lose-60-million-in-alleged-rug-pull>`_.
+

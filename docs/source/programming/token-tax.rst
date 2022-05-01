@@ -48,8 +48,9 @@ short term holding or active trading and encourages long term investing.
 Issues
 ------
 
-All native gas tokens are "taxed". E.g. when you transfer ETH on Ethereum mainnet, some of ETH gets burnt in the transaction.
-However, the concept of transfer fee has not taken off outside the native gas tokens.
+All native gas tokens on blockchains are "taxed". E.g. when you transfer ETH on Ethereum mainnet, some of ETH gets burnt in the transaction,
+or given to the block producers.
+However, this concept of transfer fee has not taken off outside the native gas tokens.
 Because accounting the token tax is difficult, it is not realistic to see any one deflationary tokens
 to be listed on centralised exchanges any time in the future.
 
