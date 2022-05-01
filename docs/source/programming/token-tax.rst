@@ -89,7 +89,7 @@ Other kind of honepoys
 include tokens with name spam that mimics popular tokens (AAVE, USDC) in hope to have someone accidentally
 buying the fake token.
 
-.. note ::
+.. warning ::
 
     If you lose money by buying a honeypot token you are not going to get your money back.
 
@@ -97,14 +97,14 @@ Token tax data
 --------------
 
 Trading Strategy includes token tax and deflation data as part of its dataset.
-Data is collected by trading pair (not by token), because different tax rules can apply
-to transactions based on the underlying activity. Different liquidity pools have different addresses
-and thus tax can vary trading pair by trading pair, although most of taxed tokens have a flat
-tax on all transactions.
+Data is collected by a trading pair, not by a token, because different taxes may apply
+to transactions based on the underlying activity. E.g. different liquidity pools have different addresses
+and thus tax can vary between trading and transfer activities, although most of taxed tokens have the same flat
+tax across all transfers.
 
-- Example of a taxed trading pair
+- Example of a taxed trading pair (TODO)
 
-- Example of a non-taxed trading pair
+- Example of a non-taxed trading pair (TODO)
 
 Token tax data is available at
 
