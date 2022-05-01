@@ -52,9 +52,12 @@ short term holding or active trading and encourages long term investing.
 
 .. note ::
 
+    Here we use terms *deflationary* and *inflationary* in a technical protocol context.
     Although Bitcoin is claimed to be deflationary, it is currently inflationary
-    and is going to be non-inflationary after all 21 million coins have been mined.
+    and is going to be "non-inflationary" after all 21 million coins have been mined.
     Bitcoin protocol does not burn, redirect or otherwise reduce supply on transfers.
+    Bitcoin might be deflationary as monetary policy wise, but it is not deflationary
+    technically.
 
 Issues
 ------
