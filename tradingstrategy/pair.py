@@ -192,6 +192,18 @@ class DEXPair:
     # Trading pairs with same token symbol combinations, but no notable volume
     clone_pairs: Optional[List[PrimaryKey]] = None
 
+    #: Buy token tax for this trading pair.
+    #: See :ref:`token-tax` for details.
+    buy_tax: Optional[float] = None
+
+    #: Transfer token tax for this trading pair.
+    #: See :ref:`token-tax` for details.
+    transfer_tax: Optional[float] = None
+
+    #: Sell tax for this trading pair.
+    #: See :ref:`token-tax` for details.
+    sell_tax: Optional[float] = None
+
     def __repr__(self):
         chain_name = self.chain_id.get_slug()
         return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange #{self.exchange_id} on {chain_name}>"

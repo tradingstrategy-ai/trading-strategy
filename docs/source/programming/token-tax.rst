@@ -4,15 +4,21 @@ Token tax and deflationary tokens
 =================================
 
 A "token" tax is often used term to describe deflationary tokens.
-Deflationary tokens that have a transfer fee feature:
+Deflationary tokens have a transfer fee feature:
 
-- Each time a token is transferred, some of the token is burned
+- Each time a token is transferred, some of the transferred amount is burned,
+  redirected or otherwise taxed.
 
-- Token tax is paid by the holder who initiates the transfer: initiated transfer amount > received transfer amount
+- Token tax is usually paid by the holder who initiates the transfer. The tax is
+  taken from the sent amount during the transfer: initiated transfer amount > received transfer amount.
 
-- The token is not native gas token to the blockchain, like ETH on Ethereum
+- Token tax usually reduces the token supply, thus creating deflationary tokens.
 
-- Different "token taxes" may apply to different type of of transactions like
+- The token tax term is not used for the native gas token on a blockchain,
+  like Ether (ETH) on Ethereum where any transfer fee is considered to be a natural part of the core protocol,
+  whereas this is not the case for ERC-20 tokens.
+
+- Different "taxes" may apply to different type of of transactions like
   buy, sell and treasury management.
 
 Deflationary rationale
@@ -25,102 +31,19 @@ and development.
 The most successful deflationary token has been `ZCash <https://www.coindesk.com/tech/2020/11/18/zcash-undergoes-first-halving-as-major-upgrade-drops-founders-reward/>`_
 with its "Founder reward":
 
-- 80% of ZCash transaction fee went to miners
+- 80% of ZCash transaction fee went to miners.
 
-- 20% of ZCash tranaction fee went to the founders, to offset the cost of developing the protocol
+- 20% of ZCash tranaction fee went to the founders, to offset the cost of developing the protocol.
 
 Instead of raising large amount of capital upfront to support the
 software development related to ZCash, the development was feed from stable revenue streams
 of the protocol.
+`The founder reward mechanism was controversial in the cryptocurrency community
+<https://crypto.news/zcash-zec-halves-founder-reward/>`_.
 
 Many of deflationary tokens have strong "ponzinomcs", although they are not real ponzis
 by the definiton of a ponzi. The tokenomics are designed in a way that it discourages
 short term holding or active trading and encourages long term investing.
-
-Development of deflationary tokens
-----------------------------------
-
-ERC-20 tokens do not have a clean interface to describe deflationary behavior.
-Thus, a manual offchain database about taxes on tokens needs to be maintained.
-
-A token tax is usually implemented as a complicated ERC-20 `_transfer()` function
-that checks for various whitelisted addresses and then constructs `fee`
-for the transfer based on a logic.
-
-Example of a Solidity code for a token with transfer tax:
-
-.. code-block::
-
-
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) private {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
-        require(amount > 0, "Transfer amount must be greater than zero");
-
-        // is the token balance of this contract address over the min number of
-        // tokens that we need to initiate a swap + liquidity lock?
-        // also, don't get caught in a circular liquidity event.
-        // also, don't swap & liquify if sender is uniswap pair.
-        uint256 contractTokenBalance = balanceOf(address(this));
-
-
-        bool overMinTokenBalance = contractTokenBalance >= numTokensSellToAddToLiquidity;
-        if (
-            overMinTokenBalance &&
-            !inSwapAndLiquify &&
-            from != uniswapV2Pair &&
-            swapAndLiquifyEnabled
-        ) {
-            contractTokenBalance = numTokensSellToAddToLiquidity;
-            //add liquidity
-            swapAndLiquify(contractTokenBalance);
-        }
-
-        //indicates if fee should be deducted from transfer
-        bool takeFee = true;
-
-        //if any account belongs to _isExcludedFromFee account then remove the fee
-        if(_isExcludedFromFee[from] || _isExcludedFromFee[to]){
-            takeFee = false;
-        }
-
-        //transfer amount, it will take tax, burn, liquidity fee
-        _tokenTransfer(from,to,amount,takeFee);
-    }
-
-    //this method is responsible for taking all fee, if takeFee is true
-    function _tokenTransfer(address sender, address recipient, uint256 amount,bool takeFee) private {
-        if(!takeFee)
-            removeAllFee();
-
-        if (_isExcluded[sender] && !_isExcluded[recipient]) {
-            _transferFromExcluded(sender, recipient, amount);
-        } else if (!_isExcluded[sender] && _isExcluded[recipient]) {
-            _transferToExcluded(sender, recipient, amount);
-        } else if (!_isExcluded[sender] && !_isExcluded[recipient]) {
-            _transferStandard(sender, recipient, amount);
-        } else if (_isExcluded[sender] && _isExcluded[recipient]) {
-            _transferBothExcluded(sender, recipient, amount);
-        } else {
-            _transferStandard(sender, recipient, amount);
-        }
-
-        if(!takeFee)
-            restoreAllFee();
-    }
-
-    function _transferStandard(address sender, address recipient, uint256 tAmount) private {
-        (uint256 rAmount, uint256 rTransferAmount, uint256 rFee, uint256 tTransferAmount, uint256 tFee, uint256 tLiquidity) = _getValues(tAmount);
-        _rOwned[sender] = _rOwned[sender].sub(rAmount);
-        _rOwned[recipient] = _rOwned[recipient].add(rTransferAmount);
-        _takeLiquidity(tLiquidity);
-        _reflectFee(rFee, tFee);
-        emit Transfer(sender, recipient, tTransferAmount);
-    }
 
 Issues
 ------
@@ -201,10 +124,109 @@ E.g.
 
     5% / 5% / 5%
 
-Trading Strategy attemps to measure in the different life cycles of token trading.
+Trading Strategy attempts to measure in the different life cycles of token trading.
 
 .. warning::
 
-    Measured token tax is not real-time and there is no guarantees tokens with bad governance
-    won't change their tax structure creating a honey pot and effective rug pull.
-    Never trade token tax tokens unless you are willing to lose all of your capital.
+    Measured token tax is not real-time and there is no guarantees that tokens with bad governance
+    won't change their tax structure, creating a honey pot and effective rug pull.
+    Never trade taxed tokens unless you are willing to lose all of your capital.
+
+Token tax error codes
+~~~~~~~~~~~~~~~~~~~~~
+
+For machine readable data:
+
+- The tax percent is presented as 0.0...1 (100%) floating point.
+
+- Values > 1 are error codes meaning the token tax measurement has failed
+  and token is most likely out of liquidity, broken or a honeypot.
+
+- Missing data or null values indicate the has not been measured yet.
+
+- The final list of error codes is To Be Done.
+
+Development of deflationary tokens
+----------------------------------
+
+ERC-20 tokens do not have a clean interface to describe deflationary behavior.
+Thus, a manual off-chain database about taxes on tokens needs to be maintained.
+
+A token tax is usually implemented as a complicated ERC-20 `_transfer()` function
+that checks for various whitelisted addresses and then constructs `fee`
+for the transfer based on a logic.
+
+Example of a Solidity code for a token with transfer tax:
+
+.. code-block::
+
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) private {
+        require(from != address(0), "ERC20: transfer from the zero address");
+        require(to != address(0), "ERC20: transfer to the zero address");
+        require(amount > 0, "Transfer amount must be greater than zero");
+
+        // is the token balance of this contract address over the min number of
+        // tokens that we need to initiate a swap + liquidity lock?
+        // also, don't get caught in a circular liquidity event.
+        // also, don't swap & liquify if sender is uniswap pair.
+        uint256 contractTokenBalance = balanceOf(address(this));
+
+
+        bool overMinTokenBalance = contractTokenBalance >= numTokensSellToAddToLiquidity;
+        if (
+            overMinTokenBalance &&
+            !inSwapAndLiquify &&
+            from != uniswapV2Pair &&
+            swapAndLiquifyEnabled
+        ) {
+            contractTokenBalance = numTokensSellToAddToLiquidity;
+            //add liquidity
+            swapAndLiquify(contractTokenBalance);
+        }
+
+        //indicates if fee should be deducted from transfer
+        bool takeFee = true;
+
+        //if any account belongs to _isExcludedFromFee account then remove the fee
+        if(_isExcludedFromFee[from] || _isExcludedFromFee[to]){
+            takeFee = false;
+        }
+
+        //transfer amount, it will take tax, burn, liquidity fee
+        _tokenTransfer(from,to,amount,takeFee);
+    }
+
+    //this method is responsible for taking all fee, if takeFee is true
+    function _tokenTransfer(address sender, address recipient, uint256 amount,bool takeFee) private {
+        if(!takeFee)
+            removeAllFee();
+
+        if (_isExcluded[sender] && !_isExcluded[recipient]) {
+            _transferFromExcluded(sender, recipient, amount);
+        } else if (!_isExcluded[sender] && _isExcluded[recipient]) {
+            _transferToExcluded(sender, recipient, amount);
+        } else if (!_isExcluded[sender] && !_isExcluded[recipient]) {
+            _transferStandard(sender, recipient, amount);
+        } else if (_isExcluded[sender] && _isExcluded[recipient]) {
+            _transferBothExcluded(sender, recipient, amount);
+        } else {
+            _transferStandard(sender, recipient, amount);
+        }
+
+        if(!takeFee)
+            restoreAllFee();
+    }
+
+    function _transferStandard(address sender, address recipient, uint256 tAmount) private {
+        (uint256 rAmount, uint256 rTransferAmount, uint256 rFee, uint256 tTransferAmount, uint256 tFee, uint256 tLiquidity) = _getValues(tAmount);
+        _rOwned[sender] = _rOwned[sender].sub(rAmount);
+        _rOwned[recipient] = _rOwned[recipient].add(rTransferAmount);
+        _takeLiquidity(tLiquidity);
+        _reflectFee(rFee, tFee);
+        emit Transfer(sender, recipient, tTransferAmount);
+    }
