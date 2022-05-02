@@ -31,7 +31,7 @@ Glossary
     Smart contract
 
         An automated transactional service running on any of the blockchains supporting smart contracts. Typically
-        runs on Ethereum based blockchain and is written in the Solidity programming language.
+        runs on Ethereum-based blockchain and is written in the Solidity programming language.
 
     Jupyter notebook
 
@@ -39,7 +39,7 @@ Glossary
 
     Pandas
 
-        A popular Python based data analysis library.  `More information <https://pandas.pydata.org/>`__.
+        A popular Python-based data analysis library.  `More information <https://pandas.pydata.org/>`__.
 
     Uniswap
 

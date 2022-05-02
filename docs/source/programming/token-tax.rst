@@ -3,19 +3,19 @@
 Token tax and deflationary tokens
 =================================
 
-A "token" tax is often used term to describe deflationary tokens.
-Deflationary tokens have a transfer fee feature:
+A "token" tax is often used term to describe tokens with transfer fees 
+that cause deflation or redistribute trade profits to the protocol development:
 
-- Each time a token is transferred, some of the transferred amount is burned,
-  redirected or otherwise taxed.
+- Each time a token is transferred, some of the transferred amounts are burned,
+  redirected to a development fund or otherwise "taxed".
 
 - Token tax is usually paid by the holder who initiates the transfer. The tax is
   taken from the sent amount during the transfer: initiated transfer amount > received transfer amount.
 
 - Token tax usually reduces the token supply, thus creating deflationary tokens.
 
-- Token tax can redirect some of transfer and trading fees to the
-  development fund and grants of the protocol, to guarantee sustainable protocol development.
+- Token tax can redirect some of the transfer and trading fees to the
+  development fund and grants of the protocol to guarantee sustainable protocol development.
 
 - The token tax term is not used for the native gas token on a blockchain,
   like Ether (ETH) on Ethereum, where any transfer fee is considered to be a natural part of the core protocol.
@@ -23,93 +23,93 @@ Deflationary tokens have a transfer fee feature:
   transfer fee features. There is no terminology standard, so different terms
   are applied in different contexts.
 
-- Different "taxes" may apply to different type of of transactions like
-  buy, sell and treasury management.
+- Different "taxes" may apply to different types of transactions like
+  buy, sell, and treasury management.
 
 Transfer fee and deflationary rationale
 ---------------------------------------
 
-Token tax and deflationary tokens attempts to create more sustainable tokenomics,
+Token tax and deflationary tokens attempt to create more sustainable tokenomics,
 where some of the fees captured from token transfers are redirected to the protocol revenue
 and development.
 
 The most successful taxed token has been `ZCash <https://www.coindesk.com/tech/2020/11/18/zcash-undergoes-first-halving-as-major-upgrade-drops-founders-reward/>`_
 with its "Founder reward":
 
-- 80% of ZCash transaction fee went to miners.
+- 80% of the ZCash transaction fee went to miners.
 
-- 20% of ZCash tranaction fee went to the founders (Electric Coin co.), to offset the cost of developing the protocol.
+- 20% of the ZCash transaction fee went to the founders (Electric Coin co.), to offset the cost of developing the protocol.
 
-Instead of raising large amount of capital upfront to support the
-software development related to ZCash, the development was feed from stable revenue streams
+Instead of raising a large amount of capital upfront to support the
+software development related to ZCash, the development was funded from stable revenue streams
 of the protocol.
 `The founder reward mechanism was controversial in the cryptocurrency community
 <https://crypto.news/zcash-zec-halves-founder-reward/>`_.
 
-Many of deflationary tokens have strong "ponzinomcs", although they are not real ponzis
-by the definiton of a ponzi. The tokenomics are designed in a way that it discourages
-short term holding or active trading and encourages long term investing.
+Many deflationary tokens have strong "ponzinomcs" even though they are not real ponzis
+by the definition of a ponzi. The tokenomics are designed to discourage
+short-term speculation and to encourage long-term investing.
 
 .. note ::
 
-    Here we use terms *deflationary* and *inflationary* in a technical protocol context.
+    Here we use the terms *deflationary* and *inflationary* in a technical protocol context.
     Although Bitcoin is claimed to be deflationary, it is currently inflationary
     and is going to be "non-inflationary" after all 21 million coins have been mined.
     Bitcoin protocol does not burn, redirect or otherwise reduce supply on transfers.
-    Bitcoin might be deflationary as monetary policy wise, but it is not deflationary
-    technically.
+    Bitcoin might be deflationary monetary policy-wise, but it is not deflationary
+    accounting-wise.
 
 Issues
 ------
 
-All native gas tokens on blockchains are "taxed". E.g. when you transfer ETH on Ethereum mainnet, some of ETH gets burnt in the transaction,
+All native gas tokens on blockchains are "taxed". E.g. when you transfer ETH on Ethereum mainnet, some of the ETH gets burnt in the transaction,
 or given to the block producers.
-However, this concept of transfer fee has not taken off outside the native gas tokens.
-Because accounting the token tax is difficult, it is not realistic to see any one deflationary tokens
-to be listed on centralised exchanges any time in the future.
+
+However, the concept of a transfer fee has not taken off outside the native gas tokens.
+Because accounting for the token tax is difficult, it is not realistic to see deflationary tokens
+listed on centralized exchanges.
 
 So far, there hasn't been any successfully mainstream token, outside native gas tokens,
-that would implement a token tax feature. Most taxed tokens rely on tokenomics on their success and lack
+that would implement a token tax feature. Most taxed tokens rely on tokenomics for their success and lack
 fundamental value creation and innovation.
 
-Token tax based projects often have anonymous teams and weak governance. Because token tax can be updated
-by a governance, sometimes rogue dev team flip the token tax to 100% creating so-called honeypot and
+Token tax-based projects often have anonymous teams and weak governance. Usually, the token tax rate can be updated
+by the governance. Sometimes rogue dev teams flip the token tax to 100% creating a so-called honeypot and
 causing a project :term:`rug pull`.
 
-Despite issues on taxed tokens, some tokens have had a good lifecycle and build enough
-capital through fair launch on taxes that could have made long term development sustainable.
+Despite the issues with taxed tokens, some of them have had a good lifecycle and built enough
+capital through a fair launch. Tax on tokens could be one of the keys to long-term sustainable development.
 For example, `Elephant Money <https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2/elephant-busd>`_ was doing ok before they had an
 `incident with flash loans <https://twitter.com/BlockSecTeam/status/1513966074357698563?ref_src=twsrc%5Etfw%7Ctwcamp%5Etweetembed%7Ctwterm%5E1513966074357698563%7Ctwgr%5E%7Ctwcon%5Es1_&ref_url=https%3A%2F%2Fu.today%2Felephant-money-defi-hacked-are-funds-safu>`_
 allowing attackers `to get away with $11M <https://therecord.media/hackers-steal-more-than-11-million-from-elephant-money-defi-platform/>`_.
 
-Honeypots and other risks
--------------------------
+Honeypots and other "rug pull" risks
+------------------------------------
 
 Because different token taxes may apply to different transactions based on source and destination addresses,
 wacky baiting games can be played, especially on automated traders.
 
-So called honeypots are tokens that are baiting algorithmic trading to buy them.
-These tokens have promising looking :term:`OHLCV` data to make it look like an attractive
+So-called honeypots are tokens that are baiting algorithmic trading to buy them.
+These tokens have promising :term:`OHLCV` data to make it look like an attractive
 buy from a :term:`technical analysis` perspective.
 
-However these tokens are often "buy only" with 100% sell tax, so one won't be able to sell these token.
-
-Other kind of honepoys
-include tokens with name spam that mimics popular tokens (AAVE, USDC) in hope to have someone accidentally
-buying the fake token.
+The catch is that these tokens are often "buy only" wit a h 100% sell tax, 
+so that one effectively won't be able to sell these tokens.
 
 .. warning ::
 
-    If you lose money by buying a honeypot token you are not going to get your money back.
+    If you lose money by buying a honeypot token, you will not get your money back.
 
 Token tax data
 --------------
 
-Trading Strategy includes token tax and deflation data as part of its dataset.
+Trading Strategy includes token tax and deflation data as a part of its datasets.
+
 Data is collected by a trading pair, not by a token, because different taxes may apply
-to transactions based on the underlying activity. E.g. different liquidity pools have different addresses
-and thus tax can vary between trading and transfer activities, although most of taxed tokens have the same flat
-tax across all transfers.
+to transactions based on the underlying activity. 
+Most taxed tokens have the same flat tax across all transfers, but this is not always the case.
+For example, different liquidity pools have different addresses, 
+and thus the coded token tax can differ between these pools. 
 
 - Example of a taxed trading pair (TODO)
 
@@ -117,7 +117,7 @@ tax across all transfers.
 
 Token tax data is available at
 
-- `Trading Strategy web site <https://tradingstrategy.ai/>`_: See *Token tax* entry for each trading pair
+- `Trading Strategy website <https://tradingstrategy.ai/>`_: See *Token tax* entry for each trading pair
 
 - `Real-time APIs <https://tradingstrategy.ai/api/explorer/>`_: See `PairDetails` structure
 
@@ -139,11 +139,11 @@ E.g.
 
     5% / 5% / 5%
 
-Trading Strategy attempts to measure in the different life cycles of token trading.
+Trading Strategy attempts to measure the different life cycles of token trading.
 
 .. warning::
 
-    Measured token tax is not real-time and there is no guarantees that tokens with bad governance
+    Token tax measurements are not real-time. There are no guarantees that tokens with bad governance
     won't change their tax structure, creating a honey pot and effective rug pull.
     Never trade taxed tokens unless you are willing to lose all of your capital.
 
