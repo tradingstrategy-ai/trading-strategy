@@ -3,7 +3,7 @@
 Token tax and deflationary tokens
 =================================
 
-A "token" tax is often used term to describe tokens with transfer fees 
+A "token" tax is often used term to describe tokens with **transfer fees**
 that cause deflation or redistribute trade profits to the protocol development:
 
 - Each time a token is transferred, some of the transferred amounts are burned,
