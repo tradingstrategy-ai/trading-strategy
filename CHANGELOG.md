@@ -4,6 +4,7 @@
 - Add `stablecoin` module for upcoming stablecoin support fuctions
 - Add `DEXPair.convert_to_dataframe` 
 - Add `filter_for_stablecoins` 
+- Add `buy_tax`, `transfer_tax`, `sell_tax` to [trading pair datasets](https://tradingstrategy.ai/docs/programming/api/pair.html)  
 
 # 0.6.2
 
