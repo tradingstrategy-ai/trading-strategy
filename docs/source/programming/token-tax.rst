@@ -111,10 +111,6 @@ Most taxed tokens have the same flat tax across all transfers, but this is not a
 For example, different liquidity pools have different addresses, 
 and thus the coded token tax can differ between these pools. 
 
-- Example of a taxed trading pair (TODO)
-
-- Example of a non-taxed trading pair (TODO)
-
 Token tax data is available at
 
 - `Trading Strategy website <https://tradingstrategy.ai/>`_: See *Token tax* entry for each trading pair
@@ -124,14 +120,16 @@ Token tax data is available at
 - `Backtesting datasets <https://tradingstrategy.ai/trading-view/backtesting>`_:
    See :py:mod:`tradingstrategy.pair` module.
 
-Token tax presentation
-----------------------
+Transfer fees presentation
+--------------------------
 
-Trading Strategy represents token tax in the format of:
+Trading Strategy measures token transfer fees in different life cycles of token trading.
+
+Trading Strategy presents transfer fees in the format of:
 
 .. code-block::
 
-    buy tax / transfer tax / sell tax
+    buy tax % / transfer tax % / sell tax %
 
 E.g.
 
@@ -139,13 +137,27 @@ E.g.
 
     5% / 5% / 5%
 
-Trading Strategy attempts to measure the different life cycles of token trading.
-
 .. warning::
 
     Token tax measurements are not real-time. There are no guarantees that tokens with bad governance
     won't change their tax structure, creating a honey pot and effective rug pull.
     Never trade taxed tokens unless you are willing to lose all of your capital.
+
+Token tax examples
+~~~~~~~~~~~~~~~~~~
+
+Here are some examples of different token taxes:
+
+- `Example of a taxed trading pair: ELEPHANT-BUSD on PancakeSwap <https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2/elephant-bnb-2>`_ - 10% tax
+
+- `Example of a non-taxed trading pair: BNB-USDT on PancakeSwap <https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2/bnb-usdt>`_ - no fees
+
+- `Example of a token with buy and sell tax, but no transfer tax: DHOLD-ETH on Uniswap <https://tradingstrategy.ai/trading-view/ethereum/uniswap-v2/dhold-eth>`_ - taxed 10%/0%/10%
+
+- `Example of a honeypot trading pair: BNB-USDT <https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2/bnb-usdt>`_ - cannot sell
+
+- `Example of too low liquidity trading pair: Omega Protocol Money-ETH on Uniswap <https://tradingstrategy.ai/trading-view/ethereum/uniswap-v2/opm-eth-2>`_ - cannot measure tax because there is not enough liquidity to trade
+
 
 Real-time API example
 ~~~~~~~~~~~~~~~~~~~~~
