@@ -154,7 +154,7 @@ Here are some examples of different token taxes:
 
 - `Example of a token with buy and sell tax, but no transfer tax: DHOLD-ETH on Uniswap <https://tradingstrategy.ai/trading-view/ethereum/uniswap-v2/dhold-eth>`_ - taxed 10%/0%/10%
 
-- `Example of a honeypot trading pair: BNB-USDT <https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2/bnb-usdt>`_ - cannot sell
+- `Example of a honeypot trading pair: JST-BNB <https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2/jst-bnb-2>`_ - In practice, one cannot sell Jump Satoshi token and it can be considered as a honeypot. Even if the fact that it is in practice unsellable is disclosed in the whitepaper, the token smart contract source code is obfuscated. The BSCScan comment section is filled wiht angry users.
 
 - `Example of too low liquidity trading pair: Omega Protocol Money-ETH on Uniswap <https://tradingstrategy.ai/trading-view/ethereum/uniswap-v2/opm-eth-2>`_ - cannot measure tax because there is not enough liquidity to trade
 

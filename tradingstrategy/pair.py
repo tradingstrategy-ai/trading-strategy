@@ -88,10 +88,12 @@ class DEXPair:
     #: What kind of exchange this pair is on
     dex_type: PairType
 
-    #: token0 as in raw Uniswap data
+    #: Token0 as in raw Uniswap data.
+    #: ERC-20 contracst are not guaranteed to have this data.
     token0_symbol: str
 
-    #: token1 as in raw Uniswap data
+    #: Token1 as in raw Uniswap data
+    #: ERC-20 contracst are not guaranteed to have this data.
     token1_symbol: str
 
     #: Token pair contract address on-chain
