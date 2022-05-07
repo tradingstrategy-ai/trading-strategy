@@ -1,6 +1,6 @@
 """Helper class to manage trading universes."""
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import Tuple, Set
 
 import pandas as pd
 
@@ -8,7 +8,7 @@ from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.liquidity import GroupedLiquidityUniverse
-from tradingstrategy.pair import DEXPair, PandasPairUniverse
+from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 
 
@@ -23,10 +23,10 @@ class Universe:
     time_frame: TimeBucket
 
     #: List of blockchains the strategy trades on
-    chains: List[ChainId]
+    chains: Set[ChainId]
 
     #: List of exchanges the strategy trades on
-    exchanges: List[Exchange]
+    exchanges: Set[Exchange]
 
     #: List of trading pairs the strategy trades on
     pairs: PandasPairUniverse

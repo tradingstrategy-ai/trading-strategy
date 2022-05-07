@@ -1,3 +1,8 @@
+# 0.6.5
+
+- Add `exchange_address` as a part of [trading pair datasets](https://tradingstrategy.ai/docs/programming/api/pair.html)
+= Add `get_by_chain_and_factory()` to [decentralised exchange universe](https://tradingstrategy.ai/docs/programming/api/exchange.html)
+
 # 0.6.4
 
 - Add `buy_tax`, `transfer_tax`, `sell_tax` to [trading pair datasets](https://tradingstrategy.ai/docs/programming/api/pair.html)

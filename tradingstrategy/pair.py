@@ -129,6 +129,10 @@ class DEXPair:
     #: Denormalised web page and API look up information
     exchange_slug: Optional[str] = None
 
+    #: Exchange factory address.
+    #: Denormalised here, so we do not need an additional lookup.
+    exchange_address: Optional[str] = None
+
     #: Denormalised web page and API look up information
     pair_slug: Optional[str] = None
 
