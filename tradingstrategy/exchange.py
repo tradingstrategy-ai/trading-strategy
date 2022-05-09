@@ -66,7 +66,7 @@ class Exchange:
     #: Used as the primary key in URLs and other user facing addressers.
     exchange_slug: str
 
-    #: The factory smart contract address of Uniswap based exchanges
+    #: The factory smart contract address of Uniswap based exchanges.
     address: NonChecksummedAddress
 
     #: What kind of exchange is this
@@ -200,7 +200,3 @@ class ExchangeUniverse:
             if xchg.address.lower() == factory_address:
                 return xchg
         return None
-
-
-
-

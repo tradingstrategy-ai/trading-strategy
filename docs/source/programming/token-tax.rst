@@ -86,15 +86,26 @@ allowing attackers `to get away with $11M <https://therecord.media/hackers-steal
 Honeypots and other "rug pull" risks
 ------------------------------------
 
-Because different token taxes may apply to different transactions based on source and destination addresses,
-wacky baiting games can be played, especially on automated traders.
+As different token taxes may created freely,
+sometimes this feature is exploited to launch hostile tokens to markets.
+These hostile tokens are called *honeypots*.
 
-So-called honeypots are tokens that are baiting algorithmic trading to buy them.
+Honeypots are tokens that are baiting unsuspecting users and algorithms to buy them.
 These tokens have promising :term:`OHLCV` data to make it look like an attractive
-buy from a :term:`technical analysis` perspective.
+buy from a :term:`technical analysis` perspective, like artificially created
+token price pumps. After buying the token, a user cannot sell it for profit.
 
-The catch is that these tokens are often "buy only" wit a h 100% sell tax, 
-so that one effectively won't be able to sell these tokens.
+Honeypots include, but not limited to
+
+- Non-transferable tokens like
+  `JustHoldIt <https://tradingstrategy.ai/trading-view/binance/tokens/0x6e97ae491035cf21d4d3975cf794e66cbc4ae211>`_
+  - buy transaction is the only whitelisted transfer.
+
+- Tokens with 100% or high (>40%) sell tax,
+  making tokens effectively unsellable for profit.
+
+- Other impossible sell condition to meet, like
+  one on `JUMPN <https://docs.jumpn.today/tokens/jst/how-to-sell-usdjst-token>`_
 
 .. warning ::
 
