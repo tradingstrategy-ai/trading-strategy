@@ -57,6 +57,22 @@ class PairGroupedUniverse:
         """Return the number of pairs in this dataset"""
         return len(self.pairs.groups)
 
+    def get_single(self, sample_count: Optional[int]=None) -> pd.DataFrame:
+        """Get pair/liquidity dataframe for a single trading pair.
+
+        Assumes the universe size is 1.
+
+        :param sample_count:
+            Limit dataframe to N latest samples
+
+        """
+        assert self.get_pair_count() == 1
+
+        if sample_count is not None:
+            return self.df[-sample_count:]
+
+        return self.df
+
     def get_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
         """Get samples for a single pair.
 
