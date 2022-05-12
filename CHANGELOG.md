@@ -1,7 +1,11 @@
+# 0.6.6
+
+- New time points for the [time buckets](https://tradingstrategy.ai/docs/programming/api/timebucket.html) 
+
 # 0.6.5
 
 - Add `exchange_address` as a part of [trading pair datasets](https://tradingstrategy.ai/docs/programming/api/pair.html)
-= Add `get_by_chain_and_factory()` to [decentralised exchange universe](https://tradingstrategy.ai/docs/programming/api/exchange.html)
+- Add `get_by_chain_and_factory()` to [decentralised exchange universe](https://tradingstrategy.ai/docs/programming/api/exchange.html)
 
 # 0.6.4
 

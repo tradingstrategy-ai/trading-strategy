@@ -48,15 +48,15 @@ class TimeBucket(enum.Enum):
     d30 = "30d"
 
     #: We do not have "yearly" candles, but some trade statistics are calculated
-    # for 360 days, thus we need a corresponding time bucket for them.
+    #: for 360 days, thus we need a corresponding time bucket for them.
     d360 = "360d"
 
-    # Some statistics like "all time high", for example, only make sense if a "bucket"
-    # spans across the entire timeline.
+    #: Some statistics like "all time high", for example, only make sense if a "bucket"
+    #: spans across the entire timeline.
     infinite = "infinite"
 
-    # A placeholder value representing a "NULL value" for cases where Python's None
-    # is not a favorable choice for some reason.
+    #: A placeholder value representing a "NULL value" for cases where Python's None
+    #: is not a favorable choice for some reason.
     not_applicable = "not_applicable"
 
     def to_timedelta(self) -> datetime.timedelta:
