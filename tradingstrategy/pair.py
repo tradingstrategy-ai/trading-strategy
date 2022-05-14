@@ -135,12 +135,12 @@ class DEXPair:
     #: Number of decimals to convert between human amount and Ethereum fixed int raw amount.
     #: Note - this information might be missing from ERC-20 smart contracts.
     #: If the information is missing the token is not tradeable in practice.
-    base_token_decimals: Optional[int] = None
+    token0_decimals: Optional[int] = None
 
     #: Number of decimals to convert between human amount and Ethereum fixed int raw amount
     #: Note - this information might be missing from ERC-20 smart contracts.
     #: If the information is missing the token is not tradeable in practice.
-    quote_token_decimals: Optional[str] = None
+    token1_decimals: Optional[str] = None
 
     #: Denormalised web page and API look up information
     exchange_slug: Optional[str] = None
@@ -245,6 +245,22 @@ class DEXPair:
             return self.token0_address
         else:
             return self.token1_address
+
+    @property
+    def base_token_decimals(self) -> Optional[int]:
+        """Get token decimal count for the base token"""
+        if self.token0_symbol == self.base_token_symbol:
+            return self.token0_decimals
+        else:
+            return self.token1_decimals
+
+    @property
+    def quote_token_decimals(self) -> Optional[int]:
+        """Get token decimal count for the quote token"""
+        if self.token0_symbol == self.quote_token_symbol:
+            return self.token0_decimals
+        else:
+            return self.token1_decimals
 
     def get_ticker(self) -> str:
         """Return trading 'ticker'"""

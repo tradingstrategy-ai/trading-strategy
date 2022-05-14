@@ -1,3 +1,7 @@
+# 0.6.8
+
+- Patch the previous release to `token0_decimals` and `token1_decimals` instead of `base_token_decimals` to be more aligned with the other Uniswap pair data
+
 # 0.6.7
 
 - Export `base_token_decimals` and `quote_token_decimals` in [trading pair datasets](https://tradingstrategy.ai/docs/programming/api/pair.html)
