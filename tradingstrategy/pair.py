@@ -124,6 +124,12 @@ class DEXPair:
     #: For the reverse token orders, the candle serve swaps the token order
     #: so that the quote token is the more natural token of the pair (in the above case USD)
     base_token_symbol: Optional[str] = None
+
+    #: Naturalised base and quote token.
+    #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
+    #: However we humans always want the quote token to be USD, or ETH or BTC.
+    #: For the reverse token orders, the candle serve swaps the token order
+    #: so that the quote token is the more natural token of the pair (in the above case USD)
     quote_token_symbol: Optional[str] = None
 
     #: Number of decimals to convert between human amount and Ethereum fixed int raw amount.

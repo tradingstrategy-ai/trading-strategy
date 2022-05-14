@@ -1,3 +1,7 @@
+# 0.6.7
+
+- Export `base_token_decimals` and `quote_token_decimals` in [trading pair datasets](https://tradingstrategy.ai/docs/programming/api/pair.html)
+
 # 0.6.6
 
 - New time points for the [time buckets](https://tradingstrategy.ai/docs/programming/api/timebucket.html) 
