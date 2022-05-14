@@ -46,16 +46,19 @@ class DEXPair:
     """A trading pair information.
 
     This :term:`dataclass` presents information we have available for a trading pair.
-    Note that you do not directly read or manipulate this class, but
-    instead use :py:class:`pyarrow.Table` in-memory analytic presentation
+
+    This class helps to understand the data structure -
+    you do not directly read or manipulate this class, but
+    instead use :py:class:`pandas.DataFrame` in-memory analytic presentation
     of the data.
 
-    The :term:`dataset server` maintains trading pair and associated token information.
-    Some tokens may have more information available than others,
-    as due to the high number of pairs it is impractical to get full information
-    for all pairs.
+    For more information about trading pair availability see :ref:`trading pair tracking <tracking>`.
 
-    * Non-optional fields are always available
+    About data:
+
+    * There is a different between `token0` and `token1` and `base_token` and `quote_token` conventions -
+      the former are raw DEX data while the latter are preprocssed by the server to make the data
+      more understandable.
 
     * Optional fields may be available if the candle server 1) detected the pair popular enough 2) managed to fetch the third party service information related to the token
 
@@ -67,9 +70,6 @@ class DEXPair:
         are useless. The server prefilters trading pairs and thus you cannot access historical data of pairs
         that have been prefiltered.
 
-        For the very same reason, first and last trade data is not available in the client version 0.3 onwards.
-
-    For more information see see :ref:`trading pair tracking <tracking>`.
     """
 
     #: Internal primary key for any trading pair
