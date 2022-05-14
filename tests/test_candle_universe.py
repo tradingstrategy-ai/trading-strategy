@@ -5,7 +5,7 @@ from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import PairUniverse, PandasPairUniverse
+from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
 
 
 def test_grouped_candles(persistent_test_client: Client):

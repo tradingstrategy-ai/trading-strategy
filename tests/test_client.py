@@ -6,7 +6,7 @@ import logging
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import PairUniverse
+from tradingstrategy.pair import LegacyPairUniverse
 
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ def test_client_download_pair_universe(client: Client, cache_path: str):
     # Check universe has data
     assert len(pairs) > 50_000
 
-    pair_universe = PairUniverse.create_from_pyarrow_table(pairs)
+    pair_universe = LegacyPairUniverse.create_from_pyarrow_table(pairs)
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
     assert exchange, "Uniswap v2 not found"

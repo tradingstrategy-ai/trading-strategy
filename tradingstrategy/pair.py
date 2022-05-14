@@ -1,4 +1,4 @@
-"""Trading pair information and analysis."""
+"""Trading pair information and pair datasets."""
 
 import enum
 from dataclasses import dataclass
@@ -45,22 +45,26 @@ class PairType(enum.Enum):
 class DEXPair:
     """A trading pair information.
 
-    This :term:`dataclass` presents information we have available for a trading pair.
+    Presents a single trading pair on decentralised exchanges.
 
-    This class helps to understand the data structure -
-    you do not directly read or manipulate this class, but
-    instead use :py:class:`pandas.DataFrame` in-memory analytic presentation
-    of the data.
+    DEX trading pairs can be uniquely identified by
 
-    For more information about trading pair availability see :ref:`trading pair tracking <tracking>`.
+    - Their pair smart contract address `address`
+
+    - Internal id `address`
+
+    - (Chain slug, exchange slug, pair slug) tuple
 
     About data:
 
     * There is a different between `token0` and `token1` and `base_token` and `quote_token` conventions -
-      the former are raw DEX data while the latter are preprocssed by the server to make the data
+      the former are raw DEX (Uniswap) data while the latter are preprocessed by the server to make the data
       more understandable.
 
     * Optional fields may be available if the candle server 1) detected the pair popular enough 2) managed to fetch the third party service information related to the token
+
+    When you download a trading pair dataset from the server, not all trading pairs are available.
+    For more information about trading pair availability see :ref:`trading pair tracking <tracking>`.
 
     .. note ::
 
@@ -70,6 +74,11 @@ class DEXPair:
         are useless. The server prefilters trading pairs and thus you cannot access historical data of pairs
         that have been prefiltered.
 
+    This data class is serializable via `dataclasses-json` methods. Example:
+
+    .. code-block::
+
+        info_as_string = pair.to_json()
     """
 
     #: Internal primary key for any trading pair
@@ -291,10 +300,14 @@ class DEXPair:
             return None
         return f"https://tradingstrategy.ai/trading-view/{chain_slug}/{self.exchange_slug}/{self.pair_slug}"
 
-    def __json__(self, request):
-        """Pyramid JSON renderer compatibility.
+    def __json__(self, request) -> dict:
+        """Return dictionary presentation when this DEXPair is serialised as JSON.
 
-        https://docs.pylonsproject.org/projects/pyramid/en/latest/narr/renderers.html#using-a-custom-json-method
+        Provided for pyramid JSON renderer compatibility.
+
+        This method is provided for API endpoints returned
+
+        `More information <https://docs.pylonsproject.org/projects/pyramid/en/latest/narr/renderers.html#using-a-custom-json-method>`_.
         """
         return self.__dict__
 
@@ -345,41 +358,203 @@ class DEXPair:
         return pd.DataFrame.from_dict(dicts)
 
 
-@dataclass_json
-@dataclass
-class PairUniverse:
-    """The queries universe, as returned by the server.
+class PandasPairUniverse:
+    """A pair universe implementation that is created from Pandas dataset.
 
-    The universe presents tradeable token pairs that
-    fulfill certain criteria.
+    This is a helper class, as :py:class:`pandas.DataFrame` is somewhat more difficult to interact with.
+    This class will read the raw data frame and convert it to `DEXPair` objects with a lookup index.
+    Because the DEXPair conversion is expensive for 10,000s of Python objects,
+    it is recommended that you filter the raw :py:class:`pandas.DataFrame` by using filtering functions
+    in :py:mod:`tradingstrategy.pair` first, before initializing :py:class:`PandasPairUniverse`.
 
-    The server supports different token pair universes
-    depending on the risk appetite. As generating the universe
-    data is heavy process, the data is generated as a scheduled
-    job and cached.
+    Example how to use:
 
-    Risks include
+    .. code-block:
 
-    * Fake tokens designed to fool bots
+        # Get dataset from the server as Apache Pyarrow table
+        columnar_pair_table = client.fetch_pair_universe()
 
-    * Tokens that may be rug pulls
+        # Convert Pyarrow -> Pandas -> in-memory DEXPair index
+        pair_universe = PandasPairUniverse(columnar_pair_table.to_pandas())
 
-    * Legit tokens that may have high volatility due to a hack
+        # Lookup SUSHI-WETH trading pair from DEXPair index
+        # https://tradingstrategy.ai/trading-view/ethereum/sushi/sushi-eth
+        pair: DEXPair = pair_universe.get_pair_by_smart_contract("0x795065dcc9f64b5614c407a6efdc400da6221fb0")
 
-    * Legit tokens that may stop working in some point
+    If the pair index is too slow to build, or you want to keep it lean,
+    you can disable the indexing with `build_index`.
+    In this case, some of the methods won't work:
 
-    Depending on your risk apetite, you might want to choose
-    between safe and wild west universes.
+    .. code-block:
+
+        # Get dataset from the server as Apache Pyarrow table
+        columnar_pair_table = client.fetch_pair_universe()
+
+        # Convert Pyarrow -> Pandas -> in-memory DEXPair index
+        pair_universe = PandasPairUniverse(columnar_pair_table.to_pandas(), build_index=False)
+
     """
 
-    #: Pair info for this universe
+    def __init__(self, df: pd.DataFrame, build_index=True):
+        """
+        :param df: The source DataFrame that contains all DEXPair entries
+
+        :param build_index: Build quick lookup index for pairs
+        """
+        assert isinstance(df, pd.DataFrame)
+        self.df = df.set_index(df["pair_id"])
+
+        # pair_id -> DEXPair
+        self.pair_map = {}
+
+        # pair smart contract address -> DEXPair
+        self.smart_contract_map = {}
+
+        if build_index:
+            self.build_index()
+
+    def build_index(self):
+        """Create pair_id -> data mapping.
+
+        Allows fast lookup of individual pairs.
+        """
+        for pair_id, data in self.df.iterrows():
+            pair: DEXPair = DEXPair.from_dict(data)
+            self.pair_map[pair_id] = pair
+            self.smart_contract_map[pair.address.lower()] = pair
+
+    def get_all_pair_ids(self) -> List[PrimaryKey]:
+        return self.df["pair_id"].unique()
+
+    def get_count(self) -> int:
+        """How many trading pairs there are."""
+        return len(self.df)
+
+    def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
+        """Look up pair information and return its data.
+
+        :return: Nicely presented :py:class:`DEXPair`.
+        """
+
+        if self.pair_map:
+            # TODO: Eliminate non-indexed code path?
+            return self.pair_map.get(pair_id)
+
+        # TODO: Remove
+
+        df = self.df
+
+        pairs: pd.DataFrame = df.loc[df["pair_id"] == pair_id]
+
+        if len(pairs) > 1:
+            raise DuplicatePair(f"Multiple pairs found for id {pair_id}")
+
+        if len(pairs) == 1:
+            data = next(iter(pairs.to_dict("index").values()))
+            return DEXPair.from_dict(data)
+
+        return None
+
+    def get_pair_by_smart_contract(self, address: str) -> Optional[DEXPair]:
+        """Resolve a trading pair by its pool smart contract address.
+
+        :param address: Ethereum smart contract address of the Uniswap pair contract
+        """
+        assert self.smart_contract_map, "You need to build the index to use this function"
+        return self.smart_contract_map.get(address)
+
+    def get_single(self) -> DEXPair:
+        """For strategies that trade only a single trading pair, get the only pair in the universe.
+
+        :raise AssertionError: If our pair universe does not have an exact single pair
+        """
+        pair_count = len(self.pair_map)
+        assert pair_count == 1, f"Not a single trading pair universe, we have {pair_count} pairs"
+        return next(iter(self.pair_map.values()))
+
+    def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str, pick_by_highest_vol=False) -> Optional[DEXPair]:
+        """Get a trading pair by its ticker symbols.
+
+        Note that this method works only very simple universes, as any given pair
+        is poised to have multiple tokens and multiple trading pairs on different exchanges.
+
+        :param pick_by_highest_vol: If multiple trading pairs with the same symbols are found, pick one with the highest volume. This is because often malicious trading pairs are create to attract novice users.
+
+        :raise DuplicatePair: If the universe contains more than single entry for the pair.
+
+        :return: None if there is no match
+        """
+
+        df = self.df
+
+        pairs: pd.DataFrame= df.loc[
+            (df["exchange_id"] == exchange_id) &
+            (df["base_token_symbol"] == base_token) &
+            (df["quote_token_symbol"] == quote_token)]
+
+        if len(pairs) > 1:
+            if not pick_by_highest_vol:
+                raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
+
+            # Sort by trade volume and pick the highest one
+            pairs = pairs.sort_values(by="buy_volume_all_time", ascending=False)
+            data = next(iter(pairs.to_dict("index").values()))
+            return DEXPair.from_dict(data)
+
+        if len(pairs) == 1:
+            data = next(iter(pairs.to_dict("index").values()))
+            return DEXPair.from_dict(data)
+
+        return None
+
+    @staticmethod
+    def create_single_pair_universe(df: pd.DataFrame, exchange: Exchange, base_token_symbol: str, quote_token_symbol: str) -> "PandasPairUniverse":
+        """Create a trading pair universe that contains only a single trading pair.
+
+        This is useful for trading strategies that to technical analysis trading
+        on a single trading pair like BTC-USD.
+
+        :param df: Unfiltered DataFrame for all pairs
+
+        :raise DuplicatePair: Multiple pairs matching the criteria
+        :raise NoPairFound: No pairs matching the criteria
+        """
+
+        assert exchange is not None, "Got None as Exchange - exchange not found?"
+
+        filtered_df: pd.DataFrame= df.loc[
+            (df["exchange_id"] == exchange.exchange_id) &
+            (df["base_token_symbol"] == base_token_symbol) &
+            (df["quote_token_symbol"] == quote_token_symbol)]
+
+        if len(filtered_df) > 1:
+            raise DuplicatePair(f"Multiple trading pairs found {base_token_symbol}-{quote_token_symbol}")
+
+        if len(filtered_df) == 1:
+            return PandasPairUniverse(filtered_df)
+
+        raise NoPairFound(f"No trading pair found. Exchange:{exchange} base:{base_token_symbol} quote:{quote_token_symbol}")
+
+
+class LegacyPairUniverse:
+    """The queries universe, as returned by the server.
+
+    .. note ::
+
+        TODO: Legacy prototype implementation and will be deprecated.
+
+    Converts raw pair dataset to easier to use `DEXPair`
+    in-memory index.
+
+    You likely want to use :py:class:`PandasPairUniverse`,
+    as its offers much more functionality than this implemetation.
+    """
+
+    #: Internal id -> DEXPair mapping
     pairs: Dict[int, DEXPair]
 
-    #: When this universe was last refreshed
-    last_updated_at: Optional[UNIXTimestamp] = None
-
     @classmethod
-    def create_from_pyarrow_table(cls, table: pa.Table) -> "PairUniverse":
+    def create_from_pyarrow_table(cls, table: pa.Table) -> "LegacyPairUniverse":
         """Convert columnar presentation to a Python in-memory objects.
 
         Some data manipulation is easier with objects instead of columns.
@@ -395,10 +570,10 @@ class PairUniverse:
             for row in iterate_columnar_dicts(d):
                 pairs[row["pair_id"]] = DEXPair.from_dict(row)
 
-        return PairUniverse(pairs=pairs)
+        return LegacyPairUniverse(pairs=pairs)
 
     @classmethod
-    def create_from_pyarrow_table_with_filters(cls, table: pa.Table, chain_id_filter: Optional[ChainId] = None) -> "PairUniverse":
+    def create_from_pyarrow_table_with_filters(cls, table: pa.Table, chain_id_filter: Optional[ChainId] = None) -> "LegacyPairUniverse":
         """Convert columnar presentation to a Python in-memory objects.
 
         Filter the pairs based on given filter arguments.
@@ -410,7 +585,7 @@ class PairUniverse:
             row_mask = pc.equal(chain_id_index, pa.scalar(chain_id_filter.value, chain_id_index.type))
             selected_table = table.filter(row_mask)
 
-        return PairUniverse.create_from_pyarrow_table(selected_table)
+        return LegacyPairUniverse.create_from_pyarrow_table(selected_table)
 
     def get_pair_by_id(self, pair_id: int) -> Optional[DEXPair]:
         """Resolve pair by its id.
@@ -499,159 +674,6 @@ class PairUniverse:
     def get_inactive_pairs(self) -> Iterable["DEXPair"]:
         """Filter for pairs that have not see a trade for the last 30 days"""
         return filter(lambda p: p.flag_inactive, self.pairs.values())
-
-
-class PandasPairUniverse:
-    """A pair universe that holds the source data as Pandas dataframe.
-
-    :py:class:`pd.DataFrame` is somewhat more difficult to interact with,
-    but offers tighter in-memory presentation for filtering and such.
-
-    The data frame has the same columns as described by :py:class:`DEXPair`.
-    """
-
-    def __init__(self, df: pd.DataFrame, build_index=True):
-        """
-        :param df: The source DataFrame that contains all DEXPair entries
-
-        :param build_index: Build quick lookup index for pairs
-        """
-        assert isinstance(df, pd.DataFrame)
-        self.df = df.set_index(df["pair_id"])
-
-        # pair_id -> DEXPair
-        self.pair_map = {}
-
-        # pair smart contract address -> DEXPair
-        self.smart_contract_map = {}
-
-        if build_index:
-            self.build_index()
-
-    def build_index(self):
-        """Create pair_id -> data mapping.
-
-        Allows fast lookup of individual pairs.
-        """
-        for pair_id, data in self.df.iterrows():
-            pair: DEXPair = DEXPair.from_dict(data)
-            self.pair_map[pair_id] = pair
-            self.smart_contract_map[pair.address.lower()] = pair
-
-    def get_all_pair_ids(self) -> List[PrimaryKey]:
-        return self.df["pair_id"].unique()
-
-    def get_count(self) -> int:
-        """How many trading pairs there are."""
-        return len(self.df)
-
-    def get_unflagged_count(self) -> int:
-        """How many trading pairs there are that seem to be legit for analysis.
-
-        TODO: This will be removed in the future releases.
-        """
-        raise NotImplementedError()
-
-    def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
-        """Look up pair information and return its data.
-
-        :return: Nicely presented :py:class:`DEXPair`.
-        """
-
-        if self.pair_map:
-            # TODO: Eliminate non-indexed code path?
-            return self.pair_map.get(pair_id)
-
-        # TODO: Remove
-
-        df = self.df
-
-        pairs: pd.DataFrame = df.loc[df["pair_id"] == pair_id]
-
-        if len(pairs) > 1:
-            raise DuplicatePair(f"Multiple pairs found for id {pair_id}")
-
-        if len(pairs) == 1:
-            data = next(iter(pairs.to_dict("index").values()))
-            return DEXPair.from_dict(data)
-
-        return None
-
-    def get_pair_by_smart_contract(self, address: str) -> Optional[DEXPair]:
-        """Resolve a trading pair by its pool smart contract address.
-
-        :param address: Ethereum smart contract address
-        """
-        return self.smart_contract_map.get(address)
-
-    def get_single(self) -> DEXPair:
-        """For strategies that trade only a single trading pair, get the only pair in the universe.
-
-        :raise AssertionError: If our pair universe does not have an exact single pair
-        """
-        pair_count = len(self.pair_map)
-        assert pair_count == 1, f"Not a single trading pair universe, we have {pair_count} pairs"
-        return next(iter(self.pair_map.values()))
-
-    def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str, pick_by_highest_vol=False) -> Optional[DEXPair]:
-        """Get a trading pair by its ticker symbols.
-
-        Note that this method works only very simple universes, as any given pair
-        is poised to have multiple tokens and multiple trading pairs on different exchanges.
-
-        :param pick_by_highest_vol: If multiple trading pairs with the same symbols are found, pick one with the highest volume. This is because often malicious trading pairs are create to attract novice users.
-
-        :raise DuplicatePair: If the universe contains more than single entry for the pair.
-
-        :return: None if there is no match
-        """
-
-        df = self.df
-
-        pairs: pd.DataFrame= df.loc[
-            (df["exchange_id"] == exchange_id) &
-            (df["base_token_symbol"] == base_token) &
-            (df["quote_token_symbol"] == quote_token)]
-
-        if len(pairs) > 1:
-            if not pick_by_highest_vol:
-                raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
-
-            # Sort by trade volume and pick the highest one
-            pairs = pairs.sort_values(by="buy_volume_all_time", ascending=False)
-            data = next(iter(pairs.to_dict("index").values()))
-            return DEXPair.from_dict(data)
-
-        if len(pairs) == 1:
-            data = next(iter(pairs.to_dict("index").values()))
-            return DEXPair.from_dict(data)
-
-        return None
-
-    @staticmethod
-    def create_single_pair_universe(df: pd.DataFrame, exchange: Exchange, base_token_symbol: str, quote_token_symbol: str) -> "PandasPairUniverse":
-        """Create a trading pair universe that contains only a single trading pair.
-
-        :param df: Unfiltered DataFrame for all pairs
-
-        :raise DuplicatePair: Multiple pairs matching the criteria
-        :raise NoPairFound: No pairs matching the criteria
-        """
-
-        assert exchange is not None, "Got None as Exchange - exchange not found?"
-
-        filtered_df: pd.DataFrame= df.loc[
-            (df["exchange_id"] == exchange.exchange_id) &
-            (df["base_token_symbol"] == base_token_symbol) &
-            (df["quote_token_symbol"] == quote_token_symbol)]
-
-        if len(filtered_df) > 1:
-            raise DuplicatePair(f"Multiple trading pairs found {base_token_symbol}-{quote_token_symbol}")
-
-        if len(filtered_df) == 1:
-            return PandasPairUniverse(filtered_df)
-
-        raise NoPairFound(f"No trading pair found. Exchange:{exchange} base:{base_token_symbol} quote:{quote_token_symbol}")
 
 
 def filter_for_exchanges(pairs: pd.DataFrame, exchanges: List[Exchange]) -> pd.DataFrame:

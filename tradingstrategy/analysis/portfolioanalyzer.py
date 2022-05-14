@@ -14,7 +14,7 @@ import pandas as pd
 from pandas.io.formats.style import Styler
 
 from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.pair import DEXPair, PairUniverse
+from tradingstrategy.pair import DEXPair, LegacyPairUniverse
 from tradingstrategy.types import USDollarAmount, PrimaryKey
 
 
@@ -97,7 +97,7 @@ class PortfolioAnalyzer:
 
 def expand_snapshot_to_row(
         exchange_universe: ExchangeUniverse,
-        pair_universe: PairUniverse,
+        pair_universe: LegacyPairUniverse,
         ts: pd.Timestamp,
         snapshot: PortfolioSnapshot,
         max_assets: int,
@@ -152,7 +152,7 @@ def expand_snapshot_to_row(
 
 def expand_timeline(
         exchange_universe: ExchangeUniverse,
-        pair_universe: PairUniverse,
+        pair_universe: LegacyPairUniverse,
         analyzer: PortfolioAnalyzer,
         create_html_styles=True,
         vmin=-0.3,

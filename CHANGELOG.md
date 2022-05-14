@@ -1,6 +1,7 @@
 # 0.6.8
 
 - Patch the previous release to `token0_decimals` and `token1_decimals` instead of `base_token_decimals` to be more aligned with the other Uniswap pair data
+- Cleaning up old `DEXPair` and pair universe API
 
 # 0.6.7
 

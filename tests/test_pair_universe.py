@@ -3,7 +3,7 @@ import datetime
 import pytest
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import PairUniverse, PairType, DEXPair
+from tradingstrategy.pair import LegacyPairUniverse, PairType, DEXPair
 
 
 def test_pair_pyarrow_schema():
