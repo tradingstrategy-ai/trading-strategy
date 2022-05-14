@@ -1,3 +1,8 @@
+# 0.6.9
+
+- Add `check_schema` option when creating PyArrow table exports for trading pairs
+- Fix type hint for `token1_decimals`
+
 # 0.6.8
 
 - Patch the previous release to `token0_decimals` and `token1_decimals` instead of `base_token_decimals` to be more aligned with the other Uniswap pair data
