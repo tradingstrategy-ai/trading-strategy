@@ -1,4 +1,4 @@
-"""Tradind data candle data and manipulation.
+"""Tradind OHLCV candle data and manipulation.
 
 See
 

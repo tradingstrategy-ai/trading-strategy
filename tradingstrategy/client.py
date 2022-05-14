@@ -1,3 +1,13 @@
+"""Trading strategy client.
+
+A Python client class to downlaod different datasets from `Trading Strategy oracle <https://tradingstrategy.ai>`_.
+
+For usage see
+
+- :py:class:`Client` class
+
+"""
+
 import os
 import tempfile
 import time
@@ -69,11 +79,37 @@ def _retry_corrupted_parquet_fetch(method):
 
 
 class Client:
-    """An API client for querying the Capitalgram candle server.
+    """An API client for querying the Trading Strategy datasets from a server.
 
-    This client will download and manage cached datasets.
-    There is limited logic to retry downloads and dataset reads in the case of
-    data corruption.
+    - The client will download datasets.
+
+    - In-built disk cache is offered, so that large datasets are not redownloaded
+      unnecessarily.
+
+    - There is protection against network errors: dataset downloads are retries in the case of
+      data corruption errors.
+
+    - Nice download progress bar will be displayed (when possible)
+
+    You can :py:class:`Client` either in
+
+    - Jupyter Notebook environments - see :ref:`tutorial` for an example
+
+    - Python application environments, see an example below
+
+    - Integration tests - see :py:meth:`Client.create_test_client`
+
+    Python application usage:
+
+    .. code-block:: python
+
+        import os
+
+        trading_strategy_api_key = os.environ["TRADING_STRATEGY_API_KEY"]
+        client = Client.create_live_client(api_key)
+        exchanges = client.fetch_exchange_universe()
+        print(f"Dataset contains {len(exchange_universe.exchanges)} exchanges")
+
     """
 
     def __init__(self, env: Environment, transport: CachedHTTPTransport):
@@ -193,6 +229,9 @@ class Client:
 
         Reads the API key from the environment variable `TRADING_STRATEGY_API_KEY`.
         A temporary folder is used as a cache path.
+
+        By default, the test client caches data under `/tmp` folder.
+        Tests do not clear this folder between test runs, to make tests faster.
         """
         if cache_path:
             os.makedirs(cache_path, exist_ok=True)
@@ -210,7 +249,7 @@ class Client:
 
         The live client is non-interactive and logs using Python logger.
 
-        :param api_key: Trading Strategy oracle API key, starts with ``
+        :param api_key: Trading Strategy oracle API key, starts with `secret-token:tradingstrategy-...`
 
         :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
         """

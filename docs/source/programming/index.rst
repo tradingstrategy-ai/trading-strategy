@@ -1,6 +1,16 @@
 Programming trading algorithms
 ==============================
 
+.. _tutorial:
+
+Getting started tutorial
+------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   examples/getting-started
+
 Overview
 --------
 
@@ -8,7 +18,6 @@ Overview
 .. toctree::
    :maxdepth: 1
 
-   examples/getting-started
    running
    tracking
    token-tax
@@ -62,7 +71,6 @@ API documentation
    api/liquidity
    api/timebucket
    api/reader
-   api/caip
    api/priceimpact
    api/stablecoin
    api/types
@@ -70,5 +78,4 @@ API documentation
    api/portfolioanalyzer
    api/backtrader
    api/matplotlib
-   api/fastquant
 
