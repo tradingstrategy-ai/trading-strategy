@@ -1,4 +1,13 @@
-"""Exchange information and analysis."""
+"""Exchange information and analysis.
+
+Exchanges are presented by
+
+- :py:class:`Exchange` class
+
+To download the pairs dataset see
+
+- :py:meth:`tradingstrategy.client.Client.fetch_exchange_universe`
+"""
 
 import enum
 from dataclasses import dataclass

@@ -14,7 +14,7 @@ from qstrader.asset.asset import Asset
 
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.pair import DEXPair, PairUniverse, PandasPairUniverse
+from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
 from qstrader.broker.portfolio.portfolio_event import PortfolioEvent
 from qstrader.broker.transaction.transaction import Transaction
 from tradingstrategy.timebucket import TimeBucket
