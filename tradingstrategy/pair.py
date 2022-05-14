@@ -1,4 +1,12 @@
-"""Trading pair information and pair datasets."""
+"""Trading pair information and pair datasets.
+
+The core classes to understand the data are
+
+- :py:class:`DEXPair`
+
+- :py:class:`PandasPairUniverse`
+
+"""
 
 import enum
 from dataclasses import dataclass
@@ -43,17 +51,20 @@ class PairType(enum.Enum):
 @dataclass_json
 @dataclass
 class DEXPair:
-    """A trading pair information.
+    """ Trading pair information for a single pair.
 
     Presents a single trading pair on decentralised exchanges.
 
     DEX trading pairs can be uniquely identified by
 
-    - Internal id
+    - Internal id.
 
-    - (Chain id, address) tuple - the same address can exist on multiple chains
+    - (Chain id, address) tuple - the same address can exist on multiple chains.
 
-    - (Chain slug, exchange slug, pair slug) tuple
+    - (Chain slug, exchange slug, pair slug) tuple.
+
+    - Token names and symbols are *not* unique - anyone can create any number of trading pair tickers and token symbols.
+      Do not rely on token symbols for anything.
 
     About data:
 
@@ -67,14 +78,6 @@ class DEXPair:
     When you download a trading pair dataset from the server, not all trading pairs are available.
     For more information about trading pair availability see :ref:`trading pair tracking <tracking>`.
 
-    .. note ::
-
-        Currently all flags are disabled and will be removed in the future. The historical dataset does not contain any filtering flags,
-        because the data has to be filtered prior to download, to keep the download dump in a reasonasble size.
-        The current data set of 800k trading pairs produce 100 MB dataset of which most of the pairs
-        are useless. The server prefilters trading pairs and thus you cannot access historical data of pairs
-        that have been prefiltered.
-
     The class provides some JSON helpers to make it more usable with JSON based APIs.
 
     This data class is serializable via `dataclasses-json` methods. Example:
@@ -85,7 +88,17 @@ class DEXPair:
 
     You can also do `__json__()` convention data export:
 
+    .. code-block::
+
         info_as_dict = pair.__json__()
+
+    .. note ::
+
+        Currently all flags are disabled and will be removed in the future. The historical dataset does not contain any filtering flags,
+        because the data has to be filtered prior to download, to keep the download dump in a reasonasble size.
+        The current data set of 800k trading pairs produce 100 MB dataset of which most of the pairs
+        are useless. The server prefilters trading pairs and thus you cannot access historical data of pairs
+        that have been prefiltered.
 
     """
 
@@ -365,7 +378,7 @@ class PandasPairUniverse:
 
     Example how to use:
 
-    .. code-block:
+    .. code-block::
 
         # Get dataset from the server as Apache Pyarrow table
         columnar_pair_table = client.fetch_pair_universe()
@@ -381,7 +394,7 @@ class PandasPairUniverse:
     you can disable the indexing with `build_index`.
     In this case, some of the methods won't work:
 
-    .. code-block:
+    .. code-block::
 
         # Get dataset from the server as Apache Pyarrow table
         columnar_pair_table = client.fetch_pair_universe()
