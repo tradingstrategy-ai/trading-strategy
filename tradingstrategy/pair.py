@@ -49,19 +49,20 @@ class DEXPair:
 
     DEX trading pairs can be uniquely identified by
 
-    - Their pair smart contract address `address`
+    - Internal id
 
-    - Internal id `address`
+    - (Chain id, address) tuple - the same address can exist on multiple chains
 
     - (Chain slug, exchange slug, pair slug) tuple
 
     About data:
 
-    * There is a different between `token0` and `token1` and `base_token` and `quote_token` conventions -
+    - There is a different between `token0` and `token1` and `base_token` and `quote_token` conventions -
       the former are raw DEX (Uniswap) data while the latter are preprocessed by the server to make the data
-      more understandable.
+      more understandable. Base token is the token you are trading and the quote token is the token you consider
+      "money" for the trading. E.g. in WETH-USDC, USDC is the quote token. In SUSHI-WETH, WETH is the quote token.
 
-    * Optional fields may be available if the candle server 1) detected the pair popular enough 2) managed to fetch the third party service information related to the token
+    - Optional fields may be available if the candle server 1) detected the pair popular enough 2) managed to fetch the third party service information related to the token
 
     When you download a trading pair dataset from the server, not all trading pairs are available.
     For more information about trading pair availability see :ref:`trading pair tracking <tracking>`.
@@ -74,11 +75,18 @@ class DEXPair:
         are useless. The server prefilters trading pairs and thus you cannot access historical data of pairs
         that have been prefiltered.
 
+    The class provides some JSON helpers to make it more usable with JSON based APIs.
+
     This data class is serializable via `dataclasses-json` methods. Example:
 
     .. code-block::
 
         info_as_string = pair.to_json()
+
+    You can also do `__json__()` convention data export:
+
+        info_as_dict = pair.__json__()
+
     """
 
     #: Internal primary key for any trading pair
@@ -91,7 +99,7 @@ class DEXPair:
     exchange_id: PrimaryKey
 
     #: Smart contract address for the pair.
-    #: In the case of Uniswap this is the pair (pool) address
+    #: In the case of Uniswap this is the pair (pool) address.
     address: NonChecksummedAddress
 
     #: What kind of exchange this pair is on
@@ -110,22 +118,6 @@ class DEXPair:
 
     #: Token pair contract address on-chain
     token1_address: str
-
-    #: Pair has been flagged inactive, because it has not traded at least once during the last 30 days.
-    flag_inactive: bool
-
-    #: Pair is blacklisted by operators.
-    #: Current there is no blacklist process so this is always false.
-    flag_blacklisted_manually: bool
-
-    #: Quote token is one of USD, ETH, BTC, MATIC or similar popular token variants.
-    #: Because all candle data is outputted in the USD, if we have a quote token
-    #: for which we do not have an USD conversation rate reference price source,
-    #: we cannot create candles for the pair.
-    flag_unsupported_quote_token: bool
-
-    #: Pair is listed on an exchange we do not if it is good or not
-    flag_unknown_exchange: bool
 
     #: Naturalised base and quote token.
     #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
@@ -173,22 +165,28 @@ class DEXPair:
     #: Timestamp of the first Uniswap Swap event
     last_swap_at: Optional[UNIXTimestamp] = None
 
-    #: Various risk analyis flags
-    flag_not_enough_swaps: Optional[bool] = None
-    flag_on_trustwallet: Optional[bool] = None
-    flag_on_etherscan: Optional[bool] = None
-    flag_code_verified: Optional[bool] = None
+    #: Pair has been flagged inactive, because it has not traded at least once during the last 30 days.
+    #: TODO - inactive, remove.
+    flag_inactive: Optional[bool] = None
+
+    #: Pair is blacklisted by operators.
+    #: Current there is no blacklist process so this is always false.
+    #: TODO - inactive, remove.
+    flag_blacklisted_manually: Optional[bool] = None
+
+    #: Quote token is one of USD, ETH, BTC, MATIC or similar popular token variants.
+    #: Because all candle data is outputted in the USD, if we have a quote token
+    #: for which we do not have an USD conversation rate reference price source,
+    #: we cannot create candles for the pair.
+    #: TODO - inactive, remove.
+    flag_unsupported_quote_token: Optional[bool] = None
+
+    #: Pair is listed on an exchange we do not if it is good or not
+    #: TODO - inactive, remove.
+    flag_unknown_exchange: Optional[bool] = None
 
     #: Swap fee in basis points if known
     fee: Optional[BasisPoint] = None
-
-    trustwallet_info_checked_at: Optional[UNIXTimestamp] = None
-    etherscan_info_checked_at: Optional[UNIXTimestamp] = None
-    etherscan_code_verified_checked_at: Optional[UNIXTimestamp] = None
-
-    blacklist_reason: Optional[str] = None
-    trustwallet_info: Optional[Dict[str, str]] = None  # TrustWallet database data, as direct dump
-    etherscan_info: Optional[Dict[str, str]] = None  # Etherscan pro database data, as direct dump
 
     #: Risk assessment summary data
     buy_count_all_time: Optional[int] = None
@@ -213,15 +211,6 @@ class DEXPair:
 
     #: Risk assessment summary data
     sell_volume_30d: Optional[float] = None
-
-    # Uniswap pair on Sushiswap etc.
-    same_pair_on_other_exchanges: Optional[List[PrimaryKey]] = None
-
-    # ETH-USDC pair on QuickSwap, PancakeSwap, etc.
-    bridged_pair_on_other_exchanges: Optional[List[PrimaryKey]] = None
-
-    # Trading pairs with same token symbol combinations, but no notable volume
-    clone_pairs: Optional[List[PrimaryKey]] = None
 
     #: Buy token tax for this trading pair.
     #: See :ref:`token-tax` for details.
@@ -366,6 +355,13 @@ class PandasPairUniverse:
     Because the DEXPair conversion is expensive for 10,000s of Python objects,
     it is recommended that you filter the raw :py:class:`pandas.DataFrame` by using filtering functions
     in :py:mod:`tradingstrategy.pair` first, before initializing :py:class:`PandasPairUniverse`.
+
+    About the usage:
+
+    - Single trading pairs can be looked up using :py:meth:`PandasPairUniverse.get_pair_by_smart_contract`
+      and :py:meth:`PandasPairUniverse.get_pair_by_id`
+
+    - Multiple pairs can be looked up by directly reading `PandasPairUniverse.df` Pandas dataframe
 
     Example how to use:
 
@@ -552,6 +548,9 @@ class LegacyPairUniverse:
 
     #: Internal id -> DEXPair mapping
     pairs: Dict[int, DEXPair]
+
+    def __init__(self, pairs: Dict[int, DEXPair]):
+        self.pairs = pairs
 
     @classmethod
     def create_from_pyarrow_table(cls, table: pa.Table) -> "LegacyPairUniverse":
