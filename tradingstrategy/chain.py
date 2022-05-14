@@ -1,6 +1,14 @@
-"""Data structures and information about EVM based blockchains.
+"""Blockchain ids.
 
-We embed the chain list data from https://github.com/ethereum-lists/chains as the submodule for the Python package.
+Data structures and information about EVM based blockchains.
+Because the same trading pair and smart contract can across multiple blockchains,
+we need to have a way to identify blockchains.
+See :py:class:`ChainId` enum class for passing the identity of a blockchain around.
+This is based on the underlying `web3.eth.chain_id` attribute of a chain.
+
+Trading Strategy package embeds the chain list data from `chains repository <https://github.com/ethereum-lists/chains>`_
+as the submodule for the Python package. This data is used to populate some :py:class:`ChainId`
+data.
 """
 
 import os
@@ -73,10 +81,14 @@ class ChainId(enum.Enum):
     Chain id is an integer that defines the identity of a blockchain,
     all running on same or different EVM implementations.
 
-    See https://chainid.network/ and https://github.com/ethereum-lists/chains for the full list.
-
     This class also provides various other metadata attributes besides `ChainId.value`, like `ChainId.get_slug()`.
-    These are pulled from chaindata git submodule.
+    Some of this data is handcoded, some is pulled from `chains` submodule.
+
+    For the full chain id list see:
+
+    - `chainid.network <https://chainid.network/>`_
+
+    - `chains repo <https://github.com/ethereum-lists/chains>`_
     """
 
     #: Ethereum mainnet chain id

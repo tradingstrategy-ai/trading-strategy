@@ -6,6 +6,10 @@ The core classes to understand the data are
 
 - :py:class:`PandasPairUniverse`
 
+To download the pairs dataset see
+
+- :py:meth:`tradingstrategy.client.Client.fetch_pair_universe`
+
 """
 
 import enum

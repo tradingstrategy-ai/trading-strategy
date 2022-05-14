@@ -55,13 +55,13 @@ API documentation
    :maxdepth: 1
 
    api/client
-   api/reader
+   api/chain
    api/exchange
    api/pair
    api/candle
    api/liquidity
-   api/chain
    api/timebucket
+   api/reader
    api/caip
    api/priceimpact
    api/stablecoin

@@ -1,16 +1,25 @@
 """Tradind data candle data and manipulation.
 
-For more information about candles see :term:`candle`.
+See
+
+- :py:class:`Candle` for information about :term:`OHLCV` data presentation
+
+- :py:meth:`tradingstrategy.client.Client.fetch_candle_universe` how to load OHLCV dataset
+
+You are likely to working with candle datasets that are presented by
+
+- :py:class:`GroupedCandleUniverse`
+
+For more information about candles see :term:`candle` in glossary.
 """
 
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Iterable, Tuple
+from typing import List, Optional
 
 import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
-from pandas.core.groupby import GroupBy
 
 from tradingstrategy.caip import ChainAddressTuple
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
@@ -25,13 +34,18 @@ class PriceUnavailable(Exception):
 @dataclass_json
 @dataclass
 class Candle:
-    """Data structure that presents one candle in Capitalgram.
+    """Data structure presenting one OHLCV trading candle.
 
     Based on the :term:`open-high-low-close-volume <OHLCV>` concept.
 
-    Capitalgram candles come with additional information available on the top of core OHLCV.
-    This is because our chain analysis has deeper visibility than one would
-    get on traditional exchanges.
+    Trading Strategy candles come with additional information available on the top of core OHLCV,
+    as chain analysis has deeper visibility than one would get on traditional exchanges.
+    For example for enhanced attributes see :py:attr:`Candle.buys` (buy count) or
+    :py:attr:`Candle.start_block` (blockchain starting block number of the candle).
+
+    We also separate "buys" and "sells". Although this separation might not be meaningful
+    on order-book based exchanges, we define "buy" as a DEX swap where quote token (USD, ETH)
+    was swapped into more exotic token (AAVE, SUSHI, etc.)
     """
 
     #: Primary key to identity the trading pair
@@ -81,20 +95,15 @@ class Candle:
     #: Average trade size
     avg: USDollarAmount
 
-    #: Blockchain tracking information
+    #: The first blockchain block that includes trades that went into this candle.
     start_block: BlockNumber
 
-    #: Blockchain tracking information
+    #: The last blockchain block that includes trades that went into this candle.
     end_block: BlockNumber
 
     def __repr__(self):
         human_timestamp = datetime.datetime.utcfromtimestamp(self.timestamp)
         return f"@{human_timestamp} O:{self.open} H:{self.high} L:{self.low} C:{self.close} V:{self.volume} B:{self.buys} S:{self.sells} SB:{self.start_block} EB:{self.end_block}"
-
-    @property
-    def caip(self) -> ChainAddressTuple:
-        """Unique identifier for the trading pair"""
-        return ChainAddressTuple(self.chain_id.value, self.address)
 
     @property
     def trades(self) -> int:
@@ -187,7 +196,10 @@ class Candle:
 @dataclass_json
 @dataclass
 class CandleResult:
-    """Server-reply for live queried candle data."""
+    """Server-reply for live queried candle data.
+
+    Uses `dataclasses-json` module for JSON serialisation.
+    """
 
     #: A bunch of candles.
     #: Candles are unordered and subject to client side sorting.
@@ -208,6 +220,28 @@ class GroupedCandleUniverse(PairGroupedUniverse):
     However, it rarely makes sense to execute operations over different trading pairs.
     :py:class`GroupedCandleUniverse` creates trading pair id -> candle data grouping out from
     raw candle data.
+
+    Usage:
+
+    .. code-block::
+
+        # Get candles for SUSHI-USDT
+
+        exchange_universe = client.fetch_exchange_universe()
+        raw_pairs = client.fetch_pair_universe().to_pandas()
+        raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+
+        pair_universe = PandasPairUniverse(raw_pairs)
+        candle_universe = GroupedCandleUniverse(raw_candles)
+
+        # Do some test calculations for a single pair
+        sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
+        sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "USDT")
+
+        raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+        candle_universe = GroupedCandleUniverse(raw_candles)
+        sushi_usdth_candles = candle_universe.get_candles_by_pair(sushi_usdt.pair_id)
+
     """
 
     def get_candle_count(self) -> int:
