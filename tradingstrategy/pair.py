@@ -330,14 +330,19 @@ class DEXPair:
         return create_pyarrow_schema_for_dataclass(cls, hints=hints)
 
     @classmethod
-    def convert_to_pyarrow_table(cls, pairs: List["DEXPair"]) -> pa.Table:
-        """Convert a list of Python instances to a columnar data.
+    def convert_to_pyarrow_table(cls, pairs: List["DEXPair"], check_schema=False) -> pa.Table:
+        """Convert a list of DEXPair instances to a Pyarrow table.
+
+        Used to prepare a data export on a server.
 
         :param pairs: The list wil be consumed in the process
+
+        :param check_schema:
+            Run additional checks on the data.
+            Slow. Use only in tests. May be give happier
+            error messages instead of "OverflowError" what pyarrow spits out.
         """
         buffer = create_columnar_work_buffer(cls)
-        # appender = partial(append_to_columnar_work_buffer, columnar_buffer)
-        # map(appender, pairs)
 
         for p in pairs:
             assert isinstance(p, DEXPair), f"Got {p}"
@@ -345,10 +350,14 @@ class DEXPair:
 
         schema = cls.to_pyarrow_schema()
 
-        # field: pa.Field
-        # for field in schema:
-        #    print("Checking", field.name)
-        #    a = pa.array(buffer[field.name], field.type)
+        if check_schema:
+            field: pa.Field
+            for field in schema:
+                try:
+                    pa.array(buffer[field.name], field.type)
+                except Exception as e:
+                    # Usually cannot fit data into a column, like negative or none values
+                    raise RuntimeError(f"Cannot process field {field}") from e
 
         return pa.Table.from_pydict(buffer, schema)
 
