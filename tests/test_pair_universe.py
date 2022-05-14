@@ -60,6 +60,8 @@ def test_pair_info_url():
             token1_address="0x0000000000000000000000000000000000000000",
             exchange_slug="uniswap-v2",
             pair_slug="eth-usdc",
+            base_token_decimals=18,
+            quote_token_decimals=6,
             flag_inactive=False,
             flag_blacklisted_manually=False,
             flag_unsupported_quote_token=False,

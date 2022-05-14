@@ -123,6 +123,16 @@ class DEXPair:
     base_token_symbol: Optional[str] = None
     quote_token_symbol: Optional[str] = None
 
+    #: Number of decimals to convert between human amount and Ethereum fixed int raw amount.
+    #: Note - this information might be missing from ERC-20 smart contracts.
+    #: If the information is missing the token is not tradeable in practice.
+    base_token_decimals: Optional[int] = None
+
+    #: Number of decimals to convert between human amount and Ethereum fixed int raw amount
+    #: Note - this information might be missing from ERC-20 smart contracts.
+    #: If the information is missing the token is not tradeable in practice.
+    quote_token_decimals: Optional[str] = None
+
     #: Denormalised web page and API look up information
     exchange_slug: Optional[str] = None
 
