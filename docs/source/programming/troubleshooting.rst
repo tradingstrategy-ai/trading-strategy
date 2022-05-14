@@ -30,6 +30,6 @@ To fix this issue, you can remove all files in the download cache.
 
 .. code-block:: shell
 
-    rm -rf ~/.cache/capitalgram/
+    rm -rf ~/.cache/tradingstrategy/
 
 

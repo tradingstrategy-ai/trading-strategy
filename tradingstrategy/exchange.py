@@ -66,7 +66,7 @@ class Exchange:
     #: Used as the primary key in URLs and other user facing addressers.
     exchange_slug: str
 
-    #: The factory smart contract address of Uniswap based exchanges
+    #: The factory smart contract address of Uniswap based exchanges.
     address: NonChecksummedAddress
 
     #: What kind of exchange is this
@@ -187,10 +187,16 @@ class ExchangeUniverse:
                 return xchg
         return None
 
+    def get_by_chain_and_factory(self, chain_id: ChainId, factory_address: str) -> Optional[Exchange]:
+        """Get the exchange implementation on a specific chain.
 
+        :param chain_id: Blockchain this exchange is on
 
-
-
-
-
-
+        :param factory_address: The smart contract address of the exchange factory
+        """
+        assert isinstance(chain_id, ChainId)
+        factory_address = factory_address.lower()
+        for xchg in self.exchanges.values():
+            if xchg.address.lower() == factory_address:
+                return xchg
+        return None

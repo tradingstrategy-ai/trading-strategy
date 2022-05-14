@@ -11,6 +11,7 @@ from dataclasses_json import dataclass_json
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeUniverse, Exchange
+from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
@@ -87,10 +88,12 @@ class DEXPair:
     #: What kind of exchange this pair is on
     dex_type: PairType
 
-    #: token0 as in raw Uniswap data
+    #: Token0 as in raw Uniswap data.
+    #: ERC-20 contracst are not guaranteed to have this data.
     token0_symbol: str
 
-    #: token1 as in raw Uniswap data
+    #: Token1 as in raw Uniswap data
+    #: ERC-20 contracst are not guaranteed to have this data.
     token1_symbol: str
 
     #: Token pair contract address on-chain
@@ -135,6 +138,10 @@ class DEXPair:
 
     #: Denormalised web page and API look up information
     exchange_slug: Optional[str] = None
+
+    #: Exchange factory address.
+    #: Denormalised here, so we do not need an additional lookup.
+    exchange_address: Optional[str] = None
 
     #: Denormalised web page and API look up information
     pair_slug: Optional[str] = None
@@ -200,6 +207,18 @@ class DEXPair:
 
     # Trading pairs with same token symbol combinations, but no notable volume
     clone_pairs: Optional[List[PrimaryKey]] = None
+
+    #: Buy token tax for this trading pair.
+    #: See :ref:`token-tax` for details.
+    buy_tax: Optional[float] = None
+
+    #: Transfer token tax for this trading pair.
+    #: See :ref:`token-tax` for details.
+    transfer_tax: Optional[float] = None
+
+    #: Sell tax for this trading pair.
+    #: See :ref:`token-tax` for details.
+    sell_tax: Optional[float] = None
 
     def __repr__(self):
         chain_name = self.chain_id.get_slug()
@@ -291,6 +310,17 @@ class DEXPair:
         #    a = pa.array(buffer[field.name], field.type)
 
         return pa.Table.from_pydict(buffer, schema)
+
+    @classmethod
+    def convert_to_dataframe(cls, pairs: List["DEXPair"]) -> pd.DataFrame:
+        """Convert Python DEXPair objects back to the Pandas dataframe presentation.
+
+        As this is super-inefficient, do not use for large amount of data.
+        """
+
+        # https://stackoverflow.com/questions/20638006/convert-list-of-dictionaries-to-a-pandas-dataframe
+        dicts = [p.to_dict() for p in pairs]
+        return pd.DataFrame.from_dict(dicts)
 
 
 @dataclass_json
@@ -633,4 +663,32 @@ def filter_for_quote_tokens(pairs: pd.DataFrame, quote_token_addresses: List[str
     our_pairs: pd.DataFrame = pairs.loc[
         (pairs['token0_address'].isin(quote_token_addresses) | pairs['token1_address'].isin(quote_token_addresses))
     ]
+    return our_pairs
+
+
+class StablecoinFilteringMode(enum.Enum):
+    """How to filter pairs in stablecoin filtering."""
+    only_stablecoin_pairs = "only_stablecoin_pairs"
+    only_volatile_pairs = "only_volatile_pairs"
+
+
+def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -> pd.DataFrame:
+    """Filter dataset so that it only contains data for the trading pairs that are either stablecoin pairs or not.
+
+    Trading logic might not be able to deal with or does not want to deal with stable -> stable pairs.
+    Trading stablecoin to another does not make sense, unless you are doing high volume arbitration strategies.
+
+    Uses internal stablecoin list from :py:mod:`tradingstrategy.stablecoin`.
+    """
+    assert isinstance(mode, StablecoinFilteringMode)
+
+    if mode == StablecoinFilteringMode.only_stablecoin_pairs:
+        our_pairs: pd.DataFrame = pairs.loc[
+            (pairs['token0_symbol'].isin(ALL_STABLECOIN_LIKE) & pairs['token1_symbol'].isin(ALL_STABLECOIN_LIKE))
+        ]
+    else:
+        # https://stackoverflow.com/a/35939586/315168
+        our_pairs: pd.DataFrame = pairs.loc[
+            ~(pairs['token0_symbol'].isin(ALL_STABLECOIN_LIKE) & pairs['token1_symbol'].isin(ALL_STABLECOIN_LIKE))
+        ]
     return our_pairs

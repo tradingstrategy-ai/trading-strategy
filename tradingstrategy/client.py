@@ -53,14 +53,18 @@ def _retry_corrupted_parquet_fetch(method):
             # TODO: Build expection list over the time by
             # observing issues in production
             except OSError as e:
+                # This happens when we download Parquet file, but it is missing half
+                # e.g. due to interrupted download
                 if attempts > 0:
                     logger.error("Damaged Parquet file fetch detected for method %s, attempting to re-fetch. Error was: %s", method, e)
                     logger.exception(e)
+                    # TODO: Only clear the damaged file, not all caches
                     self.clear_caches()
                     attempts -= 1
                     time.sleep(30)
                 else:
                     raise
+
     return impl
 
 
@@ -218,5 +222,10 @@ class Client:
         else:
             cache_path = env.get_cache_path()
         config = Configuration(api_key)
-        transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", cache_path=cache_path, api_key=config.api_key)
+        transport = CachedHTTPTransport(
+            download_with_progress_plain,
+            "https://tradingstrategy.ai/api",
+            cache_path=cache_path,
+            api_key=config.api_key,
+            add_exception_hook=False)
         return Client(env, transport)

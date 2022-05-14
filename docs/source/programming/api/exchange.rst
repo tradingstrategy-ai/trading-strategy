@@ -1,5 +1,5 @@
-Exchange
-========
+Exchanges
+=========
 
  .. automodule:: tradingstrategy.exchange
     :members:

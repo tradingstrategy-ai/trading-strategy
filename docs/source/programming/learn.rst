@@ -60,6 +60,11 @@ Jupyter Notebook basics
 
 A tutorial by Dataquest. `Read more <https://www.dataquest.io/blog/jupyter-notebook-tutorial/>`__.
 
+Vectorised backtesting with Pandas
+----------------------------------
+
+A tutorial by Yao Lei Xu. `Read more <https://towardsdatascience.com/backtest-trading-strategies-with-pandas-vectorized-backtesting-26001b0ba3a5>`__.
+
 Algorithmic trading frameworks for Python
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -186,4 +191,7 @@ Other
 
 - `Detecting scams on Uniswap <https://arxiv.org/abs/2109.00229>`__.
 
+- `Backtesting Uniswap v3 strategies <https://medium.com/coinmonks/a-real-world-framework-for-backtesting-uniswap-v3-strategies-88825abdcd17>`_
+
+- `The 7 Reasons Most Machine Learning Funds Fail <https://youtu.be/BRUlSm4gdQ4>`_
 

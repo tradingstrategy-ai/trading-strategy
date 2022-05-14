@@ -29,7 +29,14 @@ def test_client_fetch_chain_status(client: Client):
     """Get chain scanning status"""
     status = client.fetch_chain_status(ChainId.ethereum)
     assert status["chain_id"] == 1
-    assert status["pairs"] > 0
+
+    # TODO: The blockchain pair count is temporarily disabled for performance reasons,
+    # and the chain data API just returns zero (0). Re-enable the assertion below once
+    # the API is fixed.
+    #
+    # https://github.com/tradingstrategy-ai/oracle/commit/1dac3e1ef3c84ae7b6509242d114d4f6d1ae384a
+    # assert status["pairs"] > 0
+
     # Removed as too slow to compute on the server-side for now
     # assert status["swaps"] > 0
     # assert status["minute_candles"] > 0

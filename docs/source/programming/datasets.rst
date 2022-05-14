@@ -51,7 +51,7 @@ After you have obtained an API key `you can download datasets from the backtesti
 Accessing datasets programmatically
 -----------------------------------
 
-You should access `the datasets using the Python client library <https://pypi.org/project/tradingstrategy/>`_.
+You should access `the datasets using the Python client library <https://pypi.org/project/trading-strategy/>`_.
 See :doc:`the first example Jupyter notebook how to do this <examples/getting-started>`.
 
 If you don't wish to use Python, here are the instructions on how to construct dataset download URLs by hand.

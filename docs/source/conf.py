@@ -102,7 +102,7 @@ nbsphinx_prolog = """
     <script>require=requirejs;</script>
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/tradingstrategy-ai/client/blob/master/docs/source/{{ env.doc2path(env.docname, base=None) }}
+   :target: https://colab.research.google.com/github/tradingstrategy-ai/trading-strategy/blob/master/docs/source/{{ env.doc2path(env.docname, base=None) }}
 
 .. raw:: html
 

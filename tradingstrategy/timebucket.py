@@ -47,6 +47,18 @@ class TimeBucket(enum.Enum):
     #: Monthly candles
     d30 = "30d"
 
+    #: We do not have "yearly" candles, but some trade statistics are calculated
+    #: for 360 days, thus we need a corresponding time bucket for them.
+    d360 = "360d"
+
+    #: Some statistics like "all time high", for example, only make sense if a "bucket"
+    #: spans across the entire timeline.
+    infinite = "infinite"
+
+    #: A placeholder value representing a "NULL value" for cases where Python's None
+    #: is not a favorable choice for some reason.
+    not_applicable = "not_applicable"
+
     def to_timedelta(self) -> datetime.timedelta:
         """Get delta object for a TimeBucket definition.
 
@@ -55,10 +67,13 @@ class TimeBucket(enum.Enum):
         return _DELTAS[self]
 
     def to_frequency(self) -> pd.DateOffset:
-        """Get frequncy input for Pandas fuctions.
+        """Get frequency input for Pandas fuctions.
 
         You can use this to construct arbitrary timespans or iterate candle data.
         """
+        if self in {TimeBucket.infinite, TimeBucket.not_applicable}:
+            raise ValueError(f"Enum member {self} cannot be mapped to a frequency.")
+
         delta = self.to_timedelta()
         return to_offset(delta)
 
@@ -73,6 +88,9 @@ _DELTAS = {
     TimeBucket.d1: datetime.timedelta(days=1),
     TimeBucket.d7: datetime.timedelta(days=7),
     TimeBucket.d30: datetime.timedelta(days=30),
+    TimeBucket.d360: datetime.timedelta(days=360),
+    TimeBucket.infinite: datetime.timedelta.max,
+    TimeBucket.not_applicable: datetime.timedelta(0),  # some sort of a NULL value
 }
 
 

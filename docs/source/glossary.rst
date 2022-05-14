@@ -31,7 +31,7 @@ Glossary
     Smart contract
 
         An automated transactional service running on any of the blockchains supporting smart contracts. Typically
-        runs on Ethereum based blockchain and is written in the Solidity programming language.
+        runs on Ethereum-based blockchain and is written in the Solidity programming language.
 
     Jupyter notebook
 
@@ -39,7 +39,7 @@ Glossary
 
     Pandas
 
-        A popular Python based data analysis library.  `More information <https://pandas.pydata.org/>`__.
+        A popular Python-based data analysis library.  `More information <https://pandas.pydata.org/>`__.
 
     Uniswap
 
@@ -124,10 +124,6 @@ Glossary
     Liquidity
 
         Liquidity refers to the depth of the order books: how much volume a single trade can achieve without moving the price. It can be expressed as :term:`slippage` or absolute depth of the order book. The latter is very easy for :term:`AMM` based exchanges where the liquidity is a continuous function. Trading Strategy provides :term:`datasets <dataset>` for AMM liquidity in :py:mod:`capitalgram.liquidity` module.
-
-    Slippage
-
-        Slippage tells you how much you will lose in a trade because there is not enough :term:`liquidity` to satisfy the deal. `More information <https://www.investopedia.com/terms/s/slippage.asp>`__.
 
     Yield farming
 
@@ -273,4 +269,17 @@ Glossary
         i.e. the price between the best sell offer and the best buy offer.
 
         `More information about the mid price on Uniswap documentation <https://docs.uniswap.org/sdk/2.0.0/guides/pricing>`_.
+
+    Technical analysis
+
+        A branch of finance that tries to predict prices and good trades based on market data.
+
+        `Read more on Wikipedia <https://en.wikipedia.org/wiki/Technical_analysis>`_.
+
+    Rug pull
+
+        A project where the development team or founders decide to maliciously cash out early, not
+        fulfilling their promises and disappear with the investor money.
+
+        `One of the most famous rug pulls is Anubis ($60M taken) <https://decrypt.co/84924/anubisdao-investors-lose-60-million-in-alleged-rug-pull>`_.
 
