@@ -2,7 +2,9 @@
 
 - Add `check_schema` option when creating PyArrow table exports for trading pairs
 - Fix type hint for `token1_decimals`
-
+- Better error message for `get_one_pair_from_pandas_universe`
+- Make `token0_symbol`  and `token1_symbol` optional as not all tokens have a symbol
+- 
 # 0.6.8
 
 - Patch the previous release to `token0_decimals` and `token1_decimals` instead of `base_token_decimals` to be more aligned with the other Uniswap pair data

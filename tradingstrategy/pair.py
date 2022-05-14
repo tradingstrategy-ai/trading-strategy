@@ -122,19 +122,19 @@ class DEXPair:
     #: What kind of exchange this pair is on
     dex_type: PairType
 
-    #: Token0 as in raw Uniswap data.
-    #: ERC-20 contracst are not guaranteed to have this data.
-    token0_symbol: str
-
-    #: Token1 as in raw Uniswap data
-    #: ERC-20 contracst are not guaranteed to have this data.
-    token1_symbol: str
-
     #: Token pair contract address on-chain
     token0_address: str
 
     #: Token pair contract address on-chain
     token1_address: str
+
+    #: Token0 as in raw Uniswap data.
+    #: ERC-20 contracst are not guaranteed to have this data.
+    token0_symbol: Optional[str]
+
+    #: Token1 as in raw Uniswap data
+    #: ERC-20 contracst are not guaranteed to have this data.
+    token1_symbol: Optional[str]
 
     #: Naturalised base and quote token.
     #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
