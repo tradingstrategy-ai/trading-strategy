@@ -29,7 +29,7 @@ with warnings.catch_warnings():
     #   /Users/mikkoohtamaa/Library/Caches/pypoetry/virtualenvs/tradeexecutor-Fzci9y7u-py3.9/lib/python3.9/site-packages/marshmallow/__init__.py:17: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.
     #     __version_info__ = tuple(LooseVersion(__version__).version)
     warnings.simplefilter("ignore")
-    import dataclasses_json
+    import dataclasses_json  # Trigger marsmallow import to supress the warning
 
 import pyarrow
 import pyarrow as pa
