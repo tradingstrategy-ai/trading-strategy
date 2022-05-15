@@ -473,6 +473,7 @@ class PandasPairUniverse:
 
         :param address: Ethereum smart contract address of the Uniswap pair contract
         """
+        address = address.lower()
         assert self.smart_contract_map, "You need to build the index to use this function"
         return self.smart_contract_map.get(address)
 
@@ -507,7 +508,7 @@ class PandasPairUniverse:
 
         if len(pairs) > 1:
             if not pick_by_highest_vol:
-                raise DuplicatePair(f"Multiple trading pairs found {base_token}-{quote_token}")
+                raise DuplicatePair(f"Found {len(pairs)} trading pairs for {base_token}-{quote_token} when 1 was expected")
 
             # Sort by trade volume and pick the highest one
             pairs = pairs.sort_values(by="buy_volume_all_time", ascending=False)
