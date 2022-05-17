@@ -1,3 +1,7 @@
+# Current
+
+- Add `Token` presentation
+
 # 0.6.9
 
 - Add `check_schema` option when creating PyArrow table exports for trading pairs

@@ -22,6 +22,7 @@ import pyarrow.compute as pc
 from dataclasses_json import dataclass_json
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, Exchange
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
@@ -122,10 +123,12 @@ class DEXPair:
     #: What kind of exchange this pair is on
     dex_type: PairType
 
-    #: Token pair contract address on-chain
+    #: Token pair contract address on-chain.
+    #: Lowercase, non-checksummed.
     token0_address: str
 
     #: Token pair contract address on-chain
+    #: Lowercase, non-checksummed.
     token1_address: str
 
     #: Token0 as in raw Uniswap data.
@@ -247,7 +250,10 @@ class DEXPair:
 
     @property
     def base_token_address(self) -> str:
-        """Get smart contract address for the base token"""
+        """Get smart contract address for the base token.
+
+        :return: Lowercase, non-checksummed.
+        """
         if self.token0_symbol == self.base_token_symbol:
             return self.token0_address
         else:
@@ -255,15 +261,27 @@ class DEXPair:
 
     @property
     def quote_token_address(self) -> str:
-        """Get smart contract address for the quote token"""
+        """Get smart contract address for the quote token
+
+        :return: Token address in checksummed case
+        """
         if self.token0_symbol == self.quote_token_symbol:
             return self.token0_address
         else:
             return self.token1_address
 
     @property
+    def quote_token_decimals(self) -> Optional[str]:
+        """Get token decimal count for the quote token"""
+        if self.token0_symbol == self.quote_token_symbol:
+            return self.token0_decimals
+        else:
+            return self.token1_decimals
+
+    @property
     def base_token_decimals(self) -> Optional[int]:
-        """Get token decimal count for the base token"""
+        """Get token decimal count for the base token.
+        """
         if self.token0_symbol == self.base_token_symbol:
             return self.token0_decimals
         else:
@@ -427,10 +445,14 @@ class PandasPairUniverse:
         self.df = df.set_index(df["pair_id"])
 
         # pair_id -> DEXPair
-        self.pair_map = {}
+        self.pair_map: Dict[int, DEXPair] = {}
 
         # pair smart contract address -> DEXPair
         self.smart_contract_map = {}
+
+        # Internal cache for get_token() lookup
+        # address -> info tuple mapping
+        self.token_cache: Dict[str, Token] = {}
 
         if build_index:
             self.build_index()
@@ -485,6 +507,35 @@ class PandasPairUniverse:
         address = address.lower()
         assert self.smart_contract_map, "You need to build the index to use this function"
         return self.smart_contract_map.get(address)
+
+    def get_token(self, address: str) -> Optional[Token]:
+        """Get a token that is part of any trade pair.
+
+        Get a token details for a token that is base or quotetoken of any trading pair.
+
+        ..note ::
+
+            TODO: Not a final implementation subject to chage.
+
+        :return:
+            Tuple (name, symbol, address, decimals)
+            or None if not found.
+
+        """
+        address = address.lower()
+
+        token: Optional[Token] = None
+
+        if address not in self.token_cache:
+            for p in self.pair_map.values():
+                if p.quote_token_address == address:
+                    token = Token(p.chain_id, p.quote_token_symbol, address, p.quote_token_decimals)
+                    break
+                elif p.base_token_address == address:
+                    token = Token(p.chain_id, p.base_token_symbol, address, p.base_token_decimals)
+                    break
+            self.token_cache[address] = token
+        return self.token_cache[address]
 
     def get_single(self) -> DEXPair:
         """For strategies that trade only a single trading pair, get the only pair in the universe.

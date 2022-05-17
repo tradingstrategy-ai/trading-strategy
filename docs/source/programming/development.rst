@@ -43,6 +43,11 @@ By default, the test run will cache any downloaded blobs. You can force the redo
 
     CLEAR_CACHES=true pytest --log-cli-level=debug -k test_grouped_liquidity
 
+Or manually:
+
+.. code-block:: shell
+
+    rm -rf /tmp/trading-strategy-tests
 
 Dataset cache
 -------------
