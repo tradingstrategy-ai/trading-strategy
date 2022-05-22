@@ -137,6 +137,13 @@ class Exchange:
         """
         return self.__dict__
 
+    def __hash__(self) -> int:
+        return int(self.address, 16)
+
+    def __eq__(self, other) -> bool:
+        # https://stackoverflow.com/a/12511715/315168
+        return isinstance(other, self.__class__) and self.address == other.address
+
     @property
     def vol_30d(self):
         return (self.buy_volume_30d or 0) + (self.sell_volume_30d or 0)
