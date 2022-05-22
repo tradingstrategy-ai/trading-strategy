@@ -80,7 +80,8 @@ def download_with_progress_jupyter(session: Session, path: str, url: str, params
         raise RuntimeError(f"Request to {url} returned status code {r.status_code}")
     file_size = int(r.headers.get('Content-Length', 0))
 
-    logger.warning("Missing HTTP response content-length header for download %s, headers are %s", url, r.headers.items())
+    if file_size==0 and not 'Content-Length' in r.headers:
+        logger.warning("Missing HTTP response content-length header for download %s, headers are %s", url, r.headers.items())
 
     desc = "(Unknown total file size)" if file_size == 0 else ""
     r.raw.read = functools.partial(r.raw.read, decode_content=True)  # Decompress if needed
