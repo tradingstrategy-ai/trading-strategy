@@ -12,9 +12,10 @@ To download the pairs dataset see
 
 """
 
+import logging
 import enum
 from dataclasses import dataclass
-from typing import Optional, List, Iterable, Dict
+from typing import Optional, List, Iterable, Dict, Union, Set
 
 import pandas as pd
 import pyarrow as pa
@@ -29,6 +30,9 @@ from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimest
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
+
+
+logger = logging.getLogger(__name__)
 
 
 class NoPairFound(Exception):
@@ -568,6 +572,8 @@ class PandasPairUniverse:
 
         if len(pairs) > 1:
             if not pick_by_highest_vol:
+                for p in pairs.to_dict(orient="records"):
+                    logger.error("Conflicting pair: %s", p)
                 raise DuplicatePair(f"Found {len(pairs)} trading pairs for {base_token}-{quote_token} when 1 was expected")
 
             # Sort by trade volume and pick the highest one
@@ -766,7 +772,7 @@ def filter_for_exchanges(pairs: pd.DataFrame, exchanges: List[Exchange]) -> pd.D
     return our_pairs
 
 
-def filter_for_quote_tokens(pairs: pd.DataFrame, quote_token_addresses: List[str]) -> pd.DataFrame:
+def filter_for_quote_tokens(pairs: pd.DataFrame, quote_token_addresses: Union[List[str], Set[str]]) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs that have a certain quote tokens.
 
     Useful as a preprocess step for creating :py:class:`tradingstrategy.candle.GroupedCandleUniverse`
@@ -776,7 +782,7 @@ def filter_for_quote_tokens(pairs: pd.DataFrame, quote_token_addresses: List[str
 
     :param quote_token_addresses: List of Ethereum addresses of the tokens - most be lowercased, as Ethereum addresses in our raw data are.
     """
-    assert type(quote_token_addresses) == list
+    assert type(quote_token_addresses) in (list, set), f"Received: {type(quote_token_addresses)}: {quote_token_addresses}"
 
     for addr in quote_token_addresses:
         assert addr == addr.lower(), f"Address was not lowercased {addr}"
