@@ -183,7 +183,7 @@ class Client:
         cls.preflight_check()
         cls.setup_notebook()
         env = JupyterEnvironment()
-        config = env.setup_on_demand()
+        config = env.setup_on_demand(api_key=api_key)
         transport = CachedHTTPTransport(download_with_progress_jupyter, cache_path=env.get_cache_path(), api_key=config.api_key)
         return Client(env, transport)
 

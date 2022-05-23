@@ -3,6 +3,8 @@ import os
 import shutil
 from typing import Optional
 import logging
+import sys
+import platform
 
 from requests import Session
 from tqdm.autonotebook import tqdm
@@ -11,8 +13,12 @@ import requests
 
 from tradingstrategy.environment.base import Environment
 from tradingstrategy.environment.config import Configuration
-from tradingstrategy.environment.interactive_setup import run_interactive_setup
+from tradingstrategy.environment.interactive_setup import run_interactive_setup,run_non_interactive_setup
 
+
+if platform.system() == 'Emscripten':
+    # disable tqdm thread in pyodide - it doesn't have threading yet
+    tqdm.monitor_interval = 0
 
 logger = logging.getLogger(__name__)
 
@@ -57,16 +63,26 @@ class JupyterEnvironment(Environment):
         self.save_configuration(config)
         return config
 
-    def setup_on_demand(self) -> Configuration:
+    def non_interactive_setup(self,**keys:str) -> Configuration:
+        """Perform interactive user onbaording"""
+        config = run_non_interactive_setup(**keys)
+        self.save_configuration(config)
+        return config
+
+
+    def setup_on_demand(self, **keywords: str) -> Configuration:
         """Check if we need to set up the environment."""
         config = self.discover_configuration()
         if not config:
-            print(f"No existing Trading Strategy configuration found in {self.get_settings_path()}/settings.json. Starting interactive setup.")
-            config = self.interactive_setup()
+            if platform.system() == 'Emscripten':
+                print(f"No existing Trading Strategy configuration found in {self.get_settings_path()}/settings.json. Making config from keyword parameters.")
+                self.non_interactive_setup(**keywords)
+            else:
+                print(f"No existing Trading Strategy configuration found in {self.get_settings_path()}/settings.json. Starting interactive setup.")
+                config = self.interactive_setup()
         else:
             print(f"Started Trading Strategy in Jupyter notebook environment, configuration is stored in {self.get_settings_path()}")
         return config
-
 
 def download_with_progress_jupyter(session: Session, path: str, url: str, params: dict, timeout: float):
     """Use tqdm library to raw a graphical progress bar in notebooks for long downloads."""
