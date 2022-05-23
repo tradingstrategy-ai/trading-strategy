@@ -8,20 +8,21 @@ For usage see
 
 """
 import datetime
+import logging
 import os
 import tempfile
 import time
+import warnings
 from functools import wraps
 from json import JSONDecodeError
-from typing import Final, Optional, Set, Union
 from pathlib import Path
-import logging
+from typing import Final, Optional, Set, Union
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 import pandas as pd
 from backtrader import List
 from tqdm import TqdmExperimentalWarning
-import warnings
+
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
 from tradingstrategy.universe import Universe
 
@@ -40,15 +41,17 @@ import pyarrow
 import pyarrow as pa
 from pyarrow import Table
 
-from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.environment.config import Configuration
-from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.reader import read_parquet, BrokenData
 from tradingstrategy.chain import ChainId
 from tradingstrategy.environment.base import Environment, download_with_progress_plain
-from tradingstrategy.environment.jupyter import JupyterEnvironment, download_with_tqdm_progress_bar
+from tradingstrategy.environment.config import Configuration
+from tradingstrategy.environment.jupyter import (
+    JupyterEnvironment,
+    download_with_tqdm_progress_bar,
+)
+from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.reader import BrokenData, read_parquet
+from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import CachedHTTPTransport
-
 
 logger = logging.getLogger(__name__)
 
@@ -268,8 +271,8 @@ class Client:
 
         # Work around Google Colab shipping with old Pandas
         # https://stackoverflow.com/questions/11887762/how-do-i-compare-version-numbers-in-python
-        from packaging import version
         import pandas
+        from packaging import version
         pandas_version = version.parse(pandas.__version__)
         assert pandas_version >= version.parse("1.3"), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
 
