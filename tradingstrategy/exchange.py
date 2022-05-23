@@ -181,7 +181,7 @@ class ExchangeUniverse:
 
         :param chain_id: Blockchain this exchange is on
 
-        :param name: Like `sushiswap` or `uniswap v2`. Case insensitive.
+        :param name: Like `sushi` or `uniswap v2`. Case insensitive.
         """
         name = name.lower()
         assert isinstance(chain_id, ChainId)

@@ -179,7 +179,7 @@ Here is an example to get a token tax for popular Sushiswap v2 trading pair on E
 
 .. code-block:: shell
 
-    curl -X GET "https://tradingstrategy.ai/api/pair-details?exchange_slug=sushiswap&chain_slug=ethereum&pair_slug=ETH-USDC" -H  "accept: application/json"
+    curl -X GET "https://tradingstrategy.ai/api/pair-details?exchange_slug=sushi&chain_slug=ethereum&pair_slug=ETH-USDC" -H  "accept: application/json"
 
 .. code-block:: json
 
