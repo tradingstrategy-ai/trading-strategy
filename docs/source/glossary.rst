@@ -243,15 +243,20 @@ Glossary
 
     Slippage
 
+        Slippage is the loss because markets changed after the trade was initiated but before it was executed.
+
         Slippage occurs because of changing market conditions between the moment the transaction is submitted and its verification.
         Slippage cannot be backtested easily, because it is based on the trade execution delays and those cannot be usually simulated
         (but can be measured).
 
-        DEX swap orders have a slippage parameter with them. You set it when the order is created.
+        :term:`DEX <decentralised-exchange>` swap orders have a slippage parameter with them. You set it when the order is created.
         If the price changes more then the slippage between the creation of the order and the execution of the order,
         the DEX will cancel the order (revert).
 
-        `See ParaSwap documentation on slippage <https://doc.paraswap.network/price-impact-slippage>`_.
+        Setting a low slippage value prevents frontrunning your trades, because frontrunners cannot
+        extract more value than what your slippage tolerance is.
+
+        `See ParaSwap's excellent documentation on slippage <https://doc.paraswap.network/price-impact-slippage>`_.
 
         See also :term:`Price impact`.
 
