@@ -1,6 +1,7 @@
 # Current
 
 - Add `Token` presentation
+- Fix `filter_for_quote_tokens` to be more strict (was checking either side of the pair, not quote token)
 
 # 0.6.9
 
