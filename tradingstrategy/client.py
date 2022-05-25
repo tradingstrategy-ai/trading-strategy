@@ -297,6 +297,24 @@ class Client:
         import matplotlib as mpl
         mpl.rcParams['figure.dpi'] = 600
 
+
+    @classmethod
+    async def create_jupyter_lite_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
+        """Create a new API client.
+
+        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
+        :param cache_api_key: Server api key.
+        """
+        from tradingstrategy.environment.pyodide_db import IndexDB
+        db=IndexDB()
+        if api_key==None:
+            api_key=await db.get_file("api_key")
+        else:
+            await db.set_file("api_key",api_key)
+        if api_key==None:
+            return None
+        return cls.create_jupyter_client(cache_path,api_key)
+
     @classmethod
     def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
         """Create a new API client.
