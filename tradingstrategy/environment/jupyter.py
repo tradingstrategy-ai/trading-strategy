@@ -76,7 +76,7 @@ class JupyterEnvironment(Environment):
         if not config:
             if platform.system() == 'Emscripten':
                 print(f"No existing Trading Strategy configuration found in {self.get_settings_path()}/settings.json. Making config from keyword parameters.")
-                self.non_interactive_setup(**keywords)
+                config = self.non_interactive_setup(**keywords)
             else:
                 print(f"No existing Trading Strategy configuration found in {self.get_settings_path()}/settings.json. Starting interactive setup.")
                 config = self.interactive_setup()
