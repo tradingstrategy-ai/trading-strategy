@@ -71,5 +71,6 @@ Community
 
 * `Discord <https://tradingstrategy.ai/community#discord>`_
 
-* `Telegram channel <https://twitter.com/TradingProtocol>`_
+* `Telegram channel <https://t.me/trading_protocol>`_
+
 

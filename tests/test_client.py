@@ -6,7 +6,7 @@ import logging
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import PairUniverse
+from tradingstrategy.pair import LegacyPairUniverse
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,14 @@ def test_client_fetch_chain_status(client: Client):
     """Get chain scanning status"""
     status = client.fetch_chain_status(ChainId.ethereum)
     assert status["chain_id"] == 1
-    assert status["pairs"] > 0
+
+    # TODO: The blockchain pair count is temporarily disabled for performance reasons,
+    # and the chain data API just returns zero (0). Re-enable the assertion below once
+    # the API is fixed.
+    #
+    # https://github.com/tradingstrategy-ai/oracle/commit/1dac3e1ef3c84ae7b6509242d114d4f6d1ae384a
+    # assert status["pairs"] > 0
+
     # Removed as too slow to compute on the server-side for now
     # assert status["swaps"] > 0
     # assert status["minute_candles"] > 0
@@ -68,7 +75,7 @@ def test_client_download_pair_universe(client: Client, cache_path: str):
     # Check universe has data
     assert len(pairs) > 50_000
 
-    pair_universe = PairUniverse.create_from_pyarrow_table(pairs)
+    pair_universe = LegacyPairUniverse.create_from_pyarrow_table(pairs)
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
     assert exchange, "Uniswap v2 not found"

@@ -3,7 +3,7 @@ import datetime
 import pytest
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import PairUniverse, PairType, DEXPair
+from tradingstrategy.pair import LegacyPairUniverse, PairType, DEXPair
 
 
 def test_pair_pyarrow_schema():
@@ -60,9 +60,13 @@ def test_pair_info_url():
             token1_address="0x0000000000000000000000000000000000000000",
             exchange_slug="uniswap-v2",
             pair_slug="eth-usdc",
+            token0_decimals=6,
+            token1_decimals=18,
             flag_inactive=False,
             flag_blacklisted_manually=False,
             flag_unsupported_quote_token=False,
             flag_unknown_exchange=False,
         )
     assert p.get_trading_pair_page_url() == "https://tradingstrategy.ai/trading-view/ethereum/uniswap-v2/eth-usdc"
+    assert p.base_token_decimals == 18
+    assert p.quote_token_decimals == 6

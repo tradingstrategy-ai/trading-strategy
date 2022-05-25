@@ -1,9 +1,43 @@
+# Current
+
+- Add `Token` presentation
+
+# 0.6.9
+
+- Add `check_schema` option when creating PyArrow table exports for trading pairs
+- Fix type hint for `token1_decimals`
+- Better error message for `get_one_pair_from_pandas_universe`
+- Make `token0_symbol`  and `token1_symbol` optional as not all tokens have a symbol
+- 
+# 0.6.8
+
+- Patch the previous release to `token0_decimals` and `token1_decimals` instead of `base_token_decimals` to be more aligned with the other Uniswap pair data
+- Cleaning up [API and API documentation](https://tradingstrategy.ai/docs/programming/index.html#api-documentation)
+
+# 0.6.7
+
+- Export `base_token_decimals` and `quote_token_decimals` in [trading pair datasets](https://tradingstrategy.ai/docs/programming/api/pair.html)
+
+# 0.6.6
+
+- New time points for the [time buckets](https://tradingstrategy.ai/docs/programming/api/timebucket.html) 
+
+# 0.6.5
+
+- Add `exchange_address` as a part of [trading pair datasets](https://tradingstrategy.ai/docs/programming/api/pair.html)
+- Add `get_by_chain_and_factory()` to [decentralised exchange universe](https://tradingstrategy.ai/docs/programming/api/exchange.html)
+
+# 0.6.4
+
+- Add `buy_tax`, `transfer_tax`, `sell_tax` to [trading pair datasets](https://tradingstrategy.ai/docs/programming/api/pair.html)
+
 # 0.6.3
 
 - Fix download retries in live trading
 - Add `stablecoin` module for upcoming stablecoin support fuctions
 - Add `DEXPair.convert_to_dataframe` 
 - Add `filter_for_stablecoins` 
+  
 
 # 0.6.2
 

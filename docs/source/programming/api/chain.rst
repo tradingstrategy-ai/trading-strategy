@@ -1,5 +1,5 @@
-Blockchains
-===========
+Chain id
+========
 
  .. automodule:: tradingstrategy.chain
     :members:

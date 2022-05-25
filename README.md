@@ -22,7 +22,7 @@ from [Trading Strategy Protocol](https://tradingstrategy.ai/).
 
 * Supports multiple blockchains like [Ethereum mainnet](https://tradingstrategy.ai/trading-view/ethereum), [Binance Smart Chain](https://tradingstrategy.ai/trading-view/binance) and [Polygon](https://tradingstrategy.ai/trading-view/polygon)
 
-* Access trading data from on-chain decentralised exchanges like [SushiSwap](https://tradingstrategy.ai/trading-view/ethereum/sushiswap), [QuickSwap](https://tradingstrategy.ai/trading-view/polygon/quickswap) and [PancakeSwap](https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2)
+* Access trading data from on-chain decentralised exchanges like [SushiSwap](https://tradingstrategy.ai/trading-view/ethereum/sushi), [QuickSwap](https://tradingstrategy.ai/trading-view/polygon/quickswap) and [PancakeSwap](https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2)
 
 * Integration with [Jupyter Notebook](https://jupyter.org/) for easy manipulation of data 
 
@@ -72,10 +72,9 @@ Community
 
 * [Discord](https://tradingstrategy.ai/community#discord) 
 
-* [Telegram channel](https://twitter.com/TradingProtocol)
+* [Telegram channel](https://t.me/trading_protocol)
 
 * [Changelog and version history](https://github.com/tradingstrategy-ai/trading-strategy/blob/master/CHANGELOG.md)
-
 
 [Read more documentation how to develop this package](https://tradingstrategy.ai/docs/programming/development.html).
 

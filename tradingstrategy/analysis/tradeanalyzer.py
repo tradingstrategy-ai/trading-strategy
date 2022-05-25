@@ -16,7 +16,7 @@ from pandas.io.formats.style import Styler
 
 from tradingstrategy.analysis.tradehint import TradeHint, TradeHintType
 from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.pair import PairUniverse, PandasPairUniverse
+from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
 from tradingstrategy.types import PrimaryKey, USDollarAmount
 from tradingstrategy.utils.format import format_value, format_percent, format_price, format_duration_days_hours_mins, \
     format_percent_2_decimals

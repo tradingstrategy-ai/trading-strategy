@@ -1,4 +1,13 @@
-"""Exchange information and analysis."""
+"""Exchange information and analysis.
+
+Exchanges are presented by
+
+- :py:class:`Exchange` class
+
+To download the pairs dataset see
+
+- :py:meth:`tradingstrategy.client.Client.fetch_exchange_universe`
+"""
 
 import enum
 from dataclasses import dataclass
@@ -66,7 +75,7 @@ class Exchange:
     #: Used as the primary key in URLs and other user facing addressers.
     exchange_slug: str
 
-    #: The factory smart contract address of Uniswap based exchanges
+    #: The factory smart contract address of Uniswap based exchanges.
     address: NonChecksummedAddress
 
     #: What kind of exchange is this
@@ -128,6 +137,13 @@ class Exchange:
         """
         return self.__dict__
 
+    def __hash__(self) -> int:
+        return int(self.address, 16)
+
+    def __eq__(self, other) -> bool:
+        # https://stackoverflow.com/a/12511715/315168
+        return isinstance(other, self.__class__) and self.address == other.address
+
     @property
     def vol_30d(self):
         return (self.buy_volume_30d or 0) + (self.sell_volume_30d or 0)
@@ -165,7 +181,7 @@ class ExchangeUniverse:
 
         :param chain_id: Blockchain this exchange is on
 
-        :param name: Like `sushiswap` or `uniswap v2`. Case insensitive.
+        :param name: Like `sushi` or `uniswap v2`. Case insensitive.
         """
         name = name.lower()
         assert isinstance(chain_id, ChainId)
@@ -187,10 +203,16 @@ class ExchangeUniverse:
                 return xchg
         return None
 
+    def get_by_chain_and_factory(self, chain_id: ChainId, factory_address: str) -> Optional[Exchange]:
+        """Get the exchange implementation on a specific chain.
 
+        :param chain_id: Blockchain this exchange is on
 
-
-
-
-
-
+        :param factory_address: The smart contract address of the exchange factory
+        """
+        assert isinstance(chain_id, ChainId)
+        factory_address = factory_address.lower()
+        for xchg in self.exchanges.values():
+            if xchg.address.lower() == factory_address:
+                return xchg
+        return None

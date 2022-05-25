@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 import pandas as pd
@@ -9,7 +7,7 @@ from tradingstrategy.liquidity import GroupedLiquidityUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import PandasPairUniverse, DEXPair, PairUniverse
+from tradingstrategy.pair import PandasPairUniverse, DEXPair, LegacyPairUniverse
 
 
 def test_grouped_liquidity(persistent_test_client: Client):
@@ -98,7 +96,7 @@ def test_liquidity_index_is_datetime(persistent_test_client: Client):
     exchange_universe = client.fetch_exchange_universe()
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
     pairs = client.fetch_pair_universe()
-    pair_universe = PairUniverse.create_from_pyarrow_table(pairs)
+    pair_universe = LegacyPairUniverse.create_from_pyarrow_table(pairs)
     pair = pair_universe.get_pair_by_ticker_by_exchange(exchange.exchange_id, "WETH", "DAI")
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")

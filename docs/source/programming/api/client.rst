@@ -1,6 +1,6 @@
 Client
 ======
 
- .. autoclass:: tradingstrategy.client.Client
-     :members:
-     :member-order: bysource
+ .. automodule:: tradingstrategy.client
+    :members:
+    :member-order: bysource
