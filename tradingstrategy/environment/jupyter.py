@@ -66,7 +66,8 @@ class JupyterEnvironment(Environment):
     def non_interactive_setup(self,**keys:str) -> Configuration:
         """Perform interactive user onbaording"""
         config = run_non_interactive_setup(**keys)
-        self.save_configuration(config)
+        if config:
+            self.save_configuration(config)
         return config
 
 

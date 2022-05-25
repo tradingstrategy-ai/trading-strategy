@@ -238,6 +238,8 @@ class Client:
         cls.setup_notebook()
         env = JupyterEnvironment()
         config = env.setup_on_demand(api_key=api_key)
+        if config==None:
+            return None
         transport = CachedHTTPTransport(download_with_progress_jupyter, cache_path=env.get_cache_path(), api_key=config.api_key)
         return Client(env, transport)
 
