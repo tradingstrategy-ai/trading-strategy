@@ -788,8 +788,10 @@ def filter_for_quote_tokens(pairs: pd.DataFrame, quote_token_addresses: Union[Li
         assert addr == addr.lower(), f"Address was not lowercased {addr}"
 
     our_pairs: pd.DataFrame = pairs.loc[
-        (pairs['token0_address'].isin(quote_token_addresses) | pairs['token1_address'].isin(quote_token_addresses))
+        (pairs['token0_address'].isin(quote_token_addresses) & (pairs['token0_symbol'] == pairs['quote_token_symbol'])) |
+        (pairs['token1_address'].isin(quote_token_addresses) & (pairs['token1_symbol'] == pairs['quote_token_symbol']))
     ]
+
     return our_pairs
 
 
