@@ -20,6 +20,8 @@ import logging
 from tqdm import TqdmExperimentalWarning
 import warnings
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
+from tradingstrategy.universe import Universe
+
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 

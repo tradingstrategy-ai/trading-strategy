@@ -20,7 +20,7 @@ class Universe:
     This includes blockchains, exchanges, trading pairs, etc.
     """
 
-    time_frame: TimeBucket
+    time_bucket: TimeBucket
 
     #: List of blockchains the strategy trades on
     chains: Set[ChainId]

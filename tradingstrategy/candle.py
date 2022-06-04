@@ -249,7 +249,21 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         return self.get_sample_count()
 
     def get_candles_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
-        """Get candles for a single pair."""
+        """Get candles for a single pair.
+
+        :return:
+            Pandas dataframe object with the following columns
+
+            - timestamp
+
+            - open
+
+            - high
+
+            - low
+
+            - close
+        """
         return self.get_samples_by_pair(pair_id)
 
     def get_closest_price(self, pair_id: PrimaryKey, when: pd.Timestamp, kind="close", look_back_time_frames=5) -> USDollarAmount:

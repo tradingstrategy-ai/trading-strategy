@@ -588,13 +588,33 @@ class PandasPairUniverse:
         return None
 
     @staticmethod
-    def create_single_pair_universe(df: pd.DataFrame, exchange: Exchange, base_token_symbol: str, quote_token_symbol: str) -> "PandasPairUniverse":
+    def create_single_pair_universe(
+            df: pd.DataFrame,
+            exchange: Exchange,
+            base_token_symbol: str,
+            quote_token_symbol: str,
+            pick_by_highest_vol=True) -> "PandasPairUniverse":
         """Create a trading pair universe that contains only a single trading pair.
 
         This is useful for trading strategies that to technical analysis trading
         on a single trading pair like BTC-USD.
 
-        :param df: Unfiltered DataFrame for all pairs
+        :param df:
+            Unfiltered DataFrame for all pairs
+
+        :param exchange:
+            Exchange instance on the pair is trading
+
+        :param base_token_symbol:
+            Base token symbol of the trading pair
+
+        :param quote_token_symbol:
+            Base token symbol of the trading pair
+
+        :param pick_by_highest_vol:
+            In the case of multiple match per token symbol,
+            or scam tokens,
+            pick one with the highest trade volume
 
         :raise DuplicatePair: Multiple pairs matching the criteria
         :raise NoPairFound: No pairs matching the criteria
@@ -608,7 +628,17 @@ class PandasPairUniverse:
             (df["quote_token_symbol"] == quote_token_symbol)]
 
         if len(filtered_df) > 1:
-            raise DuplicatePair(f"Multiple trading pairs found {base_token_symbol}-{quote_token_symbol}")
+            if not pick_by_highest_vol:
+                duplicates = 0
+                for p in filtered_df.to_dict(orient="records"):
+                    logger.error("Conflicting pair: %s", p)
+                    duplicates += 1
+                raise DuplicatePair(f"Found {duplicates} trading pairs for {base_token_symbol}-{quote_token_symbol} when 1 was expected")
+
+            # Sort by trade volume and pick the highest one
+            sorted = filtered_df.sort_values(by="buy_volume_all_time", ascending=False)
+            duplicates_removed_df = sorted.drop_duplicates(subset="base_token_symbol")
+            return PandasPairUniverse(duplicates_removed_df)
 
         if len(filtered_df) == 1:
             return PandasPairUniverse(filtered_df)
