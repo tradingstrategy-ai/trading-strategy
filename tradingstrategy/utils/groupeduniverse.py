@@ -209,6 +209,21 @@ class PairGroupedUniverse:
         index = self.df.index
         return index[index <= ts][-1]
 
+    def get_single_pair_data(self, sample_count: Optional[int]=None):
+        """Get all candles/liquidity samples for the single alone pair in the universe.
+
+        A shortcut method for trading strategies that trade only one pair.
+        """
+
+        pair_count = self.get_pair_count()
+        assert pair_count == 1, f"This function only works for single pair univese, we have {pair_count} pairs"
+        df = self.df
+
+        if sample_count:
+            return df.iloc[-sample_count:]
+        else:
+            return df
+
 
 def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs from a certain exchange.

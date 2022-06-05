@@ -141,3 +141,41 @@ def test_iterate_pairs_by_timestamp_range(persistent_test_client: Client):
         last_candle = pair_df.iloc[-1]
         # Calculate
         momentum = (last_candle["close"] - first_candle["open"]) / first_candle["open"] - 1
+
+
+def test_data_for_single_pair(persistent_test_client: Client):
+    """Get data from the single pair candle universe."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    columnar_pair_table = client.fetch_pair_universe()
+    pairs_df = columnar_pair_table.to_pandas()
+
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+
+    pair_universe = PandasPairUniverse.create_single_pair_universe(
+            pairs_df,
+            exchange,
+            "WBNB",
+            "BUSD",
+            pick_by_highest_vol=True,
+        )
+
+    pair = pair_universe.get_single()
+    assert pair.base_token_symbol == "WBNB"
+    assert pair.quote_token_symbol == "BUSD"
+
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+
+    # Filter down candles to a single pair
+    single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
+
+    candle_universe = GroupedCandleUniverse(single_pair_candles)
+
+    # Get last 10 candles for WBNB-BUSD
+    df = candle_universe.get_single_pair_data(sample_count=10)
+    assert len(df) == 10
+    assert df.iloc[-1]["timestamp"] > pd.Timestamp("2021-1-1")
+
+
