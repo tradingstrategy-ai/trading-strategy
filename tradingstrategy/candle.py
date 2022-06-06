@@ -309,3 +309,11 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         TODO: Fix QSTrader to use "standard" column names.
         """
         return GroupedCandleUniverse(df=Candle.to_qstrader_dataframe(), timestamp_column="Date")
+
+    @staticmethod
+    def create_from_single_pair_dataframe(df: pd.DataFrame) -> "GroupedCandleUniverse":
+        """Construct universe based on a single trading pair data.
+
+        Useful for synthetic data/testing.
+        """
+        return GroupedCandleUniverse(df)
