@@ -556,6 +556,27 @@ class PandasPairUniverse:
         Note that this method works only very simple universes, as any given pair
         is poised to have multiple tokens and multiple trading pairs on different exchanges.
 
+        Example:
+
+        .. code-block:: python
+
+            # Get PancakeSwap exchange,
+            # for the full exchange list see https://tradingstrategy.ai/trading-view/exchanges
+            pancake = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+
+            # Because there can be multiple trading pairs with same tickers,
+            # we pick the genuine among the scams based on its trading volume
+            wbnb_busd_pair = pair_universe.get_one_pair_from_pandas_universe(
+                pancake.exchange_id,
+                "WBNB",
+                "BUSD",
+                pick_by_highest_vol=True,
+                )
+
+            print("WBNB address is", wbnb_busd_pair.base_token_address)
+            print("BUSD address is", wbnb_busd_pair.quote_token_address)
+            print("WBNB-BUSD pair contract address is", wbnb_busd_pair.address)
+
         :param pick_by_highest_vol: If multiple trading pairs with the same symbols are found, pick one with the highest volume. This is because often malicious trading pairs are create to attract novice users.
 
         :raise DuplicatePair: If the universe contains more than single entry for the pair.
