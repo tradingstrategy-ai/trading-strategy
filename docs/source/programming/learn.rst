@@ -167,7 +167,11 @@ More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/mu
 
 `Google Colab charts example <https://colab.research.google.com/notebooks/charts.ipynb>`__.
 
-`Interesting 3d distributoin diagrams <https://stackoverflow.com/questions/61926533/gradient-fill-underneath-each-histogram-curve-python>`__.
+`Interesting 3d distribution diagrams <https://stackoverflow.com/questions/61926533/gradient-fill-underneath-each-histogram-curve-python>`__.
+
+`Limit order book visualisation <http://parasec.net/transmission/order-book-visualisation/>`_
+
+`Bookmap <https://bookmap.com/blog/heatmap-in-trading-the-complete-guide-to-market-depth-visualization/>`_
 
 Adversial environment
 ~~~~~~~~~~~~~~~~~~~~~
