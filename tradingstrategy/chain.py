@@ -100,6 +100,9 @@ class ChainId(enum.Enum):
     #: Polygon chain id
     polygon = 137
 
+    #: Avalanche C-chain id
+    avalanche = 43114
+
     #: Ethereum Classic chain id.
     #: This is also the value used by EthereumTester in unit tests.
     #: https://github.com/ethereum/eth-tester
