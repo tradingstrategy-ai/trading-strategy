@@ -1,0 +1,6 @@
+name: Trading Strategy client
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+    - .

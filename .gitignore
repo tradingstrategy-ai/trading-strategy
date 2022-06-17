@@ -1,6 +1,8 @@
 __pycache__
 docs/build
+dist
+
 .DS_Store
 .ipynb_checkpoints
-dist
 .vscode
+.python-version

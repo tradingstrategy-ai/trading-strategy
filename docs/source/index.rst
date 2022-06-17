@@ -29,7 +29,7 @@ Built on
 
        <img class="logo" src="_static/logos/pyarrow.png" alt="PyArrow">
 
-       <img class="logo" src="_static/logos/colab.png" alt="Google Colab">
+       <img class="logo" src="_static/logos/binder.png" alt="Binder">
 
        <img class="logo" src="_static/logos/plotly.png" alt="Plotly">
     </div>
