@@ -38,7 +38,7 @@ Python 3.9+
 
 # Installing the package
 
-**Note**: Unless you are an experienced Python developer, [the suggested usage of Trading Algorithm framework is using Google Colab hosted environments](https://tradingstrategy.ai/docs/programming/examples/getting-started.html).
+**Note**: Unless you are an experienced Python developer, [the suggested usage of Trading Strategy framework is using Binder hosted environments](https://tradingstrategy.ai/docs/programming/examples/getting-started.html).
 
 You can install this package with `poetry` or `pip`
 

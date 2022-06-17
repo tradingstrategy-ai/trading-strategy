@@ -14,12 +14,12 @@ The documentation contains various notebooks for
 
 * How to develop your own automated trading strategies
 
-Google Colab
-------------
+Binder
+------
 
 This is the easiest method to start your research if you are not familiar with Python.
 
-Click "Open Colab" badge on the top of the example page in the documentation. You need a Google account. A Google cloud server will be automatically allocated for you to run the code. Currently Colab servers are free.
+Click "Launch binder" badge on the top of the example page in the documentation, a JupyterHub server will be automatically allocated for you to run the code.
 
 Visual Studio Code
 ------------------
