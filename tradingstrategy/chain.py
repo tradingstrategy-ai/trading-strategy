@@ -178,7 +178,9 @@ _CHAIN_DATA_OVERRIDES = {
         "svg_icon": "https://upload.wikimedia.org/wikipedia/commons/0/05/Ethereum_logo_2014.svg",
     },
 
+    #
     # BSC
+    #
     56: {
         "name": "Binance Smart Chain",
         # Deployed on Arweave for good
@@ -186,6 +188,7 @@ _CHAIN_DATA_OVERRIDES = {
         "svg_icon": "https://hv4gxzchk24cqfezebn3ujjz6oy2kbtztv5vghn6kpbkjc3vg4rq.arweave.net/fgp9wHyH92hION8E6CuPtUNbmiTlqsl23QbQlwA8cZQ",
     },
 
+    #
     # Polygon
     #
     137: {
@@ -215,5 +218,13 @@ _CHAIN_DATA_OVERRIDES = {
         "dataless": True,
     },
 
+    # 
+    # Avalanche
+    #
+    43114: {
+        "name": "Avalanche",
+        "slug": "avalanche",
+        "svg_icon": "https://cryptologos.cc/logos/avalanche-avax-logo.svg", # TODO
+    },
 }
 
