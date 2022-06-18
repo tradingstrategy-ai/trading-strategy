@@ -17,9 +17,11 @@ The documentation contains various notebooks for
 Binder
 ------
 
-This is the easiest method to start your research if you are not familiar with Python.
+Binder is the easiest method to start your research if you are not familiar with Python and Jupyter notebooks.
+All examples in the documentation come with Binder integration.
 
-Click "Launch binder" badge on the top of the example page in the documentation, a JupyterHub server will be automatically allocated for you to run the code.
+Pres "Launch binder" badge on the top of any example page in the documentation.
+This will automatically create a personal runnable notebook for you on a cloud server.
 
 Visual Studio Code
 ------------------
