@@ -1,0 +1,49 @@
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  cloudflare-pages:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install poetry
+        run: pipx install poetry
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v3
+        # If caches were enabled, it was caching Python 3.8 interpreter
+        # causing the docs build to fails
+        with:
+          python-version: 3.9
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y pandoc
+          poetry env use '3.9'
+          poetry install -vv
+      - name: Build documentation
+        run: |        
+          poetry env use '3.9'
+          python -V
+          which python
+          echo $PATH
+          PYTHON=`poetry env info -p`/bin/python
+          SPHINX=`poetry env info -p`/bin/sphinx-build
+          LIB=`poetry env info -p`/lib        
+          echo "Using Python $PYTHON"
+          echo "Using Sphinx $SPHINX"
+          ls -lha $LIB
+          # This was an issue with cached builds
+          # Make sure there is no wrong version 
+          # of Python on the system
+          sudo rm /usr/bin/python3.8
+          $PYTHON $SPHINX -M html "docs/source" "docs/build"      - name: Publish
+      - name: Publish on Cloudflare Pages
+        run: |
+          npx wrangler pages publish docs/build/html --project-name=trading-strategy-docs
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
