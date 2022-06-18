@@ -42,6 +42,7 @@ jobs:
           $PYTHON $SPHINX -M html "docs/source" "docs/build"
       - name: Publish on Cloudflare Pages
         run: |
+          npm install -g wrangler
           npx wrangler pages publish docs/build/html --project-name=trading-strategy-docs
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
