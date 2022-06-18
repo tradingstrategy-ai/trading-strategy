@@ -15,7 +15,7 @@ To download the pairs dataset see
 import logging
 import enum
 from dataclasses import dataclass
-from typing import Optional, List, Iterable, Dict, Union, Set
+from typing import Optional, List, Iterable, Dict, Union, Set, Tuple
 
 import pandas as pd
 import pyarrow as pa
@@ -640,31 +640,74 @@ class PandasPairUniverse:
         :raise DuplicatePair: Multiple pairs matching the criteria
         :raise NoPairFound: No pairs matching the criteria
         """
+        return PandasPairUniverse.create_limited_pair_universe(
+            df,
+            exchange,
+            [(base_token_symbol, quote_token_symbol)],
+            pick_by_highest_vol,
+        )
+
+    @staticmethod
+    def create_limited_pair_universe(
+            df: pd.DataFrame,
+            exchange: Exchange,
+            pairs: List[Tuple[str, str]],
+            pick_by_highest_vol=True) -> "PandasPairUniverse":
+        """Create a trading pair universe that contains only few trading pairs.
+
+        This is useful for trading strategies that to technical analysis trading
+        on a few trading pairs, or single pair three-way trades like Cake-WBNB-BUSD.
+
+        :param df:
+            Unfiltered DataFrame for all pairs
+
+        :param exchange:
+            Exchange instance on the pair is trading
+
+        :param pairs:
+            List of trading pairs as ticket tuples. E.g. `[ ("WBNB, "BUSD"), ("Cake", "WBNB") ]`
+
+        :param pick_by_highest_vol:
+            In the case of multiple match per token symbol,
+            or scam tokens,
+            pick one with the highest trade volume
+
+        :raise DuplicatePair: Multiple pairs matching the criteria
+        :raise NoPairFound: No pairs matching the criteria
+        """
 
         assert exchange is not None, "Got None as Exchange - exchange not found?"
 
-        filtered_df: pd.DataFrame= df.loc[
-            (df["exchange_id"] == exchange.exchange_id) &
-            (df["base_token_symbol"] == base_token_symbol) &
-            (df["quote_token_symbol"] == quote_token_symbol)]
+        # https://pandas.pydata.org/docs/user_guide/merging.html
+        frames = []
 
-        if len(filtered_df) > 1:
-            if not pick_by_highest_vol:
-                duplicates = 0
-                for p in filtered_df.to_dict(orient="records"):
-                    logger.error("Conflicting pair: %s", p)
-                    duplicates += 1
-                raise DuplicatePair(f"Found {duplicates} trading pairs for {base_token_symbol}-{quote_token_symbol} when 1 was expected")
+        for base_token_symbol, quote_token_symbol in pairs:
 
-            # Sort by trade volume and pick the highest one
-            sorted = filtered_df.sort_values(by="buy_volume_all_time", ascending=False)
-            duplicates_removed_df = sorted.drop_duplicates(subset="base_token_symbol")
-            return PandasPairUniverse(duplicates_removed_df)
+            filtered_df: pd.DataFrame= df.loc[
+                (df["exchange_id"] == exchange.exchange_id) &
+                (df["base_token_symbol"] == base_token_symbol) &
+                (df["quote_token_symbol"] == quote_token_symbol)]
 
-        if len(filtered_df) == 1:
-            return PandasPairUniverse(filtered_df)
+            if len(filtered_df) > 1:
+                if not pick_by_highest_vol:
+                    duplicates = 0
+                    for p in filtered_df.to_dict(orient="records"):
+                        logger.error("Conflicting pair: %s", p)
+                        duplicates += 1
+                    raise DuplicatePair(f"Found {duplicates} trading pairs for {base_token_symbol}-{quote_token_symbol} when 1 was expected")
 
-        raise NoPairFound(f"No trading pair found. Exchange:{exchange} base:{base_token_symbol} quote:{quote_token_symbol}")
+                # Sort by trade volume and pick the highest one
+                sorted = filtered_df.sort_values(by="buy_volume_all_time", ascending=False)
+                duplicates_removed_df = sorted.drop_duplicates(subset="base_token_symbol")
+                frames.append(duplicates_removed_df)
+
+            elif len(filtered_df) == 1:
+                frames.append(filtered_df)
+
+            else:
+                raise NoPairFound(f"No trading pair found. Exchange:{exchange} base:{base_token_symbol} quote:{quote_token_symbol}")
+
+        return PandasPairUniverse(pd.concat(frames))
 
 
 class LegacyPairUniverse:

@@ -179,3 +179,31 @@ def test_data_for_single_pair(persistent_test_client: Client):
     assert df.iloc[-1]["timestamp"] > pd.Timestamp("2021-1-1")
 
 
+def test_data_for_two_pairs(persistent_test_client: Client):
+    """Get data from the two pair candle universe."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    columnar_pair_table = client.fetch_pair_universe()
+    pairs_df = columnar_pair_table.to_pandas()
+
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+
+    pair_universe = PandasPairUniverse.create_limited_pair_universe(
+            pairs_df,
+            exchange,
+            [("WBNB", "BUSD"), ("Cake", "WBNB")],
+            pick_by_highest_vol=True,
+        )
+
+    assert pair_universe.get_count() == 2
+
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+
+    # Filter down candles to two pairs
+    two_pair_candles = raw_candles.loc[raw_candles["pair_id"] in pair_universe.df]
+    candle_universe = GroupedCandleUniverse(two_pair_candles)
+
+
+
