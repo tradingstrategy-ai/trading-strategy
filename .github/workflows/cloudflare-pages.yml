@@ -1,5 +1,7 @@
 # Publish the static Sphinx build on Trading Strategy documentation on Cloudflare Pages hosting
 
+name: Deploy docs to Cloudflare Pages
+
 on:
   push:
     branches: [ master ]
@@ -8,7 +10,6 @@ on:
 jobs:
   cloudflare-pages:
     runs-on: ubuntu-latest
-    name: Deploy to Cloudflare Pages
     steps:
       - name: Checkout
         uses: actions/checkout@v3
