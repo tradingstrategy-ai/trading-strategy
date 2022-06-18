@@ -173,6 +173,8 @@ More beautiful charts in Jupyter Notebooks. `Read more <http://markibrahim.me/mu
 
 `Bookmap <https://bookmap.com/blog/heatmap-in-trading-the-complete-guide-to-market-depth-visualization/>`_
 
+`Market depth historical graph <https://tradergav.com/sierra-chart-book-sharing-market-depth-historical-graph/>`_
+
 Adversial environment
 ~~~~~~~~~~~~~~~~~~~~~
 
