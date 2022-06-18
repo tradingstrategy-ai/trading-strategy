@@ -1,3 +1,5 @@
+# Publish the static Sphinx build on Trading Strategy documentation on Cloudflare Pages hosting
+
 on:
   push:
     branches: [ master ]
