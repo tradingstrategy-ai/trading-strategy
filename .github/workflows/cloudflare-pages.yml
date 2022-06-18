@@ -5,8 +5,6 @@ name: Deploy docs to Cloudflare Pages
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 jobs:
   cloudflare-pages:
     runs-on: ubuntu-latest
@@ -46,7 +44,7 @@ jobs:
       - name: Publish on Cloudflare Pages
         run: |
           npm install -g wrangler
-          npx wrangler pages publish docs/build/html --project-name=trading-strategy-docs
+          npx wrangler pages publish docs/build/html --project-name=trading-strategy-docs --branch master
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
