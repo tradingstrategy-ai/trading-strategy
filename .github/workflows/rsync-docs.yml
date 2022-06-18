@@ -43,12 +43,11 @@ jobs:
           $PYTHON $SPHINX -M html "docs/source" "docs/build"
 
       # https://zellwk.com/blog/github-actions-deploy/
-      # https://github.com/shimataro/ssh-key-action
+      # https://github.com/webfactory/ssh-agent
       - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
+        uses: webfactory/ssh-agent@v0.5.4
         with:
-          key: ${{ secrets.RSYNC_KEY }}
-
+          ssh-private-key: ${{ secrets.RSYNC_KEY }}
       - name: Publish docs via rsync
         run: |
           $RSYNC_COMMAND
