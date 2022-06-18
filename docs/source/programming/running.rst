@@ -72,9 +72,6 @@ Before running installer, make sure you use OpenBLAS correctly from Homebrew:
     brew install openblas
     export OPENBLAS="$(brew --prefix openblas)"
 
-
-
-
 Local Jupyter Server
 --------------------
 
