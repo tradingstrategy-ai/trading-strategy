@@ -39,7 +39,7 @@ jobs:
           # Make sure there is no wrong version 
           # of Python on the system
           sudo rm /usr/bin/python3.8
-          $PYTHON $SPHINX -M html "docs/source" "docs/build"      - name: Publish
+          $PYTHON $SPHINX -M html "docs/source" "docs/build"
       - name: Publish on Cloudflare Pages
         run: |
           npx wrangler pages publish docs/build/html --project-name=trading-strategy-docs
