@@ -202,7 +202,7 @@ def test_data_for_two_pairs(persistent_test_client: Client):
     raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
 
     # Filter down candles to two pairs
-    two_pair_candles = raw_candles.loc[raw_candles["pair_id"] in pair_universe.df]
+    two_pair_candles = raw_candles.loc[raw_candles["pair_id"].isin(pair_universe.df)]
     candle_universe = GroupedCandleUniverse(two_pair_candles)
 
 
