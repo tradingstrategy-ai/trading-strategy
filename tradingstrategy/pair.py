@@ -550,6 +550,21 @@ class PandasPairUniverse:
         assert pair_count == 1, f"Not a single trading pair universe, we have {pair_count} pairs"
         return next(iter(self.pair_map.values()))
 
+    def get_by_symbols(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
+        """For strategies that trade only a few trading pairs, get the only pair in the universe.
+
+        .. warning ::
+
+            Currently, this method is only safe for prefiltered universe. There are no safety checks if
+            the returned trading pair is legit. In the case of multiple matching pairs,
+            a random pair is returned.g
+
+        :raise AssertionError: If our pair universe does not have an exact single pair
+        """
+        for pair in self.pair_map.values():
+            if pair.base_token_symbol == base_token_symbol and pair.quote_token_symbol == quote_token_symbol:
+                return pair
+
     def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str, pick_by_highest_vol=False) -> Optional[DEXPair]:
         """Get a trading pair by its ticker symbols.
 
