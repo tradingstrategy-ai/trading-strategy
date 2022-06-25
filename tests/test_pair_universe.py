@@ -12,6 +12,8 @@ def sample_pair() -> DEXPair:
             pair_id=1,
             chain_id=ChainId.ethereum,
             exchange_id=1,
+            exchange_slug="uniswap-v2",
+            pair_slug="eth-usdc",
             address="0x0000000000000000000000000000000000000001",
             dex_type=PairType.uniswap_v2,
             base_token_symbol="WETH",
