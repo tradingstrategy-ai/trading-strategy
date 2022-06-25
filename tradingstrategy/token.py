@@ -24,6 +24,15 @@ class Token:
 
     decimals: int
 
+    def __eq__(self, other):
+        """Implemented for set()"""
+        assert isinstance(other, Token)
+        return self.address == other.address
+
+    def __hash__(self) -> int:
+        """Implemented for set()"""
+        return int(self.address, 16)
+
     def __repr__(self):
         return f"<Token {self.symbol} with {self.decimals} at {self.address} on {self.chain_id.name}>"
 

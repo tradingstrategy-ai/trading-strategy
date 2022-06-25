@@ -541,6 +541,21 @@ class PandasPairUniverse:
             self.token_cache[address] = token
         return self.token_cache[address]
 
+    def get_all_tokens(self) -> Set[Token]:
+        """Get all base and quote tokens in trading pairs.
+
+        .. warning ::
+
+            This method is useful for only test/limited pair count universes.
+            It is very slow and mainly purported for debugging and diagnostics.
+
+        """
+        tokens = set()
+        for p in self.pair_map.values():
+            tokens.add(self.get_token(p.base_token_address))
+            tokens.add(self.get_token(p.quote_token_address))
+        return tokens
+
     def get_single(self) -> DEXPair:
         """For strategies that trade only a single trading pair, get the only pair in the universe.
 
@@ -559,11 +574,11 @@ class PandasPairUniverse:
             the returned trading pair is legit. In the case of multiple matching pairs,
             a random pair is returned.g
 
-        :raise AssertionError: If our pair universe does not have an exact single pair
         """
         for pair in self.pair_map.values():
             if pair.base_token_symbol == base_token_symbol and pair.quote_token_symbol == quote_token_symbol:
                 return pair
+        return None
 
     def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str, pick_by_highest_vol=False) -> Optional[DEXPair]:
         """Get a trading pair by its ticker symbols.
