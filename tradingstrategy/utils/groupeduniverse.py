@@ -171,8 +171,12 @@ class PairGroupedUniverse:
         samples = self.get_all_samples_by_range(start, end)
         return samples.groupby("pair_id")
 
-    def get_timestamp_range(self) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
+    def get_timestamp_range(self, use_timezone=False) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
         """Return the time range of data we have for.
+
+        :param use_timezone:
+            The resulting timestamps will have their timezone set to UTC.
+            If not set then naive timestamps are generated.
 
         :return:
             (start timestamp, end timestamp) tuple, UTC-timezone aware
@@ -182,8 +186,12 @@ class PairGroupedUniverse:
         if len(self.df) == 0:
             return None, None
 
-        start = min(self.df[self.timestamp_column]).tz_localize(tz='UTC')
-        end = max(self.df[self.timestamp_column]).tz_localize(tz='UTC')
+        if use_timezone:
+            start = min(self.df[self.timestamp_column]).tz_localize(tz='UTC')
+            end = max(self.df[self.timestamp_column]).tz_localize(tz='UTC')
+        else:
+            start = min(self.df[self.timestamp_column])
+            end = max(self.df[self.timestamp_column])
         return start, end
 
     def get_prior_timestamp(self, ts: pd.Timestamp) -> pd.Timestamp:
