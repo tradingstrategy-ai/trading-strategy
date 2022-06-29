@@ -186,7 +186,7 @@ class ExchangeUniverse:
         name = name.lower()
         assert isinstance(chain_id, ChainId)
         for xchg in self.exchanges.values():
-            if xchg.name.lower() == name:
+            if xchg.name.lower() == name.lower():
                 return xchg
         return None
 

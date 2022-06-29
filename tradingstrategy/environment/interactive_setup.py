@@ -4,7 +4,7 @@ from tradingstrategy.environment.base import download_with_progress_plain
 from tradingstrategy.environment.config import Configuration
 from tradingstrategy.transport.cache import CachedHTTPTransport
 
-
+    
 def run_interactive_setup() -> Optional[Configuration]:
     """Do REPL interactive setup with the user in Jupyter notebook."""
 
@@ -72,7 +72,23 @@ def run_interactive_setup() -> Optional[Configuration]:
     return config
 
 
+def run_non_interactive_setup(**args:str) -> Optional[Configuration]:
+    if not "api_key" in args or args["api_key"]==None:
+        print("Can't setup config, please provide api_key argument")
+        return None
+    api_key=args["api_key"]
+    print(f"Testing out API key: {api_key[0:24]}")
+    try:
+        authenticated_transport = CachedHTTPTransport(download_with_progress_plain, api_key=api_key)
+        welcome = authenticated_transport.message_of_the_day()
+        print("The server replied accepted our API key and sent the following greetings:")
+        print("Server version:", welcome["version"])
+        print("Message of the day:", welcome["message"])
+    except Exception as e:
+        print(f"Received error: {e} - check your API key")
+        return None
+    config = Configuration(api_key=api_key)
 
+    print("The API key setup complete.")
 
-
-
+    return config
