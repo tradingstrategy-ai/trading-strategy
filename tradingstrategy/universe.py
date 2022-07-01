@@ -1,6 +1,6 @@
 """Helper class to manage trading universes."""
 from dataclasses import dataclass
-from typing import Tuple, Set
+from typing import Tuple, Set, Optional
 
 import pandas as pd
 
@@ -25,7 +25,8 @@ class Universe:
     #: List of blockchains the strategy trades on
     chains: Set[ChainId]
 
-    #: List of exchanges the strategy trades on
+    #: List of exchanges the strategy trades on.
+    #: TODO: Currently not suitable for large number of exchanges in the same strategy.
     exchanges: Set[Exchange]
 
     #: List of trading pairs the strategy trades on
@@ -53,4 +54,14 @@ class Universe:
         """
         assert len(self.exchanges) == 1
         return self.exchanges[0]
+
+    def get_exchange_by_id(self, id: int) -> Optional[Exchange]:
+        """Get exchange by its id.
+
+        TODO: Replace exchange set with a proper exchange universe.
+        """
+        for exc in self.exchanges:
+            if exc.exchange_id == id:
+                return exc
+        return None
 
