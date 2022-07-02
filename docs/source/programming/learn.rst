@@ -45,6 +45,13 @@ Written by Wes McKinney, the creator of the Python pandas project, this book is 
 
 `Read book at <https://wesmckinney.com/book/>`__.
 
+Gallery of Jupyter Books
+------------------------
+
+Multiple data research and quantative finance books for Python and Jupyter
+
+`View gallery at Executable Books <https://executablebooks.org/en/latest/gallery.html>`__
+
 Teddy Koker's blog
 ------------------
 
