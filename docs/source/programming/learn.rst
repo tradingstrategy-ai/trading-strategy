@@ -36,6 +36,22 @@ This is an intense online training program about Python techniques for algorithm
 
 `Read more <https://home.tpq.io/certificates/pyalgo/>`__.
 
+Python for Data Analysis
+------------------------
+
+Get the definitive handbook for manipulating, processing, cleaning, and crunching datasets in Python. Updated for Python 3.9 and pandas 1.2, the third edition of this hands-on guide is packed with practical case studies that show you how to solve a broad set of data analysis problems effectively. You'll learn the latest versions of pandas, NumPy, and Jupyter in the process.
+
+Written by Wes McKinney, the creator of the Python pandas project, this book is a practical, modern introduction to data science tools in Python. It's ideal for analysts new to Python and for Python programmers new to data science and scientific computing. Data files and related material are available on GitHub.
+
+`Read book at <https://wesmckinney.com/book/>`__.
+
+Gallery of Jupyter Books
+------------------------
+
+Multiple data research and quantative finance books for Python and Jupyter
+
+`View gallery at Executable Books <https://executablebooks.org/en/latest/gallery.html>`__
+
 Teddy Koker's blog
 ------------------
 
