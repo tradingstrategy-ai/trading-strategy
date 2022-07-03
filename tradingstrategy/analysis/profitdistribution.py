@@ -1,4 +1,9 @@
-"""Show histograms how many trades were profitable or not."""
+"""Show histograms how many trades were profitable or not.
+
+.. warning ::
+
+    This module is deprecated and replaced by tradeexecutor analysis modules.
+"""
 
 import numpy as np
 import pandas as pd

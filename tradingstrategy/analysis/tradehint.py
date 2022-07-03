@@ -1,3 +1,11 @@
+"""Hint trade types.
+
+.. warning ::
+
+    This module is deprecated and replaced by tradeexecutor analysis modules.
+
+"""
+
 import enum
 from typing import Optional
 

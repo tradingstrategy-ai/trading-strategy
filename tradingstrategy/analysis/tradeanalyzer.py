@@ -1,5 +1,9 @@
 """Analyze the trade performance of algorithm
 
+.. warning ::
+
+    This module is deprecated and replaced by tradeexecutor analysis modules.
+
 - Trade summary
 - Won and lost trades
 - Trade won/lost distribution graph

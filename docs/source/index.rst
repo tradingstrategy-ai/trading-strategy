@@ -3,7 +3,7 @@ Trading Strategy documentation
 
 .. raw:: html
 
-   <img class="intro" src="_static/intro.png" alt="Decentralised trading bots">
+   <img class="intro" src="../_static/intro.png" alt="Decentralised trading bots">
 
 **Trading Strategy protocol is still under development. Any documentation is preliminary and not final.**
 

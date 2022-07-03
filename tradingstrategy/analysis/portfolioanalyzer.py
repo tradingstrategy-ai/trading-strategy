@@ -1,5 +1,9 @@
 """Analyse the portfolio development over the time.
 
+.. warning ::
+
+    This module is deprecated and replaced by tradeexecutor analysis modules.
+
 - Portfolio situation at the start of the each tick
 - Currently held assets
 - Net asset value (NAV)
