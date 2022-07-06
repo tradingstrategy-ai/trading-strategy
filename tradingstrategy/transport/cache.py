@@ -152,7 +152,7 @@ class CachedHTTPTransport:
 
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "pair-universe", human_readable_hint="Download trading pair dataset")
+        self.save_response(path, "pair-universe", human_readable_hint="Downloading trading pair dataset")
         return self.get_cached_item(fname)
 
     def fetch_exchange_universe(self) -> pathlib.Path:
@@ -163,7 +163,7 @@ class CachedHTTPTransport:
 
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "exchange-universe")
+        self.save_response(path, "exchange-universe", human_readable_hint="Downloading exchange dataset")
         return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
@@ -174,7 +174,7 @@ class CachedHTTPTransport:
             return cached
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "candles-all", params={"bucket": bucket.value})
+        self.save_response(path, "candles-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading OHLCV data for {bucket.value} time bucket")
         return self.get_cached_item(path)
 
     def fetch_liquidity_all_time(self, bucket: TimeBucket) -> pathlib.Path:
@@ -184,7 +184,7 @@ class CachedHTTPTransport:
             return cached
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "liquidity-all", params={"bucket": bucket.value})
+        self.save_response(path, "liquidity-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading liquidity data for {bucket.value} time bucket")
         return self.get_cached_item(path)
 
     def ping(self) -> dict:
