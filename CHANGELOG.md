@@ -7,7 +7,8 @@
 - Add `get_exchange_by_id` shortcut
 - Fix `filter_for_quote_tokens` to be more strict (was checking either side of the pair, not quote token)
 - API change `create_single_pair_universe` now to accept `pick_by_highest_vol`
-- API change: Rename `Universe.time_frame` -> `Universe.time_bucket` to be consistent 
+- API change: Rename `Universe.time_frame` -> `Universe.time_bucket` to be consistent
+- Make download progress bars more human friendly 
 
 # 0.6.9
 

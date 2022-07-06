@@ -43,7 +43,7 @@ from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.reader import read_parquet
 from tradingstrategy.chain import ChainId
 from tradingstrategy.environment.base import Environment, download_with_progress_plain
-from tradingstrategy.environment.jupyter import JupyterEnvironment, download_with_progress_jupyter
+from tradingstrategy.environment.jupyter import JupyterEnvironment, download_with_tqdm_progress_bar
 from tradingstrategy.transport.cache import CachedHTTPTransport
 
 
@@ -222,7 +222,7 @@ class Client:
         cls.setup_notebook()
         env = JupyterEnvironment()
         config = env.setup_on_demand()
-        transport = CachedHTTPTransport(download_with_progress_jupyter, cache_path=env.get_cache_path(), api_key=config.api_key)
+        transport = CachedHTTPTransport(download_with_tqdm_progress_bar, cache_path=env.get_cache_path(), api_key=config.api_key)
         return Client(env, transport)
 
     @classmethod

@@ -109,13 +109,26 @@ class CachedHTTPTransport:
             logger.info("Purging caches at %s", self.cache_path)
             shutil.rmtree(self.cache_path)
 
-    def save_response(self, fpath, api_path, params=None):
-        """Download a file to the cache and display a pretty progress bar while doing it."""
+    def save_response(self, fpath, api_path, params=None, human_readable_hint: Optional[str]=None):
+        """Download a file to the cache and display a pretty progress bar while doing it.
+
+        :param fpath:
+            File system path where the download will be saved
+
+        :param api_path:
+            Which Trading Strategy backtesting API we call to download the dataset.
+
+        :param params:
+            HTTP request params, like the `Authorization` header
+
+        :param human_readable_hint:
+            The status text displayed on the progress bar what's being downloaded
+        """
         os.makedirs(self.get_abs_cache_path(), exist_ok=True)
         url = f"{self.endpoint}/{api_path}"
         logger.debug("Saving %s to %s", url, fpath)
         # https://stackoverflow.com/a/14114741/315168
-        self.download_func(self.requests, fpath, url, params, self.timeout)
+        self.download_func(self.requests, fpath, url, params, self.timeout, human_readable_hint)
 
     def get_json_response(self, api_path, params=None):
         url = f"{self.endpoint}/{api_path}"
@@ -139,7 +152,7 @@ class CachedHTTPTransport:
 
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "pair-universe")
+        self.save_response(path, "pair-universe", human_readable_hint="Download trading pair dataset")
         return self.get_cached_item(fname)
 
     def fetch_exchange_universe(self) -> pathlib.Path:

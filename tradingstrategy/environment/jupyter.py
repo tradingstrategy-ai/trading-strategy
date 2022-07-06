@@ -7,8 +7,6 @@ import logging
 from requests import Session
 from tqdm.autonotebook import tqdm
 
-import requests
-
 from tradingstrategy.environment.base import Environment
 from tradingstrategy.environment.config import Configuration
 from tradingstrategy.environment.interactive_setup import run_interactive_setup
@@ -68,9 +66,23 @@ class JupyterEnvironment(Environment):
         return config
 
 
-def download_with_progress_jupyter(session: Session, path: str, url: str, params: dict, timeout: float):
-    """Use tqdm library to raw a graphical progress bar in notebooks for long downloads."""
+def download_with_tqdm_progress_bar(
+        session: Session,
+        path: str,
+        url: str,
+        params: dict,
+        timeout: float,
+        human_readable_hint: Optional[str]):
+    """Use tqdm library to raw a graphical progress bar in notebooks for long downloads.
 
+    Autodetects the Python execution environment
+
+    - Displays HTML progress bar in Jupyter notebooks
+
+    - Displays ANSI progress bar in a console
+
+    See :py:meth:`tradingstrategy.transport.cache.CachedHTTPTransport.save_response` for more information.
+    """
     # https://stackoverflow.com/questions/37573483/progress-bar-while-download-file-over-http-with-requests
     # https://stackoverflow.com/questions/42212810/tqdm-in-jupyter-notebook-prints-new-progress-bars-repeatedly
 
@@ -78,12 +90,17 @@ def download_with_progress_jupyter(session: Session, path: str, url: str, params
     if r.status_code != 200:
         r.raise_for_status()  # Will only raise for 4xx codes, so...
         raise RuntimeError(f"Request to {url} returned status code {r.status_code}")
+
     file_size = int(r.headers.get('Content-Length', 0))
 
-    if file_size==0 and not 'Content-Length' in r.headers:
+    if file_size == 0 and 'Content-Length' not in r.headers:
         logger.warning("Missing HTTP response content-length header for download %s, headers are %s", url, r.headers.items())
 
-    desc = "(Unknown total file size)" if file_size == 0 else ""
+    desc = human_readable_hint or ""
+
+    # Add warning about missing Content-Length header
+    desc += "(Unknown total file size)" if file_size == 0 else ""
+
     r.raw.read = functools.partial(r.raw.read, decode_content=True)  # Decompress if needed
     with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc) as r_raw:
         with open(path, "wb") as f:
