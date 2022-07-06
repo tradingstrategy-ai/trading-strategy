@@ -59,7 +59,8 @@ poetry add trading-strategy[qstrader]
 
 # Documentation
 
-[Read documentation online](https://tradingstrategy.ai/docs/).
+- [Read Trading Strategy documentation](https://tradingstrategy.ai/docs/).
+- [Documentation Github repository](https://github.com/tradingstrategy-ai/docs).
 
 Community
 ---------
