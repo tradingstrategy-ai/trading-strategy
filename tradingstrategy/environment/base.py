@@ -16,7 +16,7 @@ class Environment(ABC):
     """
 
 
-def download_with_progress_plain(session: Session, path: str, url: str, params: dict, timeout: float):
+def download_with_progress_plain(session: Session, path: str, url: str, params: dict, timeout: float, human_desc: str):
     """The default downloader does not display any fancy progress bar.
 
     :param timeout: Timeout in seconds.
@@ -26,7 +26,7 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
 
     start = datetime.datetime.utcnow()
 
-    logger.info("Starting download %s", url)
+    logger.info("Starting %s download from %s", human_desc, url)
 
     # Work around the issue that HTTPS request get stuck on Github CI
     # https://github.com/tradingstrategy-ai/client/runs/5614200499?check_suite_focus=true
