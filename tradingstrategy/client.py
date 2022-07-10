@@ -12,6 +12,7 @@ import os
 import tempfile
 import time
 from functools import wraps
+from json import JSONDecodeError
 from typing import Optional
 from pathlib import Path
 import logging
@@ -141,8 +142,11 @@ class Client:
         """Fetch list of all exchanges form the :term:`dataset server`.
         """
         path = self.transport.fetch_exchange_universe()
-        with path.open("rt") as inp:
-            return ExchangeUniverse.from_json(inp.read())
+        with path.open("rt", encoding="utf-8") as inp:
+            try:
+                return ExchangeUniverse.from_json(inp.read())
+            except JSONDecodeError as e:
+                raise RuntimeError(f"Could not read JSON file {path}") from e
 
     @_retry_corrupted_parquet_fetch
     def fetch_all_candles(self, bucket: TimeBucket) -> pyarrow.Table:
