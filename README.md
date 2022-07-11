@@ -20,17 +20,21 @@ from [Trading Strategy Protocol](https://tradingstrategy.ai/).
 
 # Features
 
-* Supports multiple blockchains like [Ethereum mainnet](https://tradingstrategy.ai/trading-view/ethereum), [Binance Smart Chain](https://tradingstrategy.ai/trading-view/binance) and [Polygon](https://tradingstrategy.ai/trading-view/polygon)
+* Supports multiple blockchains like [Ethereum mainnet](https://tradingstrategy.ai/trading-view/ethereum), 
+  [Binance Smart Chain](https://tradingstrategy.ai/trading-view/binance) and 
+  [Polygon](https://tradingstrategy.ai/trading-view/polygon)
 
-* Access trading data from on-chain decentralised exchanges like [SushiSwap](https://tradingstrategy.ai/trading-view/ethereum/sushi), [QuickSwap](https://tradingstrategy.ai/trading-view/polygon/quickswap) and [PancakeSwap](https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2)
+* Access trading data from on-chain decentralised exchanges like
+  [SushiSwap](https://tradingstrategy.ai/trading-view/ethereum/sushi), [QuickSwap](https://tradingstrategy.ai/trading-view/polygon/quickswap) and [PancakeSwap](https://tradingstrategy.ai/trading-view/binance/pancakeswap-v2)
 
-* Integration with [Jupyter Notebook](https://jupyter.org/) for easy manipulation of data 
+* Integration with Jupyter Notebook for easy manipulation of data.
+  See [example notebooks](https://tradingstrategy.ai/docs/programming/code-examples/index.html).
 
-* Utilise Python quantita frameworks like [Backtrader](https://github.com/tradingstrategy-ai/backtrader) and [QSTrader](https://github.com/tradingstrategy-ai/qstrader) to create, analyse and backtest DEX trading algorithms 
+* Write [algorithmic trading strategies](https://tradingstrategy.ai/docs/programming/strategy-examples/index.html) for  decentralised exchange 
 
-# Example and getting started 
+# Getting started 
 
-See [the Getting Started notebook](https://tradingstrategy.ai/docs/programming/examples/getting-started.html) and the rest of the [Trading Strategy documentation](https://tradingstrategy.ai/docs/).
+See [the Getting Started tutorial](https://tradingstrategy.ai/docs/programming/code-examples/getting-started.html) and the rest of the [Trading Strategy documentation](https://tradingstrategy.ai/docs/).
 
 # Prerequisites
 
@@ -38,23 +42,20 @@ Python 3.9+
 
 # Installing the package
 
-**Note**: Unless you are an experienced Python developer, [the suggested usage of Trading Strategy framework is using Binder hosted environments](https://tradingstrategy.ai/docs/programming/examples/getting-started.html).
+**Note**: Unless you are an experienced Python developer, [try the Binder cloud hosted Jupyter notebook examples first](https://tradingstrategy.ai/docs/programming/code-examples/index.html).
 
-You can install this package with `poetry` or `pip`
+You can install this package with 
+
+`poetry`:
 
 ```shell
 poetry add trading-strategy
 ```
 
+`pip`:
 
 ```shell
 pip install trading-strategy 
-```
-
-For [QSTrader](https://pypi.org/project/trading-strategy-qstrader/) based trading algorithm support you need to install the related optional dependencies:
-
-```shell
-poetry add trading-strategy[qstrader]
 ```
 
 # Documentation
