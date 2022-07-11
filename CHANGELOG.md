@@ -5,6 +5,7 @@
 - Add `PandasPairUniverse.get_by_symbols` shortcut
 - Add `PandasPairUniverse.get_all_tokens` shortcut
 - Add `get_exchange_by_id` shortcut
+- Add `summarydata.as_duration` Pandas summary table cell formatter
 - Fix `filter_for_quote_tokens` to be more strict (was checking either side of the pair, not quote token)
 - API change `create_single_pair_universe` now to accept `pick_by_highest_vol`
 - API change: Rename `Universe.time_frame` -> `Universe.time_bucket` to be consistent

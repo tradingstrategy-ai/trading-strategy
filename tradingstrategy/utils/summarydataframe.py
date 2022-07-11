@@ -2,7 +2,7 @@
 
 You can annotate the format of different values.
 """
-
+import datetime
 import enum
 from dataclasses import dataclass
 
@@ -10,9 +10,11 @@ import pandas as pd
 
 
 class Format(enum.Enum):
+    """Format different summary value cells."""
     integer = "int"
     percent = "percent"
     dollar = "dollar"
+    duration = "duration"
 
     #: Value cannot be calculated, e.g division by zero
     missing = "missing"
@@ -22,6 +24,7 @@ FORMATTERS = {
     Format.integer: "{v:.0f}",
     Format.percent: "{v:.0%}",
     Format.dollar: "${v:,.2f}",
+    Format.duration: "{v.days} days",
     Format.missing: "-",
 }
 
@@ -47,6 +50,11 @@ def as_percent(v) -> Value:
     return Value(v, Format.percent)
 
 
+def as_duration(v: datetime.timedelta) -> Value:
+    """Format value as a duration"""
+    return Value(v, Format.duration)
+
+
 def as_missing() -> Value:
     """Format a missing value e.g. because of division by zero"""
     return Value(None, Format.missing)
@@ -56,7 +64,11 @@ def format_value(v_instance: Value) -> str:
     assert isinstance(v_instance, Value), f"Expected Value instance, got {v_instance}"
     formatter = FORMATTERS[v_instance.format]
     if v_instance.v is not None:
-        return formatter.format(v=float(v_instance.v))
+        # TODO: Remove the hack
+        if isinstance(v_instance.v, datetime.timedelta):
+            return formatter.format(v=v_instance.v)
+        else:
+            return formatter.format(v=float(v_instance.v))
     else:
         # missing values
         return formatter.format(v=v_instance.v)
