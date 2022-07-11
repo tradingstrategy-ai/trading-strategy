@@ -1,5 +1,9 @@
 # Current
 
+- TODO
+
+# 0.7
+
 - Add `Token` presentation
 - Add `get_single_pair_data` shortcut
 - Add `PandasPairUniverse.get_by_symbols` shortcut
