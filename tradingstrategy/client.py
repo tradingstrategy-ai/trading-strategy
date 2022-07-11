@@ -41,7 +41,7 @@ from pyarrow import Table
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.environment.config import Configuration
 from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.reader import read_parquet
+from tradingstrategy.reader import read_parquet, BrokenData
 from tradingstrategy.chain import ChainId
 from tradingstrategy.environment.base import Environment, download_with_progress_plain
 from tradingstrategy.environment.jupyter import JupyterEnvironment, download_with_tqdm_progress_bar
@@ -65,7 +65,7 @@ def _retry_corrupted_parquet_fetch(method):
                 return method(self, *method_args, **method_kwargs)
             # TODO: Build expection list over the time by
             # observing issues in production
-            except OSError as e:
+            except (OSError, BrokenData) as e:
                 # This happens when we download Parquet file, but it is missing half
                 # e.g. due to interrupted download
                 if attempts > 0:
