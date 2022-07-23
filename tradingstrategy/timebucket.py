@@ -66,6 +66,13 @@ class TimeBucket(enum.Enum):
         """
         return _DELTAS[self]
 
+    def to_pandas_timedelta(self) -> pd.Timedelta:
+        """Get pandas delta object for a TimeBucket definition.
+
+        You can use this to construct arbitrary timespans or iterate candle data.
+        """
+        return pd.Timedelta(_DELTAS[self])
+
     def to_frequency(self) -> pd.DateOffset:
         """Get frequency input for Pandas fuctions.
 

@@ -1,7 +1,9 @@
 # Current
 
-- TODO
-
+- Added `is_candle_green()`, `is_candle_red()` helpers
+- Added `TimeBucket.to_pandas_timedelta()` helper
+- Added `upsample_candles()` helper
+ 
 # 0.7
 
 - Add `Token` presentation

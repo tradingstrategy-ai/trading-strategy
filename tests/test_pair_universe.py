@@ -61,7 +61,7 @@ def test_pair_info_url(sample_pair):
 
 
 def test_get_all_tokens(sample_pair):
-    """Get all tokens in tradin pairs."""
+    """Get all tokens in trading pairs."""
 
     items = [
         sample_pair

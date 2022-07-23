@@ -23,18 +23,27 @@ class PairGroupedUniverse:
     recompile the data on the client side.
 
     This works for
+
     - OHLCV candles
+
     - Liquidity candles
     """
 
-    def __init__(self, df: pd.DataFrame, time_bucket=TimeBucket.d1, timestamp_column="timestamp", index_automatically=True):
+    def __init__(self,
+                 df: pd.DataFrame,
+                 time_bucket=TimeBucket.d1,
+                 timestamp_column="timestamp",
+                 index_automatically=True):
         """
+        :param time_bucket:
+            What bar size candles we are operating at. Default to daily.
+            TODO: Deprecate - not used?
 
-        :param time_bucket: What bar size candles we are operating at. Default to daily.
+        :param timestamp_column:
+            What column use to build a time index. Used for QStrader / Backtrader compatibility.
 
-        :param timestamp_column: What column use to build a time index. Used for QStrader / Backtrader compatibility.
-
-        :param index_automatically: Convert the index to use time series. You might avoid this with QSTrader kind of data.
+        :param index_automatically:
+            Convert the index to use time series. You might avoid this with QSTrader kind of data.
         """
         assert isinstance(df, pd.DataFrame)
         if index_automatically:
@@ -272,3 +281,24 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
         (samples['pair_id'] == pair.pair_id)
     ]
     return our_pairs
+
+
+def upsample_candles(df: pd.DataFrame, new_bucket: TimeBucket) -> pd.DataFrame:
+    """Upsample OHLCV candles or liquidity samples to less granular time bucket.
+
+    E.g. transfer 1h candles to 24h candles.
+
+    Example:
+
+    .. code-block:: python
+
+        single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
+        single_pair_candles = single_pair_candles.set_index("timestamp", drop=False)
+        monthly_candles = upsample_candles(single_pair_candles, TimeBucket.d30)
+        assert len(monthly_candles) <= len(single_pair_candles) / 4
+
+    """
+    pandas_time_delta = new_bucket.to_pandas_timedelta()
+    # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
+    candles = df.resample(pandas_time_delta).mean()
+    return candles

@@ -317,3 +317,37 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         Useful for synthetic data/testing.
         """
         return GroupedCandleUniverse(df)
+
+
+def is_candle_green(candle: pd.Series) -> bool:
+    """Check if an OHLCV candle is green.
+
+    A :term:`OHLCV` candle is green if close is higher than open.
+
+    Example:
+
+    .. code-block:: python
+
+        candle = indexed_candles.loc[pd.Timestamp("2022-02-14")]
+        assert not is_candle_green(candle)
+        assert is_candle_red(candle)
+
+    """
+    return candle["close"] >= candle["open"]
+
+
+def is_candle_red(candle: pd.Series) -> bool:
+    """Check if an OHLCV candle is green.
+
+    A :term:`OHLCV` candle is green if close is higher than open.
+
+
+    Example:
+
+    .. code-block:: python
+
+        candle = indexed_candles.loc[pd.Timestamp("2022-02-14")]
+        assert not is_candle_green(candle)
+        assert is_candle_red(candle)
+    """
+    return not is_candle_green(candle)

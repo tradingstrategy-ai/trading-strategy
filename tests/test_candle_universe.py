@@ -1,11 +1,12 @@
 import pandas as pd
 import pytest
 
-from tradingstrategy.candle import GroupedCandleUniverse
+from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
+from tradingstrategy.utils.groupeduniverse import upsample_candles
 
 
 def test_grouped_candles(persistent_test_client: Client):
@@ -206,4 +207,88 @@ def test_data_for_two_pairs(persistent_test_client: Client):
     candle_universe = GroupedCandleUniverse(two_pair_candles)
 
 
+def test_candle_colour(persistent_test_client: Client):
+    """Green and red candle coloring functions work."""
 
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    columnar_pair_table = client.fetch_pair_universe()
+    pairs_df = columnar_pair_table.to_pandas()
+
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+
+    pair_universe = PandasPairUniverse.create_single_pair_universe(
+            pairs_df,
+            exchange,
+            "WBNB",
+            "BUSD",
+            pick_by_highest_vol=True,
+        )
+
+    pair = pair_universe.get_single()
+    assert pair.base_token_symbol == "WBNB"
+    assert pair.quote_token_symbol == "BUSD"
+
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+
+    # Filter down candles to a single pair
+    single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
+
+    candle_universe = GroupedCandleUniverse(single_pair_candles)
+
+    # candle = single_pair_candles.loc[pd.Timestamp("2021-04-19")]
+    indexed_candles = candle_universe.get_single_pair_data()
+
+    # Handpicked random entry
+
+    # pair_id                      1015916
+    # timestamp        2022-02-14 00:00:00
+    # exchange_rate                    1.0
+    # open                      399.781891
+    # close                     380.350555
+    # high                      439.315765
+    # low                       374.533813
+    # buys                          520815
+    # sells                         502240
+    # buy_volume               246035072.0
+    # sell_volume              248500144.0
+    # avg                       408.007294
+    # start_block                 15233866
+    # end_block                   15434838
+
+    candle = indexed_candles.loc[pd.Timestamp("2022-02-14")]
+    assert not is_candle_green(candle)
+    assert is_candle_red(candle)
+
+
+def test_candle_upsample(persistent_test_client: Client):
+    """Upsample OHLCV candles."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    columnar_pair_table = client.fetch_pair_universe()
+    pairs_df = columnar_pair_table.to_pandas()
+
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+
+    pair_universe = PandasPairUniverse.create_single_pair_universe(
+            pairs_df,
+            exchange,
+            "WBNB",
+            "BUSD",
+            pick_by_highest_vol=True,
+        )
+
+    pair = pair_universe.get_single()
+    assert pair.base_token_symbol == "WBNB"
+    assert pair.quote_token_symbol == "BUSD"
+
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+
+    # Filter down candles to a single pair
+    single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
+    single_pair_candles = single_pair_candles.set_index("timestamp", drop=False)
+    monthly_candles = upsample_candles(single_pair_candles, TimeBucket.d30)
+    assert len(monthly_candles) <= len(single_pair_candles) / 4
