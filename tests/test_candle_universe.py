@@ -6,7 +6,7 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
-from tradingstrategy.utils.groupeduniverse import upsample_candles
+from tradingstrategy.utils.groupeduniverse import resample_candles
 
 
 def test_grouped_candles(persistent_test_client: Client):
@@ -290,5 +290,5 @@ def test_candle_upsample(persistent_test_client: Client):
     # Filter down candles to a single pair
     single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
     single_pair_candles = single_pair_candles.set_index("timestamp", drop=False)
-    monthly_candles = upsample_candles(single_pair_candles, TimeBucket.d30)
+    monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
     assert len(monthly_candles) <= len(single_pair_candles) / 4

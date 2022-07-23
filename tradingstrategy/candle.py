@@ -333,6 +333,7 @@ def is_candle_green(candle: pd.Series) -> bool:
         assert is_candle_red(candle)
 
     """
+    assert isinstance(candle, pd.Series), f"Got: {candle.__class__}"
     return candle["close"] >= candle["open"]
 
 
@@ -350,4 +351,5 @@ def is_candle_red(candle: pd.Series) -> bool:
         assert not is_candle_green(candle)
         assert is_candle_red(candle)
     """
+    assert isinstance(candle, pd.Series), f"Got: {candle.__class__}"
     return not is_candle_green(candle)

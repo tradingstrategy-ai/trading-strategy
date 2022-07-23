@@ -283,10 +283,10 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
     return our_pairs
 
 
-def upsample_candles(df: pd.DataFrame, new_bucket: TimeBucket) -> pd.DataFrame:
-    """Upsample OHLCV candles or liquidity samples to less granular time bucket.
+def resample_candles(df: pd.DataFrame, new_bucket: TimeBucket) -> pd.DataFrame:
+    """Downsample OHLCV candles or liquidity samples to less granular time bucket.
 
-    E.g. transfer 1h candles to 24h candles.
+    E.g. transform 1h candles to 24h candles.
 
     Example:
 
@@ -301,4 +301,9 @@ def upsample_candles(df: pd.DataFrame, new_bucket: TimeBucket) -> pd.DataFrame:
     pandas_time_delta = new_bucket.to_pandas_timedelta()
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
     candles = df.resample(pandas_time_delta).mean()
+
+    # TODO: Figure out right way to preserve timestamp column,
+    # resample seems to destroy it
+    candles["timestamp"] = candles.index
+
     return candles
