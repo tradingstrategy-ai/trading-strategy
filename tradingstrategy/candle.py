@@ -27,7 +27,7 @@ from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
 
 
-class PriceUnavailable(Exception):
+class CandleSampleUnavailable(Exception):
     """We tried to look up price for a trading pair, but count not find a candle close to the timestamp."""
 
 
@@ -271,13 +271,26 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         The liquidity is defined as one-sided as in :term:`XY liquidity model`.
 
-        :param pair_id: Traing pair id
-        :param when: Timestamp to query
-        :param kind: One of OHLC data points: "open", "close", "low", "high"
-        :param look_back_timeframes: If there is no liquidity sample available at the exact timepoint,
-            look to the past to the get the nearest sample
-        :return: We always return
-        :raise LiquidityDataUnavailable: There was no liquidity sample available
+        :param pair_id:
+            Trading pair id
+
+        :param when:
+            Timestamp to query
+
+        :param kind:
+            One of OHLC data points: "open", "close", "low", "high"
+
+        :param look_back_timeframes:
+            If there is no liquidity sample available at the exact timepoint,
+            look to the past to the get the nearest sample.
+            For example if candle time interval is 5 minutes and look_back_timeframes is 10,
+            then accept a candle that is maximum of 50 minutes before the timepoint.
+
+        :return:
+            We always return a price. In the error cases an exception is raised.
+
+        :raise CandleSampleUnavailable:
+            There was no samples available with the given condition.
         """
 
         assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
@@ -295,7 +308,23 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                 # Go to the previous sample
                 when -= self.time_bucket.to_timedelta()
 
-        raise PriceUnavailable(f"Could not find any candles for pair {pair_id}, kind {kind}, between {when} - {start_when}")
+        # Try to be helpful with the errors here,
+        # so one does not need to open ipdb to inspect faulty data
+        try:
+            first_sample = samples_per_pair.iloc[0]
+            second_sample = samples_per_pair.iloc[1]
+            last_sample = samples_per_pair.iloc[-1]
+        except KeyError:
+            raise CandleSampleUnavailable(
+                f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {start_when}\n"
+                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
+            )
+
+        raise CandleSampleUnavailable(
+            f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {start_when}\n"
+            f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
+            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
+            )
 
     @staticmethod
     def create_empty() -> "GroupedCandleUniverse":
