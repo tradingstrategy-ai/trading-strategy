@@ -44,6 +44,7 @@ def _ensure_chain_data_lazy_init():
 
         # Ganache does not have chain data entry
         dataless = _CHAIN_DATA_OVERRIDES.get(chain_id, {}).get("dataless", False)
+
         if not dataless:
 
             data_file = os.path.join(path, f"eip155-{chain_id}.json")
@@ -111,6 +112,14 @@ class ChainId(enum.Enum):
     #: Ganache test chain.
     #: This is the chain id for Ganache local tester / mainnet forks.
     ganache = 1337
+
+    #: Chain id not known
+    unknown = 0
+
+    #: Osmosis on Cosmos
+    #: Does not have chain registry entry,
+    #: beacuse Cosmos maintains its own registry
+    osmosis = -100
 
     @property
     def data(self) -> dict:
@@ -226,5 +235,28 @@ _CHAIN_DATA_OVERRIDES = {
         "slug": "avalanche",
         "svg_icon": "https://cryptologos.cc/logos/avalanche-avax-logo.svg", # TODO
     },
+
+    #
+    # Osmosis
+    #
+    ChainId.osmosis.value: {
+        "name": "Osmosis",
+        "slug": "osmosis",
+        "svg_icon": None,
+        "active": False,
+        "dataless": True,
+    },
+
+    #
+    # Unknown
+    #
+    ChainId.unknown.value: {
+        "name": "Unknown",
+        "slug": "unknown",
+        "svg_icon": None,
+        "active": False,
+        "dataless": True,
+    },
+
 }
 
