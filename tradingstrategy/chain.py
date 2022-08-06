@@ -80,7 +80,15 @@ class ChainId(enum.Enum):
     """Ethereum EVM chain ids and chain metadata.
 
     Chain id is an integer that defines the identity of a blockchain,
-    all running on same or different EVM implementations.
+    all running on same or different EVM implementations. For non-EVM
+    blockchains we have some special logic to handle them so we can
+    present chain ids or all blockchains through this enum.
+
+    Chain id is a 32-bit integer.
+    
+    For non-EVM chains like ones on Cosmos or Solana we use negative values,
+    so that they are not confused with chain.network database. Cosmos
+    natively uses string ids for chains instead of integers.
 
     This class also provides various other metadata attributes besides `ChainId.value`, like `ChainId.get_slug()`.
     Some of this data is handcoded, some is pulled from `chains` submodule.
@@ -90,6 +98,8 @@ class ChainId(enum.Enum):
     - `chainid.network <https://chainid.network/>`_
 
     - `chains repo <https://github.com/ethereum-lists/chains>`_
+
+    = `Cosmos chain registry <https://github.com/cosmos/chain-registry
     """
 
     #: Ethereum mainnet chain id
