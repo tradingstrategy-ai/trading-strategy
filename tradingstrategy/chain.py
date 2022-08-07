@@ -77,7 +77,11 @@ def _get_slug_map() -> Dict[str, int]:
 
 
 class ChainId(enum.Enum):
-    """Ethereum EVM chain ids and chain metadata.
+    """Chain ids and chain metadata helper.
+
+    This class is intended to present primary key for a blockchain in datasets,
+    not its native chain id. This id may differ from what blockchain
+    assumes its own id natively.
 
     Chain id is an integer that defines the identity of a blockchain,
     all running on same or different EVM implementations. For non-EVM
