@@ -245,7 +245,7 @@ _CHAIN_DATA_OVERRIDES = {
     # Avalanche
     #
     43114: {
-        "name": "Avalanche",
+        "name": "Avalanche C-chain",
         "slug": "avalanche",
         "svg_icon": "https://cryptologos.cc/logos/avalanche-avax-logo.svg", # TODO
     },
