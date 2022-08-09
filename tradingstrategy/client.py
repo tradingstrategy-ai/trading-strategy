@@ -164,6 +164,15 @@ class Client:
         path = self.transport.fetch_candles_all_time(bucket)
         return read_parquet(path)
 
+    def fetch_candle_dataset(self, bucket: TimeBucket) -> Path:
+        """Fetch candle data from the server.
+
+        Do not attempt to decode the Parquet file to the memory,
+        but instead of return raw
+        """
+        path = self.transport.fetch_candles_all_time(bucket)
+        return path
+
     @_retry_corrupted_parquet_fetch
     def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:
         """Get cached blob of liquidity events of a certain time window.

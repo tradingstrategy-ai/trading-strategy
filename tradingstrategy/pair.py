@@ -638,6 +638,28 @@ class PandasPairUniverse:
 
         return None
 
+    def create_parquet_load_filter(self, count_limit=10_000) -> List[Tuple]:
+        """Returns a Parquet loading filter that contains pairs in this universe.
+
+        When candle or liquidity file is read to the memory,
+        only read pairs that are within this pair universe.
+        This severely reduces the memory usage and speed ups loading.
+
+        See :py:func:`tradingstrategy.reader.read_parquet`.
+
+        :param count_limit:
+            Sanity check assert limit how many pairs we can cram into the filter.
+
+        :return:
+            Filter to be passed to read_table
+        """
+
+        count = self.get_count()
+        assert count < count_limit, f"Too many pairs to create a filter. Pair count is {count}"
+
+        # https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html
+        return [("pair_id", "in", self.get_all_pair_ids())]
+
     @staticmethod
     def create_single_pair_universe(
             df: pd.DataFrame,

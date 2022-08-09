@@ -54,6 +54,7 @@ sphinx = "^4.2.0"
 sphinx-sitemap = "^2.2.0"
 coloredlogs = "^15.0.1"
 
+memory-profiler = "^0.60.0"
 # qstrader depends on Seaborn that depends on Scipy that is a problematic dependency
 [tool.poetry.extras]
 qstrader = ["trading-strategy-qstrader"]

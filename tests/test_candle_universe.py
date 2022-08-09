@@ -1,7 +1,9 @@
+import pandas
 import pandas as pd
 import pytest
 
 from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
+from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
@@ -292,3 +294,31 @@ def test_candle_upsample(persistent_test_client: Client):
     single_pair_candles = single_pair_candles.set_index("timestamp", drop=False)
     monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
     assert len(monthly_candles) <= len(single_pair_candles) / 4
+
+def test_filter_pyarrow(persistent_test_client: Client):
+    """Filter loaded pyarrow files without loading them fully to the memory.
+
+    Ensures that we can work on candle and liquidity data files on low memory servers.
+    """
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create filtered exchange and pair data
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+    pair_universe = PandasPairUniverse.create_single_pair_universe(
+            pairs_df,
+            exchange,
+            "WBNB",
+            "BUSD",
+            pick_by_highest_vol=True,
+        )
+
+    # Load candles for the named pair only
+    candle_file = client.fetch_candle_dataset(TimeBucket.d7)
+    filter = pair_universe.create_parquet_load_filter()
+    single_pair_candles: pandas.DataFrame = read_parquet(candle_file, filter).to_pandas()
+
+    pair_ids = single_pair_candles["pair_id"].unique()
+    assert len(pair_ids) == 1
