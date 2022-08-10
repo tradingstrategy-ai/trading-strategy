@@ -1,6 +1,10 @@
 # Current
 
-Not yet updates.
+- Added `Client.fetch_candles_by_pair_ids` that loads trading data for certain pairs  
+  data over JSONL endpoint  and avoids loading large Parquest candle and liquidity files.
+  This makes it possible to run backtests on low memory environments.
+- Added `Client.fetch_candle_dataset` and `read_parquest(filters)`
+  to filter Parquest files when loading candle datasets to optimise memory usage.
 
 # 0.7.1
 
