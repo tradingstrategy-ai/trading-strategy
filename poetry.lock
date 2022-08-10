@@ -581,6 +581,17 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
+name = "jsonlines"
+version = "3.1.0"
+description = "Library with helpers for the jsonlines file format"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+attrs = ">=19.2.0"
+
+[[package]]
 name = "jsonschema"
 version = "4.4.0"
 description = "An implementation of JSON Schema validation for Python"
@@ -1677,7 +1688,7 @@ qstrader = ["trading-strategy-qstrader"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.11"
-content-hash = "d1a3c3544cfa1954e5d0cfdb5565d0df91b2be499bc0be02b269f1f4d6788f36"
+content-hash = "e17479a9586b791a7e7a7d72e873eb759a4d6e265d3234d1e519ac8d655e836c"
 
 [metadata.files]
 alabaster = []
@@ -1726,6 +1737,7 @@ ipython-genutils = []
 ipywidgets = []
 jedi = []
 jinja2 = []
+jsonlines = []
 jsonschema = []
 jupyter-client = []
 jupyter-core = []

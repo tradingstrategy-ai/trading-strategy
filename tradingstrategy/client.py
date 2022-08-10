@@ -7,17 +7,19 @@ For usage see
 - :py:class:`Client` class
 
 """
-
+import datetime
 import os
 import tempfile
 import time
 from functools import wraps
 from json import JSONDecodeError
-from typing import Optional
+from typing import Optional, Set
 from pathlib import Path
 import logging
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
+import pandas as pd
+from backtrader import List
 from tqdm import TqdmExperimentalWarning
 import warnings
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
@@ -163,6 +165,49 @@ class Client:
         """
         path = self.transport.fetch_candles_all_time(bucket)
         return read_parquet(path)
+
+    def fetch_candles_by_pair_ids(self,
+          pair_ids: Set[int],
+          bucket: TimeBucket,
+          start_time: Optional[datetime.datetime] = None,
+          end_time: Optional[datetime.datetime] = None,
+          max_bytes: Optional[int] = None) -> pd.DataFrame:
+        """Fetch candles for particular trading pairs.
+
+        The fetch is performed using JSONL API endpoint. If the number
+        of trading pair is small, this download is much more lightweight
+        than Parquet dataset download.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+        :param time_bucket:
+            Candle time frame
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param max_bytes:
+            Limit the streaming response size
+
+        :return:
+            Candles dataframe
+
+        :raise tradingstrategy.transport.jsonl.JSONLMaxResponseSizeExceeded:
+                If the max_bytes limit is breached
+        """
+        return self.transport.fetch_candles_by_pair_ids(
+            pair_ids,
+            bucket,
+            start_time,
+            end_time,
+            max_bytes=max_bytes,
+        )
 
     def fetch_candle_dataset(self, bucket: TimeBucket) -> Path:
         """Fetch candle data from the server.

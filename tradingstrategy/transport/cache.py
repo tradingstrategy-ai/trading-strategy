@@ -1,15 +1,19 @@
 import datetime
+import hashlib
 import io
 import os
 import pathlib
-from typing import Optional, Callable
+from typing import Optional, Callable, List, Set
 import shutil
 import logging
 
+import pandas
+import pandas as pd
 import requests
 from requests import Response
 
 from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.transport.jsonl import load_candles_jsonl
 
 logger = logging.getLogger(__name__)
 
@@ -203,3 +207,72 @@ class CachedHTTPTransport:
         """
         reply = self.post_json_response("register", params={"first_name": first_name, "last_name": last_name, "email": email})
         return reply
+    def fetch_candles_by_pair_ids(
+            self,
+            pair_ids: Set[id],
+            time_bucket: TimeBucket,
+            start_time: Optional[datetime.datetime] = None,
+            end_time: Optional[datetime.datetime] = None,
+            max_bytes: Optional[int] = None) -> pd.DataFrame:
+        """Load particular set of the candles and cache the result.
+
+        If there is no cached result, load using JSONL.
+
+        More information in :py:mod:`tradingstrategy.transport.jsonl`.
+
+        For the candles format see :py:mod:`tradingstrategy.candle`.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+        :param time_bucket:
+            Candle time frame
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param max_bytes:
+            Limit the streaming response size
+
+        :return:
+            Candles dataframe
+        """
+
+        # Create a compressed cache key for the filename,
+        # as we have 256 char limit on fname lenghts
+        full_cache_key = \
+            str(pair_ids) + \
+            str(time_bucket) + \
+            str(start_time) + \
+            str(end_time) + \
+            str(max_bytes)
+
+        md5 = hashlib.md5(full_cache_key.encode("utf-8")).hexdigest()
+
+        cache_fname = f"candles-jsonl-{time_bucket.value}-{md5}.parquet"
+
+        cached = self.get_cached_item(cache_fname)
+        if cached:
+            logger.debug("Using cached JSONL data file %s", cache_fname)
+            return pandas.read_parquet(cached)
+
+        df: pd.DataFrame = load_candles_jsonl(
+            self.requests,
+            self.endpoint,
+            pair_ids,
+            time_bucket,
+            start_time,
+            end_time,
+            max_bytes=max_bytes,
+        )
+
+        # Update cache
+        path = self.get_cached_file_path(cache_fname)
+        df.to_parquet(path)
+
+        return df

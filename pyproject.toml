@@ -42,6 +42,7 @@ trading-strategy-qstrader = {version="^0.5.0", extras = ["qstrader"]}
 #qstrader = {git = "https://github.com/miohtama/qstrader", rev="ee011745531e0cab412bd3a98f65976840821c4f"}
 
 trading-strategy-backtrader = "^0.1"
+jsonlines = "^3.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"

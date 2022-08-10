@@ -101,6 +101,24 @@ class Candle:
     #: The last blockchain block that includes trades that went into this candle.
     end_block: BlockNumber
 
+    #: Schema definition for :py:class:`pd.DataFrame:
+    DATAFRAME_FIELDS = dict([
+        ("pair_id", "int"),
+        ("timestamp", "datetime64[s]"),
+        ("exchange_rate", "float"),
+        ("open", "float"),
+        ("close", "float"),
+        ("high", "float"),
+        ("low", "float"),
+        ("buys", "float"),
+        ("sells", "float"),
+        ("buy_volume", "float"),
+        ("sell_volume", "float"),
+        ("avg", "float"),
+        ("start_block", "int"),
+        ("end_block", "int"),
+    ])
+
     def __repr__(self):
         human_timestamp = datetime.datetime.utcfromtimestamp(self.timestamp)
         return f"@{human_timestamp} O:{self.open} H:{self.high} L:{self.low} C:{self.close} V:{self.volume} B:{self.buys} S:{self.sells} SB:{self.start_block} EB:{self.end_block}"
@@ -123,24 +141,8 @@ class Candle:
     def to_dataframe(cls) -> pd.DataFrame:
         """Return emptry Pandas dataframe presenting candle data."""
 
-        fields = dict([
-            ("pair_id", "int"),
-            ("timestamp", "datetime64[s]"),
-            ("exchange_rate", "float"),
-            ("open", "float"),
-            ("close", "float"),
-            ("high", "float"),
-            ("low", "float"),
-            ("buys", "float"),
-            ("sells", "float"),
-            ("buy_volume", "float"),
-            ("sell_volume", "float"),
-            ("avg", "float"),
-            ("start_block", "float"),
-            ("end_block", "float"),
-        ])
-        df = pd.DataFrame(columns=fields.keys())
-        return df.astype(fields)
+        df = pd.DataFrame(columns=Candle.DATAFRAME_FIELDS.keys())
+        return df.astype(Candle.DATAFRAME_FIELDS)
 
     @classmethod
     def to_qstrader_dataframe(cls) -> pd.DataFrame:
@@ -266,7 +268,10 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """
         return self.get_samples_by_pair(pair_id)
 
-    def get_closest_price(self, pair_id: PrimaryKey, when: pd.Timestamp, kind="close", look_back_time_frames=5) -> USDollarAmount:
+    def get_closest_price(self,
+                          pair_id: PrimaryKey,
+                          when: pd.Timestamp,
+                          kind="close", look_back_time_frames=5) -> USDollarAmount:
         """Get the available liuqidity for a trading pair at a specific timepoint or some candles before the timepoint.
 
         The liquidity is defined as one-sided as in :term:`XY liquidity model`.

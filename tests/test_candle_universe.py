@@ -1,3 +1,5 @@
+import resource
+
 import pandas
 import pandas as pd
 import pytest
@@ -8,6 +10,7 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
+from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles
 
 
@@ -299,7 +302,23 @@ def test_filter_pyarrow(persistent_test_client: Client):
     """Filter loaded pyarrow files without loading them fully to the memory.
 
     Ensures that we can work on candle and liquidity data files on low memory servers.
+
+    .. note ::
+
+        Looks like the current 4h candle dataset peaks at 2.7GB
+
+    .. code-block:: plain
+
+        Do nothing test:  1276.796875 MB
+        Load exchanges: 1253.359375 MB
+        Load pairs: 1373.125 MB
+        Create filtered pair universe: 1408.84375 MB
+        Read candles parquet 4h, using single pair filter: 2626.796875 MB
+        Convert it to Pandas:  2710.203125 MB
+        Using 1h candles:  4725.296875 MB
     """
+
+    # TODO: This test is still experimental
 
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
@@ -315,10 +334,83 @@ def test_filter_pyarrow(persistent_test_client: Client):
             pick_by_highest_vol=True,
         )
 
-    # Load candles for the named pair only
-    candle_file = client.fetch_candle_dataset(TimeBucket.d7)
-    filter = pair_universe.create_parquet_load_filter()
-    single_pair_candles: pandas.DataFrame = read_parquet(candle_file, filter).to_pandas()
+    method = "filtered_parquet"
+
+    # # Load candles for the named pair only
+    if method == "filtered_parquet":
+        # Load by using Parquet filter functoin
+        candle_file = client.fetch_candle_dataset(TimeBucket.h1)
+        filter = pair_universe.create_parquet_load_filter()
+        pq = read_parquet(candle_file, filter)
+        single_pair_candles: pandas.DataFrame = pq.to_pandas()
+    else:
+        # Load everything to Pandas,
+        # then filter down
+        df = client.fetch_candle_dataset(TimeBucket.h1).to_pandas()
+        pair = pair_universe.get_single()
+        single_pair_candles = df.loc[df["pair_id"] == pair.pair_id]
 
     pair_ids = single_pair_candles["pair_id"].unique()
     assert len(pair_ids) == 1
+
+    #mem_used = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # print(f"Max mem {mem_used/(1024*1024)} MB")
+
+
+def test_load_candles_using_jsonl(persistent_test_client: Client):
+    """Load data using JSONL endpoint"""
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create filtered exchange and pair data
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+    pair_universe = PandasPairUniverse.create_single_pair_universe(
+            pairs_df,
+            exchange,
+            "WBNB",
+            "BUSD",
+            pick_by_highest_vol=True,
+        )
+
+    pair = pair_universe.get_single()
+    candles_df = client.fetch_candles_by_pair_ids([pair.pair_id], TimeBucket.h1)
+
+    assert len(candles_df) >= 10_000
+
+    candle_universe = GroupedCandleUniverse(candles_df)
+
+    first_at, last_at = candle_universe.get_timestamp_range()
+    assert first_at == pd.Timestamp('2021-04-23 23:00:00')
+    assert last_at >= pd.Timestamp('2022-08-10 11:00:00')
+
+    test_price = candle_universe.get_closest_price(pair.pair_id, pd.Timestamp("2022-01-01"))
+    assert test_price == pytest.approx(518.1773243974246)
+
+
+def test_load_candles_using_jsonl_max_bytes(persistent_test_client: Client):
+    """OverloadJSONL endpoint max_bytes"""
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create filtered exchange and pair data
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+    pair_universe = PandasPairUniverse.create_single_pair_universe(
+            pairs_df,
+            exchange,
+            "WBNB",
+            "BUSD",
+            pick_by_highest_vol=True,
+        )
+
+    pair = pair_universe.get_single()
+    with pytest.raises(JSONLMaxResponseSizeExceeded):
+        client.fetch_candles_by_pair_ids(
+            [pair.pair_id],
+            TimeBucket.h1,
+            max_bytes=5_000, # 5kBytes
+        )
+
