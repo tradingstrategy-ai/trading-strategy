@@ -139,7 +139,7 @@ def load_trading_strategy_like_jsonl_data(
         if not progress_bar_start and progress_bar_description:
             progress_bar_start = current_ts
             total = progress_bar_end - progress_bar_start
-            assert progress_bar_start <= progress_bar_end, "Mad progress bar"
+            assert progress_bar_start <= progress_bar_end, f"Mad progress bar {progress_bar_start} - {progress_bar_end}"
             progress_bar = tqdm(desc=progress_bar_description, total=total)
 
         # Translate the raw compressed keys to our internal
@@ -159,6 +159,7 @@ def load_trading_strategy_like_jsonl_data(
         last_ts = current_ts
 
     if progress_bar:
+        # https://stackoverflow.com/a/45808255/315168
         progress_bar.close()
 
     if len(candle_data) == 0:
