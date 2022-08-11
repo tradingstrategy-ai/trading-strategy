@@ -123,7 +123,7 @@ def load_trading_strategy_like_jsonl_data(
     progress_bar_start = None
     progress_bar_end = end_time or datetime.datetime.utcnow()
     progress_bar_end = to_int_unix_timestamp(progress_bar_end)
-    last_ts = None
+    current_ts = last_ts = None
     progress_bar = None
     refresh_rate = 200  # Update the progress bar for every N candles
 
@@ -139,6 +139,7 @@ def load_trading_strategy_like_jsonl_data(
         # Set progress bar start to the first timestamp
         if not progress_bar_start and progress_bar_description:
             progress_bar_start = current_ts
+            logger.debug("First candle timestamp at %s", current_ts)
             total = progress_bar_end - progress_bar_start
             assert progress_bar_start <= progress_bar_end, f"Mad progress bar {progress_bar_start} - {progress_bar_end}"
             progress_bar = tqdm(desc=progress_bar_description, total=total)
@@ -161,6 +162,8 @@ def load_trading_strategy_like_jsonl_data(
 
     if progress_bar:
         # https://stackoverflow.com/a/45808255/315168
+        if current_ts and last_ts:
+            progress_bar.update(current_ts - last_ts)
         progress_bar.close()
 
     if len(candle_data) == 0:
@@ -228,6 +231,10 @@ def load_candles_jsonl(
     # as expected for OHLCV data
     df["volume"] = df["buy_volume"] + df["sell_volume"]
 
+    # Convert JSONL unix timestamps to Pandas
     df["timestamp"] = pd.to_datetime(df['timestamp'], unit='s')
+
+    # Assume candles are always indexed by their timestamp
+    df.set_index("timestamp", inplace=True, drop=False)
 
     return df
