@@ -991,6 +991,31 @@ def resolve_pairs_based_on_ticker(
         Pair ids are not stable and may change long term.
         Always resolve pair ids before a run.
 
+    Example:
+
+    .. code-block: python
+
+        pairs_df = client.fetch_pair_universe().to_pandas()
+
+        tickers = {
+            ("WBNB", "BUSD"),
+            ("Cake", "WBNB"),
+        }
+
+        # ticker -> pd.Series row map for pairs
+        pair_map = resolve_pairs_based_on_ticker(
+            pairs_df,
+            ChainId.bsc,
+            "pancakeswap-v2",
+            tickers
+        )
+
+        assert len(pair_map) == 2
+        keys = list(pair_map.keys())
+        assert ('WBNB', 'BUSD') in keys
+        assert ('Cake', 'WBNB') in keys
+        assert pair_map[('WBNB', 'BUSD')]["buy_volume_30d"] > 0
+
     :param df:
         DataFrame containing DEXPairs
 
@@ -1010,8 +1035,6 @@ def resolve_pairs_based_on_ticker(
         Map of trading pair ids (base token, quote token) -> DEX pair data.
         DEX pair data is presented as :py:class:`pd.Series`.
     """
-
-    # possible_slugs = [f"{base}-{quote}" ]
 
     conditions = []
     for base, quote in pair_tickers:
