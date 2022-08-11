@@ -136,7 +136,7 @@ def load_trading_strategy_like_jsonl_data(
         current_ts = item["ts"]
 
         # Set progress bar start to the first timestamp
-        if not progress_bar_start:
+        if not progress_bar_start and progress_bar_description:
             progress_bar_start = current_ts
             total = progress_bar_end - progress_bar_start
             assert progress_bar_start <= progress_bar_end, "Mad progress bar"
