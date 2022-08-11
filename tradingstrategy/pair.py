@@ -1036,18 +1036,24 @@ def resolve_pairs_based_on_ticker(
         DEX pair data is presented as :py:class:`pd.Series`.
     """
 
+    # Create list of conditions to filter out dataframe,
+    # one condition per pair
     conditions = []
     for base, quote in pair_tickers:
         condition = (df["base_token_symbol"].str.lower() == base.lower()) & \
                     (df["quote_token_symbol"].str.lower() == quote.lower())
         conditions.append(condition)
 
+    # OR call conditions together
+    # https://stackoverflow.com/a/57468610/315168
     df_matches = df.loc[np.logical_or.reduce(conditions)]
 
+    # Sort by the buy volume
     df_matches = df_matches.sort_values(by="buy_volume_all_time", ascending=False)
 
     result_map = {}
 
+    # Pick the tokens by the highest buy volume to the result map
     for test_pair in pair_tickers:
         for pair_id, row in df_matches.iterrows():
             if row["base_token_symbol"] == test_pair[0] and \
