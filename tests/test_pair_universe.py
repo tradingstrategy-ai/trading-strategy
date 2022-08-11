@@ -3,7 +3,8 @@ import datetime
 import pytest
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import LegacyPairUniverse, PairType, DEXPair, PandasPairUniverse
+from tradingstrategy.pair import LegacyPairUniverse, PairType, DEXPair, PandasPairUniverse, \
+    resolve_pairs_based_on_ticker
 
 
 @pytest.fixture
@@ -72,3 +73,28 @@ def test_get_all_tokens(sample_pair):
     assert len(tokens) == 2
 
 
+
+def test_resolve_pairs_based_on_ticker(persistent_test_client):
+    """Check that we can find multiple pairs."""
+
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    tickers = {
+        ("WBNB", "BUSD"),
+        ("Cake", "WBNB"),
+    }
+
+    # ticker -> pd.Series row map for pairs
+    pair_map = resolve_pairs_based_on_ticker(
+        pairs_df,
+        ChainId.bsc,
+        "pancakeswap-v2",
+        tickers
+    )
+
+    assert len(pair_map) == 2
+    keys = list(pair_map.keys())
+    assert ('WBNB', 'BUSD') in keys
+    assert ('Cake', 'WBNB') in keys
+    assert pair_map[('WBNB', 'BUSD')]["buy_volume_30d"] > 0

@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Iterable, Dict, Union, Set, Tuple
 
 import pandas as pd
+import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
 from dataclasses_json import dataclass_json
@@ -967,3 +968,71 @@ def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -
             ~(pairs['token0_symbol'].isin(ALL_STABLECOIN_LIKE) & pairs['token1_symbol'].isin(ALL_STABLECOIN_LIKE))
         ]
     return our_pairs
+
+def resolve_pairs_based_on_ticker(
+        df: pd.DataFrame,
+        chain_id: ChainId,
+        exchange_slug: str,
+        pair_tickers: Set[Tuple[str, str]],
+) -> Dict[Tuple[str, str], pd.Series]:
+    """Resolve symbolic trading pairs to their internal integer primary key ids.
+
+    Uses pair database described :py:class:`DEXPair` Pandas dataframe
+    to resolve pairs to their integer ids on a single exchange.
+
+    .. warning ::
+
+        For popular trading pairs, there will be multiple scam pairs
+        with the same ticker name. In this case, one with the highest all-time
+        buy volume is chosen.
+
+    .. note ::
+
+        Pair ids are not stable and may change long term.
+        Always resolve pair ids before a run.
+
+    :param df:
+        DataFrame containing DEXPairs
+
+    :param chain_id:
+        Blockchain the exchange is on
+
+    :param exchange_slug:
+        Symbolic exchange name
+
+    :param pair_tickers:
+        List of trading pairs as (base token, quote token) tuples.
+        Note that giving trading pair tokens in wrong order
+        causes pairs not to be found.
+        If any ticker does not match it is not included in the result set.
+
+    :return:
+        Map of trading pair ids (base token, quote token) -> DEX pair data.
+        DEX pair data is presented as :py:class:`pd.Series`.
+    """
+
+    # possible_slugs = [f"{base}-{quote}" ]
+
+    conditions = []
+    for base, quote in pair_tickers:
+        condition = (df["base_token_symbol"].str.lower() == base.lower()) & \
+                    (df["quote_token_symbol"].str.lower() == quote.lower())
+        conditions.append(condition)
+
+    df_matches = df.loc[np.logical_or.reduce(conditions)]
+
+    df_matches = df_matches.sort_values(by="buy_volume_all_time", ascending=False)
+
+    result_map = {}
+
+    for test_pair in pair_tickers:
+        for pair_id, row in df_matches.iterrows():
+            if row["base_token_symbol"] == test_pair[0] and \
+               row["quote_token_symbol"] == test_pair[1]:
+                    result_map[test_pair] = row
+                    break
+
+    return result_map
+
+
+
