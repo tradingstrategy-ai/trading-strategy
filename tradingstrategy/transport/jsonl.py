@@ -125,6 +125,7 @@ def load_trading_strategy_like_jsonl_data(
     progress_bar_end = to_int_unix_timestamp(progress_bar_end)
     last_ts = None
     progress_bar = None
+    refresh_rate = 200  # Update the progress bar for every N candles
 
     # Massage the format good for pandas
     for idx, item in enumerate(reader):
@@ -152,11 +153,11 @@ def load_trading_strategy_like_jsonl_data(
 
             candle_data[translated_key].append(value)
 
-        if last_ts and progress_bar:
-            progress_bar.update(current_ts - last_ts)
-            progress_bar.set_postfix({"Currently at": datetime.datetime.utcfromtimestamp(current_ts)})
-
-        last_ts = current_ts
+        if idx % refresh_rate == 0:
+            if last_ts and progress_bar:
+                progress_bar.update(current_ts - last_ts)
+                progress_bar.set_postfix({"Currently at": datetime.datetime.utcfromtimestamp(current_ts)})
+            last_ts = current_ts
 
     if progress_bar:
         # https://stackoverflow.com/a/45808255/315168

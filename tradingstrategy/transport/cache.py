@@ -282,4 +282,7 @@ class CachedHTTPTransport:
         path = self.get_cached_file_path(cache_fname)
         df.to_parquet(path)
 
+        size = pathlib.Path(path).stat().st_size
+        logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
         return df
