@@ -22,7 +22,7 @@ class Format(enum.Enum):
 
 FORMATTERS = {
     Format.integer: "{v:.0f}",
-    Format.percent: "{v:.0%}",
+    Format.percent: "{v:.2%}",
     Format.dollar: "${v:,.2f}",
     Format.duration: "{v.days} days",
     Format.missing: "-",
@@ -71,7 +71,7 @@ def format_value(v_instance: Value) -> str:
             return formatter.format(v=float(v_instance.v))
     else:
         # missing values
-        return formatter.format(v=v_instance.v)
+        return FORMATTERS[Format.missing].format(v=v_instance.v)
 
 
 def create_summary_table(data: dict) -> pd.DataFrame:
