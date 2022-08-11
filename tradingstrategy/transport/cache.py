@@ -213,7 +213,9 @@ class CachedHTTPTransport:
             time_bucket: TimeBucket,
             start_time: Optional[datetime.datetime] = None,
             end_time: Optional[datetime.datetime] = None,
-            max_bytes: Optional[int] = None) -> pd.DataFrame:
+            max_bytes: Optional[int] = None,
+            progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
         """Load particular set of the candles and cache the result.
 
         If there is no cached result, load using JSONL.
@@ -239,6 +241,9 @@ class CachedHTTPTransport:
         :param max_bytes:
             Limit the streaming response size
 
+        :param progress_bar_description:
+            Display on downlood progress bar
+
         :return:
             Candles dataframe
         """
@@ -258,7 +263,8 @@ class CachedHTTPTransport:
 
         cached = self.get_cached_item(cache_fname)
         if cached:
-            logger.debug("Using cached JSONL data file %s", cache_fname)
+            full_fname = self.get_cached_file_path(cache_fname)
+            logger.debug("Using cached JSONL data file %s", full_fname)
             return pandas.read_parquet(cached)
 
         df: pd.DataFrame = load_candles_jsonl(
@@ -269,6 +275,7 @@ class CachedHTTPTransport:
             start_time,
             end_time,
             max_bytes=max_bytes,
+            progress_bar_description=progress_bar_description,
         )
 
         # Update cache

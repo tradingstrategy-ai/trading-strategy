@@ -171,7 +171,9 @@ class Client:
           bucket: TimeBucket,
           start_time: Optional[datetime.datetime] = None,
           end_time: Optional[datetime.datetime] = None,
-          max_bytes: Optional[int] = None) -> pd.DataFrame:
+          max_bytes: Optional[int] = None,
+          progress_bar_description: Optional[str] = None,
+        ) -> pd.DataFrame:
         """Fetch candles for particular trading pairs.
 
         The fetch is performed using JSONL API endpoint. If the number
@@ -195,6 +197,9 @@ class Client:
         :param max_bytes:
             Limit the streaming response size
 
+        :param progress_bar_description:
+            Display on download progress bar
+
         :return:
             Candles dataframe
 
@@ -207,6 +212,7 @@ class Client:
             start_time,
             end_time,
             max_bytes=max_bytes,
+            progress_bar_description=progress_bar_description,
         )
 
     def fetch_candle_dataset(self, bucket: TimeBucket) -> Path:

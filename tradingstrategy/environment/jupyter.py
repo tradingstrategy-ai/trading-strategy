@@ -5,7 +5,7 @@ from typing import Optional
 import logging
 
 from requests import Session
-from tqdm.autonotebook import tqdm
+from tqdm.auto import tqdm
 
 from tradingstrategy.environment.base import Environment
 from tradingstrategy.environment.config import Configuration

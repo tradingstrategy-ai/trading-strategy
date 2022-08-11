@@ -1,4 +1,6 @@
 """Helpers to ensure timestamp data stays clean."""
+import calendar
+import datetime
 
 import pandas as pd
 
@@ -19,3 +21,8 @@ def assert_compatible_timestamp(ts: pd.Timestamp):
     :raise: AssertionError if the timestamp object is incompatible
     """
     assert is_compatible_timestamp(ts), f"Received pandas.Timestamp in incompatible format: {ts}"
+
+def to_int_unix_timestamp(dt: datetime.datetime) -> int:
+    """Get datetime as UTC seconds since epoch."""
+    # https://stackoverflow.com/a/5499906/315168
+    return int(calendar.timegm(dt.utctimetuple()))

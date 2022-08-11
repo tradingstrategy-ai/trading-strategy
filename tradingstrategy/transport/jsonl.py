@@ -14,10 +14,11 @@ from typing import List, Optional, Dict, Set
 import requests
 import jsonlines
 from numpy import NaN
+from tqdm.auto import tqdm
 
 from tradingstrategy.candle import Candle
 from tradingstrategy.timebucket import TimeBucket
-
+from tradingstrategy.utils.time import to_int_unix_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,7 @@ def load_trading_strategy_like_jsonl_data(
     start_time: Optional[datetime.datetime] = None,
     end_time: Optional[datetime.datetime] = None,
     max_bytes: Optional[int] = None,
+    progress_bar_description: Optional[str] = None,
 ) -> pd.DataFrame:
     """Read data from JSONL endpoint.
 
@@ -73,6 +75,8 @@ def load_trading_strategy_like_jsonl_data(
 
     Calling this function may consume up to few hundred megabytes
     of memory depending on the response size.
+
+    Display a progress bar using :py:mod:`tqdm`.
 
     :param df:
         The master DataFrame we are going to fill up.
@@ -114,10 +118,29 @@ def load_trading_strategy_like_jsonl_data(
 
     candle_data = defaultdict(list)
 
+    # Figure out how to plot candle download progress using TQDM
+    # Draw progress bar using timestamps first candle - last candle
+    progress_bar_start = None
+    progress_bar_end = end_time or datetime.datetime.utcnow()
+    progress_bar_end = to_int_unix_timestamp(progress_bar_end)
+    last_ts = None
+    progress_bar = None
+
     # Massage the format good for pandas
     for idx, item in enumerate(reader):
+
+        # Stream terminated
         if "error" in item:
             raise JSONLMaxResponseSizeExceeded(str(item))
+
+        current_ts = item["ts"]
+
+        # Set progress bar start to the first timestamp
+        if not progress_bar_start:
+            progress_bar_start = current_ts
+            total = progress_bar_end - progress_bar_start
+            assert progress_bar_start <= progress_bar_end, "Mad progress bar"
+            progress_bar = tqdm(desc=progress_bar_description, total=total)
 
         # Translate the raw compressed keys to our internal
         # Pandas keys
@@ -128,6 +151,15 @@ def load_trading_strategy_like_jsonl_data(
                 continue
 
             candle_data[translated_key].append(value)
+
+        if last_ts and progress_bar:
+            progress_bar.update(current_ts - last_ts)
+            progress_bar.set_postfix({"Currently at": datetime.datetime.utcfromtimestamp(current_ts)})
+
+        last_ts = current_ts
+
+    if progress_bar:
+        progress_bar.close()
 
     if len(candle_data) == 0:
         raise NoJSONLData(f"Did not get any data, url:{api_url}, params:{params}")
@@ -146,6 +178,7 @@ def load_candles_jsonl(
     start_time: Optional[datetime.datetime] = None,
     end_time: Optional[datetime.datetime] = None,
     max_bytes: Optional[int] = None,
+    progress_bar_description: Optional[str] = None,
     sanity_check_count=20,
 ) -> pd.DataFrame:
     """Load candles using JSON API and produce a DataFrame.
@@ -157,6 +190,9 @@ def load_candles_jsonl(
     - The final DataFrame is the merge of these series
 
     See :py:mod:`tradingstrategy.candle` for candle format description.
+
+    :param progress_bar_description:
+        Progress bar label
 
     :raise JSONLMaxResponseSizeExceeded:
         If the max_bytes limit is breached
@@ -178,6 +214,7 @@ def load_candles_jsonl(
         start_time,
         end_time,
         max_bytes,
+        progress_bar_description,
     )
 
     # Not supported at the momemnt
