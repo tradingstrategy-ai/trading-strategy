@@ -86,15 +86,16 @@ def test_resolve_pairs_based_on_ticker(persistent_test_client):
     }
 
     # ticker -> pd.Series row map for pairs
-    pair_map = resolve_pairs_based_on_ticker(
+    filtered_pairs_df = resolve_pairs_based_on_ticker(
         pairs_df,
         ChainId.bsc,
         "pancakeswap-v2",
         tickers
     )
 
-    assert len(pair_map) == 2
-    keys = list(pair_map.keys())
-    assert ('WBNB', 'BUSD') in keys
-    assert ('Cake', 'WBNB') in keys
-    assert pair_map[('WBNB', 'BUSD')]["buy_volume_30d"] > 0
+    assert len(filtered_pairs_df) == 2
+    wbnb_busd = filtered_pairs_df.loc[
+        (filtered_pairs_df["base_token_symbol"] == "WBNB") &
+        (filtered_pairs_df["quote_token_symbol"] == "BUSD")
+    ].iloc[0]
+    assert wbnb_busd["buy_volume_30d"] > 0

@@ -974,7 +974,7 @@ def resolve_pairs_based_on_ticker(
         chain_id: ChainId,
         exchange_slug: str,
         pair_tickers: Set[Tuple[str, str]],
-) -> Dict[Tuple[str, str], pd.Series]:
+) -> pd.DataFrame:
     """Resolve symbolic trading pairs to their internal integer primary key ids.
 
     Uses pair database described :py:class:`DEXPair` Pandas dataframe
@@ -1003,18 +1003,19 @@ def resolve_pairs_based_on_ticker(
         }
 
         # ticker -> pd.Series row map for pairs
-        pair_map = resolve_pairs_based_on_ticker(
+        filtered_pairs_df = resolve_pairs_based_on_ticker(
             pairs_df,
             ChainId.bsc,
             "pancakeswap-v2",
             tickers
         )
 
-        assert len(pair_map) == 2
-        keys = list(pair_map.keys())
-        assert ('WBNB', 'BUSD') in keys
-        assert ('Cake', 'WBNB') in keys
-        assert pair_map[('WBNB', 'BUSD')]["buy_volume_30d"] > 0
+        assert len(filtered_pairs_df) == 2
+        wbnb_busd = filtered_pairs_df.loc[
+            (filtered_pairs_df["base_token_symbol"] == "WBNB") &
+            (filtered_pairs_df["quote_token_symbol"] == "BUSD")
+        ].iloc[0]
+        assert wbnb_busd["buy_volume_30d"] > 0
 
     :param df:
         DataFrame containing DEXPairs
@@ -1032,8 +1033,7 @@ def resolve_pairs_based_on_ticker(
         If any ticker does not match it is not included in the result set.
 
     :return:
-        Map of trading pair ids (base token, quote token) -> DEX pair data.
-        DEX pair data is presented as :py:class:`pd.Series`.
+        DataFrame with filtered pairs.
     """
 
     # Create list of conditions to filter out dataframe,
@@ -1048,20 +1048,20 @@ def resolve_pairs_based_on_ticker(
     # https://stackoverflow.com/a/57468610/315168
     df_matches = df.loc[np.logical_or.reduce(conditions)]
 
-    # Sort by the buy volume
+    # Sort by the buy volume as a preparation
+    # for the scam filter
     df_matches = df_matches.sort_values(by="buy_volume_all_time", ascending=False)
 
-    result_map = {}
+    result_pair_ids = set()
 
-    # Pick the tokens by the highest buy volume to the result map
+    # Scam filter.
+    # Pick the tokens by the highest buy volume to the result map.
     for test_pair in pair_tickers:
-        for pair_id, row in df_matches.iterrows():
+        for idx, row in df_matches.iterrows():
             if row["base_token_symbol"] == test_pair[0] and \
                row["quote_token_symbol"] == test_pair[1]:
-                    result_map[test_pair] = row
+                    result_pair_ids.add(row["pair_id"])
                     break
 
-    return result_map
-
-
-
+    result_df = df.loc[df["pair_id"].isin(result_pair_ids)]
+    return result_df

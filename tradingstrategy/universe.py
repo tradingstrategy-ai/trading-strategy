@@ -35,8 +35,10 @@ class Universe:
     #: Historical candles for the decision making
     candles: GroupedCandleUniverse
 
-    #: Historical liquidity sampels
-    liquidity: GroupedLiquidityUniverse
+    #: Historical liquidity samples.
+    #: Might not be loaded if the strategy does not need to access
+    #: liquidity data.
+    liquidity: Optional[GroupedLiquidityUniverse] = None
 
     def get_candle_availability(self) -> Tuple[pd.Timestamp, pd.Timestamp]:
         """Get the time range for which we have candle data.
