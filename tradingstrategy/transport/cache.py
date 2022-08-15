@@ -1,9 +1,8 @@
 import datetime
 import hashlib
-import io
 import os
 import pathlib
-from typing import Optional, Callable, List, Set
+from typing import Optional, Callable, Set, Union
 import shutil
 import logging
 
@@ -107,11 +106,24 @@ class CachedHTTPTransport:
 
         return f
 
-    def purge_cache(self):
-        """Delete all cached files on the filesystem."""
-        if os.path.exists(self.cache_path):
-            logger.info("Purging caches at %s", self.cache_path)
-            shutil.rmtree(self.cache_path)
+    def purge_cache(self, filename: Optional[Union[str, pathlib.Path]] = None):
+        """Delete all cached files on the filesystem.
+
+        :param filename:
+            If given, remove only that specific file, otherwise clear all cached data.
+        """
+        target_path = self.cache_path if filename is None else filename
+
+        logger.info("Purging caches at %s", target_path)
+        try:
+            if os.path.isdir(target_path):
+                shutil.rmtree(target_path)
+            else:
+                os.remove(target_path)
+        except FileNotFoundError as exc:
+            logger.warning(
+                f"Attempted to purge caches, but no such file or directory: {exc.filename}"
+            )
 
     def save_response(self, fpath, api_path, params=None, human_readable_hint: Optional[str]=None):
         """Download a file to the cache and display a pretty progress bar while doing it.

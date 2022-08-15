@@ -13,7 +13,7 @@ import tempfile
 import time
 from functools import wraps
 from json import JSONDecodeError
-from typing import Optional, Set
+from typing import Final, Optional, Set, Union
 from pathlib import Path
 import logging
 
@@ -53,6 +53,10 @@ from tradingstrategy.transport.cache import CachedHTTPTransport
 logger = logging.getLogger(__name__)
 
 
+RETRY_DELAY: Final[int] = 30  # seconds
+MAX_ATTEMPTS: Final[int] = 3
+
+
 def _retry_corrupted_parquet_fetch(method):
     """A helper decorator to down with download/Parquet corruption issues.
 
@@ -61,7 +65,7 @@ def _retry_corrupted_parquet_fetch(method):
     # https://stackoverflow.com/a/36944992/315168
     @wraps(method)
     def impl(self, *method_args, **method_kwargs):
-        attempts = 3
+        attempts = MAX_ATTEMPTS
         while attempts > 0:
             try:
                 return method(self, *method_args, **method_kwargs)
@@ -70,14 +74,25 @@ def _retry_corrupted_parquet_fetch(method):
             except (OSError, BrokenData) as e:
                 # This happens when we download Parquet file, but it is missing half
                 # e.g. due to interrupted download
+                attempts -= 1
+                path_to_remove = e.path if isinstance(e, BrokenData) else None
+
                 if attempts > 0:
                     logger.error("Damaged Parquet file fetch detected for method %s, attempting to re-fetch. Error was: %s", method, e)
                     logger.exception(e)
-                    # TODO: Only clear the damaged file, not all caches
-                    self.clear_caches()
-                    attempts -= 1
-                    time.sleep(30)
+
+                    self.clear_caches(filename=path_to_remove)
+
+                    logger.info(
+                        f"Next parquet download retry in {RETRY_DELAY} seconds, "
+                        f"{attempts}/{MAX_ATTEMPTS} attempt(s) left"
+                    )
+                    time.sleep(RETRY_DELAY)
                 else:
+                    logger.warning(
+                        f"Exhausted all {MAX_ATTEMPTS} attempts, fetching parquet data failed."
+                    )
+                    self.clear_caches(filename=path_to_remove)
                     raise
 
     return impl
@@ -122,12 +137,15 @@ class Client:
         self.env = env
         self.transport = transport
 
-    def clear_caches(self):
+    def clear_caches(self, filename: Optional[Union[str, Path]] = None):
         """Remove any cached data.
 
         Cache is specific to the current transport.
+
+        :param filename:
+            If given, remove only that specific file, otherwise clear all cached data.
         """
-        self.transport.purge_cache()
+        self.transport.purge_cache(filename)
 
     @_retry_corrupted_parquet_fetch
     def fetch_pair_universe(self) -> pa.Table:
