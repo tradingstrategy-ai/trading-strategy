@@ -76,7 +76,7 @@ def _get_slug_map() -> Dict[str, int]:
     return _slug_map
 
 
-class ChainId(enum.Enum):
+class ChainId(enum.IntEnum):
     """Chain ids and chain metadata helper.
 
     This class is intended to present primary key for a blockchain in datasets,
