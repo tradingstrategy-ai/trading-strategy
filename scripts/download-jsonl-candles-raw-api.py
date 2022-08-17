@@ -52,15 +52,22 @@ params = {
     "time_bucket": "15m",
 }
 
+# Peak the URL, so the code example
+# is easier to understand
+print("Opening OHLCV data stream")
+resp = requests.Request("GET", f"{api_url}/candles-jsonl", params=params)
+prep = resp.prepare()
+print("The final URL is", prep.url)
+
+# Open the actual HTTP connection
+resp = requests.get(f"{api_url}/candles-jsonl", params=params)
+reader = jsonlines.Reader(resp.raw)
+
 # Iterate the resulting response
 # using jsonlines reader.
 # We start to decode incoming data on the first arrived byte
 # and keep decoding while streaming the response.
 # https://stackoverflow.com/a/60846477/315168
-print("Loading OHLCV data")
-resp = requests.get(f"{api_url}/candles-jsonl", params=params, stream=True)
-reader = jsonlines.Reader(resp.raw)
-
 print("Iterating response")
 candle_data = defaultdict(list)
 for item in reader:
