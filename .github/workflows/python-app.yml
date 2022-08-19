@@ -20,7 +20,7 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: 3.9
-        # cache: 'poetry'
+        cache: 'poetry'
     - name: Initialize submodules
       run: |
         git submodule update --init --recursive
