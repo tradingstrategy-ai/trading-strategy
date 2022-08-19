@@ -2,6 +2,7 @@ import datetime
 import hashlib
 import os
 import pathlib
+import re
 from typing import Optional, Callable, Set, Union
 import shutil
 import logging
@@ -92,19 +93,57 @@ class CachedHTTPTransport:
         path = os.path.join(self.get_abs_cache_path(), fname)
         return path
 
-    def get_cached_item(self, fname) -> Optional[pathlib.Path]:
+    def get_cached_item(self, fname: Union[str, pathlib.Path]) -> Optional[pathlib.Path]:
 
         path = self.get_cached_file_path(fname)
         if not os.path.exists(path):
             return None
 
         f = pathlib.Path(path)
+
+        end_time_pattern = r"-to_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}"
+        if re.search(end_time_pattern, str(fname)):
+            # Candle files with an end time never expire, as the history does not change
+            return f
+
         mtime = datetime.datetime.fromtimestamp(f.stat().st_mtime)
         if datetime.datetime.now() - mtime > self.cache_period:
             # File cache expired
             return None
 
         return f
+
+    def _generate_cache_name(
+        self,
+        pair_ids: Set[id],
+        time_bucket: TimeBucket,
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+        max_bytes: Optional[int] = None,
+    ) -> str:
+        """Generate the name of the file for holding cached candle data for ``pair_ids``.
+        """
+        # Meaningfully truncate the timestamp to align with the target time bucket.
+        if end_time:
+            candle_width = time_bucket.to_timedelta()
+            trunc = {"second": 0}
+            if candle_width >= datetime.timedelta(hours=1):
+                trunc["minute"] = 0
+            if candle_width >= datetime.timedelta(days=1):
+                trunc["hour"] = 0
+            end_time = end_time.replace(**trunc)
+
+        # Create a compressed cache key for the filename,
+        # as we have 256 char limit on fname lenghts
+        full_cache_key = (
+            f"{pair_ids}{time_bucket}{start_time}{end_time}{max_bytes}"
+        )
+        md5 = hashlib.md5(full_cache_key.encode("utf-8")).hexdigest()
+
+        # If exists, include the end time info in filename for cache invalidation logic.
+        end_part = end_time.strftime("-to_%Y-%m-%d_%H-%M-%S") if end_time else ""
+
+        return f"candles-jsonl-{time_bucket.value}{end_part}-{md5}.parquet"
 
     def purge_cache(self, filename: Optional[Union[str, pathlib.Path]] = None):
         """Delete all cached files on the filesystem.
@@ -219,6 +258,7 @@ class CachedHTTPTransport:
         """
         reply = self.post_json_response("register", params={"first_name": first_name, "last_name": last_name, "email": email})
         return reply
+
     def fetch_candles_by_pair_ids(
             self,
             pair_ids: Set[id],
@@ -259,21 +299,11 @@ class CachedHTTPTransport:
         :return:
             Candles dataframe
         """
-
-        # Create a compressed cache key for the filename,
-        # as we have 256 char limit on fname lenghts
-        full_cache_key = \
-            str(pair_ids) + \
-            str(time_bucket) + \
-            str(start_time) + \
-            str(end_time) + \
-            str(max_bytes)
-
-        md5 = hashlib.md5(full_cache_key.encode("utf-8")).hexdigest()
-
-        cache_fname = f"candles-jsonl-{time_bucket.value}-{md5}.parquet"
-
+        cache_fname = self._generate_cache_name(
+            pair_ids, time_bucket, start_time, end_time, max_bytes
+        )
         cached = self.get_cached_item(cache_fname)
+
         if cached:
             full_fname = self.get_cached_file_path(cache_fname)
             logger.debug("Using cached JSONL data file %s", full_fname)
