@@ -8,21 +8,18 @@ from tradingstrategy.timebucket import TimeBucket
 
 
 @pytest.fixture()
-def class_under_test():
+def transport():
     from tradingstrategy.transport.cache import CachedHTTPTransport
 
-    return CachedHTTPTransport
+    return CachedHTTPTransport(download_func=Mock())
 
 
-def test_get_cached_item_no_cache_file(class_under_test, tmp_path):
-    transport = class_under_test(download_func=Mock())
+def test_get_cached_item_no_cache_file(transport, tmp_path):
     filename = transport.get_cached_item(tmp_path / "not_here.parquet")
     assert filename is None
 
 
-def test_get_cached_item_cache_file_with_end_time(class_under_test, tmp_path):
-    transport = class_under_test(download_func=Mock())
-
+def test_get_cached_item_cache_file_with_end_time(transport, tmp_path):
     # Cached candle data with end time should never expire, no matter how old they are
     tmp_file = tmp_path / "candles-jsonl-1m-to_1998-03-31_19-38-02-58000fef3f0a6af9d8393f50d530d3db.parquet"
     tmp_file.write_text("I am candle data!")  # actually create the file
@@ -34,9 +31,7 @@ def test_get_cached_item_cache_file_with_end_time(class_under_test, tmp_path):
     assert filename == tmp_file
 
 
-def test_get_cached_item_cache_file_no_end_time_recent_enough(class_under_test, tmp_path):
-    transport = class_under_test(download_func=Mock())
-
+def test_get_cached_item_cache_file_no_end_time_recent_enough(transport, tmp_path):
     # Cached candle data with end time should never expire, no matter how old they are
     tmp_file = tmp_path / "candles-jsonl-1m-58000fef3f0a6af9d8393f50d530d3db.parquet"
     tmp_file.write_text("I am candle data!")  # actually create the file
@@ -47,9 +42,7 @@ def test_get_cached_item_cache_file_no_end_time_recent_enough(class_under_test, 
     assert filename == tmp_file
 
 
-def test_get_cached_item_cache_file_no_end_time_expired(class_under_test, tmp_path):
-    transport = class_under_test(download_func=Mock())
-
+def test_get_cached_item_cache_file_no_end_time_expired(transport, tmp_path):
     # Cached candle data with end time should never expire, no matter how old they are
     tmp_file = tmp_path / "candles-jsonl-1m-58000fef3f0a6af9d8393f50d530d3db.parquet"
     tmp_file.write_text("I am candle data!")  # actually create the file
@@ -82,11 +75,7 @@ def test_get_cached_item_cache_file_no_end_time_expired(class_under_test, tmp_pa
         ),
     ),
 )
-def test__generate_cache_name_no_end_time(
-    class_under_test, kwarg_overrides, expected_name
-):
-    transport = class_under_test(download_func=Mock())
-
+def test__generate_cache_name_no_end_time(transport, kwarg_overrides, expected_name):
     kwargs = {
         "pair_ids": {2, 17, 8},
         "time_bucket": TimeBucket.m1,
@@ -117,10 +106,8 @@ def test__generate_cache_name_no_end_time(
     ),
 )
 def test__generate_cache_name_end_time_minute_precision(
-    class_under_test, time_bucket, end_time, expected_name
+    transport, time_bucket, end_time, expected_name
 ):
-    transport = class_under_test(download_func=Mock())
-
     name = transport._generate_cache_name(
         pair_ids=[10, 20, 30],
         end_time=end_time,
@@ -148,10 +135,8 @@ def test__generate_cache_name_end_time_minute_precision(
     ),
 )
 def test__generate_cache_name_end_time_hour_precision(
-    class_under_test, time_bucket, end_time, expected_name
+    transport, time_bucket, end_time, expected_name
 ):
-    transport = class_under_test(download_func=Mock())
-
     name = transport._generate_cache_name(
         pair_ids=[10, 20, 30],
         end_time=end_time,
@@ -186,10 +171,8 @@ def test__generate_cache_name_end_time_hour_precision(
     ),
 )
 def test__generate_cache_name_end_time_day_precision(
-    class_under_test, time_bucket, end_time, expected_name
+    transport, time_bucket, end_time, expected_name
 ):
-    transport = class_under_test(download_func=Mock())
-
     name = transport._generate_cache_name(
         pair_ids=[10, 20, 30],
         end_time=end_time,
