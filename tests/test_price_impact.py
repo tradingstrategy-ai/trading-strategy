@@ -84,10 +84,10 @@ def test_calculate_price_impact_from_dataset(persistent_test_client: Client):
         max_distance=pd.Timedelta(days=7))
 
     # we get ~4.5 bps slippage
-    assert impact.price_impact == pytest.approx(0.0004355944207343754)
+    assert impact.price_impact == pytest.approx(0.00017106449851134187)
 
     # We get 5984 USD worth of SUSHI
-    assert impact.delivered == pytest.approx(5984.605725824833)
+    assert impact.delivered == pytest.approx(5983.023307830095)
 
     # We pay 18 USD in fees
     assert impact.lp_fees_paid == pytest.approx(15.0)
@@ -96,7 +96,7 @@ def test_calculate_price_impact_from_dataset(persistent_test_client: Client):
     assert impact.protocol_fees_paid == pytest.approx(3)
 
     # The cost of trade is smaller than the fees paid
-    assert impact.cost_of_trade == pytest.approx(15.394274175167084)
+    assert impact.cost_of_trade == pytest.approx(16.97669216990471)
 
 
 def test_unknown_pair(persistent_test_client: Client):
