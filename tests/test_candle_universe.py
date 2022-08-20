@@ -49,8 +49,8 @@ def test_grouped_candles(persistent_test_client: Client):
     assert sample_timestamp.minute == 0
 
     # Min and max prices of SUSHI-USDT ever
-    assert max_price == pytest.approx(22.4612)
-    assert min_price == pytest.approx(0.49680945)
+    assert max_price == pytest.approx(24.120058)
+    assert min_price == pytest.approx(0.47701323)
 
 
 def test_empty_candle_universe():

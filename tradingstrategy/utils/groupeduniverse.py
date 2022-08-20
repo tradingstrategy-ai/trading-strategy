@@ -27,6 +27,9 @@ class PairGroupedUniverse:
     - OHLCV candles
 
     - Liquidity candles
+
+    The input :py:class:`pd.DataFrame` is sorted by default using `timestamp`
+    column and then made this column as an index. This is not optimised (not inplace).
     """
 
     def __init__(self,
@@ -37,7 +40,7 @@ class PairGroupedUniverse:
         """
         :param time_bucket:
             What bar size candles we are operating at. Default to daily.
-            TODO: Deprecate - not used?
+            TODO: Currently not used. Will be removed in the future versions.
 
         :param timestamp_column:
             What column use to build a time index. Used for QStrader / Backtrader compatibility.
@@ -47,7 +50,10 @@ class PairGroupedUniverse:
         """
         assert isinstance(df, pd.DataFrame)
         if index_automatically:
-            self.df = df.set_index(timestamp_column, drop=False)
+            self.df = df \
+                .set_index(timestamp_column, drop=False)\
+                .sort_index(inplace=False)
+            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_index.html
         else:
             self.df = df
         self.pairs: pd.GroupBy = self.df.groupby(["pair_id"])
