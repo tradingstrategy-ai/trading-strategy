@@ -2,6 +2,7 @@
 
 - Fix: `PairGroupedUniverse` did not have OHLCV data sorted by `timestamp`, but instead of was
   `pair_id`, `timestamp` causing some failures of managing expectations when accessing data.
+- Fix: Update tests to reflect new datasets from Trading Strategy API
 - Added `Client.fetch_candles_by_pair_ids` that loads trading data for certain pairs  
   data over JSONL endpoint  and avoids loading large Parquest candle and liquidity files.
   This makes it possible to run backtests on low memory environments.
