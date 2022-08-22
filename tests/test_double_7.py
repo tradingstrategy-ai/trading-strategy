@@ -3,25 +3,26 @@
 See the https://tradingstrategy.ai/docs/programming/algorithms/double-7.html
 """
 
-from ipywidgets import HTML
 from typing import Optional
 
-import pytest
-import pandas as pd
-
 import backtrader as bt
-from backtrader import analyzers, Position
-from backtrader import indicators
+import pandas as pd
+import pytest
+from backtrader import Position, analyzers, indicators
+from ipywidgets import HTML
 from tradingstrategy.analysis.tradeanalyzer import TradeSummary
-from tradingstrategy.analysis.tradehint import TradeHintType
-
-from tradingstrategy.analysis.tradehint import TradeHint
+from tradingstrategy.analysis.tradehint import TradeHint, TradeHintType
 from tradingstrategy.chain import ChainId
-from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
-from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, \
-    TradeRecorder, analyse_strategy_trades, DEXStrategy
+from tradingstrategy.frameworks.backtrader import (
+    DEXStrategy,
+    TradeRecorder,
+    add_dataframes_as_feeds,
+    analyse_strategy_trades,
+    prepare_candles_for_backtrader,
+)
 from tradingstrategy.pair import PandasPairUniverse
+from tradingstrategy.timebucket import TimeBucket
 
 # Which pair we analyse
 # https://analytics.sushi.com/pairs/0x06da0fd433c1a5d7a4faa01111c044910a184553
@@ -195,7 +196,7 @@ def test_double_77(logger, persistent_test_client: Client):
     exchange_universe = client.fetch_exchange_universe()
     columnar_pair_table = client.fetch_pair_universe()
     all_pairs_dataframe = columnar_pair_table.to_pandas()
-    pair_universe = PandasPairUniverse(all_pairs_dataframe)
+    pair_universe = PandasPairUniverse(all_pairs_dataframe, build_index=False)
 
     # Filter down to pairs that only trade on Sushiswap
     sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")

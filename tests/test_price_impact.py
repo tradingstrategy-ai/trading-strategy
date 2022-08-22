@@ -1,13 +1,16 @@
 """Slippage calculation test suite."""
-import pytest
 import pandas as pd
-
+import pytest
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.liquidity import GroupedLiquidityUniverse
 from tradingstrategy.pair import PandasPairUniverse
-from tradingstrategy.priceimpact import estimate_xyk_price_impact, HistoricalXYPriceImpactCalculator, SampleTooFarOff, \
-    NoTradingPair
+from tradingstrategy.priceimpact import (
+    HistoricalXYPriceImpactCalculator,
+    NoTradingPair,
+    SampleTooFarOff,
+    estimate_xyk_price_impact,
+)
 from tradingstrategy.timebucket import TimeBucket
 
 
@@ -60,7 +63,7 @@ def test_calculate_price_impact_from_dataset(persistent_test_client: Client):
     raw_pairs = client.fetch_pair_universe().to_pandas()
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
 
-    pair_universe = PandasPairUniverse(raw_pairs)
+    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
 
     # Do some test calculations for a single pair
@@ -128,7 +131,7 @@ def test_calculate_slippage_sample_too_far_in_past(persistent_test_client: Clien
     raw_pairs = client.fetch_pair_universe().to_pandas()
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()  # Same as in above test to use the cache
 
-    pair_universe = PandasPairUniverse(raw_pairs)
+    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
 
     # Do some test calculations for a single pair

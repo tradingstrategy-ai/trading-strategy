@@ -3,13 +3,12 @@ import resource
 import pandas
 import pandas as pd
 import pytest
-
 from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
+from tradingstrategy.chain import ChainId
+from tradingstrategy.client import Client
+from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
 from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.client import Client
-from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles
 
@@ -23,7 +22,7 @@ def test_grouped_candles(persistent_test_client: Client):
     raw_pairs = client.fetch_pair_universe().to_pandas()
     raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
 
-    pair_universe = PandasPairUniverse(raw_pairs)
+    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
     candle_universe = GroupedCandleUniverse(raw_candles)
 
     # Do some test calculations for a single pair
@@ -63,11 +62,7 @@ def test_samples_by_timestamp(persistent_test_client: Client):
 
     client = persistent_test_client
 
-    exchange_universe = client.fetch_exchange_universe()
-    raw_pairs = client.fetch_pair_universe().to_pandas()
     raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
-
-    pair_universe = PandasPairUniverse(raw_pairs)
     candle_universe = GroupedCandleUniverse(raw_candles)
 
     # The internal weekly start before Dec 2021
@@ -298,6 +293,8 @@ def test_candle_upsample(persistent_test_client: Client):
     monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
     assert len(monthly_candles) <= len(single_pair_candles) / 4
 
+
+@pytest.mark.skip(msg="This test currently downloads a 3.4G parquet and load it to RAM, TODO: move to manual test")
 def test_filter_pyarrow(persistent_test_client: Client):
     """Filter loaded pyarrow files without loading them fully to the memory.
 
