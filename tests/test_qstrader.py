@@ -1,15 +1,9 @@
 """QSTrader integration test."""
 
-from tradingstrategy.chain import ChainId
-
 import os
 
 import pandas as pd
 import pytz
-
-from tradingstrategy.frameworks.qstrader import DEXAsset, prepare_candles_for_qstrader
-from tradingstrategy.pair import PandasPairUniverse, DEXPair
-from tradingstrategy.timebucket import TimeBucket
 from qstrader.alpha_model.fixed_signals import FixedSignalsAlphaModel
 from qstrader.asset.equity import Equity
 from qstrader.asset.universe.static import StaticUniverse
@@ -18,6 +12,10 @@ from qstrader.data.daily_bar_csv import CSVDailyBarDataSource
 from qstrader.data.daily_bar_dataframe import DataframeDailyBarDataSource
 from qstrader.statistics.tearsheet import TearsheetStatistics
 from qstrader.trading.backtest import BacktestTradingSession
+from tradingstrategy.chain import ChainId
+from tradingstrategy.frameworks.qstrader import DEXAsset, prepare_candles_for_qstrader
+from tradingstrategy.pair import DEXPair, PandasPairUniverse
+from tradingstrategy.timebucket import TimeBucket
 
 
 def test_qstrader_vanilla():
@@ -70,13 +68,13 @@ def test_qstrader_buy_and_hold_crypto(persistent_test_client):
     start_dt = pd.Timestamp('2020-10-01 14:30:00', tz=pytz.UTC)
     end_dt = pd.Timestamp('2021-07-01 23:59:00', tz=pytz.UTC)
 
-    capitalgram = persistent_test_client
+    client = persistent_test_client
 
-    exchange_universe = capitalgram.fetch_exchange_universe()
+    exchange_universe = client.fetch_exchange_universe()
 
     # Fetch all trading pairs across all exchanges
-    columnar_pair_table = capitalgram.fetch_pair_universe()
-    pair_universe = PandasPairUniverse(columnar_pair_table.to_pandas())
+    columnar_pair_table = client.fetch_pair_universe()
+    pair_universe = PandasPairUniverse(columnar_pair_table.to_pandas(), build_index=False)
 
     # Pick SUSHI-USDT trading on SushiSwap
     sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
@@ -86,7 +84,7 @@ def test_qstrader_buy_and_hold_crypto(persistent_test_client):
         "WETH")
 
     # Get daily candles as Pandas DataFrame
-    all_candles = capitalgram.fetch_all_candles(TimeBucket.d1).to_pandas()
+    all_candles = client.fetch_all_candles(TimeBucket.d1).to_pandas()
     sushi_eth_candles: pd.DataFrame  = all_candles.loc[all_candles["pair_id"] == sushi_eth.pair_id]
 
     sushi_eth_candles = prepare_candles_for_qstrader(sushi_eth_candles)

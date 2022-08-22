@@ -1,13 +1,11 @@
-import pytest
-
 import pandas as pd
-
+import pytest
 from tradingstrategy.candle import GroupedCandleUniverse
-from tradingstrategy.liquidity import GroupedLiquidityUniverse
-from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import PandasPairUniverse, DEXPair, LegacyPairUniverse
+from tradingstrategy.client import Client
+from tradingstrategy.liquidity import GroupedLiquidityUniverse
+from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
+from tradingstrategy.timebucket import TimeBucket
 
 
 def test_grouped_liquidity(persistent_test_client: Client):
@@ -19,7 +17,7 @@ def test_grouped_liquidity(persistent_test_client: Client):
     raw_pairs = client.fetch_pair_universe().to_pandas()
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
 
-    pair_universe = PandasPairUniverse(raw_pairs)
+    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
 
     # Do some test calculations for a single pair
@@ -54,12 +52,9 @@ def test_combined_candles_and_liquidity(persistent_test_client: Client):
 
     client = persistent_test_client
 
-    exchange_universe = client.fetch_exchange_universe()
-    raw_pairs = client.fetch_pair_universe().to_pandas()
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
     raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
 
-    pair_universe = PandasPairUniverse(raw_pairs)
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
     candle_universe = GroupedCandleUniverse(raw_candles)
 
@@ -125,7 +120,7 @@ def test_merge_liquidity_samples(persistent_test_client: Client):
     raw_pairs = client.fetch_pair_universe().to_pandas()
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
 
-    pair_universe = PandasPairUniverse(raw_pairs)
+    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
 
     pair1: DEXPair = pair_universe.get_one_pair_from_pandas_universe(
         sushi_swap.exchange_id,

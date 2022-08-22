@@ -5,17 +5,19 @@ Also some examples how to extract meaningful data out from the backtrader output
 import datetime
 
 import backtrader as bt
-import pytest
-from backtrader import analyzers
-from backtrader import indicators
 import pandas as pd
-
+import pytest
+from backtrader import analyzers, indicators
 from tradingstrategy.candle import GroupedCandleUniverse
-from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.frameworks.backtrader import prepare_candles_for_backtrader, add_dataframes_as_feeds, DEXFeed
+from tradingstrategy.frameworks.backtrader import (
+    DEXFeed,
+    add_dataframes_as_feeds,
+    prepare_candles_for_backtrader,
+)
 from tradingstrategy.pair import PandasPairUniverse
+from tradingstrategy.timebucket import TimeBucket
 
 
 # From https://www.backtrader.com/home/helloalgotrading/
@@ -72,7 +74,7 @@ def test_backtrader_sma(logger, persistent_test_client: Client):
     # Use daily candles in this test as BT assumes daily
     raw_candles = client.fetch_all_candles(TimeBucket.d1).to_pandas()
 
-    pair_universe = PandasPairUniverse(raw_pairs)
+    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
     candle_universe = GroupedCandleUniverse(raw_candles)
 
     # Do some test calculations for a single pair
