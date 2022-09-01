@@ -4,7 +4,7 @@ from tradingstrategy.environment.base import download_with_progress_plain
 from tradingstrategy.environment.config import Configuration
 from tradingstrategy.transport.cache import CachedHTTPTransport
 
-    
+
 def run_interactive_setup() -> Optional[Configuration]:
     """Do REPL interactive setup with the user in Jupyter notebook."""
 
@@ -43,27 +43,12 @@ def run_interactive_setup() -> Optional[Configuration]:
 
         print(f"Signed up on the newsletter: {email} - please check your email for the API key")
 
-    valid_api_key = False
-    while not valid_api_key:
+    while True:
         print("The API key is in format 'secret-token:tradingstrategy-...'")
         api_key = input("Enter your API key from the welcome email you just received, including secret-token: part: ")
-        api_key = api_key.strip()  # Watch out whitespace copy paste issues
-        if api_key == "":
-            print("Aborting setup")
-            return None
 
-        print(f"Testing out API key: {api_key[0:24]}")
-        authenticated_transport = CachedHTTPTransport(download_with_progress_plain, api_key=api_key)
-        try:
-            welcome = authenticated_transport.message_of_the_day()
-            print("The server replied accepted our API key and sent the following greetings:")
-            print("Server version:", welcome["version"])
-            print("Message of the day:", welcome["message"])
-        except Exception as e:
-            print(f"Received error: {e} - check your API key")
-            continue
-
-        valid_api_key = True
+        if validate_api_key(api_key):
+            break
 
     config = Configuration(api_key=api_key)
 
@@ -72,23 +57,39 @@ def run_interactive_setup() -> Optional[Configuration]:
     return config
 
 
-def run_non_interactive_setup(**args:str) -> Optional[Configuration]:
-    if not "api_key" in args or args["api_key"]==None:
+def run_non_interactive_setup(**kwargs) -> Optional[Configuration]:
+    api_key = kwargs.get("api_key")
+    if not api_key:
         print("Can't setup config, please provide api_key argument")
         return None
-    api_key=args["api_key"]
+    
+    if not validate_api_key(api_key):
+        print("Incorrect API key")
+        return None
+
+    config = Configuration(api_key=api_key)
+
+    print("The API key setup complete.")
+
+    return config
+
+
+def validate_api_key(api_key: str) -> bool:
+    # Watch out whitespace copy paste issues
+    api_key = api_key.strip()  
+    if api_key == "":
+        print("Aborting setup")
+        return False
+
     print(f"Testing out API key: {api_key[0:24]}")
+    authenticated_transport = CachedHTTPTransport(download_with_progress_plain, api_key=api_key)
     try:
-        authenticated_transport = CachedHTTPTransport(download_with_progress_plain, api_key=api_key)
         welcome = authenticated_transport.message_of_the_day()
         print("The server replied accepted our API key and sent the following greetings:")
         print("Server version:", welcome["version"])
         print("Message of the day:", welcome["message"])
     except Exception as e:
         print(f"Received error: {e} - check your API key")
-        return None
-    config = Configuration(api_key=api_key)
+        return False
 
-    print("The API key setup complete.")
-
-    return config
+    return True   

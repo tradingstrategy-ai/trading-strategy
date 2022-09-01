@@ -305,15 +305,18 @@ class Client:
         :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
         :param cache_api_key: Server api key.
         """
-        from tradingstrategy.environment.pyodide_db import IndexDB
-        db=IndexDB()
-        if api_key==None:
-            api_key=await db.get_file("api_key")
-        else:
+        from tradingstrategy.environment.jupyterlite import IndexDB
+
+        db = IndexDB()
+        if api_key:
             await db.set_file("api_key",api_key)
-        if api_key==None:
+        else:
+            api_key = await db.get_file("api_key")
+        
+        if not api_key:
             return None
-        return cls.create_jupyter_client(cache_path,api_key)
+
+        return cls.create_jupyter_client(cache_path, api_key)
 
     @classmethod
     def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
@@ -324,7 +327,7 @@ class Client:
         cls.preflight_check()
         cls.setup_notebook()
         env = JupyterEnvironment()
-        config = env.setup_on_demand()
+        config = env.setup_on_demand(api_key)
         transport = CachedHTTPTransport(download_with_tqdm_progress_bar, cache_path=env.get_cache_path(), api_key=config.api_key)
         return Client(env, transport)
 

@@ -26,7 +26,7 @@ plotly = "^5.1.0"
 cufflinks = "^0.17.3"
 chart-studio = "^1.1.0"
 mplfinance = "^0.12.7-alpha.17"
-scipy = "^1.7.0"
+scipy = "^1.8.0"
 
 # Cannot use release, because new maplotlib compat[]ibiltiy
 # Fixes

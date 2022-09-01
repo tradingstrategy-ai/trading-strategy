@@ -62,21 +62,21 @@ class JupyterEnvironment(Environment):
         self.save_configuration(config)
         return config
 
-    def non_interactive_setup(self,**keys:str) -> Configuration:
+    def non_interactive_setup(self, **kwargs) -> Configuration:
         """Perform interactive user onbaording"""
-        config = run_non_interactive_setup(**keys)
+        config = run_non_interactive_setup(**kwargs)
         if config:
             self.save_configuration(config)
         return config
 
 
-    def setup_on_demand(self, **keywords: str) -> Configuration:
+    def setup_on_demand(self, **kwargs) -> Configuration:
         """Check if we need to set up the environment."""
         config = self.discover_configuration()
         if not config:
             if platform.system() == 'Emscripten':
                 print(f"No existing Trading Strategy configuration found in {self.get_settings_path()}/settings.json. Making config from keyword parameters.")
-                config = self.non_interactive_setup(**keywords)
+                config = self.non_interactive_setup(**kwargs)
             else:
                 print(f"No existing Trading Strategy configuration found in {self.get_settings_path()}/settings.json. Starting interactive setup.")
                 config = self.interactive_setup()
