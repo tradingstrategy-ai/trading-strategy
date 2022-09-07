@@ -449,8 +449,9 @@ class PandasPairUniverse:
         assert isinstance(df, pd.DataFrame)
         self.df = df.set_index(df["pair_id"])
 
-        # pair_id -> DEXPair
-        self.pair_map: Dict[int, DEXPair] = {}
+        #: pair_id -> DEXPair mappings
+        #: Don't access directly, use :py:meth:`iterate_pairs`.
+        self.pair_map: Dict[int, dict] = {}
 
         # pair smart contract address -> DEXPair
         self.smart_contract_map = {}
@@ -461,6 +462,11 @@ class PandasPairUniverse:
 
         if build_index:
             self.build_index()
+
+    def iterate_pairs(self) -> Iterable[DEXPair]:
+        """Iterate over all pairs in this universe."""
+        for p in self.pair_map.values():
+            yield DEXPair.from_dict(p)
 
     def build_index(self):
         """Create pair_id -> data mapping.
@@ -479,12 +485,6 @@ class PandasPairUniverse:
         # https://stackoverflow.com/a/73638890/315168
         self.pair_map = self.df.T.to_dict()
         self.smart_contract_map = {d["address"].lower(): d for d in self.pair_map.values()}
-        # import ipdb ; ipdb.set_trace()
-
-        #for pair_id, data in self.df.iterrows():
-        #    # pair: DEXPair = DEXPair.from_dict(data)
-        #    self.pair_map[pair_id] = data
-        #    self.smart_contract_map[data["address"].lower()] = data
 
     def get_all_pair_ids(self) -> List[PrimaryKey]:
         return self.df["pair_id"].unique()
