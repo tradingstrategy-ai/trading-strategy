@@ -532,7 +532,8 @@ class PandasPairUniverse:
         """
         address = address.lower()
         assert self.smart_contract_map, "You need to build the index to use this function"
-        return self.smart_contract_map.get(address)
+        data = self.smart_contract_map.get(address)
+        return DEXPair.from_dict(data)
 
     def get_token(self, address: str) -> Optional[Token]:
         """Get a token that is part of any trade pair.
