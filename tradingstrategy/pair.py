@@ -466,11 +466,25 @@ class PandasPairUniverse:
         """Create pair_id -> data mapping.
 
         Allows fast lookup of individual pairs.
+
+        .. warning::
+
+            This function assumes the universe contains
+            data for only one blockchain. The same address
+            can exist across multiple EVM chains.
+            The created smart contract address index
+            does not index chain id and thus is invalid.
+
         """
-        for pair_id, data in self.df.iterrows():
-            pair: DEXPair = DEXPair.from_dict(data)
-            self.pair_map[pair_id] = pair
-            self.smart_contract_map[pair.address.lower()] = pair
+        # https://stackoverflow.com/a/73638890/315168
+        self.pair_map = self.df.T.to_dict()
+        self.smart_contract_map = {d["address"].lower(): d for d in self.pair_map.values()}
+        # import ipdb ; ipdb.set_trace()
+
+        #for pair_id, data in self.df.iterrows():
+        #    # pair: DEXPair = DEXPair.from_dict(data)
+        #    self.pair_map[pair_id] = data
+        #    self.smart_contract_map[data["address"].lower()] = data
 
     def get_all_pair_ids(self) -> List[PrimaryKey]:
         return self.df["pair_id"].unique()
@@ -487,7 +501,8 @@ class PandasPairUniverse:
 
         if self.pair_map:
             # TODO: Eliminate non-indexed code path?
-            return self.pair_map.get(pair_id)
+            data = self.pair_map.get(pair_id)
+            return DEXPair.from_dict(data)
 
         # TODO: Remove
 
@@ -507,6 +522,12 @@ class PandasPairUniverse:
     def get_pair_by_smart_contract(self, address: str) -> Optional[DEXPair]:
         """Resolve a trading pair by its pool smart contract address.
 
+        .. warning::
+
+            This function assumes the universe contains
+            data for only one blockchain. The same address
+            can exist across multiple EVM chains.
+
         :param address: Ethereum smart contract address of the Uniswap pair contract
         """
         address = address.lower()
@@ -525,19 +546,20 @@ class PandasPairUniverse:
         :return:
             Tuple (name, symbol, address, decimals)
             or None if not found.
-
         """
         address = address.lower()
 
         token: Optional[Token] = None
 
         if address not in self.token_cache:
-            for p in self.pair_map.values():
-                if p.quote_token_address == address:
-                    token = Token(p.chain_id, p.quote_token_symbol, address, p.quote_token_decimals)
+            for pair_data in self.pair_map.values():
+                if pair_data["token0_address"] == address:
+                    p = DEXPair.from_dict(pair_data)
+                    token = Token(p.chain_id, p.token0_address, address, p.token0_decimals)
                     break
-                elif p.base_token_address == address:
-                    token = Token(p.chain_id, p.base_token_symbol, address, p.base_token_decimals)
+                elif pair_data["token1_address"] == address:
+                    p = DEXPair.from_dict(pair_data)
+                    token = Token(p.chain_id, p.token1_address, address, p.token1_decimals)
                     break
             self.token_cache[address] = token
         return self.token_cache[address]
@@ -552,7 +574,8 @@ class PandasPairUniverse:
 
         """
         tokens = set()
-        for p in self.pair_map.values():
+        for pair_data in self.pair_map.values():
+            p = DEXPair.from_dict(pair_data)
             tokens.add(self.get_token(p.base_token_address))
             tokens.add(self.get_token(p.quote_token_address))
         return tokens
@@ -564,7 +587,7 @@ class PandasPairUniverse:
         """
         pair_count = len(self.pair_map)
         assert pair_count == 1, f"Not a single trading pair universe, we have {pair_count} pairs"
-        return next(iter(self.pair_map.values()))
+        return DEXPair.from_dict(next(iter(self.pair_map.values())))
 
     def get_by_symbols(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
         """For strategies that trade only a few trading pairs, get the only pair in the universe.
@@ -577,8 +600,8 @@ class PandasPairUniverse:
 
         """
         for pair in self.pair_map.values():
-            if pair.base_token_symbol == base_token_symbol and pair.quote_token_symbol == quote_token_symbol:
-                return pair
+            if pair["base_token_symbol"] == base_token_symbol and pair["quote_token_symbol"] == quote_token_symbol:
+                return DEXPair.from_dict(pair)
         return None
 
     def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str, pick_by_highest_vol=False) -> Optional[DEXPair]:

@@ -1,4 +1,9 @@
-"""Helper methods and classes to integrate :term:`Backtrader` with Capitalgram based :term:`Pandas` data."""
+"""Old Backtrader integration.
+
+.. warning::
+
+    Deprecased. Do not use anymore. Use `trade-executor` framewor instead.
+"""
 
 import logging
 import datetime

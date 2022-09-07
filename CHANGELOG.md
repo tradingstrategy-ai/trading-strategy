@@ -10,6 +10,8 @@
   to filter Parquest files when loading candle datasets to optimise memory usage.
   (At the moment this path is not used outside the tests.)
 - Change `ChainId` base class to `IntEnum` instead of `Enum` for better type hinting
+- Change `PandasPairUniverse.build_index` to use Pandas DataFrame frame transpose,
+  greatly speeding up the creation of the index
 
 # 0.7.1
 
