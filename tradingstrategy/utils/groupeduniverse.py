@@ -77,7 +77,10 @@ class PairGroupedUniverse:
 
         After the samples have been extracted, set `timestamp` as the index for the data.
         """
-        pair = self.pairs.get_group(pair_id)
+        try:
+            pair = self.pairs.get_group(pair_id)
+        except KeyError as e:
+            raise KeyError(f"No OHLC samples for pair id {pair_id} in {self}") from e
         return pair
 
     def get_all_pairs(self) -> Iterable[Tuple[PrimaryKey, pd.DataFrame]]:
