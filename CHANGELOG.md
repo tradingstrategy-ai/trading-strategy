@@ -1,4 +1,4 @@
-# Current
+# 0.7.2
 
 - Fix: `PairGroupedUniverse` did not have OHLCV data sorted by `timestamp`, but instead of was
   `pair_id`, `timestamp` causing some failures of managing expectations when accessing data.
@@ -12,6 +12,9 @@
 - Change `ChainId` base class to `IntEnum` instead of `Enum` for better type hinting
 - Change `PandasPairUniverse.build_index` to use Pandas DataFrame frame transpose,
   greatly speeding up the creation of the index
+- Fix: `get_closest_price` gets a closest price even if the timestamp and  
+  and time bucket are not in the same internal 
+- Added `environment/jupyterlite` for the upcoming WebAssembly integration
 
 # 0.7.1
 
