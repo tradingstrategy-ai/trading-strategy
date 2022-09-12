@@ -271,7 +271,8 @@ class GroupedCandleUniverse(PairGroupedUniverse):
     def get_closest_price(self,
                           pair_id: PrimaryKey,
                           when: pd.Timestamp,
-                          kind="close", look_back_time_frames=5) -> USDollarAmount:
+                          kind="close",
+                          look_back_time_frames=5) -> USDollarAmount:
         """Get the available liuqidity for a trading pair at a specific timepoint or some candles before the timepoint.
 
         The liquidity is defined as one-sided as in :term:`XY liquidity model`.
@@ -310,7 +311,15 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                 sample = samples_per_kind[when]
                 return sample
             except KeyError:
-                # Go to the previous sample
+                # Check for uneven timestamp / when matching
+                # e.g. when doing odd hour checks on daily candles and we do not hit 00:00.
+                # Only do this during the exceptional circumstances, as this path
+                # is slower
+                ranged_samples = samples_per_kind.loc[when - self.time_bucket.to_timedelta():when]
+                if len(ranged_samples) > 0:
+                    return ranged_samples.iloc[-1]
+
+                # Move back to the previous loop back window
                 when -= self.time_bucket.to_timedelta()
 
         # Try to be helpful with the errors here,
@@ -328,7 +337,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         raise CandleSampleUnavailable(
             f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {start_when}\n"
             f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
-            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
+            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
             )
 
     @staticmethod
