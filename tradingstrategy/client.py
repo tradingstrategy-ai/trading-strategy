@@ -8,20 +8,21 @@ For usage see
 
 """
 import datetime
+import logging
 import os
 import tempfile
 import time
+import warnings
 from functools import wraps
 from json import JSONDecodeError
-from typing import Final, Optional, Set, Union
 from pathlib import Path
-import logging
+from typing import Final, Optional, Set, Union
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 import pandas as pd
 from backtrader import List
 from tqdm import TqdmExperimentalWarning
-import warnings
+
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
 from tradingstrategy.universe import Universe
 
@@ -40,15 +41,17 @@ import pyarrow
 import pyarrow as pa
 from pyarrow import Table
 
-from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.environment.config import Configuration
-from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.reader import read_parquet, BrokenData
 from tradingstrategy.chain import ChainId
 from tradingstrategy.environment.base import Environment, download_with_progress_plain
-from tradingstrategy.environment.jupyter import JupyterEnvironment, download_with_tqdm_progress_bar
+from tradingstrategy.environment.config import Configuration
+from tradingstrategy.environment.jupyter import (
+    JupyterEnvironment,
+    download_with_tqdm_progress_bar,
+)
+from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.reader import BrokenData, read_parquet
+from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import CachedHTTPTransport
-
 
 logger = logging.getLogger(__name__)
 
@@ -268,8 +271,8 @@ class Client:
 
         # Work around Google Colab shipping with old Pandas
         # https://stackoverflow.com/questions/11887762/how-do-i-compare-version-numbers-in-python
-        from packaging import version
         import pandas
+        from packaging import version
         pandas_version = version.parse(pandas.__version__)
         assert pandas_version >= version.parse("1.3"), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
 
@@ -294,6 +297,27 @@ class Client:
         import matplotlib as mpl
         mpl.rcParams['figure.dpi'] = 600
 
+
+    @classmethod
+    async def create_jupyter_lite_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
+        """Create a new API client.
+
+        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
+        :param cache_api_key: Server api key.
+        """
+        from tradingstrategy.environment.jupyterlite import IndexDB
+
+        db = IndexDB()
+        if api_key:
+            await db.set_file("api_key",api_key)
+        else:
+            api_key = await db.get_file("api_key")
+        
+        if not api_key:
+            return None
+
+        return cls.create_jupyter_client(cache_path, api_key)
+
     @classmethod
     def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
         """Create a new API client.
@@ -303,7 +327,7 @@ class Client:
         cls.preflight_check()
         cls.setup_notebook()
         env = JupyterEnvironment()
-        config = env.setup_on_demand()
+        config = env.setup_on_demand(api_key)
         transport = CachedHTTPTransport(download_with_tqdm_progress_bar, cache_path=env.get_cache_path(), api_key=config.api_key)
         return Client(env, transport)
 
