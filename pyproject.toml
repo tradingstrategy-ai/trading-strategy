@@ -37,7 +37,7 @@ ipdb = "^0.13.9"
 pandoc = "^1.1.0"
 sphinx-rtd-theme = "^0.5.2"
 sphinx = "^4.2.0"
-# sphinx = {git = "https://github.com/miohtama/sphinx.git", rev="c0b0a26bdaf5c1c9e9cdbe7eb68e29b938f5cd0b"}
+# sphinx = {git = "https://github.c§om/miohtama/sphinx.git", rev="c0b0a26bdaf5c1c9e9cdbe7eb68e29b938f5cd0b"}
 sphinx-sitemap = "^2.2.0"
 coloredlogs = "^15.0.1"
 
