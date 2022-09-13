@@ -299,22 +299,32 @@ class Client:
 
 
     @classmethod
-    async def create_jupyter_lite_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
-        """Create a new API client.
+    async def create_pyodide_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
+        """Create a new API client inside Pyodide enviroment.
 
-        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
-        :param cache_api_key: Server api key.
+        `More information about Pyodide project / running Python in a browser <https://pyodide.org/>`_.
+
+        :param cache_path:
+            Virtual file system path
+
+        :param cache_api_key:
+            The API key used with the server downloads.
+            The API key is not needed for correct HTTP referrals / running
+            hosted Python code.
+
+        :return:
+            pass
         """
         from tradingstrategy.environment.jupyterlite import IndexDB
 
         db = IndexDB()
+
+        # Store API
         if api_key:
-            await db.set_file("api_key",api_key)
+            await db.set_file("api_key", api_key)
+
         else:
             api_key = await db.get_file("api_key")
-        
-        if not api_key:
-            return None
 
         return cls.create_jupyter_client(cache_path, api_key)
 
