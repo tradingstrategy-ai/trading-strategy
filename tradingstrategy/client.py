@@ -21,13 +21,11 @@ from typing import Final, Optional, Set, Union
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 import pandas as pd
-from backtrader import List
 from tqdm import TqdmExperimentalWarning
 
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
-from tradingstrategy.universe import Universe
 from tradingstrategy.utils.jupyter import is_pyodide
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
