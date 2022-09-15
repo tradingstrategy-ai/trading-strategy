@@ -8,8 +8,6 @@ For more information see the `CAIP project <https://github.com/ChainAgnostic/CAI
 
 from dataclasses import dataclass
 
-from eth_utils import is_checksum_address
-
 
 class BadChainAddressTuple(Exception):
     """Something was wrong with the constructed chain - address tuple."""
@@ -20,8 +18,8 @@ class InvalidChainId(BadChainAddressTuple):
     """Chain id was not an integer"""
 
 
-class InvalidChecksum(BadChainAddressTuple):
-    """Ethereum checksum of the address is invalid"""
+class BadAddress(BadChainAddressTuple):
+    """Ethereum address is invalid"""
 
 
 @dataclass
@@ -51,8 +49,8 @@ class ChainAddressTuple:
             raise BadChainAddressTuple(f"Cannot split chain id in address {v}")
 
         address = parts[1]
-        if not is_checksum_address(address):
-            raise InvalidChecksum("Address checksum or format invalid")
+        if not address.startswith("0x"):
+            raise BadAddress(f"Does not look like an address: {address}")
 
         try:
             chain_id = int(parts[0])

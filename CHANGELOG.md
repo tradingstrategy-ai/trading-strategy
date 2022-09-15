@@ -1,6 +1,12 @@
 # 0.8.0
 
-- Change: Remove a lot of dependencies and preparing for Pyodide support
+- Change: Remove a lot of dependencies and cleaning up old code.
+  The package with its dependencies should be now much more compact.
+  Any old Backtrader or QSTrader code is behind an extra dependency in 
+  the Python package definition. There is no longer dependency to 
+  Ethereum or crypto packages that had C and were problematic
+  install. 
+- Change: preparing for Pyodide support.
 
 # 0.7.2
 

@@ -1,5 +1,7 @@
 """Check we manage to import and create API client under Pyodide.
 
+TODO: Much work in progress
+
 To run:
 
 .. code-block:: console
@@ -14,12 +16,18 @@ from pathlib import Path
 import pytest
 from poetry.core.factory import Factory
 from poetry.core.masonry.builders.wheel import WheelBuilder
-from pytest_pyodide import run_in_pyodide, spawn_web_server
+
+try:
+    from pytest_pyodide import run_in_pyodide, spawn_web_server
+    HAS_PYODIDE = True
+except ImportError:
+    HAS_PYODIDE = False
+
 
 # Run tests only if chromedriver is installed
 pytestmark = pytest.mark.skipif(
-    shutil.which("chromedriver") is None,
-    reason="chromedriver needs to be installed in order to run pyodide tests")
+    shutil.which("chromedriver") is None and not HAS_PYODIDE,
+    reason="chromedriver and pytest-pyodide need to be installed in order to run pyodide tests")
 
 
 @pytest.fixture(scope="session")

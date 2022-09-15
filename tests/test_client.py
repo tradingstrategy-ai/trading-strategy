@@ -119,10 +119,14 @@ def test_client_convert_all_pairs_to_pandas(client: Client, cache_path: str):
 
 
 @pytest.mark.asyncio
-async def test_create_pyodide_client():
-    """Test the special client used in Pyodide referrals."""
-
+async def test_create_pyodide_client_indexdb():
+    """Test the special client used in Pyodide which use IndexDB to save the API key."""
     # https://tonybaloney.github.io/posts/async-test-patterns-for-pytest-and-unittest.htmlpy
+    client = await Client.create_pyodide_client_async(remember_key=False)
+    assert isinstance(client, Client)
 
-    client = await Client.create_pyodide_client(remember_key=False)
+
+def test_create_pyodide_client_detect():
+    """Test the special client used in Pyodide which use HTTP referral authentication."""
+    client = Client.create_jupyter_client(pyodide=True)
     assert isinstance(client, Client)

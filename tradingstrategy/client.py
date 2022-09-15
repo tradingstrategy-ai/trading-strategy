@@ -10,6 +10,7 @@ For usage see
 import datetime
 import logging
 import os
+import sys
 import tempfile
 import time
 import warnings
@@ -24,8 +25,10 @@ from backtrader import List
 from tqdm import TqdmExperimentalWarning
 
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
+from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.universe import Universe
+from tradingstrategy.utils.jupyter import is_pyodide
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -287,7 +290,7 @@ class Client:
         mpl.rcParams['figure.dpi'] = 600
 
     @classmethod
-    async def create_pyodide_client(cls,
+    async def create_pyodide_client_async(cls,
                                     cache_path: Optional[str] = None,
                                     api_key: Optional[str] = PYODIDE_API_KEY,
                                     remember_key=False) -> "Client":
@@ -304,7 +307,7 @@ class Client:
             client and its XmlHttpRequests. A referral
             check for these requests is performed.
 
-        :parma remember_key:
+        :param remember_key:
             Store the API key in IndexDB for the future use
 
         :return:
@@ -312,10 +315,11 @@ class Client:
         """
         from tradingstrategy.environment.jupyterlite import IndexDB
 
-        db = IndexDB()
-
         # Store API
         if remember_key:
+
+            db = IndexDB()
+
             if api_key:
                 await db.set_file("api_key", api_key)
 
@@ -325,19 +329,43 @@ class Client:
         return cls.create_jupyter_client(cache_path, api_key)
 
     @classmethod
-    def create_jupyter_client(cls, cache_path: Optional[str] = None, api_key: Optional[str] = None) -> "Client":
+    def create_jupyter_client(cls,
+                              cache_path: Optional[str] = None,
+                              api_key: Optional[str] = None,
+                              pyodide=None,
+                              ) -> "Client":
         """Create a new API client.
+
+        This function is intented to be used from Jupyter notebooks
+
+        - Any local or server-side IPython session
+
+        - JupyterLite notebooks
 
         :param api_key:
             If not given, do an interactive API key set up in the Jupyter notebook
             while it is being run.
 
-        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
+        :param cache_path:
+            Where downloaded datasets are stored. Defaults to `~/.cache`.
+
+        :param pyodide:
+            Detect the use of this library inside Pyodide / JupyterLite.
+            If `None` then autodetect Pyodide presence,
+            otherwise can be forced with `True`.
         """
+
+        if pyodide is None:
+            pyodide = is_pyodide()
+
         cls.preflight_check()
         cls.setup_notebook()
         env = JupyterEnvironment()
-        config = env.setup_on_demand(api_key)
+
+        if pyodide:
+            api_key = PYODIDE_API_KEY
+
+        config = env.setup_on_demand(api_key=api_key)
         transport = CachedHTTPTransport(download_with_tqdm_progress_bar, cache_path=env.get_cache_path(), api_key=config.api_key)
         return Client(env, transport)
 
