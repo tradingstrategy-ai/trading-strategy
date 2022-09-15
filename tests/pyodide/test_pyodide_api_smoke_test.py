@@ -7,7 +7,7 @@ To run:
     scripts/run-pyodide-tests.sh
 
 """
-import os
+
 import shutil
 from pathlib import Path
 

@@ -1,3 +1,7 @@
+# 0.8.0
+
+- Change: Remove a lot of dependencies and preparing for Pyodide support
+
 # 0.7.2
 
 - Fix: `PairGroupedUniverse` did not have OHLCV data sorted by `timestamp`, but instead of was

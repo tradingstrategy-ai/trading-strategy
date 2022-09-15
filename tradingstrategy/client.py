@@ -24,6 +24,7 @@ from backtrader import List
 from tqdm import TqdmExperimentalWarning
 
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
+from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.universe import Universe
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
@@ -286,7 +287,10 @@ class Client:
         mpl.rcParams['figure.dpi'] = 600
 
     @classmethod
-    async def create_pyodide_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
+    async def create_pyodide_client(cls,
+                                    cache_path: Optional[str] = None,
+                                    api_key: Optional[str] = PYODIDE_API_KEY,
+                                    remember_key=False) -> "Client":
         """Create a new API client inside Pyodide enviroment.
 
         `More information about Pyodide project / running Python in a browser <https://pyodide.org/>`_.
@@ -296,8 +300,12 @@ class Client:
 
         :param cache_api_key:
             The API key used with the server downloads.
-            The API key is not needed for correct HTTP referrals / running
-            hosted Python code.
+            A special hardcoded API key is used to identify Pyodide
+            client and its XmlHttpRequests. A referral
+            check for these requests is performed.
+
+        :parma remember_key:
+            Store the API key in IndexDB for the future use
 
         :return:
             pass
@@ -307,17 +315,22 @@ class Client:
         db = IndexDB()
 
         # Store API
-        if api_key:
-            await db.set_file("api_key", api_key)
+        if remember_key:
+            if api_key:
+                await db.set_file("api_key", api_key)
 
-        else:
-            api_key = await db.get_file("api_key")
+            else:
+                api_key = await db.get_file("api_key")
 
         return cls.create_jupyter_client(cache_path, api_key)
 
     @classmethod
-    def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
+    def create_jupyter_client(cls, cache_path: Optional[str] = None, api_key: Optional[str] = None) -> "Client":
         """Create a new API client.
+
+        :param api_key:
+            If not given, do an interactive API key set up in the Jupyter notebook
+            while it is being run.
 
         :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
         """

@@ -102,7 +102,7 @@ dev = ["build (==0.8.0)", "flake8 (==4.0.1)", "hashin (==0.17.0)", "pip-tools (=
 
 [[package]]
 name = "certifi"
-version = "2022.6.15.2"
+version = "2022.9.14"
 description = "Python package for providing Mozilla's CA Bundle."
 category = "dev"
 optional = false
@@ -251,37 +251,37 @@ dev = ["towncrier (>=19.2.0,<20)", "sphinx-rtd-theme (>=0.1.9,<1)", "Sphinx (>=1
 
 [[package]]
 name = "eth-typing"
-version = "2.3.0"
+version = "3.2.0"
 description = "eth-typing: Common type annotations for ethereum python packages"
 category = "main"
 optional = false
-python-versions = ">=3.5, <4"
+python-versions = ">=3.6, <4"
 
 [package.extras]
-test = ["tox (>=2.9.1,<3)", "pytest-xdist", "pytest (>=4.4,<4.5)"]
-lint = ["pydocstyle (>=3.0.0,<4)", "mypy (==0.782)", "isort (>=4.2.15,<5)", "flake8 (==3.8.3)"]
-doc = ["sphinx-rtd-theme (>=0.1.9)", "Sphinx (>=1.6.5,<2)"]
-dev = ["sphinx-rtd-theme (>=0.1.9)", "Sphinx (>=1.6.5,<2)", "pydocstyle (>=3.0.0,<4)", "mypy (==0.782)", "isort (>=4.2.15,<5)", "flake8 (==3.8.3)", "tox (>=2.9.1,<3)", "pytest-xdist", "pytest (>=4.4,<4.5)", "ipython", "twine", "wheel", "pytest-watch (>=4.1.0,<5)", "bumpversion (>=0.5.3,<1)"]
+dev = ["bumpversion (>=0.5.3,<1)", "pytest-watch (>=4.1.0,<5)", "wheel", "twine", "ipython", "pytest (>=6.2.5,<7)", "pytest-xdist", "tox (>=2.9.1,<3)", "flake8 (==3.8.3)", "isort (>=4.2.15,<5)", "mypy (==0.782)", "pydocstyle (>=3.0.0,<4)", "sphinx (>=4.2.0,<5)", "sphinx-rtd-theme (>=0.1.9)", "towncrier (>=21,<22)"]
+doc = ["sphinx (>=4.2.0,<5)", "sphinx-rtd-theme (>=0.1.9)", "towncrier (>=21,<22)"]
+lint = ["flake8 (==3.8.3)", "isort (>=4.2.15,<5)", "mypy (==0.782)", "pydocstyle (>=3.0.0,<4)"]
+test = ["pytest (>=6.2.5,<7)", "pytest-xdist", "tox (>=2.9.1,<3)"]
 
 [[package]]
 name = "eth-utils"
-version = "1.10.0"
+version = "2.0.0"
 description = "eth-utils: Common utility functions for python code that interacts with Ethereum"
 category = "main"
 optional = false
-python-versions = ">=3.5,!=3.5.2,<4"
+python-versions = ">=3.6,<4"
 
 [package.dependencies]
 cytoolz = {version = ">=0.10.1,<1.0.0", markers = "implementation_name == \"cpython\""}
 eth-hash = ">=0.3.1,<0.4.0"
-eth-typing = ">=2.2.1,<3.0.0"
+eth-typing = ">=3.0.0,<4.0.0"
 toolz = {version = ">0.8.2,<1", markers = "implementation_name == \"pypy\""}
 
 [package.extras]
-dev = ["bumpversion (>=0.5.3,<1)", "pytest-watch (>=4.1.0,<5)", "wheel (>=0.30.0,<1.0.0)", "twine (>=1.13,<2)", "ipython", "hypothesis (>=4.43.0,<5.0.0)", "pytest (==5.4.1)", "pytest-xdist", "tox (==3.14.6)", "black (>=18.6b4,<19)", "flake8 (==3.7.9)", "isort (>=4.2.15,<5)", "mypy (==0.720)", "pydocstyle (>=5.0.0,<6)", "pytest (>=3.4.1,<4.0.0)", "Sphinx (>=1.6.5,<2)", "sphinx-rtd-theme (>=0.1.9,<2)", "towncrier (>=19.2.0,<20)"]
-doc = ["Sphinx (>=1.6.5,<2)", "sphinx-rtd-theme (>=0.1.9,<2)", "towncrier (>=19.2.0,<20)"]
-lint = ["black (>=18.6b4,<19)", "flake8 (==3.7.9)", "isort (>=4.2.15,<5)", "mypy (==0.720)", "pydocstyle (>=5.0.0,<6)", "pytest (>=3.4.1,<4.0.0)"]
-test = ["hypothesis (>=4.43.0,<5.0.0)", "pytest (==5.4.1)", "pytest-xdist", "tox (==3.14.6)"]
+test = ["tox (==3.14.6)", "pytest-xdist", "pytest (>=6.2.5,<7)", "hypothesis (>=4.43.0,<5.0.0)"]
+lint = ["pytest (>=3.4.1,<4.0.0)", "pydocstyle (>=5.0.0,<6)", "mypy (==0.720)", "isort (>=4.2.15,<5)", "flake8 (==3.7.9)", "black (>=18.6b4,<19)"]
+doc = ["towncrier (>=19.2.0,<20)", "sphinx-rtd-theme (>=0.1.9,<2)", "Sphinx (>=1.6.5,<2)"]
+dev = ["towncrier (>=19.2.0,<20)", "sphinx-rtd-theme (>=0.1.9,<2)", "Sphinx (>=1.6.5,<2)", "pytest (>=3.4.1,<4.0.0)", "pydocstyle (>=5.0.0,<6)", "mypy (==0.720)", "isort (>=4.2.15,<5)", "flake8 (==3.7.9)", "black (>=18.6b4,<19)", "tox (==3.14.6)", "pytest-xdist", "pytest (>=6.2.5,<7)", "hypothesis (>=4.43.0,<5.0.0)", "ipython", "twine (>=1.13,<2)", "wheel (>=0.30.0,<1.0.0)", "pytest-watch (>=4.1.0,<5)", "bumpversion (>=0.5.3,<1)"]
 
 [[package]]
 name = "exceptiongroup"
@@ -1652,7 +1652,7 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<4"
-content-hash = "2fef618f72eaa6afb548eab89237707983a8d88cef6638ebdffb831ae5b5235b"
+content-hash = "936bbd2c38564190161df992dc5555e70894f559ad4c6a1b2b4ab85ade29ce12"
 
 [metadata.files]
 alabaster = []
