@@ -7,6 +7,7 @@
   Ethereum or crypto packages that had C and were problematic
   install. 
 - Change: preparing for Pyodide support.
+- Change: Bumped Python 3.10 because 3.10 is minimum for Pyodide
 
 # 0.7.2
 
