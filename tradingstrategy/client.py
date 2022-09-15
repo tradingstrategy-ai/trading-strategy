@@ -10,7 +10,6 @@ For usage see
 import datetime
 import logging
 import os
-import sys
 import tempfile
 import time
 import warnings
@@ -54,10 +53,12 @@ from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import CachedHTTPTransport
 
+
 logger = logging.getLogger(__name__)
 
 
 RETRY_DELAY: Final[int] = 30  # seconds
+
 MAX_ATTEMPTS: Final[int] = 3
 
 
@@ -324,7 +325,7 @@ class Client:
             else:
                 api_key = await db.get_file("api_key")
 
-        return cls.create_jupyter_client(cache_path, api_key)
+        return cls.create_jupyter_client(cache_path, api_key, pyodide=True)
 
     @classmethod
     def create_jupyter_client(cls,
@@ -360,16 +361,22 @@ class Client:
         cls.setup_notebook()
         env = JupyterEnvironment()
 
+        # Try Pyodide default key
         if not api_key:
             if pyodide:
                 api_key = PYODIDE_API_KEY
 
-        config = env.setup_on_demand(api_key=api_key)
+        # Try file system stored API key,
+        # if not prompt interactively
+        if not api_key:
+            config = env.setup_on_demand(api_key=api_key)
+            api_key = config.api_key
+
         cache_path = cache_path or env.get_cache_path()
         transport = CachedHTTPTransport(
             download_with_tqdm_progress_bar,
             cache_path=cache_path,
-            api_key=config.api_key)
+            api_key=api_key)
         return Client(env, transport)
 
     @classmethod
