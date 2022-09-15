@@ -20,11 +20,12 @@ from typing import Final, Optional, Set, Union
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 import pandas as pd
-from backtrader import List
 from tqdm import TqdmExperimentalWarning
 
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
-from tradingstrategy.universe import Universe
+from tradingstrategy.reader import BrokenData, read_parquet
+from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
+from tradingstrategy.utils.jupyter import is_pyodide
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -49,14 +50,15 @@ from tradingstrategy.environment.jupyter import (
     download_with_tqdm_progress_bar,
 )
 from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import CachedHTTPTransport
+
 
 logger = logging.getLogger(__name__)
 
 
 RETRY_DELAY: Final[int] = 30  # seconds
+
 MAX_ATTEMPTS: Final[int] = 3
 
 
@@ -276,17 +278,6 @@ class Client:
         pandas_version = version.parse(pandas.__version__)
         assert pandas_version >= version.parse("1.3"), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
 
-        # Fix Backtrader / Pandas 1.3 issue that breaks FastQuant
-        try:
-            import fastquant
-            fastquant_enabled = True
-        except ImportError:
-            fastquant_enabled = False
-
-        if fastquant_enabled:
-            from tradingstrategy.frameworks.fastquant_monkey_patch import apply_patch
-            apply_patch()
-
     @classmethod
     def setup_notebook(cls):
         """Setup diagram rendering and such.
@@ -297,38 +288,95 @@ class Client:
         import matplotlib as mpl
         mpl.rcParams['figure.dpi'] = 600
 
-
     @classmethod
-    async def create_jupyter_lite_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
-        """Create a new API client.
+    async def create_pyodide_client_async(cls,
+                                    cache_path: Optional[str] = None,
+                                    api_key: Optional[str] = PYODIDE_API_KEY,
+                                    remember_key=False) -> "Client":
+        """Create a new API client inside Pyodide enviroment.
 
-        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
-        :param cache_api_key: Server api key.
+        `More information about Pyodide project / running Python in a browser <https://pyodide.org/>`_.
+
+        :param cache_path:
+            Virtual file system path
+
+        :param cache_api_key:
+            The API key used with the server downloads.
+            A special hardcoded API key is used to identify Pyodide
+            client and its XmlHttpRequests. A referral
+            check for these requests is performed.
+
+        :param remember_key:
+            Store the API key in IndexDB for the future use
+
+        :return:
+            pass
         """
         from tradingstrategy.environment.jupyterlite import IndexDB
 
-        db = IndexDB()
-        if api_key:
-            await db.set_file("api_key",api_key)
-        else:
-            api_key = await db.get_file("api_key")
-        
-        if not api_key:
-            return None
+        # Store API
+        if remember_key:
 
-        return cls.create_jupyter_client(cache_path, api_key)
+            db = IndexDB()
+
+            if api_key:
+                await db.set_file("api_key", api_key)
+
+            else:
+                api_key = await db.get_file("api_key")
+
+        return cls.create_jupyter_client(cache_path, api_key, pyodide=True)
 
     @classmethod
-    def create_jupyter_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":
+    def create_jupyter_client(cls,
+                              cache_path: Optional[str] = None,
+                              api_key: Optional[str] = None,
+                              pyodide=None,
+                              ) -> "Client":
         """Create a new API client.
 
-        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
+        This function is intented to be used from Jupyter notebooks
+
+        - Any local or server-side IPython session
+
+        - JupyterLite notebooks
+
+        :param api_key:
+            If not given, do an interactive API key set up in the Jupyter notebook
+            while it is being run.
+
+        :param cache_path:
+            Where downloaded datasets are stored. Defaults to `~/.cache`.
+
+        :param pyodide:
+            Detect the use of this library inside Pyodide / JupyterLite.
+            If `None` then autodetect Pyodide presence,
+            otherwise can be forced with `True`.
         """
+
+        if pyodide is None:
+            pyodide = is_pyodide()
+
         cls.preflight_check()
         cls.setup_notebook()
         env = JupyterEnvironment()
-        config = env.setup_on_demand(api_key)
-        transport = CachedHTTPTransport(download_with_tqdm_progress_bar, cache_path=env.get_cache_path(), api_key=config.api_key)
+
+        # Try Pyodide default key
+        if not api_key:
+            if pyodide:
+                api_key = PYODIDE_API_KEY
+
+        # Try file system stored API key,
+        # if not prompt interactively
+        if not api_key:
+            config = env.setup_on_demand(api_key=api_key)
+            api_key = config.api_key
+
+        cache_path = cache_path or env.get_cache_path()
+        transport = CachedHTTPTransport(
+            download_with_tqdm_progress_bar,
+            cache_path=cache_path,
+            api_key=api_key)
         return Client(env, transport)
 
     @classmethod

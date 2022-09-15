@@ -56,6 +56,13 @@ class JupyterEnvironment(Environment):
             data = config.to_json()
             out.write(data)
 
+    def clear_configuration(self):
+        """Delete the saved config file (if any)"""
+        spath = self.get_settings_path()
+        path = os.path.join(spath, "settings.json")
+        if os.path.exists(path):
+            os.remove(path)
+
     def interactive_setup(self) -> Configuration:
         """Perform interactive user onbaording"""
         config = run_interactive_setup()
@@ -68,7 +75,6 @@ class JupyterEnvironment(Environment):
         if config:
             self.save_configuration(config)
         return config
-
 
     def setup_on_demand(self, **kwargs) -> Configuration:
         """Check if we need to set up the environment."""

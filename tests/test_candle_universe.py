@@ -294,7 +294,7 @@ def test_candle_upsample(persistent_test_client: Client):
     assert len(monthly_candles) <= len(single_pair_candles) / 4
 
 
-@pytest.mark.skip(msg="This test currently downloads a 3.4G parquet and load it to RAM, TODO: move to manual test")
+@pytest.mark.skip(reason="This test currently downloads a 3.4G parquet and load it to RAM, TODO: move to manual test")
 def test_filter_pyarrow(persistent_test_client: Client):
     """Filter loaded pyarrow files without loading them fully to the memory.
 

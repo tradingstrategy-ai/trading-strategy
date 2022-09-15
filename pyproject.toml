@@ -15,53 +15,48 @@ packages = [
 [tool.poetry.dependencies]
 # Scipy compatibility
 # https://stackoverflow.com/questions/71764027/numpy-installation-fails-when-installing-through-poetry-on-m1-and-macos/71764028#71764028
-python = ">=3.9,<3.11"
-eth-utils = "^1.10.0"
+python = ">=3.10,<4"
 dataclasses-json = "^0.5.4"
 pandas = "^1.3.5"
 pyarrow = "^7.0.0"
-eth-hash = {extras = ["pycryptodome"], version = "^0.3.1"}
 tqdm = "^4.61.2"
 plotly = "^5.1.0"
-cufflinks = "^0.17.3"
-chart-studio = "^1.1.0"
-mplfinance = "^0.12.7-alpha.17"
-scipy = "^1.8.0"
-
-# Cannot use release, because new maplotlib compat[]ibiltiy
-# Fixes
-# https://github.com/mementum/backtrader/pull/418
-# backtrader = {git = "https://github.com/mementum/backtrader", rev="e2674b1690f6366e08646d8cfd44af7bb71b3970"}
-# trading-strategy-backtrader = {path = "../backtrader", develop = true}
-
-# 2021-12-29: Removed for now, because has dependencies with uninstallation problems with ccxt
-# fastquant = "^0.1.5"
-
-trading-strategy-qstrader = {version="^0.5.0", extras = ["qstrader"]}
-# trading-strategy-qstrader = {path = "../qstrader", develop = true}
-#qstrader = {git = "https://github.com/miohtama/qstrader", rev="ee011745531e0cab412bd3a98f65976840821c4f"}
-
-trading-strategy-backtrader = "^0.1"
 jsonlines = "^3.1.0"
 
+# Legacy strategy and trading engines
+trading-strategy-qstrader = {version="^0.5.0", optional = true}
+scipy = {version="^1.6.1", optional = true}
+trading-strategy-backtrader = {version="^0.1",  optional = true}
+
+
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+pytest = "7.1.3"
 nbsphinx = "^0.8.6"
 ipdb = "^0.13.9"
 pandoc = "^1.1.0"
 sphinx-rtd-theme = "^0.5.2"
 sphinx = "^4.2.0"
-# sphinx = {git = "https://github.com/miohtama/sphinx.git", rev="c0b0a26bdaf5c1c9e9cdbe7eb68e29b938f5cd0b"}
+# sphinx = {git = "https://github.c§om/miohtama/sphinx.git", rev="c0b0a26bdaf5c1c9e9cdbe7eb68e29b938f5cd0b"}
 sphinx-sitemap = "^2.2.0"
 coloredlogs = "^15.0.1"
 
 memory-profiler = "^0.60.0"
+poetry-core = "^1.1.0"
+pytest-asyncio = "^0.19.0"
+
 # qstrader depends on Seaborn that depends on Scipy that is a problematic dependency
 [tool.poetry.extras]
-qstrader = ["trading-strategy-qstrader"]
+qstrader = ["scipy", "trading-strategy-qstrader"]
+backtrader = ["trading-strategy-backtrader"]
 
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+
+# https://docs.pytest.org/en/6.2.x/customize.html
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]

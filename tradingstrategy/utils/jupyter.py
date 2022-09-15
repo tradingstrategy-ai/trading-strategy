@@ -1,12 +1,18 @@
 """Helpers to deal with Jupyter Notebook issues."""
 import enum
+import sys
 from typing import Callable
 
 import pandas as pd
 from IPython import get_ipython
 from IPython.display import display
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
-from ipykernel.zmqshell import ZMQInteractiveShell
+
+try:
+    from ipykernel.zmqshell import ZMQInteractiveShell
+    HAS_JUPYTER_EVENT_LOOP = True
+except ImportError:
+    HAS_JUPYTER_EVENT_LOOP = False
 
 
 class JupyterOutputMode(enum.Enum):
@@ -24,6 +30,8 @@ class JupyterOutputMode(enum.Enum):
 
 def get_notebook_output_mode() -> JupyterOutputMode:
     """Determine if the Jupyter Notebook supports HTML output."""
+
+    assert HAS_JUPYTER_EVENT_LOOP, "Did not detect Jupyter during import time"
 
     # See https://stackoverflow.com/questions/70768390/detecting-if-ipython-notebook-is-outputting-to-a-terminal
     # for discussion
@@ -63,3 +71,11 @@ def display_with_styles(df: pd.DataFrame, apply_styles_func: Callable):
         display(apply_styles_func(df))
     else:
         display(df)
+
+
+def is_pyodide() -> bool:
+    """Are we running under Pyodide / JupyterLite notebook.
+
+    `See Pyodide documentation <https://pyodide.org/en/stable/usage/faq.html#how-to-detect-that-code-is-run-with-pyodide>`__.
+    """
+    return sys.platform == 'emscripten'

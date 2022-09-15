@@ -7,7 +7,7 @@ from tradingstrategy.pair import PandasPairUniverse, DEXPair, DuplicatePair
 
 
 # TODO: Needs rewrite
-@pytest.mark.skip(msg="Since 0.3 fake tokens are mostly filtered on the server side and thus there is no fake AAVE token in the dataset")
+@pytest.mark.skip(reason="Since 0.3 fake tokens are mostly filtered on the server side and thus there is no fake AAVE token in the dataset")
 def test_one_pair_by_volume(logger, persistent_test_client: Client):
     """If we have multiple fake trading pairs, we pick the correct one by volume."""
 
