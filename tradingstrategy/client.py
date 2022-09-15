@@ -360,11 +360,16 @@ class Client:
         cls.setup_notebook()
         env = JupyterEnvironment()
 
-        if pyodide:
-            api_key = PYODIDE_API_KEY
+        if not api_key:
+            if pyodide:
+                api_key = PYODIDE_API_KEY
 
         config = env.setup_on_demand(api_key=api_key)
-        transport = CachedHTTPTransport(download_with_tqdm_progress_bar, cache_path=env.get_cache_path(), api_key=config.api_key)
+        cache_path = cache_path or env.get_cache_path()
+        transport = CachedHTTPTransport(
+            download_with_tqdm_progress_bar,
+            cache_path=cache_path,
+            api_key=config.api_key)
         return Client(env, transport)
 
     @classmethod
