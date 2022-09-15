@@ -102,7 +102,7 @@ dev = ["build (==0.8.0)", "flake8 (==4.0.1)", "hashin (==0.17.0)", "pip-tools (=
 
 [[package]]
 name = "certifi"
-version = "2022.6.15.1"
+version = "2022.6.15.2"
 description = "Python package for providing Mozilla's CA Bundle."
 category = "dev"
 optional = false
@@ -396,7 +396,7 @@ zoneinfo = ["backports.zoneinfo (>=0.2.1)", "tzdata (>=2022.2)"]
 
 [[package]]
 name = "idna"
-version = "3.3"
+version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
 category = "dev"
 optional = false
@@ -1118,7 +1118,7 @@ testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)", "flaky (>=3.5.0)", "mypy 
 
 [[package]]
 name = "pytest-pyodide"
-version = "0.22.2"
+version = "0.21.1"
 description = "\"Pytest plugin for testing applications that use Pyodide\""
 category = "dev"
 optional = false
@@ -1189,6 +1189,17 @@ urllib3 = ">=1.21.1,<1.27"
 [package.extras]
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use_chardet_on_py3 = ["chardet (>=3.0.2,<6)"]
+
+[[package]]
+name = "scipy"
+version = "1.6.1"
+description = "SciPy: Scientific Library for Python"
+category = "main"
+optional = true
+python-versions = ">=3.7"
+
+[package.dependencies]
+numpy = ">=1.16.5"
 
 [[package]]
 name = "seaborn"
@@ -1636,12 +1647,12 @@ h11 = ">=0.9.0,<1"
 
 [extras]
 backtrader = ["trading-strategy-backtrader"]
-qstrader = ["trading-strategy-qstrader"]
+qstrader = ["scipy", "trading-strategy-qstrader"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<4"
-content-hash = "1876e737af07ddc783c69cff68a82d7f4db04431baf818db72fed75e1b3a7948"
+content-hash = "2fef618f72eaa6afb548eab89237707983a8d88cef6638ebdffb831ae5b5235b"
 
 [metadata.files]
 alabaster = []
@@ -1742,6 +1753,7 @@ pytz = []
 pywin32 = []
 pyzmq = []
 requests = []
+scipy = []
 seaborn = []
 selenium = []
 setuptools-scm = []

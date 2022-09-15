@@ -5,12 +5,13 @@
 
 set -e
 
+PYODIDE_VERSION=0.21.2
 PYODIDE_BUNDLE_DIR=$PWD/dist
 
 install -d $PYODIDE_BUNDLE_DIR
 
 if command -v chromedriver /dev/null ; then
-  # pass
+  echo "Chromedriver is `chromedriver --version`"
 else
   # New Docker versions have command "docker compose"
   echo "chromedriver command not installed"
@@ -24,8 +25,8 @@ fi
 if [ ! -e "$PYODIDE_BUNDLE_DIR/pyodide" ] ; then
   echo "Downloading Pyodide bundle"
   cd /tmp
-  wget https://github.com/pyodide/pyodide/releases/download/0.21.0/pyodide-build-0.21.0.tar.bz2
-  tar xjf pyodide-build-0.21.0.tar.bz2
+  wget https://github.com/pyodide/pyodide/releases/download/$PYODIDE_VERSION/pyodide-build-$PYODIDE_VERSION.tar.bz2
+  tar xjf pyodide-build-$PYODIDE_VERSION.tar.bz2
   mv pyodide $PYODIDE_BUNDLE_DIR
 else
   echo "Pyodide bundle already installed"

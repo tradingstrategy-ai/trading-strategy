@@ -49,7 +49,6 @@ from tradingstrategy.environment.jupyter import (
     download_with_tqdm_progress_bar,
 )
 from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import CachedHTTPTransport
 
@@ -276,17 +275,6 @@ class Client:
         pandas_version = version.parse(pandas.__version__)
         assert pandas_version >= version.parse("1.3"), f"Pandas 1.3.0 or greater is needed. You have {pandas.__version__}. If you are running this notebook in Google Colab and this is the first run, you need to choose Runtime > Restart and run all from the menu to force the server to load newly installed version of Pandas library."
 
-        # Fix Backtrader / Pandas 1.3 issue that breaks FastQuant
-        try:
-            import fastquant
-            fastquant_enabled = True
-        except ImportError:
-            fastquant_enabled = False
-
-        if fastquant_enabled:
-            from tradingstrategy.frameworks.fastquant_monkey_patch import apply_patch
-            apply_patch()
-
     @classmethod
     def setup_notebook(cls):
         """Setup diagram rendering and such.
@@ -296,7 +284,6 @@ class Client:
         # https://stackoverflow.com/a/51955985/315168
         import matplotlib as mpl
         mpl.rcParams['figure.dpi'] = 600
-
 
     @classmethod
     async def create_pyodide_client(cls, cache_path: Optional[str]=None, api_key: Optional[str]=None) -> "Client":

@@ -73,7 +73,7 @@ def pyarrow_dist(dist_path) -> str:
     For the wheel source, see here https://github.com/tradingstrategy-ai/pyarrow-wasm/
     """
     name = "pyarrow-8.0-py3-none-any.whl"
-    shutil.copy(f"extras/{name}", dist_path)
+    #shutil.copy(f"extras/{name}", dist_path)
     return name
 
 
@@ -93,6 +93,8 @@ def test_pyodide_document(selenium):
 
 
 
+# See https://github.com/pyodide/pyodide/discussions/3100
+@pytest.mark.skip(msg="Currently does not work")
 def test_pyodide_create_client(
         selenium_standalone,
         dist_path,
@@ -115,17 +117,17 @@ def test_pyodide_create_client(
         server_hostname, server_port, _ = server
         base_url = f"http://{server_hostname}:{server_port}/"
 
-        pyarrow_url = base_url + our_package_pyodide_build
+        pyarrow_url = base_url + pyarrow_dist
         url = base_url + our_package_pyodide_build
+        numpy_url = base_url + "numpy-1.22.4-cp310-cp310-emscripten_3_1_14_wasm32.whl"
 
         selenium = selenium_standalone
         selenium.run_js(
             f"""                        
             await pyodide.loadPackage("micropip");
             const micropip = pyodide.pyimport("micropip");
-            await micropip.install('cufflinks');
-            await micropip.install('{pyarrow_url}');              
-            await micropip.install('{url}');                        
+            // await micropip.install('{url}');              
+            await micropip.install('{pyarrow_url}');                        
             """
         )
         selenium.run(

@@ -42,7 +42,7 @@ sphinx-sitemap = "^2.2.0"
 coloredlogs = "^15.0.1"
 
 memory-profiler = "^0.60.0"
-pytest-pyodide = "^0.22.2"
+pytest-pyodide = "^0.21.1"
 poetry-core = "^1.1.0"
 
 # qstrader depends on Seaborn that depends on Scipy that is a problematic dependency
