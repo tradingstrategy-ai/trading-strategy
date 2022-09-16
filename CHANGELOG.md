@@ -1,3 +1,8 @@
+# 0.8.1
+
+- Change: List `requests` as an explicit dependency for the client
+  (Might have been causing issues with Pyodide builds)
+
 # 0.8.0
 
 - Change: Remove a lot of dependencies and cleaning up old code.
