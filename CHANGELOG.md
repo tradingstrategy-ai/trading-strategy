@@ -1,3 +1,7 @@
+# Current
+
+- Make `matplotlib` optional in `Client.setup_notebook`
+
 # 0.8.1
 
 - Change: List `requests` as an explicit dependency for the client

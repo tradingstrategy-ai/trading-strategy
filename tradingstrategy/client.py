@@ -285,8 +285,11 @@ class Client:
         Force high DPI output for all images.
         """
         # https://stackoverflow.com/a/51955985/315168
-        import matplotlib as mpl
-        mpl.rcParams['figure.dpi'] = 600
+        try:
+            import matplotlib as mpl
+            mpl.rcParams['figure.dpi'] = 600
+        except ImportError:
+            pass
 
     @classmethod
     async def create_pyodide_client_async(cls,
