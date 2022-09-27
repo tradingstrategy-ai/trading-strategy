@@ -17,6 +17,7 @@ jobs:
       with:
         submodules: 'recursive'
     - name: Set up Python 3.10
+      id: setup-python
       uses: actions/setup-python@v4
       with:
         python-version: "3.10"
@@ -27,6 +28,7 @@ jobs:
         virtualenvs-in-project: true
         installer-parallel: true
     - name: Load cached venv
+      id: cached-poetry-dependencies
       uses: actions/cache@v2
       with:
         path: .venv
