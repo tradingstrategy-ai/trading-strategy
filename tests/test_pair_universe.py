@@ -3,8 +3,8 @@ import datetime
 import pytest
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import LegacyPairUniverse, PairType, DEXPair, PandasPairUniverse, \
-    resolve_pairs_based_on_ticker
+from tradingstrategy.exchange import ExchangeType
+from tradingstrategy.pair import DEXPair, PandasPairUniverse, resolve_pairs_based_on_ticker
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def sample_pair() -> DEXPair:
             exchange_slug="uniswap-v2",
             pair_slug="eth-usdc",
             address="0x0000000000000000000000000000000000000001",
-            dex_type=PairType.uniswap_v2,
+            dex_type=ExchangeType.uniswap_v2,
             base_token_symbol="WETH",
             quote_token_symbol="USDC",
             token0_decimals=6,

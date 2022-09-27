@@ -1,7 +1,8 @@
 import datetime
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import PairType, DEXPair, filter_for_stablecoins, StablecoinFilteringMode, \
+from tradingstrategy.exchange import ExchangeType
+from tradingstrategy.pair import DEXPair, filter_for_stablecoins, StablecoinFilteringMode, \
     StablecoinFilteringMode
 from tradingstrategy.stablecoin import is_stablecoin_like
 
@@ -24,7 +25,7 @@ def test_filter_stablecoin_pairs():
             chain_id=ChainId.ethereum,
             exchange_id=1,
             address="0x0000000000000000000000000000000000000000",
-            dex_type=PairType.uniswap_v2,
+            dex_type=ExchangeType.uniswap_v2,
             base_token_symbol="WETH",
             quote_token_symbol="USDC",
             token0_symbol="USDC",
@@ -46,7 +47,7 @@ def test_filter_stablecoin_pairs():
             chain_id=ChainId.ethereum,
             exchange_id=1,
             address="0x0000000000000000000000000000000000000000",
-            dex_type=PairType.uniswap_v2,
+            dex_type=ExchangeType.uniswap_v2,
             base_token_symbol="DAI",
             quote_token_symbol="USDC",
             token0_symbol="USDC",

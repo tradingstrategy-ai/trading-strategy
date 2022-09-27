@@ -19,7 +19,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.types import NonChecksummedAddress, UNIXTimestamp, PrimaryKey
 
 
-class ExchangeType(enum.Enum):
+class ExchangeType(str, enum.Enum):
     """What kind of an decentralised exchange, AMM or other the pair is trading on.
 
     Note that each type can have multiple implementations.
@@ -27,13 +27,15 @@ class ExchangeType(enum.Enum):
     """
 
     #: Uniswap v2 style exchange
-    uniswap_v2 = "uni_v2"
+    uniswap_v2 = "uniswap_v2"
 
     #: Uniswap v3 style exchange
-    uniswap_v3 = "uni_v3"
+    uniswap_v3 = "uniswap_v3"
 
-    #: Sushiswap v3 style exchange
-    sushi_v3 = "uni_v3"
+    # Uniswap v2 style exchange (same as above `uniswap_v2`)
+    # NOTE: Do not use this member as it is deprecated and only kept for backward 
+    # compatibility, it will be removed in the future
+    _deprecated_uni_v2 = "uni_v2"
 
 
 @dataclass_json
