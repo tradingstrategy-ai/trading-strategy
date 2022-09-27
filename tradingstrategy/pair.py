@@ -111,9 +111,6 @@ class DEXPair:
     #: In the case of Uniswap this is the pair (pool) address.
     address: NonChecksummedAddress
 
-    #: What kind of exchange this pair is on
-    dex_type: ExchangeType
-
     #: Token pair contract address on-chain.
     #: Lowercase, non-checksummed.
     token0_address: str
@@ -129,6 +126,9 @@ class DEXPair:
     #: Token1 as in raw Uniswap data
     #: ERC-20 contracst are not guaranteed to have this data.
     token1_symbol: Optional[str]
+
+    #: What kind of exchange this pair is on
+    dex_type: Optional[ExchangeType] = None
 
     #: Naturalised base and quote token.
     #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.

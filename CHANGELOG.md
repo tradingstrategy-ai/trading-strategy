@@ -1,6 +1,7 @@
-# Current
+# 0.8.2
 
 - Make `matplotlib` optional in `Client.setup_notebook`
+- Added `DEXPair.exchange_type` to support Uniswap v3 pairs
 
 # 0.8.1
 
