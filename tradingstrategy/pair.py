@@ -25,7 +25,7 @@ from dataclasses_json import dataclass_json
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.token import Token
-from tradingstrategy.exchange import ExchangeUniverse, Exchange
+from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
@@ -42,20 +42,6 @@ class NoPairFound(Exception):
 
 class DuplicatePair(Exception):
     """Found multiple trading pairs for the same naive lookup."""
-
-
-class PairType(enum.Enum):
-    """What kind of an decentralised exchange, AMM or other the pair is trading on.
-
-    Note that each type can have multiple implementations.
-    For example QuickSwap, Sushi and Pancake are all Uniswap v2 types.
-    """
-
-    #: Uniswap v2 style exchange
-    uniswap_v2 = "uni_v2"
-
-    #: Uniswap v3 style exchange
-    uniswap_v3 = "uni_v3"
 
 
 @dataclass_json
@@ -126,7 +112,7 @@ class DEXPair:
     address: NonChecksummedAddress
 
     #: What kind of exchange this pair is on
-    dex_type: PairType
+    dex_type: ExchangeType
 
     #: Token pair contract address on-chain.
     #: Lowercase, non-checksummed.
