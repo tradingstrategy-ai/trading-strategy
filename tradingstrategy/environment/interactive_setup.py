@@ -47,7 +47,7 @@ def run_interactive_setup() -> Optional[Configuration]:
         print("The API key is in format 'secret-token:tradingstrategy-...'")
         api_key = input("Enter your API key from the welcome email you just received, including secret-token: part: ")
 
-        if not api_key:
+        if api_key.strip() == "" or len(api_key) < 10:
             raise AssertionError("Interactive setup aborted")
 
         if validate_api_key(api_key):
