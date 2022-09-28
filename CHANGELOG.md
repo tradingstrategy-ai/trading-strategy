@@ -1,3 +1,7 @@
+# Current
+
+- Escape hatch for interactive API key setup loop
+
 # 0.8.2
 
 - Make `matplotlib` optional in `Client.setup_notebook`
