@@ -102,6 +102,10 @@ class Candle:
     end_block: BlockNumber
 
     #: Schema definition for :py:class:`pd.DataFrame:
+    #:
+    #: Defines Pandas datatypes for columns in our candle data format.
+    #: Useful e.g. when we are manipulating JSON/hand-written data.
+    #:
     DATAFRAME_FIELDS = dict([
         ("pair_id", "int"),
         ("timestamp", "datetime64[s]"),
@@ -193,6 +197,41 @@ class Candle:
             ("end_block", pa.uint32()),
         ])
         return schema
+
+    @staticmethod
+    def generate_synthetic_sample(
+            pair_id: int,
+            timestamp: pd.Timestamp,
+            price: float) -> dict:
+        """Generate a candle dataframe.
+
+        Used in testing when manually fiddled data is needed.
+
+        All open/close/high/low set to the same price.
+        Exchange rate is 1.0. Other data set to zero.
+
+        :return:
+            One dict of filled candle data
+
+        """
+
+        return {
+            "pair_id": pair_id,
+            "timestamp": timestamp,
+            "open": price,
+            "high": price,
+            "low": price,
+            "close": price,
+            "exchange_rate": 1.0,
+            "buys": 0,
+            "sells": 0,
+            "buy_volume": 0,
+            "sell_volume": 0,
+            "avg": 0,
+            "start_block": 0,
+            "end_block": 0,
+        }
+
 
 
 @dataclass_json

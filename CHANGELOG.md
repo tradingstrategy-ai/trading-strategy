@@ -1,6 +1,7 @@
 # Current
 
 - Escape hatch for interactive API key setup loop
+- Added `Candle.generate_synthetic_sample` for mocking test data
 
 # 0.8.2
 
