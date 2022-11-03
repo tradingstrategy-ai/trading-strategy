@@ -436,35 +436,41 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
 
-        start_when = when
-        samples_per_pair = self.get_candles_by_pair(pair_id)
-        assert samples_per_pair is not None, f"No candle data available for pair {pair_id}"
+        last_allowed_timestamp = when - tolerance
 
-        samples_per_kind = samples_per_pair[kind]
+        candles_per_pair = self.get_candles_by_pair(pair_id)
+        assert candles_per_pair is not None, f"No candle data available for pair {pair_id}"
 
-        for attempt in range(self.tolerance_time_bucket.d7.to_timedelta().days):
-        # for attempt in range(tolerance):
-            try:
-                sample = samples_per_kind[when]
-                return sample
-            except KeyError:
-                # Go to the previous sample
-                when -= self.time_bucket.to_timedelta()
+        samples_per_kind = candles_per_pair[kind]
+
+        # Look up all the candles before the cut off timestamp.
+        # Assumes data is sorted by timestamp column,
+        # so our "closest time" candles should be the last of this lookup.
+        # TODO: self.timestamp_column is no longer needed after we drop QSTrader support,
+        # it is legacy. In the future use hardcoded "timestamp" column name.
+        timestamp_column = candles_per_pair[self.timestamp_column]
+        latest_or_equal_sample = candles_per_pair.loc[timestamp_column <= when].iloc[-1]
+
+        # Check if the last sample before the cut off is within time range our tolerance
+        candle_timestamp = latest_or_equal_sample[self.timestamp_column]
+        if candle_timestamp >= last_allowed_timestamp:
+            # Return the chosen price column of the sample
+            return latest_or_equal_sample[kind]
 
         # Try to be helpful with the errors here,
         # so one does not need to open ipdb to inspect faulty data
         try:
-            first_sample = samples_per_pair.iloc[0]
-            second_sample = samples_per_pair.iloc[1]
-            last_sample = samples_per_pair.iloc[-1]
+            first_sample = candles_per_pair.iloc[0]
+            second_sample = candles_per_pair.iloc[1]
+            last_sample = candles_per_pair.iloc[-1]
         except KeyError:
             raise CandleSampleUnavailable(
-                f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {start_when}\n"
+                f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
                 f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
             )
 
         raise CandleSampleUnavailable(
-            f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {start_when}\n"
+            f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
             f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
             f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
             )
