@@ -307,11 +307,12 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """
         return self.get_samples_by_pair(pair_id)
 
+
     def get_closest_price(self,
                           pair_id: PrimaryKey,
                           when: pd.Timestamp,
                           kind="close", look_back_time_frames=5) -> USDollarAmount:
-        """Get the available liuqidity for a trading pair at a specific timepoint or some candles before the timepoint.
+        """Get the available liquidity for a trading pair at a specific timepoint or some candles before the timepoint.
 
         The liquidity is defined as one-sided as in :term:`XY liquidity model`.
 
@@ -369,6 +370,105 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
             f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
             )
+
+
+    def get_price_with_tolerance(self,
+                          pair_id: PrimaryKey,
+                          when: pd.Timestamp,
+                          tolerance: pd.Timedelta,
+                          kind="close") -> USDollarAmount:
+        """Get the available liquidity for a trading pair at a specific timepoint or some candles before the timepoint.
+
+        The liquidity is defined as one-sided as in :term:`XY liquidity model`.
+
+        :param pair_id:
+            Trading pair id
+
+        :param when:
+            Timestamp to query
+
+        :param kind:
+            One of OHLC data points: "open", "close", "low", "high"
+
+        :param tolerance:
+            If there is no liquidity sample available at the exact timepoint,
+            look to the past to the get the nearest sample.
+            For example if candle time interval is 5 minutes and look_back_timeframes is 10,
+            then accept a candle that is maximum of 50 minutes before the timepoint.
+
+
+
+            #: One minute candles
+            m1 = "1m"
+
+            #: Five minute candles
+            m5 = "5m"
+
+            #: Quarter candles
+            m15 = "15m"
+
+            #: Hourly candles
+            h1 = "1h"
+
+            #: Four hour candles
+            h4 = "4h"
+
+            #: Daily candles
+            d1 = "1d"
+
+            #: Weekly candles
+            d7 = "7d"
+
+            #: Monthly candles
+            d30 = "30d"
+
+            #: We do not have "yearly" candles, but some trade statistics are calculated
+            #: for 360 days, thus we need a corresponding time bucket for them.
+            d360 = "360d"
+
+        :return:
+            We always return a price. In the error cases an exception is raised.
+
+        :raise CandleSampleUnavailable:
+            There was no samples available with the given condition.
+
+        """
+
+        assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
+
+        start_when = when
+        samples_per_pair = self.get_candles_by_pair(pair_id)
+        assert samples_per_pair is not None, f"No candle data available for pair {pair_id}"
+
+        samples_per_kind = samples_per_pair[kind]
+
+        for attempt in range(self.tolerance_time_bucket.d7.to_timedelta().days):
+        # for attempt in range(tolerance):
+            try:
+                sample = samples_per_kind[when]
+                return sample
+            except KeyError:
+                # Go to the previous sample
+                when -= self.time_bucket.to_timedelta()
+
+        # Try to be helpful with the errors here,
+        # so one does not need to open ipdb to inspect faulty data
+        try:
+            first_sample = samples_per_pair.iloc[0]
+            second_sample = samples_per_pair.iloc[1]
+            last_sample = samples_per_pair.iloc[-1]
+        except KeyError:
+            raise CandleSampleUnavailable(
+                f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {start_when}\n"
+                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
+            )
+
+        raise CandleSampleUnavailable(
+            f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {start_when}\n"
+            f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
+            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
+            )
+
 
     @staticmethod
     def create_empty() -> "GroupedCandleUniverse":
