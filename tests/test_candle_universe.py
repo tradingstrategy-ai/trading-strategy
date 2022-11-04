@@ -381,13 +381,9 @@ def test_load_candles_using_jsonl(persistent_test_client: Client):
     first_at, last_at = candle_universe.get_timestamp_range()
     assert first_at == pd.Timestamp('2021-04-24 01:00:00')
     assert last_at >= pd.Timestamp('2022-08-10 11:00:00')
-    time_delta = pd.Timedelta(1, "d")
-    time_bucket = TimeBucket(TimeBucket.d1).to_timedelta().days
-
     test_price = candle_universe.get_closest_price(pair.pair_id, pd.Timestamp("2022-01-01"))
-    test_price_with_tolerance = candle_universe.get_price_with_tolerance(pair.pair_id, pd.Timestamp("2022-01-01"), time_delta)
     assert test_price == pytest.approx(516.9167236844088)
-    assert test_price_with_tolerance == pytest.approx(516.9167236844088)
+
 
 
 def test_load_candles_using_jsonl_max_bytes(persistent_test_client: Client):
