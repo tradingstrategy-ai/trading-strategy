@@ -453,7 +453,11 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         # Check if the last sample before the cut off is within time range our tolerance
         candle_timestamp = latest_or_equal_sample[self.timestamp_column]
-        if candle_timestamp >= last_allowed_timestamp:
+        if candle_timestamp <= last_allowed_timestamp:
+            # Return the chosen price column of the sample
+            return latest_or_equal_sample[kind]
+
+        elif candle_timestamp >= last_allowed_timestamp:
             # Return the chosen price column of the sample
             return latest_or_equal_sample[kind]
 
