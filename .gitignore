@@ -6,3 +6,8 @@ dist
 .ipynb_checkpoints
 .vscode
 .python-version
+/.idea/.gitignore
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/trading-strategy.iml
+/.idea/vcs.xml
