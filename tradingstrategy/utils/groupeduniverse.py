@@ -59,7 +59,6 @@ class PairGroupedUniverse:
         self.pairs: pd.GroupBy = self.df.groupby(["pair_id"])
         self.timestamp_column = timestamp_column
         self.time_bucket = time_bucket
-        self.tolerance_time_bucket = TimeBucket
 
     def get_columns(self) -> pd.Index:
         """Get column names from the underlying pandas.GroupBy object"""
