@@ -260,6 +260,32 @@ class PairGroupedUniverse:
         else:
             return df
 
+    def get_single_pair_data_by_pair(self, pair_id: PrimaryKey, timestamp: Optional[pd.Timestamp]=None, sample_count: Optional[int]=None):
+        """Get all candles/liquidity samples for the single alone pair in the universe.
+
+        A shortcut method for trading strategies that trade only one pair.
+
+        :pair_id: 
+            Unique primary key id of the trading pair
+
+        :param timestamp:
+            Get the sample at this timestamp and all previous samples.
+
+        :param sample_count:
+            Limit the
+        """
+
+        df = self.get_samples_by_pair(pair_id)
+
+        # Get all df content before our timestamp
+        if timestamp:
+            df = df.truncate(after=timestamp + pd.Timedelta(seconds=1))
+
+        if sample_count:
+            return df.iloc[-sample_count:]
+        else:
+            return df
+
 
 def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs from a certain exchange.
