@@ -374,7 +374,6 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
             )
 
-
     def get_price_with_tolerance(self,
                           pair_id: PrimaryKey,
                           when: pd.Timestamp,
