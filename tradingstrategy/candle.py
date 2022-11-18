@@ -392,6 +392,8 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                 when=pd.Timestamp("2020-02-01 00:05"),
                 tolerance=pd.Timedelta(30, "m"))
 
+            # Returns closing price of the candle 2020-02-01 00:00,
+            # which is 5 minutes off when we asked
             assert test_price == pytest.approx(100.50)
             assert distance == pd.Timedelta("5m")
 
