@@ -47,21 +47,10 @@ def test_get_price_with_tolerance(synthetic_candles):
     test_price = universe.get_price_with_tolerance(pair_id=1, when = pd.Timestamp("2020-01-01"), tolerance= pd.Timedelta(1, "d"))
     assert test_price == pytest.approx(100.10)
 
-    test_price_ = universe.get_price_with_tolerance(pair_id=1, when=pd.Timestamp("2020-05-01"), tolerance=pd.Timedelta(1, "d"))
-    assert test_price_ == pytest.approx(101.10)
-
-
-def test_get_price_not_within_tolerance(synthetic_candles):
-    """Raise an exception when candle is not available within a given tolerance."""
-
-    universe = GroupedCandleUniverse(synthetic_candles)
-
     with pytest.raises(CandleSampleUnavailable):
         test_price = universe.get_price_with_tolerance(
             pair_id=1,
             when=pd.Timestamp("2020-01-05"),
             tolerance=pd.Timedelta(1, "d"))
-
-
 
 
