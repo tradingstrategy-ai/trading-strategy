@@ -400,11 +400,15 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             then accept a candle that is maximum of 50 minutes before the timepoint.
 
         :return:
-            Return (price, delay) tuple
+            Return (price, delay) tuple.
             We always return a price. In the error cases an exception is raised.
+            The delay is the timedelta between the wanted timestamp
+            and the actual timestamp of the candle.
+
+            Candles are always timestamped by their opening.
 
         :raise CandleSampleUnavailable:
-            There was no samples available with the given condition.
+            There were no samples available with the given condition.
 
         """
 

@@ -72,4 +72,9 @@ def test_get_price_not_within_tolerance(synthetic_candles):
             when=pd.Timestamp("2020-01-05"),
             tolerance=pd.Timedelta(1, "d"))
 
+    with pytest.raises(CandleSampleUnavailable):
+        universe.get_price_with_tolerance(
+            pair_id=1,
+            when=pd.Timestamp("2020-01-01 00:05"),
+            tolerance=pd.Timedelta(1, "m"))
 
