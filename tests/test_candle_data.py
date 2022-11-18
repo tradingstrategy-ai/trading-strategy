@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from tradingstrategy.candle import Candle, GroupedCandleUniverse
+from tradingstrategy.candle import Candle, GroupedCandleUniverse, CandleSampleUnavailable
 
 
 @pytest.fixture()
@@ -32,13 +32,13 @@ def test_generate_candle_data(synthetic_candles):
     assert universe.get_pair_count() == 1
     assert universe.get_candle_count() == 4
 
-
     df = universe.get_candles_by_pair(pair_id=1)
     assert df.loc[pd.Timestamp("2020-01-01")]["open"] == pytest.approx(100.10)
     assert df.loc[pd.Timestamp("2020-02-01")]["close"] == pytest.approx(100.50)
 
+
 def test_get_price_with_tolerance(synthetic_candles):
-    """Test creation of candles."""
+    """Correctly get a price within a tolerance."""
 
     universe = GroupedCandleUniverse(synthetic_candles)
     assert universe.get_pair_count() == 1
@@ -51,6 +51,16 @@ def test_get_price_with_tolerance(synthetic_candles):
     assert test_price_ == pytest.approx(101.10)
 
 
+def test_get_price_not_within_tolerance(synthetic_candles):
+    """Raise an exception when candle is not available within a given tolerance."""
+
+    universe = GroupedCandleUniverse(synthetic_candles)
+
+    with pytest.raises(CandleSampleUnavailable):
+        test_price = universe.get_price_with_tolerance(
+            pair_id=1,
+            when=pd.Timestamp("2020-01-05"),
+            tolerance=pd.Timedelta(1, "d"))
 
 
 
