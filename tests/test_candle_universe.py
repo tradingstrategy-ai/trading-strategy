@@ -72,8 +72,6 @@ def test_samples_by_timestamp(persistent_test_client: Client):
     assert candles.iloc[0].timestamp == ts
     assert candles.iloc[0].open > 0
     assert candles.iloc[0].close > 0
-    assert candles.iloc[0].buys > 0
-    assert candles.iloc[0].sells > 0
 
 
 def test_samples_by_timestamp_range(persistent_test_client: Client):

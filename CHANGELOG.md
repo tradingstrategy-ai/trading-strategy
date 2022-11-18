@@ -2,6 +2,8 @@
 
 - Escape hatch for interactive API key setup loop
 - Added `Candle.generate_synthetic_sample` for mocking test data
+- Added `GroupedCandleUniverse.get_price_with_tolerance` to safely get the latest price
+  in backtesting
 
 # 0.8.2
 
