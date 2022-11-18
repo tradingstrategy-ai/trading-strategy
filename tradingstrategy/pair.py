@@ -693,7 +693,7 @@ class PandasPairUniverse:
             Base token symbol of the trading pair
 
         :param quote_token_symbol:
-            Base token symbol of the trading pair
+            Quote token symbol of the trading pair
 
         :param pick_by_highest_vol:
             In the case of multiple match per token symbol,
