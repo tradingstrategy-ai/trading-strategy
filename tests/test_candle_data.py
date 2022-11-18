@@ -44,11 +44,30 @@ def test_get_price_with_tolerance(synthetic_candles):
     assert universe.get_pair_count() == 1
     assert universe.get_candle_count() == 4
 
-    test_price = universe.get_price_with_tolerance(pair_id=1, when = pd.Timestamp("2020-01-01"), tolerance= pd.Timedelta(1, "d"))
+    test_price, distance = universe.get_price_with_tolerance(pair_id=1, when=pd.Timestamp("2020-01-01"), tolerance=pd.Timedelta(1, "d"))
     assert test_price == pytest.approx(100.10)
+    assert distance == pd.Timedelta(0)
+
+    test_price, distance = universe.get_price_with_tolerance(pair_id=1, when=pd.Timestamp("2020-01-02"), tolerance=pd.Timedelta(1, "d"))
+    assert test_price == pytest.approx(100.10)
+    assert distance == pd.Timedelta("1d")
+
+    test_price, distance = universe.get_price_with_tolerance(pair_id=1, when=pd.Timestamp("2020-02-01"), tolerance=pd.Timedelta(1, "m"))
+    assert test_price == pytest.approx(100.50)
+    assert distance == pd.Timedelta(0)
+
+    test_price, distance = universe.get_price_with_tolerance(pair_id=1, when=pd.Timestamp("2020-02-01 00:05"), tolerance=pd.Timedelta(30, "m"))
+    assert test_price == pytest.approx(100.50)
+    assert distance == pd.Timedelta("5m")
+
+
+def test_get_price_not_within_tolerance(synthetic_candles):
+    """Test creation of candles."""
+
+    universe = GroupedCandleUniverse(synthetic_candles)
 
     with pytest.raises(CandleSampleUnavailable):
-        test_price = universe.get_price_with_tolerance(
+        universe.get_price_with_tolerance(
             pair_id=1,
             when=pd.Timestamp("2020-01-05"),
             tolerance=pd.Timedelta(1, "d"))

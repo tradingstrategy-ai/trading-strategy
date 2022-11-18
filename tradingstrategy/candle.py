@@ -15,7 +15,7 @@ For more information about candles see :term:`candle` in glossary.
 
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pandas as pd
 import pyarrow as pa
@@ -25,6 +25,9 @@ from tradingstrategy.caip import ChainAddressTuple
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
+
+
+_ZERO_TIMEDELTA = pd.Timedelta(0)
 
 
 class CandleSampleUnavailable(Exception):
@@ -376,7 +379,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                           pair_id: PrimaryKey,
                           when: pd.Timestamp,
                           tolerance: pd.Timedelta,
-                          kind="close") -> USDollarAmount:
+                          kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
         """Get the available liquidity for a trading pair at a specific timepoint or some candles before the timepoint.
 
         The liquidity is defined as one-sided as in :term:`XY liquidity model`.
@@ -396,37 +399,8 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             For example if candle time interval is 5 minutes and look_back_timeframes is 10,
             then accept a candle that is maximum of 50 minutes before the timepoint.
 
-
-
-            #: One minute candles
-            m1 = "1m"
-
-            #: Five minute candles
-            m5 = "5m"
-
-            #: Quarter candles
-            m15 = "15m"
-
-            #: Hourly candles
-            h1 = "1h"
-
-            #: Four hour candles
-            h4 = "4h"
-
-            #: Daily candles
-            d1 = "1d"
-
-            #: Weekly candles
-            d7 = "7d"
-
-            #: Monthly candles
-            d30 = "30d"
-
-            #: We do not have "yearly" candles, but some trade statistics are calculated
-            #: for 360 days, thus we need a corresponding time bucket for them.
-            d360 = "360d"
-
         :return:
+            Return (price, delay) tuple
             We always return a price. In the error cases an exception is raised.
 
         :raise CandleSampleUnavailable:
@@ -453,9 +427,13 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         # Check if the last sample before the cut off is within time range our tolerance
         candle_timestamp = latest_or_equal_sample[self.timestamp_column]
+
+        distance = when - candle_timestamp
+        assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a candle timestamp {candle_timestamp} that is newer than asked {when}"
+
         if candle_timestamp >= last_allowed_timestamp:
             # Return the chosen price column of the sample
-            return latest_or_equal_sample[kind]
+            return latest_or_equal_sample[kind], distance
 
         # Try to be helpful with the errors here,
         # so one does not need to open ipdb to inspect faulty data
