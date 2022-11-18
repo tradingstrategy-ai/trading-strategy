@@ -383,6 +383,18 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         The liquidity is defined as one-sided as in :term:`XY liquidity model`.
 
+        Example:
+
+        .. code-block:: python
+
+            test_price, distance = universe.get_price_with_tolerance(
+                pair_id=1,
+                when=pd.Timestamp("2020-02-01 00:05"),
+                tolerance=pd.Timedelta(30, "m"))
+
+            assert test_price == pytest.approx(100.50)
+            assert distance == pd.Timedelta("5m")
+
         :param pair_id:
             Trading pair id
 
