@@ -9,6 +9,16 @@ from IPython.display import display
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
 
 try:
+
+    # E DeprecationWarning: Jupyter is migrating its paths to use standard platformdirs
+    # E   given by the platformdirs library.  To remove this warning and
+    # E   see the appropriate new directories, set the environment variable
+    # E  `JUPYTER_PLATFORM_DIRS=1` and then run `jupyter --paths`.
+    # E   The use of platformdirs will be the default in `jupyter_core` v6
+    import os
+    if "JUPYTER_PLATFORM_DIRS" not in os.environ:
+        os.environ["JUPYTER_PLATFORM_DIRS"] = "true"
+
     from ipykernel.zmqshell import ZMQInteractiveShell
     HAS_JUPYTER_EVENT_LOOP = True
 except ImportError:

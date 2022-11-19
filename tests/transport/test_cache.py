@@ -11,7 +11,9 @@ from tradingstrategy.timebucket import TimeBucket
 def transport():
     from tradingstrategy.transport.cache import CachedHTTPTransport
 
-    return CachedHTTPTransport(download_func=Mock())
+    transport = CachedHTTPTransport(download_func=Mock())
+    yield transport
+    transport.close()
 
 
 def test_get_cached_item_no_cache_file(transport, tmp_path):

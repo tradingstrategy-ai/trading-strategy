@@ -139,7 +139,13 @@ def test_iterate_pairs_by_timestamp_range(persistent_test_client: Client):
         first_candle = pair_df.iloc[0]
         last_candle = pair_df.iloc[-1]
         # Calculate
-        momentum = (last_candle["close"] - first_candle["open"]) / first_candle["open"] - 1
+        if last_candle["close"] > 0 and first_candle["open"] > 0:
+            try:
+                momentum = (last_candle["close"] - first_candle["open"]) / first_candle["open"] - 1
+            except RuntimeWarning:
+                # RuntimeWarning: overflow encountered in float_scalars
+                # float23 calculation may overflow for some pairs
+                pass
 
 
 def test_data_for_single_pair(persistent_test_client: Client):
