@@ -309,7 +309,7 @@ def resample_candles(df: pd.DataFrame, new_bucket: TimeBucket) -> pd.DataFrame:
     """
     pandas_time_delta = new_bucket.to_pandas_timedelta()
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
-    candles = df.resample(pandas_time_delta).mean()
+    candles = df.resample(pandas_time_delta).mean(numeric_only=True)
 
     # TODO: Figure out right way to preserve timestamp column,
     # resample seems to destroy it

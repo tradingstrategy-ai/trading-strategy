@@ -1,6 +1,9 @@
-# Current
+# 0.8.4
 
-- TODO
+- Added `Client.close()` and `CachedHTTPTransport.close()` for explicit closing of streams
+- Fix `JUPYTER_PLATFORM_DIRS` warning when importing
+- Fixed bunch of Pandas warnings
+- Add `pytest -Werror` to ensure the lib does not raise any warnings
 
 # 0.8.3
 

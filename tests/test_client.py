@@ -119,14 +119,16 @@ def test_client_convert_all_pairs_to_pandas(client: Client, cache_path: str):
     assert len(df) > 1000
 
 
-@pytest.mark.asyncio
-async def test_create_pyodide_client_indexdb():
-    """Test the special client used in Pyodide which use IndexDB to save the API key."""
-    # https://tonybaloney.github.io/posts/async-test-patterns-for-pytest-and-unittest.htmlpy
-    env = JupyterEnvironment()
-    env.clear_configuration()
-    client = await Client.create_pyodide_client_async(remember_key=False)
-    assert isinstance(client, Client)
+# Not yet supported
+#
+#@pytest.mark.asyncio
+#async def test_create_pyodide_client_indexdb():
+#    """Test the special client used in Pyodide which use IndexDB to save the API key."""
+#    # https://tonybaloney.github.io/posts/async-test-patterns-for-pytest-and-unittest.htmlpy
+#    env = JupyterEnvironment()
+#    env.clear_configuration()
+#    client = await Client.create_pyodide_client_async(remember_key=False)
+#    assert isinstance(client, Client)
 
 
 def test_create_pyodide_client_detect():
