@@ -1,3 +1,7 @@
+# UNRELASED
+
+- Optimize `groupeduniverse` class, specifically `get_timestamp_range()` method
+
 # 0.8.4
 
 - Added `Client.close()` and `CachedHTTPTransport.close()` for explicit closing of streams
