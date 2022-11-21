@@ -203,13 +203,13 @@ class PairGroupedUniverse:
 
         if len(self.df) == 0:
             return None, None
-
+        
         if use_timezone:
-            start = min(self.df[self.timestamp_column]).tz_localize(tz='UTC')
-            end = max(self.df[self.timestamp_column]).tz_localize(tz='UTC')
+            start = (self.df[self.timestamp_column].iat[0]).tz_localize(tz='UTC')
+            end = (self.df[self.timestamp_column].iat[-1]).tz_localize(tz='UTC')
         else:
-            start = min(self.df[self.timestamp_column])
-            end = max(self.df[self.timestamp_column])
+            start = self.df[self.timestamp_column].iat[0]
+            end = self.df[self.timestamp_column].iat[-1]
         return start, end
 
     def get_prior_timestamp(self, ts: pd.Timestamp) -> pd.Timestamp:
