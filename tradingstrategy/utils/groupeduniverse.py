@@ -48,6 +48,7 @@ class PairGroupedUniverse:
         :param index_automatically:
             Convert the index to use time series. You might avoid this with QSTrader kind of data.
         """
+        self.index_automatically = index_automatically
         assert isinstance(df, pd.DataFrame)
         if index_automatically:
             self.df = df \
@@ -204,12 +205,21 @@ class PairGroupedUniverse:
         if len(self.df) == 0:
             return None, None
         
-        if use_timezone:
-            start = (self.df[self.timestamp_column].iat[0]).tz_localize(tz='UTC')
-            end = (self.df[self.timestamp_column].iat[-1]).tz_localize(tz='UTC')
+        if(self.index_automatically == True):
+            if use_timezone:
+                start = (self.df[self.timestamp_column].iat[0]).tz_localize(tz='UTC')
+                end = (self.df[self.timestamp_column].iat[-1]).tz_localize(tz='UTC')
+            else:
+                start = self.df[self.timestamp_column].iat[0]
+                end = self.df[self.timestamp_column].iat[-1]
         else:
-            start = self.df[self.timestamp_column].iat[0]
-            end = self.df[self.timestamp_column].iat[-1]
+            if use_timezone:
+                start = min(self.df[self.timestamp_column]).tz_localize(tz='UTC')
+                end = max(self.df[self.timestamp_column]).tz_localize(tz='UTC')
+            else:
+                start = min(self.df[self.timestamp_column])
+                end = max(self.df[self.timestamp_column])
+
         return start, end
 
     def get_prior_timestamp(self, ts: pd.Timestamp) -> pd.Timestamp:
