@@ -435,24 +435,42 @@ class PandasPairUniverse:
         assert isinstance(df, pd.DataFrame)
         self.df = df.set_index(df["pair_id"])
 
-        #: pair_id -> DEXPair mappings
+        #: pair_id -> dict mappings
+        #: This is fast-filled with Pandas native code from the raw data frame.
         #: Don't access directly, use :py:meth:`iterate_pairs`.
         self.pair_map: Dict[int, dict] = {}
 
-        # pair smart contract address -> DEXPair
-        self.smart_contract_map = {}
+        # pair smart contract address -> pair id
+        self.smart_contract_map: Dict[str, int] = {}
 
         # Internal cache for get_token() lookup
         # address -> info tuple mapping
         self.token_cache: Dict[str, Token] = {}
 
+        # Cache for constructed DEXPair objects.
+        # We are using dataclasses_json library and it seems to be
+        # a bit too slow for tight loops.
+        # This cache is lazily filledup as DEXPair get requests arrive.
+        # In the future get rid of dataclasses_json altogether.
+        self.pair_object_cache: Dict[int, DEXPair] = {}
+
         if build_index:
             self.build_index()
 
     def iterate_pairs(self) -> Iterable[DEXPair]:
-        """Iterate over all pairs in this universe."""
-        for p in self.pair_map.values():
-            yield DEXPair.from_dict(p)
+        """Iterate over all pairs in this universe.
+
+        This function fills up :py:attr:`pair_object_cache`.
+        """
+        for pair_id, p in self.pair_map.items():
+
+            cached = self.pair_object_cache.get(pair_id)
+            if cached:
+                return cached
+
+            cached = DEXPair.from_dict(p)
+            self.pair_object_cache[pair_id] = cached
+            yield cached
 
     def build_index(self):
         """Create pair_id -> data mapping.
@@ -470,7 +488,7 @@ class PandasPairUniverse:
         """
         # https://stackoverflow.com/a/73638890/315168
         self.pair_map = self.df.T.to_dict()
-        self.smart_contract_map = {d["address"].lower(): d for d in self.pair_map.values()}
+        self.smart_contract_map = {d["address"].lower(): d["pair_id"] for d in self.pair_map.values()}
 
     def get_all_pair_ids(self) -> List[PrimaryKey]:
         return self.df["pair_id"].unique()
@@ -482,13 +500,21 @@ class PandasPairUniverse:
     def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
         """Look up pair information and return its data.
 
+        The function will fill :py:attr:`pair_object_cache`
+        when the get requests arrive.
+
         :return: Nicely presented :py:class:`DEXPair`.
         """
 
+        cached = self.pair_object_cache.get(pair_id)
+        if cached:
+            return cached
+
         if self.pair_map:
-            # TODO: Eliminate non-indexed code path?
             data = self.pair_map.get(pair_id)
-            return DEXPair.from_dict(data)
+            cached = DEXPair.from_dict(data)
+            self.pair_object_cache[pair_id] = cached
+            return cached
 
         # TODO: Remove
 
@@ -501,7 +527,10 @@ class PandasPairUniverse:
 
         if len(pairs) == 1:
             data = next(iter(pairs.to_dict("index").values()))
-            return DEXPair.from_dict(data)
+            cached = DEXPair.from_dict(data)
+            # Avoid slow from_dict() in the future
+            self.pair_object_cache[pair_id] = cached
+            return cached
 
         return None
 
@@ -518,8 +547,8 @@ class PandasPairUniverse:
         """
         address = address.lower()
         assert self.smart_contract_map, "You need to build the index to use this function"
-        data = self.smart_contract_map.get(address)
-        return DEXPair.from_dict(data)
+        pair_id = self.smart_contract_map.get(address)
+        return self.get_pair_by_id(pair_id)
 
     def get_token(self, address: str) -> Optional[Token]:
         """Get a token that is part of any trade pair.
@@ -574,7 +603,8 @@ class PandasPairUniverse:
         """
         pair_count = len(self.pair_map)
         assert pair_count == 1, f"Not a single trading pair universe, we have {pair_count} pairs"
-        return DEXPair.from_dict(next(iter(self.pair_map.values())))
+        pair_id = next(iter(self.pair_map.keys()))
+        return self.get_pair_by_id(pair_id)
 
     def get_by_symbols(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
         """For strategies that trade only a few trading pairs, get the only pair in the universe.
@@ -736,6 +766,7 @@ class PandasPairUniverse:
             pick one with the highest trade volume
 
         :raise DuplicatePair: Multiple pairs matching the criteria
+
         :raise NoPairFound: No pairs matching the criteria
         """
 

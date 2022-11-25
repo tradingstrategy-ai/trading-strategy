@@ -2,6 +2,9 @@
 
 - Optimize `groupeduniverse` class, specifically `get_timestamp_range()` method
 
+- Optimize getting pairs in `PandasPairUniverse` by caching constructed DEXPair
+  objects
+
 # 0.8.4
 
 - Added `Client.close()` and `CachedHTTPTransport.close()` for explicit closing of streams
