@@ -73,7 +73,6 @@ def test_get_all_tokens(sample_pair):
     assert len(tokens) == 2
 
 
-
 def test_resolve_pairs_based_on_ticker(persistent_test_client):
     """Check that we can find multiple pairs."""
 
@@ -99,3 +98,31 @@ def test_resolve_pairs_based_on_ticker(persistent_test_client):
         (filtered_pairs_df["quote_token_symbol"] == "BUSD")
     ].squeeze()
     assert wbnb_busd["buy_volume_30d"] > 0
+
+
+def test_get_token(persistent_test_client):
+    """Check that we can decode token information fom pair data."""
+
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    pair_universe = PandasPairUniverse(pairs_df)
+
+    # Do tests with BNB Chain tokens
+
+    token = pair_universe.get_token("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c")
+    assert token.symbol == "WBNB"
+    assert token.decimals == 18
+    assert token.chain_id == ChainId.bsc
+
+    token = pair_universe.get_token("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c".upper())
+    assert token.symbol == "WBNB"
+
+    token = pair_universe.get_token("0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d")
+    assert token.symbol == "USDC"
+    assert token.decimals == 18
+    assert token.chain_id == ChainId.bsc
+
+
+
+
