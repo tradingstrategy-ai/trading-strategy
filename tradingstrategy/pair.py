@@ -542,11 +542,11 @@ class PandasPairUniverse:
             for pair_data in self.pair_map.values():
                 if pair_data["token0_address"] == address:
                     p = DEXPair.from_dict(pair_data)
-                    token = Token(p.chain_id, p.token0_address, address, p.token0_decimals)
+                    token = Token(p.chain_id, p.token0_symbol, p.token0_address, p.token0_decimals)
                     break
                 elif pair_data["token1_address"] == address:
                     p = DEXPair.from_dict(pair_data)
-                    token = Token(p.chain_id, p.token1_address, address, p.token1_decimals)
+                    token = Token(p.chain_id, p.token1_symbol, p.token1_address, p.token1_decimals)
                     break
             self.token_cache[address] = token
         return self.token_cache[address]

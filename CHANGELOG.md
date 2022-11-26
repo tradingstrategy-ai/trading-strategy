@@ -2,6 +2,12 @@
 
 - Optimize `groupeduniverse` class, specifically `get_timestamp_range()` method
 
+- Optimize get pair speed
+
+- Remove the "no Content-Length header" warning if HTTP response lacks file size information
+
+- Fix `get_token()` not returning symbol information
+
 # 0.8.4
 
 - Added `Client.close()` and `CachedHTTPTransport.close()` for explicit closing of streams
