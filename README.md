@@ -40,7 +40,7 @@ See [the Getting Started tutorial](https://tradingstrategy.ai/docs/programming/c
 
 # Prerequisites
 
-Python 3.9+
+* Python 3.10
 
 # Installing the package
 
