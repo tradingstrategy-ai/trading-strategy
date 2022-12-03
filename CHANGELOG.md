@@ -2,6 +2,10 @@
 
 - TODO
 
+# 0.8.6
+
+- Add candle charts with `visualise_ohclv`
+
 # 0.8.5
 
 - Optimize `groupeduniverse` class, specifically `get_timestamp_range()` method

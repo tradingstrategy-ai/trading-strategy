@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trading-strategy"
-version = "0.8.5"
+version = "0.8.6"
 description = "DEX trading and blockchain quantitative finance data for Python"
 authors = ["Mikko Ohtamaa <mikko@tradingstrategy.ai>"]
 homepage = "https://tradingstrategy.ai"
