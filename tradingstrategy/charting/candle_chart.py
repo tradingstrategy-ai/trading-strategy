@@ -16,7 +16,7 @@ import pandas as pd
 from plotly.subplots import make_subplots
 
 
-def visualise_ohclv(
+def visualise_ohlcv(
         candles: pd.DataFrame,
         chart_name: str = "",
         y_axis_name: str = "",

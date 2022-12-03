@@ -4,7 +4,7 @@ import pandas as pd
 from IPython.core.display_functions import display
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.charting.candle_chart import visualise_ohclv
+from tradingstrategy.charting.candle_chart import visualise_ohlcv
 from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -35,7 +35,7 @@ def test_candle_chart(persistent_test_client: Client):
         progress_bar_description=f"Download data for {pair.get_ticker()}"
     )
 
-    figure = visualise_ohclv(
+    figure = visualise_ohlcv(
         candles,
         chart_name=f"{pair.base_token_symbol} - {pair.quote_token_symbol} price chart",
         y_axis_name=f"$ {pair.base_token_symbol} price",
