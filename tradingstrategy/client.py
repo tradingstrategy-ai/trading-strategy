@@ -203,9 +203,13 @@ class Client:
         ) -> pd.DataFrame:
         """Fetch candles for particular trading pairs.
 
-        The fetch is performed using JSONL API endpoint. If the number
+        This is right API to use if you want data only for a single
+        or few trading pairs. If the number
         of trading pair is small, this download is much more lightweight
         than Parquet dataset download.
+
+        The fetch is performed using JSONL API endpoint. This endpoint
+        always returns real-time information.
 
         :param pair_ids:
             Trading pairs internal ids we query data for.
@@ -225,7 +229,7 @@ class Client:
             Limit the streaming response size
 
         :param progress_bar_description:
-            Display on download progress bar
+            Display on download progress bar.
 
         :return:
             Candles dataframe
