@@ -52,13 +52,18 @@ def visualise_ohlcv(
         Plotly figure object
     """
 
+    # Add change percentages on candle mouse hover
+    percentage_changes = ((candles['close'] - candles['open'])/candles['open']) * 100
+    text = ["Change: " + f"{percentage_changes[i]:.2f}%" for i in range(len(percentage_changes))]
+
     candlesticks = go.Candlestick(
         x=candles.index,
         open=candles['open'],
         high=candles['high'],
         low=candles['low'],
         close=candles['close'],
-        showlegend=False
+        showlegend=False,
+        text=text,
     )
 
     # Synthetic data may not have volume available
