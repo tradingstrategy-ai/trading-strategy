@@ -1,6 +1,6 @@
-# Current
+# 0.8.7
 
-- TODO
+- Fix spelling `visualise_ohlcv`
 
 # 0.8.6
 
