@@ -15,7 +15,7 @@ For more information about candles see :term:`candle` in glossary.
 
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pandas as pd
 import pyarrow as pa
@@ -25,6 +25,9 @@ from tradingstrategy.caip import ChainAddressTuple
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
+
+
+_ZERO_TIMEDELTA = pd.Timedelta(0)
 
 
 class CandleSampleUnavailable(Exception):
@@ -102,6 +105,10 @@ class Candle:
     end_block: BlockNumber
 
     #: Schema definition for :py:class:`pd.DataFrame:
+    #:
+    #: Defines Pandas datatypes for columns in our candle data format.
+    #: Useful e.g. when we are manipulating JSON/hand-written data.
+    #:
     DATAFRAME_FIELDS = dict([
         ("pair_id", "int"),
         ("timestamp", "datetime64[s]"),
@@ -194,6 +201,41 @@ class Candle:
         ])
         return schema
 
+    @staticmethod
+    def generate_synthetic_sample(
+            pair_id: int,
+            timestamp: pd.Timestamp,
+            price: float) -> dict:
+        """Generate a candle dataframe.
+
+        Used in testing when manually fiddled data is needed.
+
+        All open/close/high/low set to the same price.
+        Exchange rate is 1.0. Other data set to zero.
+
+        :return:
+            One dict of filled candle data
+
+        """
+
+        return {
+            "pair_id": pair_id,
+            "timestamp": timestamp,
+            "open": price,
+            "high": price,
+            "low": price,
+            "close": price,
+            "exchange_rate": 1.0,
+            "buys": 0,
+            "sells": 0,
+            "buy_volume": 0,
+            "sell_volume": 0,
+            "avg": 0,
+            "start_block": 0,
+            "end_block": 0,
+        }
+
+
 
 @dataclass_json
 @dataclass
@@ -268,11 +310,12 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """
         return self.get_samples_by_pair(pair_id)
 
+
     def get_closest_price(self,
                           pair_id: PrimaryKey,
                           when: pd.Timestamp,
                           kind="close", look_back_time_frames=5) -> USDollarAmount:
-        """Get the available liuqidity for a trading pair at a specific timepoint or some candles before the timepoint.
+        """Get the available liquidity for a trading pair at a specific timepoint or some candles before the timepoint.
 
         The liquidity is defined as one-sided as in :term:`XY liquidity model`.
 
@@ -330,6 +373,103 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
             f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
             )
+
+    def get_price_with_tolerance(self,
+                          pair_id: PrimaryKey,
+                          when: pd.Timestamp,
+                          tolerance: pd.Timedelta,
+                          kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
+        """Get the available liquidity for a trading pair at a specific timepoint or some candles before the timepoint.
+
+        The liquidity is defined as one-sided as in :term:`XY liquidity model`.
+
+        Example:
+
+        .. code-block:: python
+
+            test_price, distance = universe.get_price_with_tolerance(
+                pair_id=1,
+                when=pd.Timestamp("2020-02-01 00:05"),
+                tolerance=pd.Timedelta(30, "m"))
+
+            # Returns closing price of the candle 2020-02-01 00:00,
+            # which is 5 minutes off when we asked
+            assert test_price == pytest.approx(100.50)
+            assert distance == pd.Timedelta("5m")
+
+        :param pair_id:
+            Trading pair id
+
+        :param when:
+            Timestamp to query
+
+        :param kind:
+            One of OHLC data points: "open", "close", "low", "high"
+
+        :param tolerance:
+            If there is no liquidity sample available at the exact timepoint,
+            look to the past to the get the nearest sample.
+            For example if candle time interval is 5 minutes and look_back_timeframes is 10,
+            then accept a candle that is maximum of 50 minutes before the timepoint.
+
+        :return:
+            Return (price, delay) tuple.
+            We always return a price. In the error cases an exception is raised.
+            The delay is the timedelta between the wanted timestamp
+            and the actual timestamp of the candle.
+
+            Candles are always timestamped by their opening.
+
+        :raise CandleSampleUnavailable:
+            There were no samples available with the given condition.
+
+        """
+
+        assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
+
+        last_allowed_timestamp = when - tolerance
+
+        candles_per_pair = self.get_candles_by_pair(pair_id)
+        assert candles_per_pair is not None, f"No candle data available for pair {pair_id}"
+
+        samples_per_kind = candles_per_pair[kind]
+
+        # Look up all the candles before the cut off timestamp.
+        # Assumes data is sorted by timestamp column,
+        # so our "closest time" candles should be the last of this lookup.
+        # TODO: self.timestamp_column is no longer needed after we drop QSTrader support,
+        # it is legacy. In the future use hardcoded "timestamp" column name.
+        timestamp_column = candles_per_pair[self.timestamp_column]
+        latest_or_equal_sample = candles_per_pair.loc[timestamp_column <= when].iloc[-1]
+
+        # Check if the last sample before the cut off is within time range our tolerance
+        candle_timestamp = latest_or_equal_sample[self.timestamp_column]
+
+        distance = when - candle_timestamp
+        assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a candle timestamp {candle_timestamp} that is newer than asked {when}"
+
+        if candle_timestamp >= last_allowed_timestamp:
+            # Return the chosen price column of the sample
+            return latest_or_equal_sample[kind], distance
+
+        # Try to be helpful with the errors here,
+        # so one does not need to open ipdb to inspect faulty data
+        try:
+            first_sample = candles_per_pair.iloc[0]
+            second_sample = candles_per_pair.iloc[1]
+            last_sample = candles_per_pair.iloc[-1]
+        except KeyError:
+            raise CandleSampleUnavailable(
+                f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
+                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
+            )
+
+        raise CandleSampleUnavailable(
+            f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
+            f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
+            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
+            )
+
 
     @staticmethod
     def create_empty() -> "GroupedCandleUniverse":

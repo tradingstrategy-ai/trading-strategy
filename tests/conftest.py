@@ -14,8 +14,9 @@ def client() -> Client:
 
     This fixture has the duration of the whole test session: once downloaded data is cached and is not redownloaded.
     """
-    c = Client.create_test_client()
-    return c
+    client = Client.create_test_client()
+    yield client
+    client.close()
 
 
 @pytest.fixture(scope="session")
@@ -33,7 +34,8 @@ def persistent_test_client() -> Client:
     if os.environ.get("CLEAR_CACHES"):
         c.clear_caches()
 
-    return c
+    yield c
+    c.close()
 
 
 @pytest.fixture(scope="session")

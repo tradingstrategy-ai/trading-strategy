@@ -142,6 +142,10 @@ class Client:
         self.env = env
         self.transport = transport
 
+    def close(self):
+        """Close the streams of underlying transport."""
+        self.transport.close()
+
     def clear_caches(self, filename: Optional[Union[str, Path]] = None):
         """Remove any cached data.
 

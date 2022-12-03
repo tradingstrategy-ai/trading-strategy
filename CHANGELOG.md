@@ -1,6 +1,35 @@
 # Current
 
+- TODO
+
+# 0.8.5
+
+- Optimize `groupeduniverse` class, specifically `get_timestamp_range()` method
+
+- Optimize get pair speed
+
+- Remove the "no Content-Length header" warning if HTTP response lacks file size information
+
+- Fix `get_token()` not returning symbol information
+
+# 0.8.4
+
+- Added `Client.close()` and `CachedHTTPTransport.close()` for explicit closing of streams
+- Fix `JUPYTER_PLATFORM_DIRS` warning when importing
+- Fixed bunch of Pandas warnings
+- Add `pytest -Werror` to ensure the lib does not raise any warnings
+
+# 0.8.3
+
+- Escape hatch for interactive API key setup loop
+- Added `Candle.generate_synthetic_sample` for mocking test data
+- Added `GroupedCandleUniverse.get_price_with_tolerance` to safely get the latest price
+  in backtesting
+
+# 0.8.2
+
 - Make `matplotlib` optional in `Client.setup_notebook`
+- Added `DEXPair.exchange_type` to support Uniswap v3 pairs
 
 # 0.8.1
 

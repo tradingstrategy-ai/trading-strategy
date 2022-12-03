@@ -22,6 +22,7 @@ def assert_compatible_timestamp(ts: pd.Timestamp):
     """
     assert is_compatible_timestamp(ts), f"Received pandas.Timestamp in incompatible format: {ts}"
 
+
 def to_int_unix_timestamp(dt: datetime.datetime) -> int:
     """Get datetime as UTC seconds since epoch."""
     # https://stackoverflow.com/a/5499906/315168

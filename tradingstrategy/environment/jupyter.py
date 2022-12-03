@@ -118,9 +118,6 @@ def download_with_tqdm_progress_bar(
 
     file_size = int(r.headers.get('Content-Length', 0))
 
-    if file_size == 0 and 'Content-Length' not in r.headers:
-        logger.warning("Missing HTTP response content-length header for download %s, headers are %s", url, r.headers.items())
-
     desc = human_readable_hint or ""
 
     # Add warning about missing Content-Length header

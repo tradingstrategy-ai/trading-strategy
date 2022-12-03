@@ -25,7 +25,7 @@ from dataclasses_json import dataclass_json
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.token import Token
-from tradingstrategy.exchange import ExchangeUniverse, Exchange
+from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
@@ -42,20 +42,6 @@ class NoPairFound(Exception):
 
 class DuplicatePair(Exception):
     """Found multiple trading pairs for the same naive lookup."""
-
-
-class PairType(enum.Enum):
-    """What kind of an decentralised exchange, AMM or other the pair is trading on.
-
-    Note that each type can have multiple implementations.
-    For example QuickSwap, Sushi and Pancake are all Uniswap v2 types.
-    """
-
-    #: Uniswap v2 style exchange
-    uniswap_v2 = "uni_v2"
-
-    #: Uniswap v3 style exchange
-    uniswap_v3 = "uni_v3"
 
 
 @dataclass_json
@@ -125,9 +111,6 @@ class DEXPair:
     #: In the case of Uniswap this is the pair (pool) address.
     address: NonChecksummedAddress
 
-    #: What kind of exchange this pair is on
-    dex_type: PairType
-
     #: Token pair contract address on-chain.
     #: Lowercase, non-checksummed.
     token0_address: str
@@ -143,6 +126,9 @@ class DEXPair:
     #: Token1 as in raw Uniswap data
     #: ERC-20 contracst are not guaranteed to have this data.
     token1_symbol: Optional[str]
+
+    #: What kind of exchange this pair is on
+    dex_type: Optional[ExchangeType] = None
 
     #: Naturalised base and quote token.
     #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
@@ -556,11 +542,11 @@ class PandasPairUniverse:
             for pair_data in self.pair_map.values():
                 if pair_data["token0_address"] == address:
                     p = DEXPair.from_dict(pair_data)
-                    token = Token(p.chain_id, p.token0_address, address, p.token0_decimals)
+                    token = Token(p.chain_id, p.token0_symbol, p.token0_address, p.token0_decimals)
                     break
                 elif pair_data["token1_address"] == address:
                     p = DEXPair.from_dict(pair_data)
-                    token = Token(p.chain_id, p.token1_address, address, p.token1_decimals)
+                    token = Token(p.chain_id, p.token1_symbol, p.token1_address, p.token1_decimals)
                     break
             self.token_cache[address] = token
         return self.token_cache[address]
@@ -707,7 +693,7 @@ class PandasPairUniverse:
             Base token symbol of the trading pair
 
         :param quote_token_symbol:
-            Base token symbol of the trading pair
+            Quote token symbol of the trading pair
 
         :param pick_by_highest_vol:
             In the case of multiple match per token symbol,

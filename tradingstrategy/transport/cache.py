@@ -65,6 +65,10 @@ class CachedHTTPTransport:
         self.api_key = api_key
         self.timeout = timeout
 
+    def close(self):
+        """Release any underlying sockets."""
+        self.requests.close()
+
     def create_requests_client(self, api_key: Optional[str] = None, add_exception_hook=True):
         """Create HTTP 1.1 keep-alive connection to the server with optional authorization details.
 
