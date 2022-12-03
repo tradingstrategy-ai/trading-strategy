@@ -2,6 +2,8 @@
 
 Draw price charts using Plotly.
 
+- Candle charts
+
 - Open, high, low, close (OHLC)
 
 - Open, high, low, close, volume (OHLCV)
