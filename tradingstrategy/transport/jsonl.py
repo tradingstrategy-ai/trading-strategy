@@ -14,7 +14,7 @@ from typing import List, Optional, Dict, Set
 import requests
 import jsonlines
 from numpy import NaN
-from tqdm.auto import tqdm
+from tqdm_loggable.auto import tqdm
 
 from tradingstrategy.candle import Candle
 from tradingstrategy.timebucket import TimeBucket

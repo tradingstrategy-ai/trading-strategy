@@ -1,3 +1,7 @@
+# Current
+
+- Switch to `tqdm-loggable` to have better download status behavior on headless configurations
+
 # 0.8.7
 
 - Fix spelling `visualise_ohlcv`

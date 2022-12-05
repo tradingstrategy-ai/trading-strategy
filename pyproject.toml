@@ -23,6 +23,7 @@ tqdm = "^4.61.2"
 plotly = "^5.1.0"
 jsonlines = "^3.1.0"
 requests = "^2.28.1"
+tqdm-loggable = "^0.1.2"
 
 # Legacy strategy and trading engines
 trading-strategy-qstrader = {version="^0.5.0", optional = true}

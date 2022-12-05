@@ -3,11 +3,10 @@ import logging
 import os
 import platform
 import shutil
-import sys
 from typing import Optional
 
 from requests import Session
-from tqdm.auto import tqdm
+from tqdm_loggable.auto import tqdm
 from tradingstrategy.environment.base import Environment
 from tradingstrategy.environment.config import Configuration
 from tradingstrategy.environment.interactive_setup import (
@@ -36,7 +35,6 @@ class JupyterEnvironment(Environment):
 
     def get_settings_path(self) -> str:
         return os.path.expanduser("~/.tradingstrategy")
-
     def discover_configuration(self) -> Optional[Configuration]:
         spath = self.get_settings_path()
         settings_file = os.path.join(spath, "settings.json")
