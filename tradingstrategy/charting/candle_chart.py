@@ -10,6 +10,7 @@ Draw price charts using Plotly.
 
 - Dark and light themes
 """
+from typing import Optional
 
 import plotly.graph_objects as go
 import pandas as pd
@@ -18,8 +19,9 @@ from plotly.subplots import make_subplots
 
 def visualise_ohlcv(
         candles: pd.DataFrame,
-        chart_name: str = "",
-        y_axis_name: str = "",
+        chart_name: Optional[str] = None,
+        y_axis_name: Optional[str] = "Price USD",
+        volume_axis_name: Optional[str] = "Volume USD",
         height: int = 800,
         theme: str = "plotly_white",
         volume_bar_colour: str = "rgba(128,128,128,0.5)",
@@ -79,10 +81,15 @@ def visualise_ohlcv(
         template=theme,
     )
 
+    if chart_name:
+        fig.update_layout(
+            title=chart_name,
+        )
+
     if y_axis_name:
-        fig.update_yaxes(title=f"{y_axis_name} price", secondary_y=False, showgrid=True)
+        fig.update_yaxes(title=y_axis_name, secondary_y=False, showgrid=True)
     else:
-        fig.update_yaxes(title="Price $", secondary_y=False, showgrid=True)
+        fig.update_yaxes(secondary_y=False, showgrid=True)
 
     fig.update_xaxes(rangeslider={"visible": False})
 
@@ -96,7 +103,11 @@ def visualise_ohlcv(
             }
         )
         fig.add_trace(volume_bars, secondary_y=True)
-        fig.update_yaxes(title="Volume $", secondary_y=True, showgrid=False)
+
+        fig.update_yaxes(secondary_y=True, showgrid=False)
+
+        if volume_axis_name:
+            fig.update_yaxes(title=volume_axis_name)
 
     fig.add_trace(candlesticks, secondary_y=False)
 
