@@ -310,7 +310,6 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """
         return self.get_samples_by_pair(pair_id)
 
-
     def get_closest_price(self,
                           pair_id: PrimaryKey,
                           when: pd.Timestamp,
