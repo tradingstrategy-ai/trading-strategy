@@ -15,9 +15,11 @@ class Format(enum.Enum):
     percent = "percent"
     dollar = "dollar"
     duration = "duration"
+    num_candles = "num_candles"
 
     #: Value cannot be calculated, e.g division by zero
     missing = "missing"
+
 
 
 FORMATTERS = {
@@ -25,6 +27,7 @@ FORMATTERS = {
     Format.percent: "{v:.2%}",
     Format.dollar: "${v:,.2f}",
     Format.duration: "{v.days} days",
+    Format.num_candles: "{v:.0f} candles",
     Format.missing: "-",
 }
 
@@ -54,11 +57,13 @@ def as_duration(v: datetime.timedelta) -> Value:
     """Format value as a duration"""
     return Value(v, Format.duration)
 
+def as_num_candles(v: float) -> Value:
+    """Format value as number of candles"""
+    return Value(v, Format.num_candles)
 
 def as_missing() -> Value:
     """Format a missing value e.g. because of division by zero"""
     return Value(None, Format.missing)
-
 
 def format_value(v_instance: Value) -> str:
     assert isinstance(v_instance, Value), f"Expected Value instance, got {v_instance}"
