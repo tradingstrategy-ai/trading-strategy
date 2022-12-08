@@ -250,18 +250,18 @@ class PairGroupedUniverse:
                              sample_count: Optional[int] = None,
                              allow_current=False,
                              ) -> pd.DataFrame:
-        """Get all candles/liquidity samples for the single alone pair in the universe.
-
-        Designed to be backtesting and live trading friendly.
+        """Get all candles/liquidity samples for the single alone pair in the universe by a certain timestamp.
 
         A shortcut method for trading strategies that trade only one pair.
+        Designed to be backtesting and live trading friendly function to access candle data.
 
         :param timestamp:
-            Get the sample at this timestamp and all previous samples.
+            Get the sample until this timestamp and all previous samples.
 
         :param allow_current:
             Allow to read any candle precisely at the timestamp.
-            If the timestamp is the current time, bad things may happen.
+            If you read the candle of your current strategy cycle timestamp,
+            bad things may happen.
 
             In backtesting, reading the candle at the current timestamp
             introduces forward-looking bias. In live trading,
