@@ -76,7 +76,6 @@ def visualise_ohlcv(
 
     # Set chart core options
     fig.update_layout(
-        title=f"{chart_name}",
         height=height,
         template=theme,
     )
@@ -86,11 +85,12 @@ def visualise_ohlcv(
             title=chart_name,
         )
 
+    fig.update_yaxes(secondary_y=False, showgrid=True)
     if y_axis_name:
-        fig.update_yaxes(title=y_axis_name, secondary_y=False, showgrid=True)
-    else:
-        fig.update_yaxes(secondary_y=False, showgrid=True)
+        fig.update_yaxes(title=y_axis_name)
 
+    # Range slider is not very user friendly so just
+    # disable it for now
     fig.update_xaxes(rangeslider={"visible": False})
 
     if should_create_volume_subplot:
@@ -107,7 +107,7 @@ def visualise_ohlcv(
         fig.update_yaxes(secondary_y=True, showgrid=False)
 
         if volume_axis_name:
-            fig.update_yaxes(title=volume_axis_name)
+            fig.update_yaxes(title=volume_axis_name, secondary_y=True)
 
     fig.add_trace(candlesticks, secondary_y=False)
 

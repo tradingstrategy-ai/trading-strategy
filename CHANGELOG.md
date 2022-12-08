@@ -1,6 +1,7 @@
-# Current
+# 0.8.8
 
 - Switch to `tqdm-loggable` to have better download status behavior on headless configurations
+- Fine tune `visualise_ohlcv` label configuration
 
 # 0.8.7
 
