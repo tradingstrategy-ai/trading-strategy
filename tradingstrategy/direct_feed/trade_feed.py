@@ -76,6 +76,13 @@ class TradeDelta:
     #:
     end_block: int
 
+    #: Timestamp of the start block
+    #:
+    start_ts: pd.Timestamp
+
+    #: Timestamp of the end block
+    #:
+    end_ts: pd.Timestamp
 
     #: Did we detect any chain reorgs on this update cycle?
     #:
@@ -84,7 +91,6 @@ class TradeDelta:
     #: List of individual trades
     #:
     trades: pd.DataFrame
-
 
 
 class TradeFeed:
@@ -274,10 +280,15 @@ class TradeFeed:
         else:
             exported_trades = pd.DataFrame()
 
+        start_ts = pd.Timestamp.fromtimestamp(self.reorg_mon.get_block_timestamp(start_block), tz=None)
+        end_ts = pd.Timestamp.fromtimestamp(self.reorg_mon.get_block_timestamp(end_block), tz=None)
+
         res = TradeDelta(
             self.cycle,
             start_block,
             end_block,
+            start_ts,
+            end_ts,
             reorg_detected,
             exported_trades,
         )

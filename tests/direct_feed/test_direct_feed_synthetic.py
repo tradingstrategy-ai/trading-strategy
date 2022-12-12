@@ -188,7 +188,31 @@ def test_perform_chain_reorg():
     assert delta.reorg_detected
 
 
+def test_incremental():
+    """Simulate incremental 1 block updates."""
 
+    mock_chain = SyntheticReorganisationMonitor()
+
+    feed = SyntheticFeed(
+        ["ETH-USD"],
+        {"ETH-USD": TrustedStablecoinOracle()},
+        mock_chain,
+    )
+    mock_chain.produce_blocks(100)
+    assert mock_chain.get_last_block_live() == 100
+    delta = feed.backfill_buffer(100, None)
+    assert delta.start_block
+
+    mock_chain.produce_blocks(1)
+    feed.perform_duty_cycle()
+
+    mock_chain.produce_blocks(1)
+    feed.perform_duty_cycle()
+
+    mock_chain.produce_blocks(1)
+    delta = feed.perform_duty_cycle()
+
+    assert delta.end_block == 103
 
 
 
