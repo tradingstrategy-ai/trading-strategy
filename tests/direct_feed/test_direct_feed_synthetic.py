@@ -1,14 +1,44 @@
+from decimal import Decimal
+
+import pandas as pd
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
-from tradingstrategy.direct_feed.reorgmon import TestReorganisationMonitor
+from tradingstrategy.direct_feed.reorgmon import SyntheticReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticFeed
+from tradingstrategy.direct_feed.trade_feed import Trade
 
 
-def test_initial_load():
-    """Read trades from a synthetic feed."""
+def test_synthetic_block_mon_produce_blocks():
+    """Create mocked blocks."""
+    mock_reorg_mon = SyntheticReorganisationMonitor()
+    assert mock_reorg_mon.get_last_block_live() == 0
+    assert mock_reorg_mon.get_last_block_read() == 0
+    mock_reorg_mon.produce_blocks()
 
-    mock_chain = TestReorganisationMonitor(1)
+
+def test_synthetic_block_mon_find_reorgs():
+    """There are never reorgs."""
+    mock_reorg_mon = SyntheticReorganisationMonitor()
+    mock_reorg_mon.produce_blocks()
+    mock_reorg_mon.figure_reorganisation_and_new_blocks()
+    assert mock_reorg_mon.get_last_block_live() == 1
+    assert mock_reorg_mon.get_last_block_read() == 1
+
+
+def test_synthetic_block_mon_find_reorgs_100_blocks():
+    """There are never reorgs in longer mock chain."""
+    mock_reorg_mon = SyntheticReorganisationMonitor()
+    mock_reorg_mon.produce_blocks(100)
+    mock_reorg_mon.figure_reorganisation_and_new_blocks()
+
+
+def test_add_trades():
+    """Add trades to thework buffer."""
+
+    mock_chain = SyntheticReorganisationMonitor(1)
+
+    mock_chain.produce_blocks(1)
 
     feed = SyntheticFeed(
         ["ETH-USD"],
@@ -16,7 +46,40 @@ def test_initial_load():
         mock_chain,
     )
 
-    mock_chain.increment_block(100)
+    assert len(feed.trades_df) == 0
+
+    feed.add_trades([
+        Trade(
+            "ETH-USD",
+            1,
+            "0x1",
+            pd.Timestamp.fromtimestamp(1, None),
+            "0xff",
+            1,
+            Decimal(1),
+            Decimal(1),
+            Decimal(1),
+        )
+    ])
+
+    assert len(feed.trades_df) == 1
+    entry = feed.trades_df.iloc[0]
+    assert entry["pair"] == "ETH-USD"
+
+
+def test_initial_load():
+    """Read trades from a synthetic feed."""
+
+    mock_chain = SyntheticReorganisationMonitor(1)
+
+    feed = SyntheticFeed(
+        ["ETH-USD"],
+        {"ETH-USD": TrustedStablecoinOracle()},
+        mock_chain,
+    )
+
+    mock_chain.produce_blocks(100)
+    assert len(mock_chain.block_map) == 100
 
     delta = feed.backfill_buffer(100, tqdm)
 
@@ -25,17 +88,17 @@ def test_initial_load():
     assert delta.end_block == 100
 
 
-def test_initial_load_no_pogress_Bar():
+def test_initial_load_no_progress_bar():
     """Read trades from a synthetic feed, do not use progress br."""
 
-    mock_chain = TestReorganisationMonitor(1)
+    mock_chain = SyntheticReorganisationMonitor(1)
 
     feed = SyntheticFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
     )
-    mock_chain.increment_block(100)
+    mock_chain.produce_blocks(100)
     delta = feed.backfill_buffer(100, None)
     assert delta.cycle == 1
 

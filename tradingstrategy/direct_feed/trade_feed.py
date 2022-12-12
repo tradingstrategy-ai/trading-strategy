@@ -1,11 +1,10 @@
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from decimal import Decimal
-from typing import Set, Dict, Optional, Tuple, List, Callable, Iterable, Type, TypeAlias
+from typing import Dict, Optional, List,  Iterable, Type, TypeAlias
 
 import pandas as pd
-from attr import asdict
-from eth_defi.price_oracle.oracle import PriceOracle, BaseOracle
+from eth_defi.price_oracle.oracle import BaseOracle
 
 from tqdm import tqdm
 
@@ -16,7 +15,7 @@ from .reorgmon import ReorganisationMonitor
 PairId: TypeAlias = str
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class Trade:
     """Capture information about single trade.
 
@@ -40,6 +39,10 @@ class Trade:
     #: The US dollar conversion rate used for this rate
     exchange_rate: Decimal
 
+    def __post_init__(self):
+        assert self.timestamp.tzinfo is None, "Don't use timezone aware timestamps - everything must be naive UTC"
+        assert self.tx_hash, "tx_hash missing"
+
     @staticmethod
     def get_dataframe_columns() -> dict:
         fields = dict([
@@ -55,8 +58,7 @@ class Trade:
         return fields
 
 
-
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class TradeDelta:
     """Trade history delta for a snapshot"""
 
@@ -130,17 +132,13 @@ class TradeFeed:
         self.tqdm = tqdm
         self.cycle = 1
 
-        # All event data is stored as dataframe.
-        # 1. index is block_number
-        # 2. index is log index within the block
-        cols = Trade.get_dataframe_columns()
-        self.trades_df = pd.DataFrame(columns=list(cols.keys()))
+        self.trades_df = pd.DataFrame()
 
         # Check that every pair has a exchange rate conversion oracle
         for p in self.pairs:
             assert p in self.oracles, f"Pair {p} lacks price oracle. Add oracles by pair identifiers."
 
-    def get_last_block(self) -> Optional[int]:
+    def get_block_number_of_last_trade(self) -> Optional[int]:
         """Get the last block number for which we have good data."""
 
         if len(self.trades_df) == 0:
@@ -169,15 +167,13 @@ class TradeFeed:
         data = []
 
         for evt in trades:
-
             assert isinstance(evt, Trade)
-            assert evt.tx_hash
-
             self.reorg_mon.check_block_reorg(evt.block_number, evt.block_hash)
-
             data.append(asdict(evt))
 
-        self.trades_df.append(data)
+        new_data = pd.DataFrame(data, columns=list(Trade.get_dataframe_columns().keys()))
+        new_data.set_index("block_number", inplace=True)
+        self.trades_df = pd.concat([self.trades_df, new_data])
 
     def truncate_reorganised_data(self, latest_good_block):
         self.trades_df.truncate(after=latest_good_block)
@@ -199,7 +195,7 @@ class TradeFeed:
         """Populate the backbuffer before starting real-time tracker.
 
         :param block_count:
-            Number of blocks we need to fecth
+            Number of blocks we need to fetch
 
         :param tqdm:
             A progress visualiser.
@@ -209,6 +205,8 @@ class TradeFeed:
 
             Must be `tqdm` context manager compatible.
 
+        :return:
+            Data loaded and filled to the work buffer.
         """
         start_block, end_block = self.reorg_mon.load_initial_data(block_count)
         trades = self.fetch_trades(start_block, end_block, tqdm)
@@ -240,17 +238,28 @@ class TradeFeed:
     def update_cycle(self, start_block, end_block, trades: Iterable[Trade]) -> TradeDelta:
         """Update the internal work buffer.
 
+        - Adds the new trades to the work buffer
+
+        - Updates the cycle number
+
+        - Creates the snapshot of the new trades for the client
+
         :return:
             Delta of new trades
         """
 
         self.add_trades(trades)
 
+        if len(self.trades_df) > 0:
+            exported_trades = self.trades_df.loc[start_block:end_block+1]
+        else:
+            exported_trades = pd.DataFrame()
+
         res = TradeDelta(
             self.cycle,
             start_block,
             end_block,
-            self.trades_df.loc[start_block:end_block+1]
+            exported_trades,
         )
 
         self.cycle += 1
