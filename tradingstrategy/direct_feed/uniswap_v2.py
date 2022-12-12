@@ -15,7 +15,7 @@ from eth_defi.event_reader.web3worker import create_thread_pool_executor
 from eth_defi.price_oracle.oracle import PriceOracle
 from eth_defi.uniswap_v2.pair import PairDetails
 
-from .ohlcv_producer import OHLCVProducer, Trade, TradeDelta
+from .trade_feed import OHLCVProducer, Trade, TradeDelta
 from .reorgmon import ReorganisationMonitor
 
 logger = logging.getLogger(__name__)

@@ -34,7 +34,7 @@ class ChainReorganisationDetected(Exception):
         self.original_hash = original_hash
         self.new_hash = new_hash
 
-        super(f"Block reorg detected at #{block_number:,}. Original hash: {original_hash}. New hash: {new_hash}")
+        super().__init__(f"Block reorg detected at #{block_number:,}. Original hash: {original_hash}. New hash: {new_hash}")
 
 
 class ReorganisationResolutionFailure(Exception):
@@ -46,13 +46,21 @@ class ReorganisationResolutionFailure(Exception):
 
 
 class ReorganisationMonitor:
-    """Watch blockchain for reorgs."""
+    """Watch blockchain for reorgs.
+
+    - Check block headers for chain reorganisations
+
+    - Also manages the service for block timestamp lookups
+    """
 
     def __init__(self, check_depth=200, max_reorg_resolution_attempts=10):
         self.block_map: Dict[int, BlockRecord] = {}
-        self.last_block = 0
+        self.last_block_read = 0
         self.check_depth = check_depth
         self.max_cycle_tries = max_reorg_resolution_attempts
+
+    def get_last_block_read(self):
+        return self.last_block_read
 
     def load_initial_data(self, block_count: int) -> Tuple[int, int]:
         """Get the inital block buffer filled up.
@@ -60,7 +68,7 @@ class ReorganisationMonitor:
         :return:
             The initial block range to start to work with
         """
-        end_block = self.get_last_block()
+        end_block = self.get_last_block_live()
         start_block = end_block - block_count
         return start_block, end_block
 
@@ -73,8 +81,8 @@ class ReorganisationMonitor:
         assert block_number not in self.block_map, f"Block already added: {block_number}"
         self.block_map[block_number] = record
 
-        assert self.last_block == block_number - 1, f"Blocks must be added in order. Last: {self.last_block}, got: {record}"
-        self.last_block = block_number
+        assert self.last_block_read == block_number - 1, f"Blocks must be added in order. Last: {self.last_block_read}, got: {record}"
+        self.last_block_read = block_number
 
     def check_block_reorg(self, block_number: int, block_hash: str):
         original = self.block_map.get(block_number)
@@ -84,15 +92,15 @@ class ReorganisationMonitor:
 
     def truncate(self, latest_good_block: int):
         """Delete data after a block number because chain reorg happened."""
-        assert self.last_block
-        for block_to_delete in range(latest_good_block + 1, self.last_block):
+        assert self.last_block_read
+        for block_to_delete in range(latest_good_block + 1, self.last_block_read):
             del self.block_map[block_to_delete]
-        self.last_block = latest_good_block
+        self.last_block_read = latest_good_block
 
     def figure_reorganisation_and_new_blocks(self):
 
-        chain_last_block = self.get_last_block()
-        check_start_at = self.last_block = self.check_depth
+        chain_last_block = self.get_last_block_live()
+        check_start_at = self.last_block_read = self.check_depth
 
         for block in self.get_block_data(check_start_at, chain_last_block):
             self.check_block_reorg(block.block_number, block.block_hash)
@@ -117,7 +125,7 @@ class ReorganisationMonitor:
         while tries_left > 0:
             try:
                 self.figure_reorganisation_and_new_blocks()
-                return ChainReorganisationResolution(self.last_block, max_purge)
+                return ChainReorganisationResolution(self.last_block_read, max_purge)
             except ChainReorganisationDetected as e:
                 logger.info("Chain reorganisation detected: %s", e)
 
@@ -131,14 +139,21 @@ class ReorganisationMonitor:
                 self.truncate(latest_good_block)
                 tries_left -= 1
 
-        raise ReorganisationResolutionFailure(f"Gave up chain reorg resolution. Last block: {self.last_block}, attempts {self.max_cycle_tries}")
+        raise ReorganisationResolutionFailure(f"Gave up chain reorg resolution. Last block: {self.last_block_read}, attempts {self.max_cycle_tries}")
 
     @abstractmethod
     def get_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
-        """Fetch block header data"""
+        """Read the new block headers.
+
+        :param start_block:
+            The first block where to read (inclusive)
+
+        :param end_block:
+            The block where to read (inclusive)
+        """
 
     @abstractmethod
-    def get_last_block(self) -> int:
+    def get_last_block_live(self) -> int:
         """Get last block number"""
 
 
@@ -149,7 +164,7 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
         super().__init__(check_depth=check_depth, max_reorg_resolution_attempts=max_reorg_resolution_attempts)
         self.web3 = web3
 
-    def get_last_block(self):
+    def get_last_block_live(self):
         return self.web3.eth.block_number
 
     def get_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
@@ -167,5 +182,26 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
             timestamp = int(raw_result["timestamp"], 16)
 
             yield BlockRecord(block_num, block_hash, timestamp)
+
+
+class TestReorganisationMonitor(ReorganisationMonitor):
+    """A dummy reorganisation monitor for unit testing.
+
+    Simulate block feed.
+    """
+
+    def __init__(self, block_number: int):
+        super().__init__()
+        self.block_number = block_number
+
+    def increment_block(self, block_count=1):
+        self.block_number += block_count
+
+    def get_last_block_live(self):
+        return self.block_number
+
+    def get_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
+        for x in range(start_block, end_block + 1):
+            yield BlockRecord(x, hex(x), x)
 
 
