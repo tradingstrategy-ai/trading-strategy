@@ -1,6 +1,7 @@
 """Chain reorganisation handling during the real-time OHLCV candle production."""
 
 import datetime
+import time
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Iterable, Optional, Tuple
@@ -25,8 +26,15 @@ class BlockRecord:
 
 @dataclass(slots=True, frozen=True)
 class ChainReorganisationResolution:
-    last_block_number: int
-    latest_good_block: Optional[int]
+
+    #: What we know is the chain tip on our node
+    last_live_block: int
+
+    #: What we know is the block for which we do not need to perform rollback
+    latest_block_with_good_data: int
+
+    #: Did we detect any reorgs in this chycle
+    reorg_detected: bool
 
 
 class ChainReorganisationDetected(Exception):
@@ -53,15 +61,18 @@ class ReorganisationResolutionFailure(Exception):
 class ReorganisationMonitor:
     """Watch blockchain for reorgs.
 
+    - Maintain the state of the last read block
+
     - Check block headers for chain reorganisations
 
     - Also manages the service for block timestamp lookups
     """
 
-    def __init__(self, check_depth=200, max_reorg_resolution_attempts=10):
+    def __init__(self, check_depth=200, max_reorg_resolution_attempts=10, reorg_wait_seconds=5):
         self.block_map: Dict[int, BlockRecord] = {}
         self.last_block_read: int = 0
         self.check_depth = check_depth
+        self.reorg_wait_seconds = reorg_wait_seconds
         self.max_cycle_tries = max_reorg_resolution_attempts
 
     def get_last_block_read(self):
@@ -75,6 +86,10 @@ class ReorganisationMonitor:
         """
         end_block = self.get_last_block_live()
         start_block = max(end_block - block_count, 1)
+
+        for block in self.get_block_data(start_block, end_block):
+            self.add_block(block)
+
         return start_block, end_block
 
     def add_block(self, record: BlockRecord):
@@ -90,15 +105,23 @@ class ReorganisationMonitor:
         self.last_block_read = block_number
 
     def check_block_reorg(self, block_number: int, block_hash: str):
-        original_block = self.block_map.get(block_number)
+        """Check that newly read block matches our record.
 
-        if original_block.block_hash != block_hash:
-            raise ChainReorganisationDetected(block_number, original_block.block_hash, block_hash)
+        If we do not have record, ignore.
+        """
+        original_block = self.block_map.get(block_number)
+        if original_block is not None:
+            if original_block.block_hash != block_hash:
+                raise ChainReorganisationDetected(block_number, original_block.block_hash, block_hash)
 
     def truncate(self, latest_good_block: int):
-        """Delete data after a block number because chain reorg happened."""
+        """Delete data after a block number because chain reorg happened.
+
+        :param latest_good_block:
+            Delete all data starting after this block (exclusive)
+        """
         assert self.last_block_read
-        for block_to_delete in range(latest_good_block + 1, self.last_block_read):
+        for block_to_delete in range(latest_good_block + 1, self.last_block_read + 1):
             del self.block_map[block_to_delete]
         self.last_block_read = latest_good_block
 
@@ -120,23 +143,29 @@ class ReorganisationMonitor:
         return self.block_map[block_number].timestamp
 
     def update_chain(self) -> ChainReorganisationResolution:
-        """
+        """Attemp
+
+        - Do several attempt to read data (as a fork can cause other forks can cause fork)
+
+        - Give up after some time if we detect the chain to be in a doom loop
 
         :return:
-            Last block
+            What we think about the chain state
         """
 
         tries_left = self.max_cycle_tries
-        max_purge = None
-
+        max_purge = self.get_last_block_read()
+        reorg_detected = False
         while tries_left > 0:
             try:
                 self.figure_reorganisation_and_new_blocks()
-                return ChainReorganisationResolution(self.last_block_read, max_purge)
+                return ChainReorganisationResolution(self.last_block_read, max_purge, reorg_detected=reorg_detected)
             except ChainReorganisationDetected as e:
                 logger.info("Chain reorganisation detected: %s", e)
 
                 latest_good_block = e.block_number - 1
+
+                reorg_detected = True
 
                 if max_purge:
                     max_purge = min(latest_good_block, max_purge)
@@ -145,6 +174,7 @@ class ReorganisationMonitor:
 
                 self.truncate(latest_good_block)
                 tries_left -= 1
+                time.sleep(self.reorg_wait_seconds)
 
         raise ReorganisationResolutionFailure(f"Gave up chain reorg resolution. Last block: {self.last_block_read}, attempts {self.max_cycle_tries}")
 
@@ -198,19 +228,23 @@ class SyntheticReorganisationMonitor(ReorganisationMonitor):
     """
 
     def __init__(self, block_number: int = 1):
-        super().__init__()
-        self.block_number = block_number
+        super().__init__(reorg_wait_seconds=0)
+        self.simulated_block_number = block_number
+        self.simulated_blocks = {}
 
     def produce_blocks(self, block_count=1):
-        """Populate the fake blocks in mock chain."""
+        """Populate the fake blocks in mock chain.
+
+        These blocks will be "read" in py:meth:`figure_reorganisation_and_new_blocks`.
+        """
         for x in range(block_count):
-            num = self.block_number
-            self.block_number += 1
+            num = self.simulated_block_number
             record = BlockRecord(num, hex(num), num)
-            self.add_block(record)
+            self.simulated_blocks[self.simulated_block_number] = record
+            self.simulated_block_number += 1
 
     def get_last_block_live(self):
-        return self.block_number - 1
+        return self.simulated_block_number - 1
 
     def get_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
 
@@ -218,6 +252,6 @@ class SyntheticReorganisationMonitor(ReorganisationMonitor):
         assert end_block <= self.get_last_block_live(), "Cannot ask data for blocks that are not produced yet"
 
         for i in range(start_block, end_block + 1):
-            yield self.block_map[i]
+            yield self.simulated_blocks[i]
 
 

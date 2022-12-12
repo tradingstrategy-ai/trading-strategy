@@ -8,8 +8,7 @@ from eth_defi.price_oracle.oracle import BaseOracle
 
 from tqdm import tqdm
 
-from .reorgmon import ReorganisationMonitor
-
+from .reorgmon import ReorganisationMonitor, ChainReorganisationResolution
 
 #: Assume we identify our trading pairs by string
 PairId: TypeAlias = str
@@ -76,6 +75,11 @@ class TradeDelta:
     #:
     #:
     end_block: int
+
+
+    #: Did we detect any chain reorgs on this update cycle?
+    #:
+    reorg_detected: bool
 
     #: List of individual trades
     #:
@@ -176,20 +180,22 @@ class TradeFeed:
         self.trades_df = pd.concat([self.trades_df, new_data])
 
     def truncate_reorganised_data(self, latest_good_block):
-        self.trades_df.truncate(after=latest_good_block)
+        """Discard data because of the chain reorg.
 
-    def check_reorganisations_and_purge(self) -> int:
+        :param latest_good_block:
+            The last block that we cannot discard.
+        """
+        self.trades_df = self.trades_df.truncate(after=latest_good_block, copy=False)
+
+    def check_reorganisations_and_purge(self) -> ChainReorganisationResolution:
         """Check if any of block data has changed
 
         :return:
             Start block since we need to read new data (inclusive).
         """
         reorg_resolution = self.reorg_mon.update_chain()
-
-        if reorg_resolution.latest_good_block:
-            self.truncate_reorganised_data(reorg_resolution.latest_good_block)
-
-        return reorg_resolution.last_block_number
+        self.truncate_reorganised_data(reorg_resolution.latest_block_with_good_data)
+        return reorg_resolution
 
     def backfill_buffer(self, block_count: int, tqdm: Optional[Type[tqdm]] = None) -> TradeDelta:
         """Populate the backbuffer before starting real-time tracker.
@@ -210,7 +216,8 @@ class TradeFeed:
         """
         start_block, end_block = self.reorg_mon.load_initial_data(block_count)
         trades = self.fetch_trades(start_block, end_block, tqdm)
-        return self.update_cycle(start_block, end_block, trades)
+        # On initial load, we do not care about reorgs
+        return self.update_cycle(start_block, end_block, False, trades)
 
     def convert_to_dollars(self, pair_address: str, price: Decimal) -> float:
         """Get the trade price as dollars.
@@ -235,7 +242,7 @@ class TradeFeed:
         """
         return self.oracles[pair].calculate_price()
 
-    def update_cycle(self, start_block, end_block, trades: Iterable[Trade]) -> TradeDelta:
+    def update_cycle(self, start_block, end_block, reorg_detected, trades: Iterable[Trade]) -> TradeDelta:
         """Update the internal work buffer.
 
         - Adds the new trades to the work buffer
@@ -243,6 +250,18 @@ class TradeFeed:
         - Updates the cycle number
 
         - Creates the snapshot of the new trades for the client
+
+        :param start_block:
+            Incoming new data, first block (inclusive)
+
+        :param end_block:
+            Incoming new data, last  block (inclusive)
+
+        :param reorg_detected:
+            Did we detect any chain reorganisations in this cycle
+
+        :param trades:
+            Iterable o new trades
 
         :return:
             Delta of new trades
@@ -259,6 +278,7 @@ class TradeFeed:
             self.cycle,
             start_block,
             end_block,
+            reorg_detected,
             exported_trades,
         )
 
@@ -275,10 +295,11 @@ class TradeFeed:
 
         3. Process and index data to candles
         """
-        start_block = self.check_reorganisations_and_purge()
+        reorg_resolution = self.check_reorganisations_and_purge()
+        start_block = reorg_resolution.latest_block_with_good_data + 1
         end_block = self.reorg_mon.get_last_block_read()
         trades = self.fetch_trades(start_block, end_block)
-        return self.update_cycle(start_block, end_block, trades)
+        return self.update_cycle(start_block, end_block, reorg_resolution.reorg_detected, trades)
 
     @abstractmethod
     def fetch_trades(self,

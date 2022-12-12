@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
-from tradingstrategy.direct_feed.reorgmon import SyntheticReorganisationMonitor
+from tradingstrategy.direct_feed.reorgmon import SyntheticReorganisationMonitor, BlockRecord
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticFeed
 from tradingstrategy.direct_feed.trade_feed import Trade
 
@@ -36,7 +36,7 @@ def test_synthetic_block_mon_find_reorgs_100_blocks():
 def test_add_trades():
     """Add trades to thework buffer."""
 
-    mock_chain = SyntheticReorganisationMonitor(1)
+    mock_chain = SyntheticReorganisationMonitor()
 
     mock_chain.produce_blocks(1)
 
@@ -70,7 +70,7 @@ def test_add_trades():
 def test_initial_load():
     """Read trades from a synthetic feed."""
 
-    mock_chain = SyntheticReorganisationMonitor(1)
+    mock_chain = SyntheticReorganisationMonitor()
 
     feed = SyntheticFeed(
         ["ETH-USD"],
@@ -79,7 +79,7 @@ def test_initial_load():
     )
 
     mock_chain.produce_blocks(100)
-    assert len(mock_chain.block_map) == 100
+    assert len(mock_chain.simulated_blocks) == 100
 
     delta = feed.backfill_buffer(100, tqdm)
 
@@ -88,11 +88,30 @@ def test_initial_load():
     assert delta.end_block == 100
 
 
+def test_truncate():
+    """Read trades from a synthetic feed."""
+
+    mock_chain = SyntheticReorganisationMonitor()
+
+    feed = SyntheticFeed(
+        ["ETH-USD"],
+        {"ETH-USD": TrustedStablecoinOracle()},
+        mock_chain,
+    )
+
+    mock_chain.produce_blocks(100)
+    assert len(mock_chain.simulated_blocks) == 100
+
+    feed.backfill_buffer(100, tqdm)
+    assert len(feed.trades_df) == 537
+    feed.truncate_reorganised_data(50)
+    assert len(feed.trades_df) == 271
+
+
 def test_initial_load_no_progress_bar():
     """Read trades from a synthetic feed, do not use progress br."""
 
-    mock_chain = SyntheticReorganisationMonitor(1)
-
+    mock_chain = SyntheticReorganisationMonitor()
     feed = SyntheticFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
@@ -101,5 +120,75 @@ def test_initial_load_no_progress_bar():
     mock_chain.produce_blocks(100)
     delta = feed.backfill_buffer(100, None)
     assert delta.cycle == 1
+
+
+def test_perform_cycle():
+    """Iteratively read trades from the chain."""
+
+    mock_chain = SyntheticReorganisationMonitor()
+
+    feed = SyntheticFeed(
+        ["ETH-USD"],
+        {"ETH-USD": TrustedStablecoinOracle()},
+        mock_chain,
+    )
+    mock_chain.produce_blocks(100)
+    assert mock_chain.get_last_block_live() == 100
+    delta = feed.backfill_buffer(100, None)
+    assert delta.start_block == 1
+    assert delta.end_block == 100
+    assert not delta.reorg_detected
+    assert mock_chain.get_last_block_live() == 100
+    assert mock_chain.get_last_block_read() == 100
+
+    mock_chain.produce_blocks(2)
+    assert mock_chain.get_last_block_live() == 102
+    assert mock_chain.get_last_block_read() == 100
+
+    delta = feed.perform_duty_cycle()
+    assert mock_chain.get_last_block_live() == 102
+    assert mock_chain.get_last_block_read() == 102
+    assert delta.cycle == 2
+    assert delta.start_block == 101
+    assert delta.end_block == 102
+    assert not delta.reorg_detected
+
+
+def test_perform_chain_reorg():
+    """Simulate a chain reorganisation."""
+
+    mock_chain = SyntheticReorganisationMonitor()
+
+    feed = SyntheticFeed(
+        ["ETH-USD"],
+        {"ETH-USD": TrustedStablecoinOracle()},
+        mock_chain,
+    )
+    mock_chain.produce_blocks(100)
+    assert mock_chain.get_last_block_live() == 100
+    delta = feed.backfill_buffer(100, None)
+    assert delta.start_block == 1
+    assert delta.end_block == 100
+    assert not delta.reorg_detected
+
+    # Trigger reorg by creating a changed block in the chain
+    mock_chain.simulated_blocks[70] = BlockRecord(70, "0x666", 70)
+
+    mock_chain.produce_blocks(2)
+    assert mock_chain.get_last_block_live() == 102
+    assert mock_chain.get_last_block_read() == 100
+
+    # This will do 100 blocks deep reorg check
+    delta = feed.perform_duty_cycle()
+    assert mock_chain.get_last_block_live() == 102
+    assert mock_chain.get_last_block_read() == 102
+    assert delta.cycle == 2
+    assert delta.start_block == 70
+    assert delta.end_block == 102
+    assert delta.reorg_detected
+
+
+
+
 
 
