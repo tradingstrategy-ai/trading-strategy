@@ -75,18 +75,3 @@ class CandleFeed:
 
 
 
-def round_timestamp_down(
-        ts: pd.Timestamp,
-        freq: str) -> pd.Timestamp:
-    """Snap to previous available timedelta.
-
-    Preserve any timezone info on `ts`.
-
-    If we are at the the given exact delta, then do not round, only add offset.
-
-    :param ts: Timestamp we want to round
-    :param delta: Our snap grid
-    :param offset: Add a fixed time offset at the top of rounding
-    :return: When to wake up from the sleep next time
-    """
-    return ts.floor(freq)
