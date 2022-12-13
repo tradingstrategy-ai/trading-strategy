@@ -15,7 +15,7 @@ class Timeframe:
 
     #: Pandas frequency string.
     #:
-    #: E.g. `1D`.
+    #: E.g. `1D` for daily, `1min` for minute.
     #:
     #: See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
     freq: str

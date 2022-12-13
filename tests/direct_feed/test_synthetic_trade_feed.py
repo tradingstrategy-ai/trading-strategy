@@ -149,7 +149,8 @@ def test_perform_cycle():
     assert mock_chain.get_last_block_live() == 102
     assert mock_chain.get_last_block_read() == 102
     assert delta.cycle == 2
-    assert delta.start_block == 101
+    assert delta.start_block == 60
+    assert delta.unadjusted_start_block == 101
     assert delta.end_block == 102
     assert not delta.reorg_detected
 
@@ -183,7 +184,8 @@ def test_perform_chain_reorg():
     assert mock_chain.get_last_block_live() == 102
     assert mock_chain.get_last_block_read() == 102
     assert delta.cycle == 2
-    assert delta.start_block == 70
+    assert delta.start_block == 60
+    assert delta.unadjusted_start_block == 70
     assert delta.end_block == 102
     assert delta.reorg_detected
 

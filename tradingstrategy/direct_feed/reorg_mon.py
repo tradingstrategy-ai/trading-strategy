@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Dict, Iterable, Optional, Tuple
 import logging
 
+import pandas as pd
 from web3 import Web3
 
 logger = logging.getLogger(__name__)
@@ -141,6 +142,10 @@ class ReorganisationMonitor:
     def get_block_timestamp(self, block_number: int) -> int:
         """Return UNIX UTC timestamp of a block."""
         return self.block_map[block_number].timestamp
+
+    def get_block_timestamp_as_pandas(self, block_number: int) -> pd.Timestamp:
+        """Return UNIX UTC timestamp of a block."""
+        return pd.Timestamp.fromtimestamp(self.block_map[block_number].timestamp, tz=None)
 
     def update_chain(self) -> ChainReorganisationResolution:
         """Attemp

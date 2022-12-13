@@ -9,6 +9,7 @@ from eth_defi.price_oracle.oracle import BaseOracle
 from tqdm import tqdm
 
 from .reorg_mon import ReorganisationMonitor, ChainReorganisationResolution
+from .timeframe import Timeframe
 
 #: Assume we identify our trading pairs by string
 PairId: TypeAlias = str
@@ -89,6 +90,10 @@ class TradeDelta:
     #: purhe  this data as it is discarded due to chain reorganisation.
     start_block: int
 
+    # The start block we are using if we do not do timeframe snap.
+    #
+    unadjusted_start_block: int
+
     #: Last block for which we have data
     #:
     #:
@@ -128,6 +133,7 @@ class TradeFeed:
                  pairs: List[PairId],
                  oracles: Dict[PairId, BaseOracle],
                  reorg_mon: ReorganisationMonitor,
+                 timeframe: Timeframe = Timeframe("1min"),
                  data_retention_time: Optional[pd.Timedelta] = None,
                  ):
         """
@@ -141,6 +147,18 @@ class TradeFeed:
             prices to US dollars.
 
             In the form of pair -> Price oracle maps.
+
+        :param reorg_mon:
+            Reorganisation detector and last good block state for a chain.
+
+        :param timeframe:
+            Expected timeframe of the data.
+            Any trade deltas are snapped to the exact timeframe,
+            so that when candle data gets updated,
+            we always update only full candles and
+            never return trade data that would break the timeframe in a middle.
+
+            Default to one minute candles.
 
         :param data_retention_time:
             Discard entries older than this to avoid
@@ -158,6 +176,7 @@ class TradeFeed:
         self.data_retention_time = data_retention_time
         self.reorg_mon = reorg_mon
         self.tqdm = tqdm
+        self.timeframe = timeframe
         self.cycle = 1
 
         self.trades_df = pd.DataFrame()
@@ -200,7 +219,7 @@ class TradeFeed:
             data.append(asdict(evt))
 
         new_data = pd.DataFrame(data, columns=list(Trade.get_dataframe_columns().keys()))
-        new_data.set_index("block_number", inplace=True)
+        new_data.set_index("block_number", inplace=True, drop=False)
         self.trades_df = pd.concat([self.trades_df, new_data])
 
     def truncate_reorganised_data(self, latest_good_block):
@@ -243,15 +262,6 @@ class TradeFeed:
         # On initial load, we do not care about reorgs
         return self.update_cycle(start_block, end_block, False, trades)
 
-    def convert_to_dollars(self, pair_address: str, price: Decimal) -> float:
-        """Get the trade price as dollars.
-
-        :raise ChainReorganisationDetected:
-            If blockchain detects minor reorganisation during the data ignestion
-        """
-        oracle = self.oracles[pair_address]
-        return float(oracle.calculate_price() * price)
-
     def get_exchange_rate(self, pair: str) -> Decimal:
         """Get the current exchange rate for the pair.
 
@@ -265,6 +275,25 @@ class TradeFeed:
           for the block.
         """
         return self.oracles[pair].calculate_price()
+
+    def find_first_included_block_in_candle(self, ts: pd.Timestamp) -> Optional[int]:
+        """Find the first block number that contains data going into the candle.
+
+        :param ts:
+            Timestamp when the block can start (inclusive)
+
+        :return:
+            Block number.
+
+            If there is no data, return None.
+        """
+
+        after_df = self.trades_df.loc[self.trades_df["timestamp"] >= ts]
+
+        if len(after_df) > 0:
+            return after_df.iloc[0]["block_number"]
+        else:
+            return None
 
     def update_cycle(self, start_block, end_block, reorg_detected, trades: Iterable[Trade]) -> TradeDelta:
         """Update the internal work buffer.
@@ -293,16 +322,26 @@ class TradeFeed:
 
         self.add_trades(trades)
 
+        # We need to snap any trade delta update to the edge of candle timeframe
+        event_start_ts = self.reorg_mon.get_block_timestamp_as_pandas(start_block)
+        data_start_ts = self.timeframe.round_timestamp_down(event_start_ts)
+        data_start_block = self.find_first_included_block_in_candle(data_start_ts)
+
+        # If we do not have enough data, then just naively use the given start block
+        # and have half-finished candle
+        snap_block = data_start_block or start_block
+
         if len(self.trades_df) > 0:
-            exported_trades = self.trades_df.loc[start_block:end_block+1]
+            exported_trades = self.trades_df.loc[snap_block:end_block+1]
         else:
             exported_trades = pd.DataFrame()
 
-        start_ts = pd.Timestamp.fromtimestamp(self.reorg_mon.get_block_timestamp(start_block), tz=None)
-        end_ts = pd.Timestamp.fromtimestamp(self.reorg_mon.get_block_timestamp(end_block), tz=None)
+        start_ts = pd.Timestamp.fromtimestamp(self.reorg_mon.get_block_timestamp(snap_block), tz=None)
+        end_ts = pd.Timestamp.fromtimestamp(self.reorg_mon.get_block_timestamp(snap_block), tz=None)
 
         res = TradeDelta(
             self.cycle,
+            snap_block,
             start_block,
             end_block,
             start_ts,
