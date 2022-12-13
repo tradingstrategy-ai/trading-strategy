@@ -42,6 +42,7 @@ def convert_to_float(df: pd.DataFrame, conversion: CurrencyConversion) -> pd.Dat
 
     df2 = pd.DataFrame(index=df.index)
     df2["pair"] = df["pair"]
+    df2["timestamp"] = df["timestamp"]
     df2["block_number"] = df["block_number"]
     df2["exchange_rate"] = df["exchange_rate"].astype(float)
     if conversion == CurrencyConversion.us_dollar:

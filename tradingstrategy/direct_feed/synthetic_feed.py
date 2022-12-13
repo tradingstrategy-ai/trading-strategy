@@ -2,14 +2,14 @@
 
 import random
 from decimal import Decimal
-from typing import Dict, Optional, Callable, List, Iterable, Type
+from typing import Dict, Optional, List, Iterable, Type
 
 import pandas as pd
 from tqdm import tqdm
-from eth_defi.price_oracle.oracle import PriceOracle, BaseOracle
+from eth_defi.price_oracle.oracle import BaseOracle
 
-from .trade_feed import TradeFeed, TradeDelta, Trade, PairId
-from .reorgmon import ReorganisationMonitor, BlockRecord
+from .trade_feed import TradeFeed, Trade, PairId
+from .reorg_mon import ReorganisationMonitor, BlockRecord
 
 
 class SyntheticFeed(TradeFeed):

@@ -8,10 +8,13 @@ from eth_defi.price_oracle.oracle import BaseOracle
 
 from tqdm import tqdm
 
-from .reorgmon import ReorganisationMonitor, ChainReorganisationResolution
+from .reorg_mon import ReorganisationMonitor, ChainReorganisationResolution
 
 #: Assume we identify our trading pairs by string
 PairId: TypeAlias = str
+
+#: Hex presentation of transaction hash, such
+Binary256: TypeAlias = str
 
 
 @dataclass(slots=True, frozen=True)
@@ -22,17 +25,31 @@ class Trade:
     prices are not intentionally unit accurate and thus
     not suitable for accounting.
     """
+
+    #: Trading pair od
     pair: PairId
+
+    #: Block number
     block_number: int
+
+    #: Block hash
     block_hash: str
+
+    #: Block mined at
     timestamp: pd.Timestamp
-    tx_hash: str
+
+    #: Block mined at
+    tx_hash: Binary256
+
+    #: Trade index within the block
     log_index: int
 
     #: Trade price in quote token
     price: Decimal
 
-    #: Trade amount in quote token
+    #: Trade amount in quote token.
+    #:
+    #: Positive for buys, negative for sells.
     amount: Decimal
 
     #: The US dollar conversion rate used for this rate

@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
-from tradingstrategy.direct_feed.reorgmon import SyntheticReorganisationMonitor, BlockRecord
+from tradingstrategy.direct_feed.reorg_mon import SyntheticReorganisationMonitor, BlockRecord
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticFeed
 from tradingstrategy.direct_feed.trade_feed import Trade
 

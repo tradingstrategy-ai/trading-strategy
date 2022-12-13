@@ -16,7 +16,7 @@ from eth_defi.price_oracle.oracle import PriceOracle
 from eth_defi.uniswap_v2.pair import PairDetails
 
 from .trade_feed import OHLCVProducer, Trade, TradeDelta
-from .reorgmon import ReorganisationMonitor
+from .reorg_mon import ReorganisationMonitor
 
 logger = logging.getLogger(__name__)
 

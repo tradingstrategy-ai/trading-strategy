@@ -1,0 +1,27 @@
+"""Timeframe helpers."""
+
+from dataclasses import dataclass
+
+import pandas as pd
+
+
+@dataclass
+class Timeframe:
+    """Describe candle timeframe.
+
+    This structure allows us to pass candle resample
+    data around the framework.
+    """
+
+    #: Pandas frequency string.
+    #:
+    #: E.g. `1D`.
+    #:
+    #: See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+    freq: str
+
+    #: Candle shift offset
+    #:
+    #: E.g. move hourly candles 5 minutes backwards to start at 00:55
+    offset: pd.Timedelta = pd.Timedelta(seconds=0)
+
