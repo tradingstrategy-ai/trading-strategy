@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from tradingstrategy.direct_feed.conversion import CurrencyConversion, convert_to_float
-from tradingstrategy.direct_feed.ohlcv_aggregate import ohlcv_resample_trades, get_feed_for_pair
+from tradingstrategy.direct_feed.ohlcv_aggregate import resample_trades_into_ohlcv, get_feed_for_pair, truncate_ohlcv
 from tradingstrategy.direct_feed.timeframe import Timeframe
 from tradingstrategy.direct_feed.trade_feed import Trade
 from tradingstrategy.direct_feed.warn import disable_pandas_warnings
@@ -89,7 +89,7 @@ def test_ohlcv_resample(test_df):
     """Generate OHLCV candles."""
     df = convert_to_float(test_df, CurrencyConversion.us_dollar)
     timeframe = Timeframe("1D")
-    ohlcv = ohlcv_resample_trades(df, timeframe)
+    ohlcv = resample_trades_into_ohlcv(df, timeframe)
 
     #                        high     low   close  exchange_rate  start_block  end_block
     # pair     timestamp
@@ -121,3 +121,11 @@ def test_ohlcv_resample(test_df):
     assert record["volume"] == 2250
     assert record["buys"] == 1
     assert record["sells"] == 1
+
+
+def test_ohlcv_truncate(test_df):
+    """OHLCV candles can be truncated and reinserted."""
+    df = convert_to_float(test_df, CurrencyConversion.us_dollar)
+    timeframe = Timeframe("1D")
+    ohlcv = resample_trades_into_ohlcv(df, timeframe)
+    truncate_ohlcv(ohlcv, pd.Timestamp("2020-01-04"))

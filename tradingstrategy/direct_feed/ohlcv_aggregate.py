@@ -42,7 +42,7 @@ class OHLCVCandle:
         return fields
 
 
-def ohlcv_resample_trades(
+def resample_trades_into_ohlcv(
         df: pd.DataFrame,
         timeframe: Timeframe,
 ) -> pd.DataFrame:
@@ -173,3 +173,10 @@ def get_feed_for_pair(df: pd.DataFrame, pair: PairId) -> pd.DataFrame:
 
     # https://stackoverflow.com/a/45563615/315168
     return df.xs(pair)
+
+
+def truncate_ohlcv(df: pd.DataFrame, ts: pd.Timestamp) -> pd.DataFrame:
+    """Clear the chain tip data to be written again."""
+    cropped_df = df.truncate(after=ts, copy=False)
+    return cropped_df
+
