@@ -322,6 +322,7 @@ class TradeFeed:
         self.add_trades(trades)
 
         # We need to snap any trade delta update to the edge of candle timeframe
+        import ipdb ; ipdb.set_trace()
         event_start_ts = self.reorg_mon.get_block_timestamp_as_pandas(start_block)
         data_start_ts = self.timeframe.round_timestamp_down(event_start_ts)
         data_start_block = self.find_first_included_block_in_candle(data_start_ts)
