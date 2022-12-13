@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import pandas as pd
+import pytest
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
@@ -10,6 +11,8 @@ from tradingstrategy.direct_feed.reorg_mon import SyntheticReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticFeed
 from tradingstrategy.direct_feed.timeframe import Timeframe
 from tradingstrategy.direct_feed.trade_feed import Trade
+from tradingstrategy.direct_feed.warn import disable_pandas_warnings
+
 
 
 def test_candle_feed_initial_load():

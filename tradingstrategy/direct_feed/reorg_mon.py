@@ -145,7 +145,7 @@ class ReorganisationMonitor:
 
     def get_block_timestamp_as_pandas(self, block_number: int) -> pd.Timestamp:
         """Return UNIX UTC timestamp of a block."""
-        return pd.Timestamp.fromtimestamp(self.block_map[block_number].timestamp, tz=None)
+        return pd.Timestamp.utcfromtimestamp(self.block_map[block_number].timestamp).tz_localize(None)
 
     def update_chain(self) -> ChainReorganisationResolution:
         """Attemp

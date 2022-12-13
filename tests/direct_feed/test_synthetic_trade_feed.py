@@ -1,12 +1,14 @@
 from decimal import Decimal
 
 import pandas as pd
+import pytest
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
 from tradingstrategy.direct_feed.reorg_mon import SyntheticReorganisationMonitor, BlockRecord
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticFeed
 from tradingstrategy.direct_feed.trade_feed import Trade
+from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 
 
 def test_synthetic_block_mon_produce_blocks():
@@ -103,9 +105,9 @@ def test_truncate():
     assert len(mock_chain.simulated_blocks) == 100
 
     feed.backfill_buffer(100, tqdm)
-    assert len(feed.trades_df) == 537
+    assert len(feed.trades_df) == 508
     feed.truncate_reorganised_data(50)
-    assert len(feed.trades_df) == 271
+    assert len(feed.trades_df) == 246
 
 
 def test_initial_load_no_progress_bar():

@@ -84,7 +84,7 @@ class SyntheticFeed(TradeFeed):
                            pair=p,
                            block_number=block_num,
                            block_hash=block.block_hash,
-                           timestamp=pd.Timestamp.fromtimestamp(block.timestamp, None),
+                           timestamp=pd.Timestamp.utcfromtimestamp(block.timestamp),
                            tx_hash=tx_hash,
                            log_index=log_index,
                            price=Decimal(price),

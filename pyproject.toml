@@ -63,3 +63,6 @@ build-backend = "poetry.core.masonry.api"
 testpaths = [
     "tests",
 ]
+filterwarnings = [
+    "ignore::FutureWarning"
+]

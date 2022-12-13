@@ -10,6 +10,7 @@ from tradingstrategy.direct_feed.conversion import CurrencyConversion, convert_t
 from tradingstrategy.direct_feed.ohlcv_aggregate import ohlcv_resample_trades, get_feed_for_pair
 from tradingstrategy.direct_feed.timeframe import Timeframe
 from tradingstrategy.direct_feed.trade_feed import Trade
+from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 
 
 @pytest.fixture
