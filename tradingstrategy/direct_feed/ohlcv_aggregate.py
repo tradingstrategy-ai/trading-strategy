@@ -177,6 +177,6 @@ def get_feed_for_pair(df: pd.DataFrame, pair: PairId) -> pd.DataFrame:
 
 def truncate_ohlcv(df: pd.DataFrame, ts: pd.Timestamp) -> pd.DataFrame:
     """Clear the chain tip data to be written again."""
-    cropped_df = df.truncate(after=ts, copy=False)
+    cropped_df = df.group_by(level=0).truncate(after=ts, copy=False)
     return cropped_df
 
