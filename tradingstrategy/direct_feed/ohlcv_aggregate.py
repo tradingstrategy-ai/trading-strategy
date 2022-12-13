@@ -6,6 +6,7 @@
 import pandas as pd
 
 from tradingstrategy.direct_feed.timeframe import Timeframe
+from tradingstrategy.direct_feed.trade_feed import PairId
 
 
 def ohlcv_resample_trades(
@@ -52,13 +53,19 @@ def ohlcv_resample_trades(
         Convert the incomign values if needed
 
     :return:
-        OHLCV dataframes that are grouped by pair
+        OHLCV dataframes that are grouped by pair.
+
+        Open price is not the price of the previous close,
+        but the first trade done within the timeframe.
     """
 
     assert len(df) > 0, "Empty dataframe"
 
+    df = df.set_index("timestamp")
 
-    df = df.set_index("timestamp").groupby("pair")
+    df["abs_amount"] = df["amount"].abs()
+
+    df = df.groupby("pair")
 
     # Calculate high, low and close values using naive
     # resamping. This assumes there were trades within the freq window.
@@ -67,12 +74,69 @@ def ohlcv_resample_trades(
         'low': 'min',
         'close': 'last'})
 
+    # TODO: Integers here get converted to floats when processed with agg().
+    # Figure out how to prevent this.
     blocks_df = df["block_number"].resample(timeframe.freq).agg({
         'end_block': 'max',
         'start_block': 'min'})
 
+    volume_df = df["abs_amount"].resample(timeframe.freq).agg({
+        "total_volume": "sum",
+        "avg_amount": "mean",
+    })
+
+    trade_side_df = df["amount"].resample(timeframe.freq).agg({
+        'buys': lambda x: (x > 0).sum(),
+        'sells': lambda x: (x < 0).sum()})
+
     df2["exchange_rate"] = df["exchange_rate"].resample(timeframe.freq).mean()
     df2["start_block"] = blocks_df["start_block"]
     df2["end_block"] = blocks_df["end_block"]
+    df2["volume"] = volume_df["total_volume"]
+    df2["avg_trade"] = volume_df["avg_amount"]
+    df2["buys"] = trade_side_df["buys"]
+    df2["sells"] = trade_side_df["sells"]
 
+    # Resample generates NaN values instead of sparse data.
+    # In this point, we just drop the rows that have any NaNs in them
+
+    #                        high     low   close  exchange_rate  start_block  end_block
+    # pair     timestamp
+    # AAVE-ETH 2020-01-01    80.0    80.0    80.0         1600.0          1.0        1.0
+    #          2020-01-02    96.0    96.0    96.0         1600.0          2.0        2.0
+    # ETH-USDC 2020-01-02  1600.0  1600.0  1600.0            1.0          2.0        2.0
+    #          2020-01-03     NaN     NaN     NaN            NaN          NaN        NaN
+    #          2020-01-04     NaN     NaN     NaN            NaN          NaN        NaN
+    #          2020-01-05  1620.0  1400.0  1400.0            1.0          7.0        8.0
+
+    df2 = df2.dropna()
     return df2
+
+
+def get_feed_for_pair(df: pd.DataFrame, pair: PairId) -> pd.DataFrame:
+    """Get candles for a single pair.
+
+    :param df:
+        An OHLCV dataframe.
+
+        Generated with :py:func:`ohlcv_resample_trades`
+
+    :param pair:
+        Which pair we are interested in
+
+    :return:
+        Dataframe for this pair
+    """
+
+    # groupby().resample() produces multi-index
+    # where the first index is the pair
+
+    # ipdb> df.index
+    # MultiIndex([('AAVE-ETH', '2020-01-01'),
+    #             ('AAVE-ETH', '2020-01-02'),
+    #             ('ETH-USDC', '2020-01-02'),
+    #             ('ETH-USDC', '2020-01-05')],
+    #            names=['pair', 'timestamp'])
+
+    # https://stackoverflow.com/a/45563615/315168
+    return df.xs(pair)
