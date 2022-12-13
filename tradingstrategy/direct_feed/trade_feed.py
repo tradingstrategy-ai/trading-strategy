@@ -53,6 +53,7 @@ class Trade:
             ("log_index", "uint32"),
             ("price", "object"),
             ("amount", "object"),
+            ("exchange_rate", "object"),
         ])
         return fields
 
