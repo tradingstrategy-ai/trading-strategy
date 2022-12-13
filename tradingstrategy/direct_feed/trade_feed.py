@@ -8,11 +8,10 @@ from eth_defi.price_oracle.oracle import BaseOracle
 
 from tqdm import tqdm
 
+from .direct_feed_pair import PairId
 from .reorg_mon import ReorganisationMonitor, ChainReorganisationResolution
 from .timeframe import Timeframe
 
-#: Assume we identify our trading pairs by string
-PairId: TypeAlias = str
 
 #: Hex presentation of transaction hash, such
 Binary256: TypeAlias = str
@@ -368,6 +367,10 @@ class TradeFeed:
         end_block = self.reorg_mon.get_last_block_read()
         trades = self.fetch_trades(start_block, end_block)
         return self.update_cycle(start_block, end_block, reorg_resolution.reorg_detected, trades)
+
+    def restore(self, df: pd.DataFrame):
+        """Restore data from the previous disk save."""
+        self.trades_df = df
 
     @abstractmethod
     def fetch_trades(self,

@@ -1,40 +1,12 @@
 from dataclasses import dataclass
+from typing import List
 
 import pandas as pd
 
-from tradingstrategy.direct_feed.trade_feed import TradeDelta, PairId
-
-
-@dataclass(slots=True, frozen=True)
-class OHLCVCandle:
-    """One OHLCV candle in the direct data feed."""
-
-    pair: PairId
-    timestamp: pd.Timestamp
-    start_block: int
-    end_block: int
-
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
-    exchange_rate: float
-
-    @staticmethod
-    def get_dataframe_columns() -> dict:
-        fields = dict([
-            ("pair", "string"),
-            ("start_block", "uint64"),
-            ("end_block", "uint64"),
-            ("open", "float32"),
-            ("high", "float32"),
-            ("low", "float32"),
-            ("close", "float32"),
-            ("volume", "float32"),
-            ("exchange_rate", "float32"),
-        ])
-        return fields
+from tradingstrategy.direct_feed.ohlcv_aggregate import ohlcv_resample_trades, get_feed_for_pair
+from tradingstrategy.direct_feed.timeframe import Timeframe
+from tradingstrategy.direct_feed.trade_feed import TradeDelta
+from tradingstrategy.direct_feed.direct_feed_pair import PairId
 
 
 class CandleFeed:
@@ -48,8 +20,8 @@ class CandleFeed:
     """
 
     def __init__(self,
-                 freq: str,
-                 candle_offset: pd.Timedelta,
+                 pairs: List[PairId],
+                 timeframe: Timeframe,
                  ):
         """
 
@@ -58,20 +30,19 @@ class CandleFeed:
 
         :param candle_offset:
         """
-        self.freq = freq
-        self.candle_offset = candle_offset
-        self.df = pd.DataFrame()
+        self.timeframe = timeframe
+        self.candle_df = pd.DataFrame()
+        self.last_cycle = 0
 
-    def truncate(self, df: pd.DataFrame, start_block: int) -> pd.DataFrame:
-        """Truncate the existing store """
+    def apply_delta(self, delta: TradeDelta):
+        """Add new candle data generated from the latest blockchain input."""
+        cropped_df = self.candle_df.truncate(after=delta.start_ts, copy=False)
+        candles = ohlcv_resample_trades(delta.trades, self.timeframe)
+        self.candle_df = pd.concat([cropped_df, candles])
+        self.last_cycle = delta.cycle
 
-    def append_delta(self, delta: TradeDelta):
-        """Generate candles."""
-        latest_good_block = delta.start_block - 1
-        df = self.trades_df.truncate(after=latest_good_block, copy=False)
-
-    def get_candles(self, pair: PairId) -> pd.DataFrame:
-        pass
+    def get_candles_by_pair(self, pair: PairId) -> pd.DataFrame:
+        return get_feed_for_pair(self.candle_df, pair)
 
 
 

@@ -8,7 +8,9 @@ import pandas as pd
 from tqdm import tqdm
 from eth_defi.price_oracle.oracle import BaseOracle
 
-from .trade_feed import TradeFeed, Trade, PairId
+from .timeframe import Timeframe
+from .trade_feed import TradeFeed, Trade
+from .direct_feed_pair import PairId
 from .reorg_mon import ReorganisationMonitor, BlockRecord
 
 
@@ -25,18 +27,24 @@ class SyntheticFeed(TradeFeed):
                  end_price_range=300,
                  min_trades_per_block=0,
                  max_trades_per_block=10,
+                 min_amount=50,
+                 max_amount=50,
                  price_movement_per_trade=2.5,
+                 timeframe: Timeframe = Timeframe("1min"),
                  ):
         super().__init__(
             pairs=pairs,
             oracles=oracles,
             reorg_mon=reorg_mon,
             data_retention_time=data_retention_time,
+            timeframe=timeframe,
         )
 
         self.pairs = pairs
         self.min_trades_per_block = min_trades_per_block
         self.max_trades_per_block = max_trades_per_block
+        self.min_amount = min_amount
+        self.max_amount = max_amount
         self.price_movement_per_trade = price_movement_per_trade
         self.random_gen = random.Random(random_seed)
 
@@ -64,7 +72,7 @@ class SyntheticFeed(TradeFeed):
 
                     self.prices[p] += self.random_gen.uniform(-self.price_movement_per_trade, self.price_movement_per_trade)
                     price = self.prices[p]
-                    amount = 50
+                    amount = self.random_gen.uniform(self.min_amount, self.max_amount)
 
                     block: BlockRecord = block_data[block_num]
                     tx_hash = hex(self.random_gen.randint(2**31, 2**32))

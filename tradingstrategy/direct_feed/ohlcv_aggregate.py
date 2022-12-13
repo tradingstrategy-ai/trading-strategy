@@ -2,11 +2,44 @@
 
 
 """
+from dataclasses import dataclass
 
 import pandas as pd
 
 from tradingstrategy.direct_feed.timeframe import Timeframe
-from tradingstrategy.direct_feed.trade_feed import PairId
+from tradingstrategy.direct_feed.direct_feed_pair import PairId
+
+
+@dataclass(slots=True, frozen=True)
+class OHLCVCandle:
+    """One OHLCV candle in the direct data feed."""
+
+    pair: PairId
+    timestamp: pd.Timestamp
+    start_block: int
+    end_block: int
+
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+    exchange_rate: float
+
+    @staticmethod
+    def get_dataframe_columns() -> dict:
+        fields = dict([
+            ("pair", "string"),
+            ("start_block", "uint64"),
+            ("end_block", "uint64"),
+            ("open", "float32"),
+            ("high", "float32"),
+            ("low", "float32"),
+            ("close", "float32"),
+            ("volume", "float32"),
+            ("exchange_rate", "float32"),
+        ])
+        return fields
 
 
 def ohlcv_resample_trades(

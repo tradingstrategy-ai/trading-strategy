@@ -232,10 +232,11 @@ class SyntheticReorganisationMonitor(ReorganisationMonitor):
     Simulate block feed.
     """
 
-    def __init__(self, block_number: int = 1):
+    def __init__(self, block_number: int = 1, block_duration_seconds=1):
         super().__init__(reorg_wait_seconds=0)
         self.simulated_block_number = block_number
         self.simulated_blocks = {}
+        self.block_duration_seconds = block_duration_seconds
 
     def produce_blocks(self, block_count=1):
         """Populate the fake blocks in mock chain.
@@ -244,7 +245,7 @@ class SyntheticReorganisationMonitor(ReorganisationMonitor):
         """
         for x in range(block_count):
             num = self.simulated_block_number
-            record = BlockRecord(num, hex(num), num)
+            record = BlockRecord(num, hex(num), num * self.block_duration_seconds)
             self.simulated_blocks[self.simulated_block_number] = record
             self.simulated_block_number += 1
 
