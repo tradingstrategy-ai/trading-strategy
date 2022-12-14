@@ -1,6 +1,6 @@
 import pandas as pd
 
-from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
+from eth_defi.price_oracle.oracle import TrustedStablecoinOracle, FixedPriceOracle
 
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.reorg_mon import SyntheticReorganisationMonitor
@@ -170,12 +170,16 @@ def test_candle_feed_fork_last_block():
     delta = feed.backfill_buffer(100, None)
     candle_feed.apply_delta(delta)
     assert candle_feed.get_last_block_number() == 100
+    flat = candle_feed.candle_df.reset_index()
+    assert len(flat) == 21
 
     # Add 1 block
     mock_chain.produce_blocks(1)
     delta = feed.perform_duty_cycle()
     candle_feed.apply_delta(delta)
     assert candle_feed.get_last_block_number() == 101
+    flat = candle_feed.candle_df.reset_index()
+    assert len(flat) == 21
 
     # Reorg the last block
     mock_chain.produce_fork(101, fork_marker="0x7777")
@@ -186,3 +190,68 @@ def test_candle_feed_fork_last_block():
     assert delta.unadjusted_start_block == 101
     assert delta.end_block == 101
     assert candle_feed.get_last_block_number() == 101
+    flat = candle_feed.candle_df.reset_index()
+    assert len(flat) == 21
+
+
+def test_candle_feed_two_pairs():
+    """Make sure if the last block forks we do not get confused with two different pairs."""
+
+    mock_chain = SyntheticReorganisationMonitor(block_duration_seconds=12)
+    mock_chain.produce_blocks(100)
+    timeframe = Timeframe("1min")
+
+    feed = SyntheticFeed(
+        ["ETH-USD", "AAVE-ETH"],
+        {
+            "ETH-USD": TrustedStablecoinOracle(),
+            "AAVE-ETH": FixedPriceOracle(1600),
+        },
+        mock_chain,
+        timeframe=timeframe,
+        min_amount=-50,
+        max_amount=50,
+    )
+
+    candle_feed =  CandleFeed(
+        ["ETH-USD"],
+        timeframe=timeframe,
+    )
+
+    delta = feed.backfill_buffer(100, None)
+    candle_feed.apply_delta(delta)
+    assert candle_feed.get_last_block_number() == 100
+    flat = candle_feed.candle_df.reset_index()
+    assert len(flat) == 42
+
+    # Add 1 block
+    mock_chain.produce_blocks(1)
+    delta = feed.perform_duty_cycle()
+    candle_feed.apply_delta(delta)
+    assert candle_feed.get_last_block_number() == 101
+    flat = candle_feed.candle_df.reset_index()
+    assert len(flat) == 42
+
+    # Reorg the last block
+    mock_chain.produce_fork(101, fork_marker="0x7777")
+    delta = feed.perform_duty_cycle()
+    candle_feed.apply_delta(delta)
+    assert delta.reorg_detected
+    assert delta.start_block == 100
+    assert delta.unadjusted_start_block == 101
+    assert delta.end_block == 101
+    assert candle_feed.get_last_block_number() == 101
+    flat = candle_feed.candle_df.reset_index()
+    assert len(flat) == 42
+
+    # Build on the top of the fork
+    mock_chain.produce_blocks(100)
+    delta = feed.perform_duty_cycle()
+    candle_feed.apply_delta(delta)
+    assert not delta.reorg_detected
+    assert delta.start_block == 100
+    assert delta.unadjusted_start_block == 102
+    assert delta.end_block == 201
+    assert candle_feed.get_last_block_number() == 201
+    flat = candle_feed.candle_df.reset_index()
+    assert len(flat) == 82
