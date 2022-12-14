@@ -128,4 +128,8 @@ def test_ohlcv_truncate(test_df):
     df = convert_to_float(test_df, CurrencyConversion.us_dollar)
     timeframe = Timeframe("1D")
     ohlcv = resample_trades_into_ohlcv(df, timeframe)
-    truncate_ohlcv(ohlcv, pd.Timestamp("2020-01-04"))
+    ohlcv = truncate_ohlcv(ohlcv, pd.Timestamp("2020-01-04"))
+    eth = get_feed_for_pair(ohlcv, "ETH-USDC")
+    assert len(eth) == 1
+    aave = get_feed_for_pair(ohlcv, "AAVE-ETH")
+    assert len(aave) == 2 # We have 2 days worth of data
