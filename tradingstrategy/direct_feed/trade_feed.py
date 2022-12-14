@@ -365,6 +365,12 @@ class TradeFeed:
         reorg_resolution = self.check_reorganisations_and_purge()
         start_block = reorg_resolution.latest_block_with_good_data + 1
         end_block = self.reorg_mon.get_last_block_read()
+
+        if start_block > end_block:
+            # This situation can happen when the lsat block in the chain has reorganised,
+            # in such case just read the last block again
+            start_block = end_block
+
         trades = self.fetch_trades(start_block, end_block)
         return self.update_cycle(start_block, end_block, reorg_resolution.reorg_detected, trades)
 

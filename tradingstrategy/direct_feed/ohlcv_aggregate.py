@@ -181,6 +181,8 @@ def truncate_ohlcv(df: pd.DataFrame, ts: pd.Timestamp) -> pd.DataFrame:
     :param ts:
         Drop everything after this (inclusive).
     """
+    if len(df) == 0:
+        return df
     df = df[df.index.get_level_values('timestamp') < ts]
     return df
 

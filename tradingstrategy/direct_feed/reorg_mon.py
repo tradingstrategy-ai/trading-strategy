@@ -249,6 +249,10 @@ class SyntheticReorganisationMonitor(ReorganisationMonitor):
             self.simulated_blocks[self.simulated_block_number] = record
             self.simulated_block_number += 1
 
+    def produce_fork(self, block_number: int, fork_marker="0x8888"):
+        """Mock a fork int he chain."""
+        self.simulated_blocks[block_number] = BlockRecord(block_number, fork_marker, block_number * self.block_duration_seconds)
+
     def get_last_block_live(self):
         return self.simulated_block_number - 1
 

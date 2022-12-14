@@ -175,7 +175,7 @@ def test_perform_chain_reorg():
     assert not delta.reorg_detected
 
     # Trigger reorg by creating a changed block in the chain
-    mock_chain.simulated_blocks[70] = BlockRecord(70, "0x666", 70)
+    mock_chain.produce_fork(70)
 
     mock_chain.produce_blocks(2)
     assert mock_chain.get_last_block_live() == 102

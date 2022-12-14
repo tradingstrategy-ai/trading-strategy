@@ -44,6 +44,14 @@ class CandleFeed:
     def get_candles_by_pair(self, pair: PairId) -> pd.DataFrame:
         return get_feed_for_pair(self.candle_df, pair)
 
+    def get_last_block_number(self) -> int:
+        """Get overall last block number for which we have valid data.
+
+        :return:
+            block number (inclusive)
+        """
+        return self.candle_df["end_block"].max()
+
 
 
 

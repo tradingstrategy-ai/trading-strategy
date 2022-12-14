@@ -66,7 +66,7 @@ def test_candle_feed_initial_load():
 
 
 def test_candle_feed_increment():
-    """Load the first batch of trades from the chain and make candles."""
+    """Load trades incrementally."""
 
     mock_chain = SyntheticReorganisationMonitor(block_duration_seconds=12)
     mock_chain.produce_blocks(100)
@@ -89,6 +89,7 @@ def test_candle_feed_increment():
     delta = feed.backfill_buffer(100, None)
     candle_feed.apply_delta(delta)
 
+    # Add 1 block
     mock_chain.produce_blocks(1)
     delta = feed.perform_duty_cycle()
     candle_feed.apply_delta(delta)
@@ -96,3 +97,92 @@ def test_candle_feed_increment():
     candles = candle_feed.get_candles_by_pair("ETH-USD")
     assert candles.index[0] == pd.Timestamp('1970-01-01 00:00:00')
     assert candles.index[-1] == pd.Timestamp('1970-01-01 00:20:00')
+
+    # Add 100 blocks
+    mock_chain.produce_blocks(100)
+    delta = feed.perform_duty_cycle()
+    candle_feed.apply_delta(delta)
+
+    candles = candle_feed.get_candles_by_pair("ETH-USD")
+    assert candles.index[0] == pd.Timestamp('1970-01-01 00:00:00')
+    assert candles.index[-1] == pd.Timestamp('1970-01-01 00:40:00')
+
+
+def test_candle_feed_fork():
+    """Load trades with a chain fork."""
+
+    mock_chain = SyntheticReorganisationMonitor(block_duration_seconds=12)
+    mock_chain.produce_blocks(100)
+    timeframe = Timeframe("1min")
+
+    feed = SyntheticFeed(
+        ["ETH-USD"],
+        {"ETH-USD": TrustedStablecoinOracle()},
+        mock_chain,
+        timeframe=timeframe,
+        min_amount=-50,
+        max_amount=50,
+    )
+
+    candle_feed =  CandleFeed(
+        ["ETH-USD"],
+        timeframe=timeframe,
+    )
+
+    delta = feed.backfill_buffer(100, None)
+    candle_feed.apply_delta(delta)
+    assert candle_feed.get_last_block_number() == 100
+
+    # Fork the chain
+    mock_chain.produce_fork(70, fork_marker="0x8888")
+    delta = feed.perform_duty_cycle()
+    candle_feed.apply_delta(delta)
+    assert delta.start_block == 70
+    assert delta.end_block == 100
+    assert delta.reorg_detected
+
+    candles = candle_feed.get_candles_by_pair("ETH-USD")
+    assert len(candles) == 21
+    assert candle_feed.get_last_block_number() == 100
+
+
+def test_candle_feed_fork_last_block():
+    """Make sure if the last block forks we do not get confused."""
+
+    mock_chain = SyntheticReorganisationMonitor(block_duration_seconds=12)
+    mock_chain.produce_blocks(100)
+    timeframe = Timeframe("1min")
+
+    feed = SyntheticFeed(
+        ["ETH-USD"],
+        {"ETH-USD": TrustedStablecoinOracle()},
+        mock_chain,
+        timeframe=timeframe,
+        min_amount=-50,
+        max_amount=50,
+    )
+
+    candle_feed =  CandleFeed(
+        ["ETH-USD"],
+        timeframe=timeframe,
+    )
+
+    delta = feed.backfill_buffer(100, None)
+    candle_feed.apply_delta(delta)
+    assert candle_feed.get_last_block_number() == 100
+
+    # Add 1 block
+    mock_chain.produce_blocks(1)
+    delta = feed.perform_duty_cycle()
+    candle_feed.apply_delta(delta)
+    assert candle_feed.get_last_block_number() == 101
+
+    # Reorg the last block
+    mock_chain.produce_fork(101, fork_marker="0x7777")
+    delta = feed.perform_duty_cycle()
+    candle_feed.apply_delta(delta)
+    assert delta.reorg_detected
+    assert delta.start_block == 100
+    assert delta.unadjusted_start_block == 101
+    assert delta.end_block == 101
+    assert candle_feed.get_last_block_number() == 101
