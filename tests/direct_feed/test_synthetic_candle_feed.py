@@ -4,7 +4,7 @@ from eth_defi.price_oracle.oracle import TrustedStablecoinOracle, FixedPriceOrac
 
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.reorg_mon import SyntheticReorganisationMonitor
-from tradingstrategy.direct_feed.synthetic_feed import SyntheticFeed
+from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.timeframe import Timeframe
 
 
@@ -16,7 +16,7 @@ def test_candle_feed_initial_load():
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -72,7 +72,7 @@ def test_candle_feed_increment():
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -115,7 +115,7 @@ def test_candle_feed_fork():
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -153,7 +153,7 @@ def test_candle_feed_fork_last_block():
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -201,8 +201,10 @@ def test_candle_feed_two_pairs():
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
-    feed = SyntheticFeed(
-        ["ETH-USD", "AAVE-ETH"],
+    pairs = ["ETH-USD", "AAVE-ETH"]
+
+    feed = SyntheticTradeFeed(
+        pairs,
         {
             "ETH-USD": TrustedStablecoinOracle(),
             "AAVE-ETH": FixedPriceOracle(1600),
@@ -214,7 +216,7 @@ def test_candle_feed_two_pairs():
     )
 
     candle_feed =  CandleFeed(
-        ["ETH-USD"],
+        pairs,
         timeframe=timeframe,
     )
 

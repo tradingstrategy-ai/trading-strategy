@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
 from tradingstrategy.direct_feed.reorg_mon import SyntheticReorganisationMonitor, BlockRecord
-from tradingstrategy.direct_feed.synthetic_feed import SyntheticFeed
+from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.trade_feed import Trade
 from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 
@@ -42,7 +42,7 @@ def test_add_trades():
 
     mock_chain.produce_blocks(1)
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -74,7 +74,7 @@ def test_initial_load():
 
     mock_chain = SyntheticReorganisationMonitor()
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -95,7 +95,7 @@ def test_truncate():
 
     mock_chain = SyntheticReorganisationMonitor()
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -114,7 +114,7 @@ def test_initial_load_no_progress_bar():
     """Read trades from a synthetic feed, do not use progress br."""
 
     mock_chain = SyntheticReorganisationMonitor()
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -129,7 +129,7 @@ def test_perform_cycle():
 
     mock_chain = SyntheticReorganisationMonitor()
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -162,7 +162,7 @@ def test_perform_chain_reorg():
 
     mock_chain = SyntheticReorganisationMonitor()
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
@@ -197,7 +197,7 @@ def test_incremental():
 
     mock_chain = SyntheticReorganisationMonitor()
 
-    feed = SyntheticFeed(
+    feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,

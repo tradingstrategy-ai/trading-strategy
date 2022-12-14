@@ -14,7 +14,7 @@ from .direct_feed_pair import PairId
 from .reorg_mon import ReorganisationMonitor, BlockRecord
 
 
-class SyntheticFeed(TradeFeed):
+class SyntheticTradeFeed(TradeFeed):
     """Synthetic trade feed that produces random trades."""
 
     def __init__(self,
@@ -31,6 +31,7 @@ class SyntheticFeed(TradeFeed):
                  max_amount=50,
                  price_movement_per_trade=2.5,
                  timeframe: Timeframe = Timeframe("1min"),
+                 prices: Dict[PairId, float] = None,
                  ):
         super().__init__(
             pairs=pairs,
@@ -48,10 +49,13 @@ class SyntheticFeed(TradeFeed):
         self.price_movement_per_trade = price_movement_per_trade
         self.random_gen = random.Random(random_seed)
 
-        self.prices = {
-            p: self.random_gen.randint(start_price_range, end_price_range)
-            for p in pairs
-        }
+        if not prices:
+            self.prices = {
+                p: self.random_gen.randint(start_price_range, end_price_range)
+                for p in pairs
+            }
+        else:
+            self.prices = prices
 
     def fetch_trades(self, start_block: int, end_block: Optional[int], tqdm: Optional[Type[tqdm]] = None) -> Iterable[Trade]:
         """Generate few random trades per block per pair."""
