@@ -28,7 +28,7 @@ from typing import Tuple, List, Optional
 import pandas as pd
 import dash
 from dash import html, dcc, Output, Input, Dash
-from dash.dcc import Graph, Interval
+from dash.dcc import Graph, Interval, Markdown, Dropdown
 from plotly.subplots import make_subplots
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle, FixedPriceOracle
@@ -113,8 +113,8 @@ def setup_app(
     current_pair = pairs[0]
 
     app.layout = html.Div([
-        dcc.Dropdown(pairs, pairs[0], id='pair-dropdown'),
-        html.Div(id='dd-output-container'),
+        Dropdown(pairs, pairs[0], id='pair-dropdown'),
+        Markdown(id='chain-stats'),
         Graph(id='live-update-graph'),
         # https://dash.plotly.com/live-updates
         Interval(
@@ -124,8 +124,8 @@ def setup_app(
         )
     ])
 
+    # Select the current pair
     @app.callback(
-        Output('dd-output-container', 'children'),
         Input('pair-dropdown', 'value'),
     )
     def update_output(value):
@@ -133,6 +133,14 @@ def setup_app(
         current_pair = value
         return f'You have selected {value}'
 
+    @app.callback(Output('chain-stats', "markdown"),
+                  Input('interval-component', 'n_intervals'))
+    def update_chain_stats(n):
+        block_num = block_producer.get_last_block_live()
+        timestamp = block_producer.get_block_timestamp_as_pandas(block_num)
+        return f"""Current block: {block_num:,} at {timestamp}"""
+
+    # Update the candle chart
     @app.callback(Output('live-update-graph', 'figure'),
                   Input('interval-component', 'n_intervals'))
     def update_ohlcv_chart_live(n):
