@@ -78,3 +78,14 @@ def test_get_price_not_within_tolerance(synthetic_candles):
             when=pd.Timestamp("2020-01-01 00:05"),
             tolerance=pd.Timedelta(1, "m"))
 
+
+def test_get_single_pair_data_allow_current(synthetic_candles):
+    """Check for our forward-looking bias mitigation."""
+
+    universe = GroupedCandleUniverse(synthetic_candles)
+
+    candles = universe.get_single_pair_data(timestamp=pd.Timestamp("2020-09-01"))
+    assert candles.iloc[-1]["timestamp"] == pd.Timestamp("2020-03-01")
+
+    candles = universe.get_single_pair_data(timestamp=pd.Timestamp("2020-09-01"), allow_current=True)
+    assert candles.iloc[-1]["timestamp"] == pd.Timestamp("2020-09-01")

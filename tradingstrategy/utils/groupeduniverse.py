@@ -245,16 +245,32 @@ class PairGroupedUniverse:
         index = self.df.index
         return index[index <= ts][-1]
 
-    def get_single_pair_data(self, timestamp: Optional[pd.Timestamp]=None, sample_count: Optional[int]=None) -> pd.DataFrame:
-        """Get all candles/liquidity samples for the single alone pair in the universe.
+    def get_single_pair_data(self,
+                             timestamp: Optional[pd.Timestamp] = None,
+                             sample_count: Optional[int] = None,
+                             allow_current=False,
+                             ) -> pd.DataFrame:
+        """Get all candles/liquidity samples for the single alone pair in the universe by a certain timestamp.
 
         A shortcut method for trading strategies that trade only one pair.
+        Designed to be backtesting and live trading friendly function to access candle data.
 
         :param timestamp:
-            Get the sample at this timestamp and all previous samples.
+            Get the sample until this timestamp and all previous samples.
+
+        :param allow_current:
+            Allow to read any candle precisely at the timestamp.
+            If you read the candle of your current strategy cycle timestamp,
+            bad things may happen.
+
+            In backtesting, reading the candle at the current timestamp
+            introduces forward-looking bias. In live trading,
+            reading the candle at the current timestamp may
+            give you no candle or an incomplete candle (trades are still
+            piling up on it).
 
         :param sample_count:
-            Limit the
+            Limit the returned number of candles N candles before the timestamp.
         """
 
         pair_count = self.get_pair_count()
@@ -263,7 +279,10 @@ class PairGroupedUniverse:
 
         # Get all df content before our timestamp
         if timestamp:
-            df = df.truncate(after=timestamp + pd.Timedelta(seconds=1))
+            if allow_current:
+                df = df.truncate(after=timestamp + pd.Timedelta(seconds=1))
+            else:
+                df = df.truncate(after=timestamp - pd.Timedelta(seconds=1))
 
         if sample_count:
             return df.iloc[-sample_count:]
