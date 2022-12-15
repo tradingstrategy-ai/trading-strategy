@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trading-strategy"
-version = "0.8.8"
+version = "0.9.0"
 description = "DEX trading and blockchain quantitative finance data for Python"
 authors = ["Mikko Ohtamaa <mikko@tradingstrategy.ai>"]
 homepage = "https://tradingstrategy.ai"
@@ -29,6 +29,7 @@ tqdm-loggable = "^0.1.2"
 trading-strategy-qstrader = {version="^0.5.0", optional = true}
 scipy = {version="^1.6.1", optional = true}
 trading-strategy-backtrader = {version="^0.1",  optional = true}
+web3-ethereum-defi = {version = "0.11.3", extras = ["direct-feed"]}
 
 [tool.poetry.dev-dependencies]
 pytest = "7.1.3"
@@ -39,9 +40,15 @@ memory-profiler = "^0.60.0"
 poetry-core = "^1.1.0"
 pytest-asyncio = "^0.19.0"
 
-# qstrader depends on Seaborn that depends on Scipy that is a problematic dependency
+
 [tool.poetry.extras]
+# Real-time OHLCV feeds over JSON-RPC
+direct-feed = ["web3-ethereum-defi"]
+
+# Legacy qstrader framework support
 qstrader = ["scipy", "trading-strategy-qstrader"]
+
+# Legacy backtrader framework support
 backtrader = ["trading-strategy-backtrader"]
 
 
@@ -49,9 +56,11 @@ backtrader = ["trading-strategy-backtrader"]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-
 # https://docs.pytest.org/en/6.2.x/customize.html
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
+]
+filterwarnings = [
+    "ignore::FutureWarning"
 ]

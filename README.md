@@ -51,13 +51,13 @@ You can install this package with
 `poetry`:
 
 ```shell
-poetry add trading-strategy
+poetry add trading-strategy -E direct-feed
 ```
 
 `pip`:
 
 ```shell
-pip install trading-strategy 
+pip install "trading-strategy[direct-feed]" 
 ```
 
 # Documentation
