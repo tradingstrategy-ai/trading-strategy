@@ -3,7 +3,7 @@ name = "aiohttp"
 version = "3.8.3"
 description = "Async http client/server framework (asyncio)"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -23,7 +23,7 @@ name = "aiosignal"
 version = "1.3.1"
 description = "aiosignal: a list of registered asynchronous callbacks"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -56,7 +56,7 @@ name = "async-timeout"
 version = "4.0.2"
 description = "Timeout context manager for asyncio programs"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6"
 
 [[package]]
@@ -86,7 +86,7 @@ name = "base58"
 version = "2.1.1"
 description = "Base58 and Base58Check implementation."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 
 [package.extras]
@@ -97,7 +97,7 @@ name = "bitarray"
 version = "2.6.0"
 description = "efficient arrays of booleans -- C extension"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -105,7 +105,7 @@ name = "cached-property"
 version = "1.5.2"
 description = "A decorator for caching properties in classes."
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -191,7 +191,7 @@ name = "cytoolz"
 version = "0.12.0"
 description = "Cython implementation of Toolz: High performance functional utilities"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 
 [package.dependencies]
@@ -229,7 +229,7 @@ name = "eth-abi"
 version = "2.2.0"
 description = "eth_abi: Python utilities for working with Ethereum ABI definitions, especially encoding and decoding"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6, <4"
 
 [package.dependencies]
@@ -249,7 +249,7 @@ name = "eth-account"
 version = "0.5.9"
 description = "eth-account: Sign Ethereum transactions and messages with local private keys"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6, <4"
 
 [package.dependencies]
@@ -273,7 +273,7 @@ name = "eth-bloom"
 version = "1.0.4"
 description = "Python implementation of the Ethereum Trie structure"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6, <4"
 
 [package.dependencies]
@@ -290,7 +290,7 @@ name = "eth-hash"
 version = "0.3.3"
 description = "eth-hash: The Ethereum hashing function, keccak256, sometimes (erroneously) called sha3"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5, <4"
 
 [package.dependencies]
@@ -310,7 +310,7 @@ name = "eth-keyfile"
 version = "0.5.1"
 description = "A library for handling the encrypted keyfiles used to store ethereum private keys."
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [package.dependencies]
@@ -324,7 +324,7 @@ name = "eth-keys"
 version = "0.3.4"
 description = "Common API for Ethereum key operations."
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [package.dependencies]
@@ -343,7 +343,7 @@ name = "eth-rlp"
 version = "0.2.1"
 description = "eth-rlp: RLP definitions for common Ethereum objects in Python"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6, <4"
 
 [package.dependencies]
@@ -362,7 +362,7 @@ name = "eth-tester"
 version = "0.6.0b7"
 description = "Tools for testing Ethereum applications."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6.8,<4"
 
 [package.dependencies]
@@ -391,7 +391,7 @@ name = "eth-typing"
 version = "2.3.0"
 description = "eth-typing: Common type annotations for ethereum python packages"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5, <4"
 
 [package.extras]
@@ -405,7 +405,7 @@ name = "eth-utils"
 version = "1.10.0"
 description = "eth-utils: Common utility functions for python code that interacts with Ethereum"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5,!=3.5.2,<4"
 
 [package.dependencies]
@@ -458,7 +458,7 @@ name = "frozenlist"
 version = "1.3.3"
 description = "A list-like structure which implements collections.abc.MutableSequence"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 
 [[package]]
@@ -466,7 +466,7 @@ name = "futureproof"
 version = "0.3.1"
 description = "Bulletproof concurrent.futures"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [package.dependencies]
@@ -482,7 +482,7 @@ name = "hexbytes"
 version = "0.2.3"
 description = "hexbytes: Python `bytes` subclass that decodes hex, with a readable console output"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6, <4"
 
 [package.extras]
@@ -520,24 +520,23 @@ python-versions = "*"
 
 [[package]]
 name = "ipdb"
-version = "0.13.9"
+version = "0.13.11"
 description = "IPython-enabled pdb"
 category = "dev"
 optional = false
-python-versions = ">=2.7"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [package.dependencies]
 decorator = {version = "*", markers = "python_version > \"3.6\""}
-ipython = {version = ">=7.17.0", markers = "python_version > \"3.6\""}
-setuptools = "*"
-toml = {version = ">=0.10.2", markers = "python_version > \"3.6\""}
+ipython = {version = ">=7.31.1", markers = "python_version > \"3.6\""}
+tomli = {version = "*", markers = "python_version > \"3.6\" and python_version < \"3.11\""}
 
 [[package]]
 name = "ipfshttpclient"
 version = "0.8.0a2"
 description = "Python IPFS HTTP CLIENT library"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6.2,!=3.7.0,!=3.7.1"
 
 [package.dependencies]
@@ -611,7 +610,7 @@ name = "jsonschema"
 version = "4.17.3"
 description = "An implementation of JSON Schema validation for Python"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -635,7 +634,7 @@ name = "lru-dict"
 version = "1.1.8"
 description = "An Dict like LRU container."
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [package.extras]
@@ -716,7 +715,7 @@ name = "multiaddr"
 version = "0.0.9"
 description = "Python implementation of jbenet's multiaddr"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
 
 [package.dependencies]
@@ -730,7 +729,7 @@ name = "multidict"
 version = "6.0.3"
 description = "multidict implementation"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 
 [[package]]
@@ -746,7 +745,7 @@ name = "netaddr"
 version = "0.8.0"
 description = "A network address manipulation library for Python"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -789,7 +788,7 @@ name = "parsimonious"
 version = "0.8.1"
 description = "(Soon to be) the fastest pure-Python PEG parser I could muster"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [package.dependencies]
@@ -885,7 +884,7 @@ name = "protobuf"
 version = "3.19.5"
 description = "Protocol Buffers"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 
 [[package]]
@@ -931,7 +930,7 @@ name = "py-ecc"
 version = "5.2.0"
 description = "Elliptic curve crypto in python including secp256k1 and alt_bn128"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5, <4"
 
 [package.dependencies]
@@ -950,7 +949,7 @@ name = "py-evm"
 version = "0.5.0a3"
 description = "Python implementation of the Ethereum Virtual Machine"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [package.dependencies]
@@ -980,7 +979,7 @@ name = "py-geth"
 version = "3.10.0"
 description = "Run Go-Ethereum as a subprocess"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3"
 
 [package.dependencies]
@@ -1007,7 +1006,7 @@ name = "pycryptodome"
 version = "3.16.0"
 description = "Cryptographic library for Python"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
@@ -1015,7 +1014,7 @@ name = "pyethash"
 version = "0.1.27"
 description = "Python wrappers for ethash, the ethereum proof of workhashing function"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -1053,7 +1052,7 @@ name = "pyrsistent"
 version = "0.19.2"
 description = "Persistent/Functional/Immutable data structures"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 
 [[package]]
@@ -1061,7 +1060,7 @@ name = "pysha3"
 version = "1.0.2"
 description = "SHA-3 (Keccak) for Python 2.7 - 3.5"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -1122,7 +1121,7 @@ name = "pywin32"
 version = "305"
 description = "Python for Window Extensions"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -1148,7 +1147,7 @@ name = "rlp"
 version = "2.0.1"
 description = "A package for Recursive Length Prefix encoding and decoding"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [package.dependencies]
@@ -1200,7 +1199,7 @@ name = "semantic-version"
 version = "2.10.0"
 description = "A library implementing the 'SemVer' scheme."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7"
 
 [package.extras]
@@ -1212,7 +1211,7 @@ name = "setuptools"
 version = "65.6.3"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.7"
 
 [package.extras]
@@ -1251,7 +1250,7 @@ name = "sortedcontainers"
 version = "2.4.0"
 description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -1282,14 +1281,6 @@ python-versions = ">=3.6"
 doc = ["reno", "sphinx", "tornado (>=4.5)"]
 
 [[package]]
-name = "toml"
-version = "0.10.2"
-description = "Python Library for Tom's Obvious, Minimal Language"
-category = "dev"
-optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
-
-[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -1302,7 +1293,7 @@ name = "toolz"
 version = "0.12.0"
 description = "List processing tools and functional utilities"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 
 [[package]]
@@ -1378,7 +1369,7 @@ name = "trie"
 version = "2.0.0a5"
 description = "Python implementation of the Ethereum Trie structure"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6,<4"
 
 [package.dependencies]
@@ -1419,7 +1410,7 @@ name = "ujson"
 version = "5.6.0"
 description = "Ultra fast JSON encoder and decoder for Python"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 
 [[package]]
@@ -1440,7 +1431,7 @@ name = "varint"
 version = "1.0.2"
 description = "Simple python varint implementation"
 category = "main"
-optional = true
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -1456,7 +1447,7 @@ name = "web3"
 version = "5.31.3"
 description = "Web3.py"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6,<4"
 
 [package.dependencies]
@@ -1486,10 +1477,10 @@ tester = ["eth-tester[py-evm] (==v0.6.0-beta.7)", "py-geth (>=3.9.1,<4)"]
 
 [[package]]
 name = "web3-ethereum-defi"
-version = "0.11.2"
-description = "Web3-Ethereum-DeFi is a library for smart contracts, DeFi trading (Uniswap, PancakeSwap), Ethereum JSON-RPC, EVM transactions and automated test suites."
+version = "0.11.3"
+description = "DeFi integration library for smart contracts, DeFi trading (Uniswap, PancakeSwap), Ethereum JSON-RPC, EVM transactions and automated test suites."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
@@ -1508,7 +1499,7 @@ name = "websockets"
 version = "9.1"
 description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6.1"
 
 [[package]]
@@ -1516,7 +1507,7 @@ name = "yarl"
 version = "1.8.2"
 description = "Yet another URL library"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -1531,7 +1522,7 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<4"
-content-hash = "99d74272bc569cbef328bbbcf632d21fb3ce567793efb61813f3ad17244d5aee"
+content-hash = "09f1e2004f6a4db9ff09a8d416b19c433f74ea0fdc399a8cd2180839b45319d5"
 
 [metadata.files]
 aiohttp = [
@@ -2063,7 +2054,8 @@ iniconfig = [
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
 ipdb = [
-    {file = "ipdb-0.13.9.tar.gz", hash = "sha256:951bd9a64731c444fd907a5ce268543020086a697f6be08f7cc2c9a752a278c5"},
+    {file = "ipdb-0.13.11-py3-none-any.whl", hash = "sha256:f74c2f741c18b909eaf89f19fde973f745ac721744aa1465888ce45813b63a9c"},
+    {file = "ipdb-0.13.11.tar.gz", hash = "sha256:c23b6736f01fd4586cc2ecbebdf79a5eb454796853e1cd8f2ed3b7b91d4a3e93"},
 ]
 ipfshttpclient = [
     {file = "ipfshttpclient-0.8.0a2-py3-none-any.whl", hash = "sha256:ce6bac0e3963c4ced74d7eb6978125362bb05bbe219088ca48f369ce14d3cc39"},
@@ -2792,10 +2784,6 @@ tenacity = [
     {file = "tenacity-8.1.0-py3-none-any.whl", hash = "sha256:35525cd47f82830069f0d6b73f7eb83bc5b73ee2fff0437952cedf98b27653ac"},
     {file = "tenacity-8.1.0.tar.gz", hash = "sha256:e48c437fdf9340f5666b92cd7990e96bc5fc955e1298baf4a907e3972067a445"},
 ]
-toml = [
-    {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
-    {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
-]
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
@@ -2920,8 +2908,8 @@ web3 = [
     {file = "web3-5.31.3.tar.gz", hash = "sha256:4b2d420647c81856e3cf398996cd3cc80c719dc3a10881884c5c3b1467e4f850"},
 ]
 web3-ethereum-defi = [
-    {file = "web3_ethereum_defi-0.11.2-py3-none-any.whl", hash = "sha256:b97b1abfea4d316ab4fe9075ca92feea33a650083a596e4904111ffca517b8ee"},
-    {file = "web3_ethereum_defi-0.11.2.tar.gz", hash = "sha256:004f02326449b30c431a020af466fc9beb847e8a01b64b669860b3710c720ad2"},
+    {file = "web3_ethereum_defi-0.11.3-py3-none-any.whl", hash = "sha256:a564208dce9e1c81ba5b4c9503759830b59b82fc21e962ad9dcf69207af7802d"},
+    {file = "web3_ethereum_defi-0.11.3.tar.gz", hash = "sha256:bc7066f6cf20cae99d7fe002d630a27f36abe4ea7076984353c0a2b392157c68"},
 ]
 websockets = [
     {file = "websockets-9.1-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:d144b350045c53c8ff09aa1cfa955012dd32f00c7e0862c199edcabb1a8b32da"},
