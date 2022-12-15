@@ -147,7 +147,7 @@ def setup_app(
         H2("Latest trades"),
         DataTable(id="trades"),
         H2("Price chart"),
-        Graph(id='live-update-graph'),
+        Graph(id='live-update-graph', responsive=True),
         # https://dash.plotly.com/live-updates
         Interval(
             id='interval-component',
