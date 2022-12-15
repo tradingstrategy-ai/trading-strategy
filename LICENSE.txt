@@ -1,4 +1,7 @@
-Capitalgram Python library
+Trading Strategy Python library
+
+Copyright (C) 2022 Market Software Ltd.
+
 Copyright (C) 2021 Mikko Ohtamaa
 
 This program is free software: you can redistribute it and/or modify
