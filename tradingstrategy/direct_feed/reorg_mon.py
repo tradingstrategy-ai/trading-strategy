@@ -58,6 +58,10 @@ class ReorganisationResolutionFailure(Exception):
     """
 
 
+class BlockNotAvailable(Exception):
+    """Tried to ask timestamp data for a block that does not exist yet."""
+
+
 
 class ReorganisationMonitor:
     """Watch blockchain for reorgs.
@@ -75,6 +79,10 @@ class ReorganisationMonitor:
         self.check_depth = check_depth
         self.reorg_wait_seconds = reorg_wait_seconds
         self.max_cycle_tries = max_reorg_resolution_attempts
+
+    def has_data(self) -> bool:
+        """Do we have any data available yet."""
+        return len(self.block_map) > 0
 
     def get_last_block_read(self):
         return self.last_block_read
@@ -141,11 +149,21 @@ class ReorganisationMonitor:
 
     def get_block_timestamp(self, block_number: int) -> int:
         """Return UNIX UTC timestamp of a block."""
+
+        if not self.block_map:
+            raise BlockNotAvailable("We have no records of any blocks")
+
+        if block_number not in self.block_map:
+            last_recorded_block_num = max(self.block_map.keys())
+            raise BlockNotAvailable(f"Block {block_number} has not data, the latest live block is {self.get_last_block_live()}, last recorded is {last_recorded_block_num}")
+
         return self.block_map[block_number].timestamp
 
     def get_block_timestamp_as_pandas(self, block_number: int) -> pd.Timestamp:
         """Return UNIX UTC timestamp of a block."""
-        return pd.Timestamp.utcfromtimestamp(self.block_map[block_number].timestamp).tz_localize(None)
+
+        ts = self.get_block_timestamp(block_number)
+        return pd.Timestamp.utcfromtimestamp(ts).tz_localize(None)
 
     def update_chain(self) -> ChainReorganisationResolution:
         """Attemp

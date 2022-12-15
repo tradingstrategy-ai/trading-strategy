@@ -5,6 +5,9 @@
 
 - The OHLCV data is randomly generated
 
+- This app is not safe, but just an example for scripting purposes - see
+  https://dash.plotly.com/sharing-data-between-callbacks
+
 - You need to install `dash` to run this application
 
 .. code-block:: shell
@@ -28,7 +31,8 @@ from typing import Tuple, List, Optional
 import pandas as pd
 import dash
 from dash import html, dcc, Output, Input, Dash
-from dash.dcc import Graph, Interval, Markdown, Dropdown
+from dash.dcc import Graph, Interval, Markdown, Dropdown, Store
+from dash.html import Div
 from plotly.subplots import make_subplots
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle, FixedPriceOracle
@@ -43,6 +47,8 @@ from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 #: Setup a mock blockchain with this block time
 BLOCK_DURATION_SECONDS = 1.5
 
+#: Setup a mock blockchain with this block time
+CANDLE_DURATION = Timeframe("5min")
 
 logger: Optional[logging.Logger] = logging.getLogger()
 
@@ -57,7 +63,8 @@ def setup_fake_market_data_feeds() -> Tuple[MockChainAndReorganisationMonitor, C
     # Generate 5 min candles
     timeframe = Timeframe("5min")
 
-    # Start with 1 hour data
+    # Backfill the fake data.
+    # We start with 1 hour generated data in the buffer.
     mock_chain.produce_blocks(int(3600 / BLOCK_DURATION_SECONDS))
 
     pairs = ["ETH-USD", "AAVE-ETH"]
@@ -114,31 +121,44 @@ def setup_app(
 
     app.layout = html.Div([
         Dropdown(pairs, pairs[0], id='pair-dropdown'),
-        Markdown(id='chain-stats'),
+        Div(id='chain-stats'),
         Graph(id='live-update-graph'),
         # https://dash.plotly.com/live-updates
         Interval(
             id='interval-component',
             interval=freq_seconds * 1000,
             n_intervals=0
-        )
+        ),
+        Store(id='current-pair')
     ])
 
     # Select the current pair
     @app.callback(
+        Output('current-pair', 'data'),
         Input('pair-dropdown', 'value'),
     )
     def update_output(value):
+        # TODO: Not safe for real app
         nonlocal current_pair
         current_pair = value
-        return f'You have selected {value}'
+        return value
 
-    @app.callback(Output('chain-stats', "markdown"),
+    # Update the chain status
+    @app.callback(Output('chain-stats', "children"),
                   Input('interval-component', 'n_intervals'))
     def update_chain_stats(n):
-        block_num = block_producer.get_last_block_live()
-        timestamp = block_producer.get_block_timestamp_as_pandas(block_num)
-        return f"""Current block: {block_num:,} at {timestamp}"""
+        try:
+
+            if not block_producer.has_data():
+                return "No blocks produced yet"
+
+            block_num = block_producer.get_last_block_read()
+            timestamp = block_producer.get_block_timestamp_as_pandas(block_num)
+            timestamp_fmt = timestamp.strftime("%Y-%m-%d, %H:%M:%S UTC")
+            return f"""Current block: {block_num:,} at {timestamp_fmt}, loop {n}, timebar size: {CANDLE_DURATION.freq}"""
+        except Exception as e:
+            logger.exception(e)
+            raise
 
     # Update the candle chart
     @app.callback(Output('live-update-graph', 'figure'),
