@@ -1,6 +1,8 @@
 # 0.9.1
 
 - Add support for average duration statistic to be expressed in terms of `bars`
+- Framework for direct, real-time, date feeds directly from a blockchain node
+- Add `uniswap_v2_incompatible` exchange type
 
 # 0.9.0
 
