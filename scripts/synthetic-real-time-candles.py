@@ -29,14 +29,15 @@ from threading import Thread
 
 from typing import Tuple, List, Optional, Dict
 
+import pandas as pd
 from dash import html, Output, Input, Dash
-from dash.dcc import Graph, Interval, Dropdown, Store
-from dash.html import Div, Label
+from dash.dash_table import DataTable
+from dash.dcc import Graph, Interval, Dropdown
+from dash.html import Div, Label, H2
 from plotly.subplots import make_subplots
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle, FixedPriceOracle
 from tradingstrategy.charting.candle_chart import visualise_ohlcv
-from tradingstrategy.direct_feed import trade_feed
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
@@ -142,6 +143,9 @@ def setup_app(
                 Div([Label("Chain status:"), Div(id='chain-stats'),]),
             ],
         ),
+        H2("Latest trades"),
+        DataTable(id="trades"),
+        H2("Price chart"),
         Graph(id='live-update-graph'),
         # https://dash.plotly.com/live-updates
         Interval(
@@ -167,14 +171,32 @@ def setup_app(
             logger.exception(e)
             raise
 
-    # Update the candle charts.
+    # Get the raw trades and convert them to
+    # human readable table format
+    @app.callback(Output('trades', "data"),
+                  [Input('interval-component', 'n_intervals'), Input('pair-dropdown', 'value')])
+    def update_last_trades(n, pair):
+        df = trade_feed.get_latest_trades(5, pair)
+        df = df.sort_values("timestamp", ascending=False)
+        quote_token = pair.split("-")[-1]
+        output = pd.DataFrame()
+        output["Block number"] = df["block_number"]
+        output["Pair"] = df["pair"]
+        output["Transaction"] = df["tx_hash"]
+        output["Price USD"] = df["price"]
+        if quote_token != "USD":
+            output[f"Price {quote_token}"] = df["price"] / df["exchange_rate"]
+            output[f"Echange rate USD/{quote_token}"] = df["exchange_rate"]
+        return output.to_dict("records")
+
+    # Update the candle charts for the currently selected pair
     @app.callback(Output('live-update-graph', 'figure'),
                   [Input('interval-component', 'n_intervals'), Input('pair-dropdown', 'value'), Input('candle-dropdown', 'value')])
     def update_ohlcv_chart_live(n, current_pair, current_candle_duration):
         try:
             candles = candle_feeds[current_candle_duration].get_candles_by_pair(current_pair)
             if len(candles) > 0:
-                fig = visualise_ohlcv(candles)
+                fig = visualise_ohlcv(candles, height=500)
             else:
                 # Create empty figure as we do not have data yet
                 fig = make_subplots(rows=1, cols=1)

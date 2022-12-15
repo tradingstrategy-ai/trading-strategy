@@ -221,6 +221,26 @@ class TradeFeed:
         new_data.set_index("block_number", inplace=True, drop=False)
         self.trades_df = pd.concat([self.trades_df, new_data])
 
+    def get_latest_trades(self, n: int, pair: Optional[PairId] = None) -> pd.DataFrame:
+        """Returns the latest trades.
+
+        These trades will be across all trading pairs we are monitoring.
+
+        :param n:
+            Number of trades to return
+
+        :param pair:
+            Optional pair to filter with
+
+        :return:
+            DataFrame containing n trades
+        """
+        if pair:
+            df = self.trades_df.loc[self.trades_df["pair"] == pair]
+        else:
+            df = self.trades_df
+        return df.tail(n)
+
     def truncate_reorganised_data(self, latest_good_block):
         """Discard data because of the chain reorg.
 

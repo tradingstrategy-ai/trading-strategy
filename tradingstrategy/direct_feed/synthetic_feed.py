@@ -75,6 +75,7 @@ class SyntheticTradeFeed(TradeFeed):
                 for trade_idx in range(trades_per_block):
 
                     self.prices[p] += self.random_gen.uniform(-self.price_movement_per_trade, self.price_movement_per_trade)
+                    self.prices[p] = max(self.prices[p], 0.00001)  # Don't go to negative prices
                     price = self.prices[p]
                     amount = self.random_gen.uniform(self.min_amount, self.max_amount)
 
