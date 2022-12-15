@@ -3,7 +3,8 @@
 - This application is mostly useful for testing interactive
   user interface components and data feed APIs
 
-- The OHLCV data is randomly generated
+- The OHLCV data is randomly generated. We generate two pairs: ETH-USD
+  and AAVE-ETH.
 
 - This app is not safe, but just an example for scripting purposes - see
   https://dash.plotly.com/sharing-data-between-callbacks
@@ -211,7 +212,6 @@ def setup_app(
 
 def run_app():
     """Setup and run the dash app."""
-    global logger
 
     # Get rid of pesky Pandas FutureWarnings
     disable_pandas_warnings()
@@ -219,6 +219,7 @@ def run_app():
     # Setup logging
     logging.basicConfig(level=logging.DEBUG, handlers=[logging.StreamHandler()])
 
+    # Setup the fake blockchain data generator
     mock_chain, candle_feed, trade_feed = setup_fake_market_data_feeds()
     pairs = trade_feed.pairs
 
@@ -230,6 +231,7 @@ def run_app():
     candle_bg_thread = Thread(target=start_block_consumer_thread, args=(trade_feed, candle_feed))
     candle_bg_thread.start()
 
+    # Create the Dash web UI and start the web server
     app = setup_app(pairs, BLOCK_DURATION_SECONDS, trade_feed, candle_feed)
     app.run_server(debug=True)
 
