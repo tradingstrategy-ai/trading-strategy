@@ -1,0 +1,19 @@
+#controls {
+    display: flex;
+    flex-direction: column;
+}
+
+#controls > * {
+    display: flex;
+    flex-direction: row;
+    padding: 10px 0;
+}
+
+#controls label {
+    font-weight: bold;
+    width: 200px;
+}
+
+#controls .dash-dropdown {
+    width: 200px;
+}

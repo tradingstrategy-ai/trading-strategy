@@ -22,21 +22,21 @@
 
 """
 import logging
+import os
 import sys
 import time
 from threading import Thread
 
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Dict
 
-import pandas as pd
-import dash
-from dash import html, dcc, Output, Input, Dash
-from dash.dcc import Graph, Interval, Markdown, Dropdown, Store
-from dash.html import Div
+from dash import html, Output, Input, Dash
+from dash.dcc import Graph, Interval, Dropdown, Store
+from dash.html import Div, Label
 from plotly.subplots import make_subplots
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle, FixedPriceOracle
 from tradingstrategy.charting.candle_chart import visualise_ohlcv
+from tradingstrategy.direct_feed import trade_feed
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
@@ -47,13 +47,17 @@ from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 #: Setup a mock blockchain with this block time
 BLOCK_DURATION_SECONDS = 1.5
 
-#: Setup a mock blockchain with this block time
-CANDLE_DURATION = Timeframe("5min")
+#: Which candles our app can render
+CANDLE_OPTIONS = {
+    "1 minute": Timeframe("1min"),
+    "5 minutes": Timeframe("5min"),
+    "1 hour": Timeframe("1h"),
+}
 
 logger: Optional[logging.Logger] = logging.getLogger()
 
 
-def setup_fake_market_data_feeds() -> Tuple[MockChainAndReorganisationMonitor, CandleFeed, SyntheticTradeFeed]:
+def setup_fake_market_data_feeds() -> Tuple[MockChainAndReorganisationMonitor, Dict[str, CandleFeed], SyntheticTradeFeed]:
     """Create the synthetic blockchain and trading pairs.
 
     This will generate random candle data to display.
@@ -86,11 +90,10 @@ def setup_fake_market_data_feeds() -> Tuple[MockChainAndReorganisationMonitor, C
         }
     )
 
-    candle_feed = CandleFeed(
-        pairs,
-        timeframe=timeframe,
-    )
-    return mock_chain, candle_feed, trade_feed
+    candle_feeds = {
+        label: CandleFeed(pairs, timeframe=timeframe) for label, timeframe in CANDLE_OPTIONS.items()
+    }
+    return mock_chain, candle_feeds, trade_feed
 
 
 def start_chain_thread(block_producer: MockChainAndReorganisationMonitor):
@@ -101,11 +104,21 @@ def start_chain_thread(block_producer: MockChainAndReorganisationMonitor):
         time.sleep(BLOCK_DURATION_SECONDS)
 
 
+def start_block_consumer_thread(trade_feed: TradeFeed, candle_feeds: Dict[str, CandleFeed]):
+    """Consume blockchain data and update in-memory candles."""
+    while True:
+        # Read trades from the blockchain
+        delta = trade_feed.perform_duty_cycle()
+        for candle_feed in candle_feeds.values():
+            candle_feed.apply_delta(delta)
+            time.sleep(BLOCK_DURATION_SECONDS)
+
+
 def setup_app(
         pairs: List[str],
         freq_seconds: float,
         trade_feed: TradeFeed,
-        candle_feed: CandleFeed,
+        candle_feeds: Dict[str, CandleFeed],
 ) -> Dash:
     """Build a Dash application UI using its framework.
 
@@ -113,13 +126,22 @@ def setup_app(
     to Dash interval callback.
     """
 
-    app = Dash(__name__)
-
+    # Load CSS
+    assets_folder = os.path.join(os.path.dirname(__file__), "dash-assets")
+    app = Dash(__name__, assets_folder=assets_folder)
     block_producer: MockChainAndReorganisationMonitor = trade_feed.reorg_mon
 
+    candle_labels = list(CANDLE_OPTIONS.keys())
+
     app.layout = html.Div([
-        Dropdown(pairs, pairs[0], id='pair-dropdown'),
-        Div(id='chain-stats'),
+        Div(
+            id="controls",
+            children=[
+                Div([Label("Trading pair:"), Dropdown(pairs, pairs[0], id='pair-dropdown'),]),
+                Div([Label("Candle time:"), Dropdown(candle_labels, candle_labels[0], id='candle-dropdown')]),
+                Div([Label("Chain status:"), Div(id='chain-stats'),]),
+            ],
+        ),
         Graph(id='live-update-graph'),
         # https://dash.plotly.com/live-updates
         Interval(
@@ -127,43 +149,30 @@ def setup_app(
             interval=freq_seconds * 1000,
             n_intervals=0
         ),
-        Store(id='current-pair')
     ])
-
-    # Select the current pair
-    @app.callback(
-        Output('current-pair', 'data'),
-        Input('pair-dropdown', 'value'),
-    )
-    def update_output(value):
-        # TODO: Not safe for real app
-        return value
 
     # Update the chain status
     @app.callback(Output('chain-stats', "children"),
                   Input('interval-component', 'n_intervals'))
     def update_chain_stats(n):
         try:
-
             if not block_producer.has_data():
                 return "No blocks produced yet"
 
             block_num = block_producer.get_last_block_read()
             timestamp = block_producer.get_block_timestamp_as_pandas(block_num)
             timestamp_fmt = timestamp.strftime("%Y-%m-%d, %H:%M:%S UTC")
-            return f"""Current block: {block_num:,} at {timestamp_fmt}, loop {n}, timebar size: {CANDLE_DURATION.freq}"""
+            return f"""Current block: {block_num:,} at {timestamp_fmt}, loop {n}"""
         except Exception as e:
             logger.exception(e)
             raise
 
-    # Update the candle chart
+    # Update the candle charts.
     @app.callback(Output('live-update-graph', 'figure'),
-                  [Input('interval-component', 'n_intervals'), Input('pair-dropdown', 'value')])
-    def update_ohlcv_chart_live(n, current_pair):
+                  [Input('interval-component', 'n_intervals'), Input('pair-dropdown', 'value'), Input('candle-dropdown', 'value')])
+    def update_ohlcv_chart_live(n, current_pair, current_candle_duration):
         try:
-            delta = trade_feed.perform_duty_cycle()
-            candle_feed.apply_delta(delta)
-            candles = candle_feed.get_candles_by_pair(current_pair)
+            candles = candle_feeds[current_candle_duration].get_candles_by_pair(current_pair)
             if len(candles) > 0:
                 fig = visualise_ohlcv(candles)
             else:
@@ -192,8 +201,12 @@ def run_app():
     pairs = trade_feed.pairs
 
     # Start the fake blockchain generating fake data
-    bg_thread = Thread(target=start_chain_thread, args=(mock_chain,))
-    bg_thread.start()
+    chain_bg_thread = Thread(target=start_chain_thread, args=(mock_chain,))
+    chain_bg_thread.start()
+
+    # Start blockchain data processor bg thread
+    candle_bg_thread = Thread(target=start_block_consumer_thread, args=(trade_feed, candle_feed))
+    candle_bg_thread.start()
 
     app = setup_app(pairs, BLOCK_DURATION_SECONDS, trade_feed, candle_feed)
     app.run_server(debug=True)
