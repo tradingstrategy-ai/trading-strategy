@@ -29,6 +29,9 @@ class ExchangeType(str, enum.Enum):
     #: Uniswap v2 style exchange
     uniswap_v2 = "uniswap_v2"
 
+    #: Uniswap v2 style exchange, but with incompatible implementation (e.g. Nomiswap Stable)
+    uniswap_v2_incompatible = "uniswap_v2_incompatible"
+
     #: Uniswap v3 style exchange
     uniswap_v3 = "uniswap_v3"
 
