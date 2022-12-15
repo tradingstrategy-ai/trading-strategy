@@ -35,7 +35,7 @@ jobs:
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction -E qstrader
+      run: poetry install --no-interaction -E qstrader -E direct-feed
     - name: Run test scripts
       run: poetry run pytest -Werror --tb=native
       env:
