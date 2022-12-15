@@ -37,6 +37,6 @@ jobs:
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --no-interaction -E qstrader -E direct-feed
     - name: Run test scripts
-      run: poetry run pytest -Werror --tb=native
+      run: poetry run pytest -tb=native
       env:
         TRADING_STRATEGY_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}
