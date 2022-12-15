@@ -3,7 +3,7 @@ import pandas as pd
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle, FixedPriceOracle
 
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
-from tradingstrategy.direct_feed.reorg_mon import SyntheticReorganisationMonitor
+from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.timeframe import Timeframe
 
@@ -12,7 +12,7 @@ from tradingstrategy.direct_feed.timeframe import Timeframe
 def test_candle_feed_initial_load():
     """Load the first batch of trades from the chain and make candles."""
 
-    mock_chain = SyntheticReorganisationMonitor(block_duration_seconds=12)
+    mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12)
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
@@ -68,7 +68,7 @@ def test_candle_feed_initial_load():
 def test_candle_feed_increment():
     """Load trades incrementally."""
 
-    mock_chain = SyntheticReorganisationMonitor(block_duration_seconds=12)
+    mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12)
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
@@ -111,7 +111,7 @@ def test_candle_feed_increment():
 def test_candle_feed_fork():
     """Load trades with a chain fork."""
 
-    mock_chain = SyntheticReorganisationMonitor(block_duration_seconds=12)
+    mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12)
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
@@ -149,7 +149,7 @@ def test_candle_feed_fork():
 def test_candle_feed_fork_last_block():
     """Make sure if the last block forks we do not get confused."""
 
-    mock_chain = SyntheticReorganisationMonitor(block_duration_seconds=12)
+    mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12)
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
@@ -197,7 +197,7 @@ def test_candle_feed_fork_last_block():
 def test_candle_feed_two_pairs():
     """Make sure if the last block forks we do not get confused with two different pairs."""
 
-    mock_chain = SyntheticReorganisationMonitor(block_duration_seconds=12)
+    mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12)
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 

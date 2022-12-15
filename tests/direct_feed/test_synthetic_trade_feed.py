@@ -5,7 +5,7 @@ import pytest
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
-from tradingstrategy.direct_feed.reorg_mon import SyntheticReorganisationMonitor, BlockRecord
+from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor, BlockRecord
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.trade_feed import Trade
 from tradingstrategy.direct_feed.warn import disable_pandas_warnings
@@ -13,7 +13,7 @@ from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 
 def test_synthetic_block_mon_produce_blocks():
     """Create mocked blocks."""
-    mock_reorg_mon = SyntheticReorganisationMonitor()
+    mock_reorg_mon = MockChainAndReorganisationMonitor()
     assert mock_reorg_mon.get_last_block_live() == 0
     assert mock_reorg_mon.get_last_block_read() == 0
     mock_reorg_mon.produce_blocks()
@@ -21,7 +21,7 @@ def test_synthetic_block_mon_produce_blocks():
 
 def test_synthetic_block_mon_find_reorgs():
     """There are never reorgs."""
-    mock_reorg_mon = SyntheticReorganisationMonitor()
+    mock_reorg_mon = MockChainAndReorganisationMonitor()
     mock_reorg_mon.produce_blocks()
     mock_reorg_mon.figure_reorganisation_and_new_blocks()
     assert mock_reorg_mon.get_last_block_live() == 1
@@ -30,7 +30,7 @@ def test_synthetic_block_mon_find_reorgs():
 
 def test_synthetic_block_mon_find_reorgs_100_blocks():
     """There are never reorgs in longer mock chain."""
-    mock_reorg_mon = SyntheticReorganisationMonitor()
+    mock_reorg_mon = MockChainAndReorganisationMonitor()
     mock_reorg_mon.produce_blocks(100)
     mock_reorg_mon.figure_reorganisation_and_new_blocks()
 
@@ -38,7 +38,7 @@ def test_synthetic_block_mon_find_reorgs_100_blocks():
 def test_add_trades():
     """Add trades to thework buffer."""
 
-    mock_chain = SyntheticReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor()
 
     mock_chain.produce_blocks(1)
 
@@ -72,7 +72,7 @@ def test_add_trades():
 def test_initial_load():
     """Read trades from a synthetic feed."""
 
-    mock_chain = SyntheticReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor()
 
     feed = SyntheticTradeFeed(
         ["ETH-USD"],
@@ -93,7 +93,7 @@ def test_initial_load():
 def test_truncate():
     """Read trades from a synthetic feed."""
 
-    mock_chain = SyntheticReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor()
 
     feed = SyntheticTradeFeed(
         ["ETH-USD"],
@@ -113,7 +113,7 @@ def test_truncate():
 def test_initial_load_no_progress_bar():
     """Read trades from a synthetic feed, do not use progress br."""
 
-    mock_chain = SyntheticReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor()
     feed = SyntheticTradeFeed(
         ["ETH-USD"],
         {"ETH-USD": TrustedStablecoinOracle()},
@@ -127,7 +127,7 @@ def test_initial_load_no_progress_bar():
 def test_perform_cycle():
     """Iteratively read trades from the chain."""
 
-    mock_chain = SyntheticReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor()
 
     feed = SyntheticTradeFeed(
         ["ETH-USD"],
@@ -160,7 +160,7 @@ def test_perform_cycle():
 def test_perform_chain_reorg():
     """Simulate a chain reorganisation."""
 
-    mock_chain = SyntheticReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor()
 
     feed = SyntheticTradeFeed(
         ["ETH-USD"],
@@ -195,7 +195,7 @@ def test_perform_chain_reorg():
 def test_incremental():
     """Simulate incremental 1 block updates."""
 
-    mock_chain = SyntheticReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor()
 
     feed = SyntheticTradeFeed(
         ["ETH-USD"],

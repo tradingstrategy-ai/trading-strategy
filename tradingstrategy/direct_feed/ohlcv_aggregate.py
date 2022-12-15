@@ -103,6 +103,7 @@ def resample_trades_into_ohlcv(
     # Calculate high, low and close values using naive
     # resamping. This assumes there were trades within the freq window.
     df2 = df["price"].resample(timeframe.freq).agg({
+        'open': 'first',
         'high': 'max',
         'low': 'min',
         'close': 'last'})

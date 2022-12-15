@@ -227,7 +227,9 @@ class TradeFeed:
         :param latest_good_block:
             The last block that we cannot discard.
         """
-        self.trades_df = self.trades_df.truncate(after=latest_good_block, copy=False)
+
+        if len(self.trades_df) > 0:
+            self.trades_df = self.trades_df.truncate(after=latest_good_block, copy=False)
 
     def check_reorganisations_and_purge(self) -> ChainReorganisationResolution:
         """Check if any of block data has changed

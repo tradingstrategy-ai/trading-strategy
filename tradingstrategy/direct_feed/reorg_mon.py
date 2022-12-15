@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 class BlockRecord:
     block_number: int
     block_hash: str
-    timestamp: int
+    timestamp: float | int
 
     def __post_init__(self):
         assert type(self.block_number) == int
         assert type(self.block_hash) == str
-        assert type(self.timestamp) == int
+        assert type(self.timestamp) in (float, int)
 
 
 @dataclass(slots=True, frozen=True)
@@ -226,10 +226,11 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
             yield BlockRecord(block_num, block_hash, timestamp)
 
 
-class SyntheticReorganisationMonitor(ReorganisationMonitor):
+class MockChainAndReorganisationMonitor(ReorganisationMonitor):
     """A dummy reorganisation monitor for unit testing.
 
-    Simulate block feed.
+    Simulate block production and chain reorgs by minor forks,
+    like a real blockchain.
     """
 
     def __init__(self, block_number: int = 1, block_duration_seconds=1):
