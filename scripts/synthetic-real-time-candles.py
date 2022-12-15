@@ -117,8 +117,6 @@ def setup_app(
 
     block_producer: MockChainAndReorganisationMonitor = trade_feed.reorg_mon
 
-    current_pair = pairs[0]
-
     app.layout = html.Div([
         Dropdown(pairs, pairs[0], id='pair-dropdown'),
         Div(id='chain-stats'),
@@ -139,8 +137,6 @@ def setup_app(
     )
     def update_output(value):
         # TODO: Not safe for real app
-        nonlocal current_pair
-        current_pair = value
         return value
 
     # Update the chain status
@@ -162,8 +158,8 @@ def setup_app(
 
     # Update the candle chart
     @app.callback(Output('live-update-graph', 'figure'),
-                  Input('interval-component', 'n_intervals'))
-    def update_ohlcv_chart_live(n):
+                  [Input('interval-component', 'n_intervals'), Input('pair-dropdown', 'value')])
+    def update_ohlcv_chart_live(n, current_pair):
         try:
             delta = trade_feed.perform_duty_cycle()
             candle_feed.apply_delta(delta)
