@@ -236,10 +236,14 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
             raw_result = web3.manager.request_blocking("eth_getBlockByNumber", (hex(block_num), False))
             data_block_number = raw_result["number"]
             block_hash = raw_result["hash"]
-            assert type(data_block_number) == str, "Some automatic data conversion occured from JSON-RPC data. Make sure that you have cleared middleware onion for web3"
-            assert int(raw_result["number"], 16) == block_num
 
-            timestamp = int(raw_result["timestamp"], 16)
+            if type(data_block_number) == str:
+                # Real node
+                assert int(raw_result["number"], 16) == block_num
+                timestamp = int(raw_result["timestamp"], 16)
+            else:
+                # EthereumTester
+                timestamp = raw_result["timestamp"]
 
             yield BlockRecord(block_num, block_hash, timestamp)
 

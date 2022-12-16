@@ -1,22 +1,24 @@
 import datetime
 import enum
-from dataclasses import dataclass
 from decimal import Decimal
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Iterable, Type
 import logging
 
 import pandas as pd
+from tqdm import tqdm
+
 from eth_defi.abi import get_contract
 from eth_defi.event_reader.conversion import decode_data, convert_int256_bytes_to_int
 from eth_defi.event_reader.logresult import LogResult, LogContext
-from eth_defi.event_reader.reader import read_events_concurrent
-from eth_defi.event_reader.web3factory import TunedWeb3Factory
+from eth_defi.event_reader.reader import read_events_concurrent, read_events
+from eth_defi.event_reader.web3factory import Web3Factory
 from eth_defi.event_reader.web3worker import create_thread_pool_executor
 from eth_defi.price_oracle.oracle import PriceOracle
 from eth_defi.uniswap_v2.pair import PairDetails
 
-from .trade_feed import OHLCVProducer, Trade, TradeDelta
+from .trade_feed import Trade, TradeFeed
 from .reorg_mon import ReorganisationMonitor
+
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +79,7 @@ class SwapKind(enum.Enum):
     invalid = "invalid"
 
 
-class UniswapV2OHLCVProducer(OHLCVProducer):
+class UniswapV2TradeFeed(TradeFeed):
     """Uniswap v2 compatible DXE candle generator.
 
     Uses multiple threads to speed up blockchain read.
@@ -85,30 +87,56 @@ class UniswapV2OHLCVProducer(OHLCVProducer):
 
     def __init__(self,
                  pairs: List[PairDetails],
-                 web3_factory: TunedWeb3Factory,
+                 web3_factory: Web3Factory,
                  oracles: Dict[str, PriceOracle],
                  reorg_mon: ReorganisationMonitor,
                  data_retention_time: Optional[pd.Timedelta] = None,
-                 candle_size=pd.Timedelta(minutes=1),
                  threads=16,
                  chunk_size=100):
+        """
+
+        :param pairs:
+            List of Uniswap v2 pool addresses
+
+        :param web3_factory:
+            Web3 connecion creator (multithread safe)
+
+        :param oracles:
+            Price oracles needed for the exchange rate conversion
+
+        :param reorg_mon:
+            Chain reorganistaion manager
+
+        :param data_retention_time:
+
+        :param threads:
+            Number of threads used in the reader pool.
+            Set 1 to disable thread pooling.
+
+        :param chunk_size:
+            Max block chunk read at a time
+        """
 
         super().__init__(
+            pairs=pairs,
             oracles=oracles,
             reorg_mon=reorg_mon,
             data_retention_time=data_retention_time,
-            candle_size=candle_size,
         )
 
-        #: Pair address -> details mapping
-        self.pair_map = Dict[str, PairDetails] = {p.address: p for p in pairs}
-        self.web3_factory = web3_factory
         self.event_reader_context = LogContext()
-        self.chunk_size = chunk_size
-        self.executor = create_thread_pool_executor(self.web3_factory, self.event_reader_context, max_workers=threads)
 
+        #: Pair address -> details mapping
+        self.pair_map: Dict[str, PairDetails] = {p.address: p for p in pairs}
+        self.web3_factory = web3_factory
         # A web3 instance used in the main thread
         self.web3 = web3_factory(self.event_reader_context)
+        self.chunk_size = chunk_size
+
+        if threads > 1:
+            self.executor = create_thread_pool_executor(self.web3_factory, self.event_reader_context, max_workers=threads)
+        else:
+            self.executor = None
 
         # Get data from ABI
         Pair = get_contract(self.web3, "UniswapV2Pair.json")
@@ -117,12 +145,17 @@ class UniswapV2OHLCVProducer(OHLCVProducer):
     def get_block_number_at_chain_tip(self) -> int:
         return self.web3.eth.block_number
 
-    def update_block_range(self, start_block: int, end_block: Optional[int]) -> TradeDelte:
+    def fetch_trades(self,
+                     start_block: int,
+                     end_block: Optional[int],
+                     tqdm: Optional[Type[tqdm]] = None) -> Iterable[Trade]:
         """Read data between logs.
 
         :raise ChainReorganisationDetected:
             In the case we notice chain data has changed during the reading
         """
+
+        logger.info("Fetching uniswap trades %d - %d", start_block, end_block)
 
         events = []
 
@@ -132,30 +165,65 @@ class UniswapV2OHLCVProducer(OHLCVProducer):
                 ts_map[block_num] = self.reorg_mon.get_block_timestamp(block_num)
             return ts_map
 
+        last_block = None
+
+        max_blocks = end_block - start_block
+
+        if tqdm:
+            progress_bar = tqdm(total=max_blocks)
+        else:
+            progress_bar = None
+
+        if self.executor is None:
+            # Read in the current thread
+            generator = read_events(
+                self.web3,
+                start_block,
+                end_block,
+                self.events_to_read,
+                notify = None,
+                chunk_size=self.chunk_size,
+                context=self.event_reader_context,
+                extract_timestamps=_extract_timestamps,
+            )
+        else:
+            # Read using a pool
+            generator = read_events_concurrent(
+                self.executor,
+                start_block,
+                end_block,
+                self.events_to_read,
+                None,
+                chunk_size=self.chunk_size,
+                context=self.event_reader_context,
+                extract_timestamps=_extract_timestamps,
+            )
+
         # Read specified events in block range
-        for log_result in read_events_concurrent(
-            self.executor,
-            start_block,
-            end_block,
-            self.events_to_read,
-            None,
-            chunk_size=self.chunk_size,
-            context=self.event_reader_context,
-            extract_timestamps=_extract_timestamps,
-        ):
+        for log_result in generator:
+
+            logger.debug("Reading event: %s", log_result)
+
             if log_result["event"].event_name == "Swap":
                 events.append(decode_swap(log_result))
             elif log_result["event"].event_name == "Sync":
                 events.append(decode_swap(log_result))
 
-        trades = self.map_uniswap_v2_events(events)
-        self.add_trades(trades)
+            yield from self.map_uniswap_v2_events(events)
 
-    def map_uniswap_v2_events(self, events: List[dict]) -> List[Trade]:
+            if progress_bar:
+                # Update progress bar for every block
+                if last_block != log_result["block_number"]:
+                    progress_bar.update(1)
+                    last_block = log_result["block_number"]
+
+        if progress_bar:
+            progress_bar.close()
+
+    def map_uniswap_v2_events(self, events: List[dict]) -> Iterable[Trade]:
         """Figure out Uniswap v2 swap and volume."""
 
         prev_sync = None
-        trades = []
         for evt in events:
             if evt["type"] == "sync":
                 native_price = Decimal(evt["reserve0"]) / Decimal(evt["reserve1"])
@@ -191,9 +259,7 @@ class UniswapV2OHLCVProducer(OHLCVProducer):
                     price=price,
                     amount=amount,
                 )
-                trades.append(t)
-        return trades
-
+                yield t
 
 def decode_swap(log: LogResult) -> dict:
     """Process swap event.
@@ -315,7 +381,3 @@ def calculate_reserve_price_in_quote_token_raw(
     volume = Decimal(quote_amount)
 
     return price, volume
-
-
-
-
