@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Dict, Optional, List,  Iterable, Type, TypeAlias
 
 import pandas as pd
-from eth_defi.price_oracle.oracle import BaseOracle
+from eth_defi.price_oracle.oracle import BasePriceOracle
 
 from tqdm import tqdm
 
@@ -52,8 +52,13 @@ class Trade:
     #: Positive for buys, negative for sells.
     amount: Decimal
 
-    #: The US dollar conversion rate used for this rate
+    #: The US dollar conversion rate.
+    #:
+    #: You can use this to convert price and amount to US dollars.
     exchange_rate: Decimal
+
+    def __repr__(self):
+        return f"<Trade pair: {self.pair}, price: {self.price}, amount: {self.amount}, exchange rate: {self.exchange_rate}>"
 
     def __post_init__(self):
         assert self.timestamp.tzinfo is None, "Don't use timezone aware timestamps - everything must be naive UTC"
@@ -73,6 +78,16 @@ class Trade:
             ("exchange_rate", "object"),
         ])
         return fields
+
+    @staticmethod
+    def filter_buys(df: pd.DataFrame) -> pd.DataFrame:
+        """Filter buy in trades."""
+        return df.loc[df.amount > 0]
+
+    @staticmethod
+    def filter_sells(df: pd.DataFrame) -> pd.DataFrame:
+        """Filter buy in trades."""
+        return df.loc[df.amount < 0]
 
 
 @dataclass(slots=True, frozen=True)
@@ -130,7 +145,7 @@ class TradeFeed:
 
     def __init__(self,
                  pairs: List[PairId],
-                 oracles: Dict[PairId, BaseOracle],
+                 oracles: Dict[PairId, BasePriceOracle],
                  reorg_mon: ReorganisationMonitor,
                  timeframe: Timeframe = Timeframe("1min"),
                  data_retention_time: Optional[pd.Timedelta] = None,
@@ -168,7 +183,7 @@ class TradeFeed:
         assert isinstance(reorg_mon, ReorganisationMonitor)
 
         for o in oracles.values():
-            assert isinstance(o, BaseOracle)
+            assert isinstance(o, BasePriceOracle)
 
         self.pairs = pairs
         self.oracles = oracles

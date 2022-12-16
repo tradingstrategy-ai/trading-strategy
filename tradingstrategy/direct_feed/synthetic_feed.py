@@ -6,7 +6,7 @@ from typing import Dict, Optional, List, Iterable, Type
 
 import pandas as pd
 from tqdm import tqdm
-from eth_defi.price_oracle.oracle import BaseOracle
+from eth_defi.price_oracle.oracle import BasePriceOracle
 
 from .timeframe import Timeframe
 from .trade_feed import TradeFeed, Trade
@@ -19,7 +19,7 @@ class SyntheticTradeFeed(TradeFeed):
 
     def __init__(self,
                  pairs: List[PairId],
-                 oracles: Dict[PairId, BaseOracle],
+                 oracles: Dict[PairId, BasePriceOracle],
                  reorg_mon: ReorganisationMonitor,
                  data_retention_time: Optional[pd.Timedelta] = None,
                  random_seed = 1,
@@ -60,7 +60,7 @@ class SyntheticTradeFeed(TradeFeed):
     def fetch_trades(self, start_block: int, end_block: Optional[int], tqdm: Optional[Type[tqdm]] = None) -> Iterable[Trade]:
         """Generate few random trades per block per pair."""
 
-        block_data = {b.block_number: b for b in self.reorg_mon.get_block_data(start_block, end_block)}
+        block_data = {b.block_number: b for b in self.reorg_mon.fetch_block_data(start_block, end_block)}
 
         max_blocks = end_block - start_block
 

@@ -19,6 +19,9 @@ class BlockRecord:
     block_hash: str
     timestamp: float | int
 
+    def __repr__(self):
+        return f"<Block {self.block_number:,}, hash: {self.block_hash} ts:{self.timestamp}>"
+
     def __post_init__(self):
         assert type(self.block_number) == int
         assert type(self.block_hash) == str
@@ -96,7 +99,7 @@ class ReorganisationMonitor:
         end_block = self.get_last_block_live()
         start_block = max(end_block - block_count, 1)
 
-        for block in self.get_block_data(start_block, end_block):
+        for block in self.fetch_block_data(start_block, end_block):
             self.add_block(block)
 
         return start_block, end_block
@@ -142,10 +145,13 @@ class ReorganisationMonitor:
         """
         chain_last_block = self.get_last_block_live()
         check_start_at = max(self.last_block_read - self.check_depth, 1)
-        for block in self.get_block_data(check_start_at, chain_last_block):
+        for block in self.fetch_block_data(check_start_at, chain_last_block):
             self.check_block_reorg(block.block_number, block.block_hash)
             if block.block_number not in self.block_map:
                 self.add_block(block)
+
+    def get_block_by_number(self, block_number: int) -> BlockRecord:
+        return self.block_map.get(block_number)
 
     def get_block_timestamp(self, block_number: int) -> int:
         """Return UNIX UTC timestamp of a block."""
@@ -202,7 +208,7 @@ class ReorganisationMonitor:
         raise ReorganisationResolutionFailure(f"Gave up chain reorg resolution. Last block: {self.last_block_read}, attempts {self.max_cycle_tries}")
 
     @abstractmethod
-    def get_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
+    def fetch_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
         """Read the new block headers.
 
         :param start_block:
@@ -227,8 +233,8 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
     def get_last_block_live(self):
         return self.web3.eth.block_number
 
-    def get_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
-        logger.debug("Extracting timestamps for logs %d - %d", start_block, end_block)
+    def fetch_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
+        logger.info("Fetching block headers and timestamps for logs %d - %d", start_block, end_block)
         web3 = self.web3
 
         # Collect block timestamps from the headers
@@ -245,7 +251,9 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
                 # EthereumTester
                 timestamp = raw_result["timestamp"]
 
-            yield BlockRecord(block_num, block_hash, timestamp)
+            record = BlockRecord(block_num, block_hash, timestamp)
+            logger.debug("Fetched block record: %s", record)
+            yield record
 
 
 class MockChainAndReorganisationMonitor(ReorganisationMonitor):
@@ -279,7 +287,7 @@ class MockChainAndReorganisationMonitor(ReorganisationMonitor):
     def get_last_block_live(self):
         return self.simulated_block_number - 1
 
-    def get_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
+    def fetch_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
 
         assert start_block > 0, "Cannot ask data for zero block"
         assert end_block <= self.get_last_block_live(), "Cannot ask data for blocks that are not produced yet"

@@ -8,12 +8,12 @@ import pandas as pd
 from tqdm import tqdm
 
 from eth_defi.abi import get_contract
-from eth_defi.event_reader.conversion import decode_data, convert_int256_bytes_to_int
+from eth_defi.event_reader.conversion import decode_data, convert_int256_bytes_to_int, convert_jsonrpc_value_to_int
 from eth_defi.event_reader.logresult import LogResult, LogContext
 from eth_defi.event_reader.reader import read_events_concurrent, read_events
 from eth_defi.event_reader.web3factory import Web3Factory
 from eth_defi.event_reader.web3worker import create_thread_pool_executor
-from eth_defi.price_oracle.oracle import PriceOracle
+from eth_defi.price_oracle.oracle import PriceOracle, BasePriceOracle
 from eth_defi.uniswap_v2.pair import PairDetails
 
 from .trade_feed import Trade, TradeFeed
@@ -162,7 +162,8 @@ class UniswapV2TradeFeed(TradeFeed):
         def _extract_timestamps(web3, start_block, end_block):
             ts_map = {}
             for block_num in range(start_block, end_block+1):
-                ts_map[block_num] = self.reorg_mon.get_block_timestamp(block_num)
+                record = self.reorg_mon.get_block_by_number(block_num)
+                ts_map[record.block_hash] = record.timestamp
             return ts_map
 
         last_block = None
@@ -199,17 +200,28 @@ class UniswapV2TradeFeed(TradeFeed):
                 extract_timestamps=_extract_timestamps,
             )
 
-        # Read specified events in block range
+        sync = swap = None
+
+        # Read specified events in block range.
+        # Sync() event should always come one log_index before Swap()
+
+        trades_processed = 0
+
         for log_result in generator:
 
             logger.debug("Reading event: %s", log_result)
 
             if log_result["event"].event_name == "Swap":
-                events.append(decode_swap(log_result))
-            elif log_result["event"].event_name == "Sync":
-                events.append(decode_swap(log_result))
+                swap = decode_swap(log_result)
 
-            yield from self.map_uniswap_v2_events(events)
+                trade = self.construct_trade_from_uniswap_v2_events(sync, swap)
+                if trade:
+                    trades_processed += 1
+                    yield trade
+            elif log_result["event"].event_name == "Sync":
+                sync = decode_sync(log_result)
+            else:
+                raise RuntimeError(f"Cannot handle: {log_result}")
 
             if progress_bar:
                 # Update progress bar for every block
@@ -217,49 +229,78 @@ class UniswapV2TradeFeed(TradeFeed):
                     progress_bar.update(1)
                     last_block = log_result["block_number"]
 
+        logger.info("Mapped %d trades", trades_processed)
+
         if progress_bar:
             progress_bar.close()
 
-    def map_uniswap_v2_events(self, events: List[dict]) -> Iterable[Trade]:
-        """Figure out Uniswap v2 swap and volume."""
+    def construct_trade_from_uniswap_v2_events(self, prev_sync: Optional[dict], swap: dict) -> Optional[Trade]:
+        """Figure out Uniswap v2 swap and volume.
 
-        prev_sync = None
-        for evt in events:
-            if evt["type"] == "sync":
-                native_price = Decimal(evt["reserve0"]) / Decimal(evt["reserve1"])
-                prev_sync = evt
-            else:
-                # Swap
-                tx_hash = evt["tx_hash"]
-                if prev_sync["tx_hash"] != tx_hash:
-                    logger.debug("Current sync and swap do not follow Uniswap logic: %s - %s", prev_sync, evt)
+        This is a stateful mapping: we need to be able
+        to access previous Pair events to correctly deduct the price.
+        """
 
-                pair: PairDetails
-                pair = self.pair_map[evt["pair_contract_address"]]
+        if prev_sync is None:
+            logger.debug("Could not match Sync() for Swap(): %s", swap)
+            return None
 
-                price, amount = calculate_reserve_price_in_quote_token_raw(
-                    pair.reverse_token_order,
-                    prev_sync["reserve0"],
-                    prev_sync["reserve1"],
-                    evt["amount0_in"],
-                    evt["amount1_in"],
-                    evt["amount0_out"],
-                    evt["amount1_out"],
-                )
+        # Swap
+        tx_hash = swap["tx_hash"]
+        if prev_sync["tx_hash"] != tx_hash:
+            logger.debug("Current sync and swap do not follow Uniswap logic: %s - %s", prev_sync, swap)
+            return None
 
-                timestamp = self.reorg_mon.get_block_timestamp(evt["block_number"])
+        pair: PairDetails
+        pair = self.pair_map[swap["pair_contract_address"]]
 
-                t = Trade(
-                    pair=pair.address,
-                    block_number=evt["block_number"],
-                    block_hash=evt["block_hash"],
-                    log_index=evt["log_index"],
-                    tx_hash=evt["tx_hash"],
-                    timestamp=pd.Timestamp.utcfromtimestamp(timestamp),
-                    price=price,
-                    amount=amount,
-                )
-                yield t
+        oracle: BasePriceOracle = self.oracles.get(pair)
+        if not oracle:
+            raise RuntimeError(f"Exchange rate oracle missing for pair %s",pair)
+
+        exchange_rate = oracle.calculate_price(swap["block_number"])
+
+        reserve0 = pair.token0.convert_to_decimals(prev_sync["reserve0"])
+        reserve1 = pair.token1.convert_to_decimals(prev_sync["reserve1"])
+        amount0_in = pair.token0.convert_to_decimals(swap["amount0_in"])
+        amount1_in = pair.token1.convert_to_decimals(swap["amount1_in"])
+        amount0_out = pair.token0.convert_to_decimals(swap["amount0_out"])
+        amount1_out = pair.token1.convert_to_decimals(swap["amount1_out"])
+
+        kind, price, amount = calculate_reserve_price_in_quote_token_decimal(
+            pair.reverse_token_order,
+            reserve0,
+            reserve1,
+            amount0_in,
+            amount1_in,
+            amount0_out,
+            amount1_out
+        )
+
+        if kind == SwapKind.invalid:
+            logger.info("Could not determine trade: %s", swap)
+            return None
+
+        timestamp = self.reorg_mon.get_block_timestamp(swap["block_number"])
+
+        # Flip for Trade() object
+        if kind == SwapKind.sell:
+            amount = -amount
+
+        t = Trade(
+            pair=pair.address,
+            block_number=swap["block_number"],
+            block_hash=swap["block_hash"],
+            log_index=swap["log_index"],
+            tx_hash=swap["tx_hash"],
+            timestamp=pd.Timestamp.utcfromtimestamp(timestamp),
+            price=price,
+            amount=amount,
+            exchange_rate=exchange_rate,
+        )
+        logger.debug("Uniswap trade processed: %s", t)
+        return t
+
 
 def decode_swap(log: LogResult) -> dict:
     """Process swap event.
@@ -283,8 +324,6 @@ def decode_swap(log: LogResult) -> dict:
     # Raw example event
     # {'address': '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc', 'blockHash': '0x4ba33a650f9e3d8430f94b61a382e60490ec7a06c2f4441ecf225858ec748b78', 'blockNumber': '0x98b7f6', 'data': '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000046ec814a2e900000000000000000000000000000000000000000000000000000000000003e80000000000000000000000000000000000000000000000000000000000000000', 'logIndex': '0x4', 'removed': False, 'topics': ['0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822', '0x000000000000000000000000f164fc0ec4e93095b804a4795bbe1e041497b92a', '0x0000000000000000000000008688a84fcfd84d8f78020d0fc0b35987cc58911f'], 'transactionHash': '0x932cb88306450d481a0e43365a3ed832625b68f036e9887684ef6da594891366', 'transactionIndex': '0x1', 'context': <__main__.TokenCache object at 0x104ab7e20>, 'event': <class 'web3._utils.datatypes.Swap'>, 'timestamp': 1588712972}
 
-    block_time = datetime.datetime.utcfromtimestamp(log["timestamp"]).tz_localize(None)
-
     pair_contract_address = log["address"]
 
     # Chop data blob to byte32 entries
@@ -293,11 +332,12 @@ def decode_swap(log: LogResult) -> dict:
     amount0_in, amount1_in, amount0_out, amount1_out = data_entries
 
     data = {
-        "type": "sync",
-        "block_number": int(log["blockNumber"], 16),
-        "timestamp": block_time.isoformat(),
+        "type": "swap",
+        "block_number": convert_jsonrpc_value_to_int(log["blockNumber"]),
+        "block_hash": log["blockHash"],
+        "timestamp": log["timestamp"],
         "tx_hash": log["transactionHash"],
-        "log_index": int(log["logIndex"], 16),
+        "log_index": convert_jsonrpc_value_to_int(log["logIndex"]),
         "pair_contract_address": pair_contract_address,
         "amount0_in": convert_int256_bytes_to_int(amount0_in),
         "amount1_in": convert_int256_bytes_to_int(amount1_in),
@@ -322,8 +362,6 @@ def decode_sync(log: LogResult) -> dict:
     # Raw example event
     # {'address': '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc', 'blockHash': '0x4ba33a650f9e3d8430f94b61a382e60490ec7a06c2f4441ecf225858ec748b78', 'blockNumber': '0x98b7f6', 'data': '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000046ec814a2e900000000000000000000000000000000000000000000000000000000000003e80000000000000000000000000000000000000000000000000000000000000000', 'logIndex': '0x4', 'removed': False, 'topics': ['0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822', '0x000000000000000000000000f164fc0ec4e93095b804a4795bbe1e041497b92a', '0x0000000000000000000000008688a84fcfd84d8f78020d0fc0b35987cc58911f'], 'transactionHash': '0x932cb88306450d481a0e43365a3ed832625b68f036e9887684ef6da594891366', 'transactionIndex': '0x1', 'context': <__main__.TokenCache object at 0x104ab7e20>, 'event': <class 'web3._utils.datatypes.Swap'>, 'timestamp': 1588712972}
 
-    block_time = datetime.datetime.utcfromtimestamp(log["timestamp"])
-
     pair_contract_address = log["address"]
 
     # Chop data blob to byte32 entries
@@ -333,10 +371,11 @@ def decode_sync(log: LogResult) -> dict:
 
     data = {
         "type": "sync",
-        "block_number": int(log["blockNumber"], 16),
-        "timestamp": block_time.isoformat(),
+        "block_number": convert_jsonrpc_value_to_int(log["blockNumber"]),
+        "block_hash": log["blockHash"],
+        "timestamp": log["timestamp"],
         "tx_hash": log["transactionHash"],
-        "log_index": int(log["logIndex"], 16),
+        "log_index": convert_jsonrpc_value_to_int(log["logIndex"]),
         "pair_contract_address": pair_contract_address,
         "reserve0": convert_int256_bytes_to_int(reserve0),
         "reserve1": convert_int256_bytes_to_int(reserve1),
@@ -381,3 +420,63 @@ def calculate_reserve_price_in_quote_token_raw(
     volume = Decimal(quote_amount)
 
     return price, volume
+
+
+def calculate_reserve_price_in_quote_token_decimal(
+        reversed: bool,
+        reserve0: Decimal,
+        reserve1: Decimal,
+        amount0_in: Decimal,
+        amount1_in: Decimal,
+        amount0_out: Decimal,
+        amount1_out: Decimal,
+) -> Tuple[SwapKind, Decimal, Decimal]:
+    """Calculate the market price based on Uniswap pool reserve0 an reserve1.
+
+    All inputs are converted from fixed point numbers
+    to natural decimal point placed numbers.
+
+    :param reversed:
+        Determine base, quote token order relative to token0, token1.
+        If reversed, quote token is token0, else quote token is token0.
+
+    :return:
+        Price in quote token, amount in quote token
+    """
+
+    assert reserve0 > 0, f"Bad reserves {reserve0}, {reserve1}"
+    assert reserve1 > 0, f"Bad reserves {reserve0}, {reserve1}"
+
+    # One of those funny txs...
+    if amount0_in == amount0_out:
+        return SwapKind.invalid, Decimal(0), Decimal(0)
+
+    if reversed:
+        reserve0, reserve1 = reserve1, reserve0
+
+    if reversed:
+        quote_amount = (amount0_out - amount0_in)
+        base_amount = (amount1_out - amount1_in)
+    else:
+        base_amount = (amount0_out - amount0_in)
+        quote_amount = (amount1_out - amount1_in)
+
+    if quote_amount == 0 or base_amount == 0:
+        return SwapKind.invalid, Decimal(0), Decimal(0)
+
+    price = reserve1 /reserve0
+
+    # filter out broken swap event like: https://bscscan.com/tx/0x3156a93cd96ac0a1f5c6bfc99850ce6e78fc25a7c756f27a47d02114d8348c47
+    if price <= 0:
+        return SwapKind.invalid, Decimal(0), Decimal(0)
+
+    volume = quote_amount
+
+    # Fiat currency increases
+    if quote_amount > 0:
+        kind = SwapKind.sell
+        volume = abs(volume)
+    else:
+        kind = SwapKind.buy
+
+    return kind, price, volume

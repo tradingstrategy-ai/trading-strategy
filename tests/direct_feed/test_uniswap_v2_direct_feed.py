@@ -20,6 +20,7 @@ from eth_defi.uniswap_v2.deployment import (
 from eth_defi.uniswap_v2.pair import fetch_pair_details
 from eth_defi.uniswap_v2.synthetic_data import generate_fake_uniswap_v2_data
 from tradingstrategy.direct_feed.reorg_mon import JSONRPCReorganisationMonitor
+from tradingstrategy.direct_feed.trade_feed import Trade
 from tradingstrategy.direct_feed.uniswap_v2 import UniswapV2TradeFeed
 
 
@@ -108,7 +109,7 @@ def weth(uniswap_v2) -> TokenDetails:
 def test_uniswap_v2_direct_feed(web3, uniswap_v2, deployer, weth, usdc):
     """Read random ETH-USD trades from EthereumTester blockchain."""
 
-    stats = generate_fake_uniswap_v2_data(
+    synthetic_data_stats = generate_fake_uniswap_v2_data(
         uniswap_v2,
         deployer,
         weth,
@@ -118,9 +119,12 @@ def test_uniswap_v2_direct_feed(web3, uniswap_v2, deployer, weth, usdc):
         number_of_blocks=10,
     )
 
-    pair_address: str = stats["pair_address"]
+    pair_address: str = synthetic_data_stats["pair_address"]
 
-    pair = fetch_pair_details(web3, pair_address)
+    # Depending on the randomness, contracts might be deployed in different order
+    reverse_token_order = int(weth.address, 16) > int(usdc.address, 16)
+
+    pair = fetch_pair_details(web3, pair_address, reverse_token_order)
 
     pairs = [pair]
 
@@ -146,6 +150,19 @@ def test_uniswap_v2_direct_feed(web3, uniswap_v2, deployer, weth, usdc):
     )
 
     delta = trade_feed.perform_duty_cycle()
+    trades = delta.trades
+
+    # Check that trades match the happened event range
+    import ipdb ; ipdb.set_trace()
+    assert trades.iloc[0].block_number == synthetic_data_stats["first_block"]
+    assert trades.iloc[-1].block_number == synthetic_data_stats["last_block"]
+
+    # Check that we processed all Swap events
+    buys = Trade.filter_buys(delta.trades)
+    sells = Trade.filter_sells(delta.trades)
+    assert len(buys) == synthetic_data_stats["buys"]
+    assert len(sells) == synthetic_data_stats["sells"]
+
     import ipdb ; ipdb.set_trace()
 
 
