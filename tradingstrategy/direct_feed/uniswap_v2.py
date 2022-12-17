@@ -15,6 +15,7 @@ from eth_defi.event_reader.web3factory import Web3Factory
 from eth_defi.event_reader.web3worker import create_thread_pool_executor
 from eth_defi.price_oracle.oracle import PriceOracle, BasePriceOracle
 from eth_defi.uniswap_v2.pair import PairDetails
+from .timeframe import Timeframe
 
 from .trade_feed import Trade, TradeFeed
 from .reorg_mon import ReorganisationMonitor
@@ -90,6 +91,7 @@ class UniswapV2TradeFeed(TradeFeed):
                  web3_factory: Web3Factory,
                  oracles: Dict[str, PriceOracle],
                  reorg_mon: ReorganisationMonitor,
+                 timeframe: Timeframe,
                  data_retention_time: Optional[pd.Timedelta] = None,
                  threads=16,
                  chunk_size=100):
@@ -121,6 +123,7 @@ class UniswapV2TradeFeed(TradeFeed):
             pairs=pairs,
             oracles=oracles,
             reorg_mon=reorg_mon,
+            timeframe=timeframe,
             data_retention_time=data_retention_time,
         )
 
@@ -204,12 +207,12 @@ class UniswapV2TradeFeed(TradeFeed):
 
         # Read specified events in block range.
         # Sync() event should always come one log_index before Swap()
-
-        trades_processed = 0
+        events_processed = trades_processed = 0
 
         for log_result in generator:
+            events_processed += 1
 
-            logger.debug("Reading event: %s", log_result)
+            logger.debug("Reading %s event, block: %s, log_index: %s, tx: %s", log_result["event"].event_name, log_result["blockNumber"], log_result["logIndex"], log_result["transactionHash"])
 
             if log_result["event"].event_name == "Swap":
                 swap = decode_swap(log_result)
@@ -229,7 +232,7 @@ class UniswapV2TradeFeed(TradeFeed):
                     progress_bar.update(1)
                     last_block = log_result["block_number"]
 
-        logger.info("Mapped %d trades", trades_processed)
+        logger.info("Mapped %d events, %d trades", events_processed, trades_processed)
 
         if progress_bar:
             progress_bar.close()
@@ -383,45 +386,6 @@ def decode_sync(log: LogResult) -> dict:
     return data
 
 
-def calculate_reserve_price_in_quote_token_raw(
-        reversed: bool,
-        reserve0: int,
-        reserve1: int,
-        amount0_in,
-        amount1_in,
-        amount0_out,
-        amount1_out,
-) -> Tuple[Decimal, Decimal]:
-    """Calculate the market price based on Uniswap pool reserve0 an reserve1.
-
-    :param reversed:
-        Determine base, quote token order relative to token0, token1.
-        If reversed, quote token is token0, else quote token is token0.
-
-    :return:
-        Price in quote token, amount in quote token
-    """
-
-    assert reserve0 > 0, f"Bad reserves {reserve0}, {reserve1}"
-    assert reserve1 > 0, f"Bad reserves {reserve0}, {reserve1}"
-
-    if reversed:
-        reserve0, reserve1 = reserve1, reserve0
-
-    if reversed:
-        quote_amount = (amount0_out - amount0_in)
-        base_amount = (amount1_out - amount1_in)
-    else:
-        base_amount = (amount0_out - amount0_in)
-        quote_amount = (amount1_out - amount1_in)
-
-    price = Decimal(reserve1) / Decimal(reserve0)
-
-    volume = Decimal(quote_amount)
-
-    return price, volume
-
-
 def calculate_reserve_price_in_quote_token_decimal(
         reversed: bool,
         reserve0: Decimal,
@@ -470,13 +434,12 @@ def calculate_reserve_price_in_quote_token_decimal(
     if price <= 0:
         return SwapKind.invalid, Decimal(0), Decimal(0)
 
-    volume = quote_amount
-
-    # Fiat currency increases
+    # Quote token (fiat currency) increases
     if quote_amount > 0:
         kind = SwapKind.sell
-        volume = abs(volume)
+        volume = quote_amount
     else:
         kind = SwapKind.buy
+        volume = abs(quote_amount)
 
     return kind, price, volume

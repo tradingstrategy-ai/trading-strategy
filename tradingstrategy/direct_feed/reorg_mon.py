@@ -252,7 +252,7 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
                 timestamp = raw_result["timestamp"]
 
             record = BlockRecord(block_num, block_hash, timestamp)
-            logger.debug("Fetched block record: %s", record)
+            logger.debug("Fetched block record: %s, total %d transactions", record, len(raw_result["transactions"]))
             yield record
 
 
