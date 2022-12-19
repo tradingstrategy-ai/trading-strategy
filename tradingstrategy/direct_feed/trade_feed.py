@@ -411,6 +411,11 @@ class TradeFeed:
         trades = self.fetch_trades(start_block, end_block)
         return self.update_cycle(start_block, end_block, reorg_resolution.reorg_detected, trades)
 
+    def to_pandas(self, partition_size: int) -> pd.DataFrame:
+        df = self.trades_df
+        df["partition"] = df["block_number"].apply(lambda x: max((x // partition_size) * partition_size, 1))
+        return df
+
     def restore(self, df: pd.DataFrame):
         """Restore data from the previous disk save."""
         self.trades_df = df

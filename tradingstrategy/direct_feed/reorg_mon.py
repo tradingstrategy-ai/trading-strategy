@@ -3,29 +3,16 @@
 import datetime
 import time
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Dict, Iterable, Optional, Tuple
 import logging
 
 import pandas as pd
 from web3 import Web3
 
+from eth_defi.event_reader.block_header import BlockHeader
+
 logger = logging.getLogger(__name__)
-
-
-@dataclass(slots=True, frozen=True)
-class BlockRecord:
-    block_number: int
-    block_hash: str
-    timestamp: float | int
-
-    def __repr__(self):
-        return f"<Block {self.block_number:,}, hash: {self.block_hash} ts:{self.timestamp}>"
-
-    def __post_init__(self):
-        assert type(self.block_number) == int
-        assert type(self.block_hash) == str
-        assert type(self.timestamp) in (float, int)
 
 
 @dataclass(slots=True, frozen=True)
@@ -77,7 +64,7 @@ class ReorganisationMonitor:
     """
 
     def __init__(self, check_depth=200, max_reorg_resolution_attempts=10, reorg_wait_seconds=5):
-        self.block_map: Dict[int, BlockRecord] = {}
+        self.block_map: Dict[int, BlockHeader] = {}
         self.last_block_read: int = 0
         self.check_depth = check_depth
         self.reorg_wait_seconds = reorg_wait_seconds
@@ -104,11 +91,14 @@ class ReorganisationMonitor:
 
         return start_block, end_block
 
-    def add_block(self, record: BlockRecord):
+    def add_block(self, record: BlockHeader):
         """Add new block to header tracking.
 
         Blocks must be added in order.
         """
+
+        assert isinstance(record, BlockHeader)
+
         block_number = record.block_number
         assert block_number not in self.block_map, f"Block already added: {block_number}"
         self.block_map[block_number] = record
@@ -207,8 +197,22 @@ class ReorganisationMonitor:
 
         raise ReorganisationResolutionFailure(f"Gave up chain reorg resolution. Last block: {self.last_block_read}, attempts {self.max_cycle_tries}")
 
+    def to_pandas(self, partition_size: int) -> pd.DataFrame:
+        """Convert the data to Pandas DataFrame format for storing.
+
+        :param partition_size:
+            To partition the outgoing data.
+        """
+        data = [asdict(h) for h in self.block_map.values()]
+        return BlockHeader.to_pandas(data, partition_size)
+
+    def restore(self, df: pd.DataFrame):
+        """Restore the chain state from a saved data."""
+        self.block_map = BlockHeader.from_pandas(df)
+        self.last_block_read = df["block_number"].max()
+
     @abstractmethod
-    def fetch_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
+    def fetch_block_data(self, start_block, end_block) -> Iterable[BlockHeader]:
         """Read the new block headers.
 
         :param start_block:
@@ -233,7 +237,7 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
     def get_last_block_live(self):
         return self.web3.eth.block_number
 
-    def fetch_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
+    def fetch_block_data(self, start_block, end_block) -> Iterable[BlockHeader]:
         logger.info("Fetching block headers and timestamps for logs %d - %d", start_block, end_block)
         web3 = self.web3
 
@@ -265,6 +269,8 @@ class MockChainAndReorganisationMonitor(ReorganisationMonitor):
 
     def __init__(self, block_number: int = 1, block_duration_seconds=1):
         super().__init__(reorg_wait_seconds=0)
+
+        #: Next available block number
         self.simulated_block_number = block_number
         self.simulated_blocks = {}
         self.block_duration_seconds = block_duration_seconds
@@ -276,18 +282,18 @@ class MockChainAndReorganisationMonitor(ReorganisationMonitor):
         """
         for x in range(block_count):
             num = self.simulated_block_number
-            record = BlockRecord(num, hex(num), num * self.block_duration_seconds)
+            record = BlockHeader(num, hex(num), num * self.block_duration_seconds)
             self.simulated_blocks[self.simulated_block_number] = record
             self.simulated_block_number += 1
 
     def produce_fork(self, block_number: int, fork_marker="0x8888"):
         """Mock a fork int he chain."""
-        self.simulated_blocks[block_number] = BlockRecord(block_number, fork_marker, block_number * self.block_duration_seconds)
+        self.simulated_blocks[block_number] = BlockHeader(block_number, fork_marker, block_number * self.block_duration_seconds)
 
     def get_last_block_live(self):
         return self.simulated_block_number - 1
 
-    def fetch_block_data(self, start_block, end_block) -> Iterable[BlockRecord]:
+    def fetch_block_data(self, start_block, end_block) -> Iterable[BlockHeader]:
 
         assert start_block > 0, "Cannot ask data for zero block"
         assert end_block <= self.get_last_block_live(), "Cannot ask data for blocks that are not produced yet"
@@ -295,4 +301,7 @@ class MockChainAndReorganisationMonitor(ReorganisationMonitor):
         for i in range(start_block, end_block + 1):
             yield self.simulated_blocks[i]
 
+    def load(self, block_map: dict):
+        self.simulated_blocks = block_map
+        self.simulated_block_number = max(self.simulated_blocks.keys()) + 1
 
