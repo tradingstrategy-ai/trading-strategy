@@ -12,6 +12,7 @@ We do not store
 """
 from pathlib import Path
 
+from eth_defi.event_reader.block_header import BlockHeader
 from eth_defi.event_reader.parquet_block_data_store import ParquetDatasetBlockDataStore
 from tradingstrategy.direct_feed.trade_feed import TradeFeed
 
@@ -32,8 +33,8 @@ def save_trade_feed(trade_feed: TradeFeed, base_path: Path, partition_size: int)
 
     :return:
     """
-    header_store = ParquetDatasetBlockDataStore(Path(base_path), partition_size)
-    trade_store = ParquetDatasetBlockDataStore(Path(base_path), partition_size)
+    header_store = ParquetDatasetBlockDataStore(Path(base_path).joinpath("blocks"), partition_size)
+    trade_store = ParquetDatasetBlockDataStore(Path(base_path).joinpath("trades"), partition_size)
 
     # Save headers
     headers_df = trade_feed.reorg_mon.to_pandas(partition_size)
@@ -41,7 +42,7 @@ def save_trade_feed(trade_feed: TradeFeed, base_path: Path, partition_size: int)
 
     # Save trades
     trades_df = trade_feed.to_pandas(partition_size)
-    trade_store.save(trades_df)
+    trade_store.save(trades_df, check_contains_all_blocks=False)
 
     assert not header_store.is_virgin(), f"Headers not correctly written"
     assert not trade_store.is_virgin(), f"Trades not correctly written"
@@ -76,7 +77,9 @@ def load_trade_feed(trade_feed: TradeFeed, base_path: Path, partition_size: int)
     headers_df_2 = header_store.load()
     trades_df_2 = trade_store.load()
 
-    trade_feed.reorg_mon.restore(headers_df_2)
+    block_map = BlockHeader.from_pandas(headers_df_2)
+
+    trade_feed.reorg_mon.restore(block_map)
     trade_feed.restore(trades_df_2)
 
     return True

@@ -11,7 +11,9 @@ from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 def test_save_load_block_headers_and_trades():
     """Save and load all direct feed data from the disk."""
 
-    partition_size = 10
+    # Set some odd number to make it more likely
+    # to surface qny issues
+    partition_size = 27
 
     with tempfile.TemporaryDirectory() as tmp_dir:
 
@@ -23,8 +25,8 @@ def test_save_load_block_headers_and_trades():
         )
         mock_chain.produce_blocks(100)
         assert mock_chain.get_last_block_live() == 100
-        assert feed.get_block_number_of_last_trade() == 100
         delta = feed.backfill_buffer(100, None)
+        assert feed.get_block_number_of_last_trade() == 100
 
         save_trade_feed(feed, tmp_dir, partition_size)
 
@@ -45,9 +47,11 @@ def test_save_load_block_headers_and_trades():
 
         mock_chain.produce_blocks(1)
         delta = feed2.perform_duty_cycle()
-        assert delta.start_block == 101
+        assert delta.start_block == 60  # Snapped to candle boundary
         assert delta.end_block == 101
         assert not delta.reorg_detected
 
-        assert mock_chain.get_last_block_live() == 100
-        assert feed2.get_block_number_of_last_trade() == 100
+        assert mock_chain.get_last_block_live() == 101
+        assert feed2.get_block_number_of_last_trade() == 101
+
+        save_trade_feed(feed, tmp_dir, partition_size)

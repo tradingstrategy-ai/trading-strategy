@@ -102,7 +102,7 @@ class ReorganisationMonitor:
         assert block_number not in self.block_map, f"Block already added: {block_number}"
         self.block_map[block_number] = record
 
-        assert self.last_block_read == block_number - 1, f"Blocks must be added in order. Last: {self.last_block_read}, got: {record}"
+        assert self.last_block_read == block_number - 1, f"Blocks must be added in order. Last block we have: {self.last_block_read}, the new record is: {record}"
         self.last_block_read = block_number
 
     def check_block_reorg(self, block_number: int, block_hash: str):
@@ -139,7 +139,7 @@ class ReorganisationMonitor:
             if block.block_number not in self.block_map:
                 self.add_block(block)
 
-    def get_block_by_number(self, block_number: int) -> BlockRecord:
+    def get_block_by_number(self, block_number: int) -> BlockHeader:
         return self.block_map.get(block_number)
 
     def get_block_timestamp(self, block_number: int) -> int:
@@ -207,6 +207,7 @@ class ReorganisationMonitor:
 
     def restore(self, block_map: dict):
         """Restore the chain state from a saved data."""
+        assert type(block_map) == dict, f"Got: {type(block_map)}"
         self.block_map = block_map
         self.last_block_read = max(block_map.keys())
 
@@ -254,7 +255,7 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
                 # EthereumTester
                 timestamp = raw_result["timestamp"]
 
-            record = BlockRecord(block_num, block_hash, timestamp)
+            record = BlockHeader(block_num, block_hash, timestamp)
             logger.debug("Fetched block record: %s, total %d transactions", record, len(raw_result["transactions"]))
             yield record
 

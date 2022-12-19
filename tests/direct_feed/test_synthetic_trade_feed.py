@@ -1,14 +1,12 @@
 from decimal import Decimal
 
 import pandas as pd
-import pytest
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
-from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor, BlockRecord
+from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.trade_feed import Trade
-from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 
 
 def test_synthetic_block_mon_produce_blocks():

@@ -6,12 +6,14 @@ from typing import Dict, Optional, List, Iterable, Type
 
 import pandas as pd
 from tqdm import tqdm
+
+from eth_defi.event_reader.block_header import BlockHeader
 from eth_defi.price_oracle.oracle import BasePriceOracle
 
 from .timeframe import Timeframe
 from .trade_feed import TradeFeed, Trade
 from .direct_feed_pair import PairId
-from .reorg_mon import ReorganisationMonitor, BlockRecord
+from .reorg_mon import ReorganisationMonitor
 
 
 class SyntheticTradeFeed(TradeFeed):
@@ -79,7 +81,7 @@ class SyntheticTradeFeed(TradeFeed):
                     price = self.prices[p]
                     amount = self.random_gen.uniform(self.min_amount, self.max_amount)
 
-                    block: BlockRecord = block_data[block_num]
+                    block: BlockHeader = block_data[block_num]
                     tx_hash = hex(self.random_gen.randint(2**31, 2**32))
                     log_index = trade_idx
 
