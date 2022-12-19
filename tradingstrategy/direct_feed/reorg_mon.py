@@ -52,7 +52,6 @@ class BlockNotAvailable(Exception):
     """Tried to ask timestamp data for a block that does not exist yet."""
 
 
-
 class ReorganisationMonitor:
     """Watch blockchain for reorgs.
 
@@ -206,10 +205,10 @@ class ReorganisationMonitor:
         data = [asdict(h) for h in self.block_map.values()]
         return BlockHeader.to_pandas(data, partition_size)
 
-    def restore(self, df: pd.DataFrame):
+    def restore(self, block_map: dict):
         """Restore the chain state from a saved data."""
-        self.block_map = BlockHeader.from_pandas(df)
-        self.last_block_read = df["block_number"].max()
+        self.block_map = block_map
+        self.last_block_read = max(block_map.keys())
 
     @abstractmethod
     def fetch_block_data(self, start_block, end_block) -> Iterable[BlockHeader]:

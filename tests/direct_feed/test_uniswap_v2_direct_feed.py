@@ -15,6 +15,7 @@ from eth_defi.uniswap_v2.deployment import (
 )
 from eth_defi.uniswap_v2.pair import fetch_pair_details
 from eth_defi.uniswap_v2.synthetic_data import generate_fake_uniswap_v2_data
+from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.reorg_mon import JSONRPCReorganisationMonitor
 from tradingstrategy.direct_feed.timeframe import Timeframe
 from tradingstrategy.direct_feed.trade_feed import Trade
@@ -119,6 +120,13 @@ def test_uniswap_v2_direct_feed(
         pair: TrustedStablecoinOracle(),
     }
 
+    timeframe = Timeframe("1min")
+
+    candle_feed = CandleFeed(
+        pairs,
+        timeframe=timeframe,
+    )
+
     # Prepare the web3 connection for the scan
     web3_patched = Web3(tester_provider)
     patch_web3(web3_patched)
@@ -135,11 +143,13 @@ def test_uniswap_v2_direct_feed(
         reorg_mon,
         threads=1,
         chunk_size=3,
-        timeframe=Timeframe("1min"),
+        timeframe=timeframe,
     )
 
     delta = trade_feed.perform_duty_cycle()
     trades = delta.trades
+
+    candle_feed.apply_delta(delta)
 
     # Check that trades match the happened event range
     assert trades.iloc[0].block_number == synthetic_data_stats["first_block"]
@@ -179,3 +189,6 @@ def test_uniswap_v2_direct_feed(
     sells = Trade.filter_sells(delta.trades)
     assert len(buys) >= round_two["buys"]
     assert len(sells) >= round_two["sells"]
+
+    candle_feed.apply_delta(delta)
+

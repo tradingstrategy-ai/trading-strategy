@@ -106,6 +106,10 @@ class UniswapV2TradeFeed(TradeFeed):
         :param oracles:
             Price oracles needed for the exchange rate conversion
 
+        :param timeframe:
+            Maximum timeframe for produced candles
+            when doing candle refreshes
+
         :param reorg_mon:
             Chain reorganistaion manager
 
@@ -160,8 +164,6 @@ class UniswapV2TradeFeed(TradeFeed):
 
         logger.info("Fetching uniswap trades %d - %d", start_block, end_block)
 
-        events = []
-
         def _extract_timestamps(web3, start_block, end_block):
             ts_map = {}
             for block_num in range(start_block, end_block+1):
@@ -175,6 +177,7 @@ class UniswapV2TradeFeed(TradeFeed):
 
         if tqdm:
             progress_bar = tqdm(total=max_blocks)
+            progress_bar.set_description(f"Loading Uniswap v2 event data {start_block:,} - {end_block:,}, {len(self.pairs)} trading pairs")
         else:
             progress_bar = None
 
@@ -229,8 +232,12 @@ class UniswapV2TradeFeed(TradeFeed):
             if progress_bar:
                 # Update progress bar for every block
                 if last_block != log_result["block_number"]:
-                    progress_bar.update(1)
                     last_block = log_result["block_number"]
+                    progress_bar.set_postfix({
+                        "events": events_processed,
+                        "trades": trades_processed,
+                    }, refresh=False)
+                    progress_bar.update(1)
 
         logger.info("Mapped %d events, %d trades", events_processed, trades_processed)
 
