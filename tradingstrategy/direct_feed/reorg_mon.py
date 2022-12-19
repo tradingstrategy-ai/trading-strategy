@@ -1,10 +1,9 @@
 """Chain reorganisation handling during the real-time OHLCV candle production."""
 
-import datetime
 import time
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Dict, Iterable, Tuple
 import logging
 
 import pandas as pd
