@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from eth_defi.abi import get_contract
 from eth_defi.event_reader.conversion import decode_data, convert_int256_bytes_to_int, convert_jsonrpc_value_to_int
+from eth_defi.event_reader.filter import Filter
 from eth_defi.event_reader.logresult import LogResult, LogContext
 from eth_defi.event_reader.reader import read_events_concurrent, read_events
 from eth_defi.event_reader.web3factory import Web3Factory
@@ -124,7 +125,7 @@ class UniswapV2TradeFeed(TradeFeed):
         """
 
         super().__init__(
-            pairs=pairs,
+            pairs=[p.address for p in pairs],
             oracles=oracles,
             reorg_mon=reorg_mon,
             timeframe=timeframe,
@@ -181,29 +182,35 @@ class UniswapV2TradeFeed(TradeFeed):
         else:
             progress_bar = None
 
+        # Listen only pairs we are interested in
+        filter = Filter.create_filter(
+            address=list(self.pair_map.keys()),
+            event_types=self.events_to_read,
+        )
+
         if self.executor is None:
             # Read in the current thread
             generator = read_events(
                 self.web3,
                 start_block,
                 end_block,
-                self.events_to_read,
                 notify = None,
                 chunk_size=self.chunk_size,
                 context=self.event_reader_context,
                 extract_timestamps=_extract_timestamps,
+                filter=filter,
             )
         else:
             # Read using a pool
             generator = read_events_concurrent(
-                self.executor,
-                start_block,
-                end_block,
-                self.events_to_read,
-                None,
+                executor=self.executor,
+                start_block=start_block,
+                end_block=end_block,
+                notify=None,
                 chunk_size=self.chunk_size,
                 context=self.event_reader_context,
                 extract_timestamps=_extract_timestamps,
+                filter=filter,
             )
 
         sync = swap = None
@@ -266,7 +273,7 @@ class UniswapV2TradeFeed(TradeFeed):
         pair = self.pair_map.get(swap_pair_address)
         assert pair is not None, f"Pair {swap_pair_address} not in our pair map {self.pair_map.keys()}"
 
-        oracle: BasePriceOracle = self.oracles.get(pair)
+        oracle: BasePriceOracle = self.oracles.get(pair.address)
         if not oracle:
             raise RuntimeError(f"Exchange rate oracle missing for pair %s",pair)
 

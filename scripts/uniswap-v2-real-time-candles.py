@@ -36,7 +36,7 @@ from web3 import Web3, HTTPProvider
 from eth_defi.event_reader.block_time import measure_block_time
 from eth_defi.event_reader.web3factory import TunedWeb3Factory
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
-from eth_defi.uniswap_v2.pair import fetch_pair_details
+from eth_defi.uniswap_v2.pair import fetch_pair_details, PairDetails
 from tradingstrategy.charting.candle_chart import visualise_ohlcv
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor, JSONRPCReorganisationMonitor
@@ -275,6 +275,10 @@ def main(
 
     # Save that we do not need to backfill again
     save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
+
+    pair: PairDetails = pairs[0]
+    price = trade_feed.get_latest_price(pair)
+    logger.info("Current price is: %s %s/%s", price, pair.get_quote_token().symbol, pair.get_base_token().symbol)
 
     # Start blockchain data processor bg thread
     candle_bg_thread = Thread(target=start_block_consumer_thread, args=(data_refresh_frequency, trade_feed, candle_feed))

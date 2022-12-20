@@ -117,7 +117,7 @@ def test_uniswap_v2_direct_feed(
     pairs = [pair]
 
     oracles = {
-        pair: TrustedStablecoinOracle(),
+        pair.address: TrustedStablecoinOracle(),
     }
 
     timeframe = Timeframe("1min")

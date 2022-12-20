@@ -200,6 +200,9 @@ class TradeFeed:
         for o in oracles.values():
             assert isinstance(o, BasePriceOracle)
 
+        for p in pairs:
+            assert type(p) == PairId, f"Only ids allowed, got {p}"
+
         self.pairs = pairs
         self.oracles = oracles
         self.data_retention_time = data_retention_time
@@ -271,6 +274,14 @@ class TradeFeed:
             df = self.trades_df
         return df.tail(n)
 
+    def get_latest_price(self, pair: PairId) -> float:
+        """Return the latest price of a pair.
+
+        Return the current close price of the last candle.
+        """
+        df = self.trades_df.loc[self.trades_df["pair"] == pair]
+        return df.iloc[-1]["close"]
+
     def truncate_reorganised_data(self, latest_good_block):
         """Discard data because of the chain reorg.
 
@@ -309,7 +320,7 @@ class TradeFeed:
             Data loaded and filled to the work buffer.
         """
 
-        start_block, end_block = self.reorg_mon.load_initial_data(block_count, tqdm, save_hook)
+        start_block, end_block = self.reorg_mon.load_initial_block_headers(block_count, tqdm, save_hook)
         trades = self.fetch_trades(start_block, end_block, tqdm)
         # On initial load, we do not care about reorgs
         return self.update_cycle(start_block, end_block, False, trades)

@@ -76,7 +76,7 @@ class ReorganisationMonitor:
     def get_last_block_read(self):
         return self.last_block_read
 
-    def load_initial_data(self, block_count: int, tqdm: Optional[Type[tqdm]] = None, save_callable: Optional[Callable] = None) -> Tuple[int, int]:
+    def load_initial_block_headers(self, block_count: int, tqdm: Optional[Type[tqdm]] = None, save_callable: Optional[Callable] = None) -> Tuple[int, int]:
         """Get the inital block buffer filled up.
 
         :param tqdm:
