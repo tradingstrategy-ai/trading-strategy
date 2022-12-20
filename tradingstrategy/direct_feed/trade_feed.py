@@ -274,13 +274,14 @@ class TradeFeed:
             df = self.trades_df
         return df.tail(n)
 
-    def get_latest_price(self, pair: PairId) -> float:
+    def get_latest_price(self, pair: PairId) -> Decimal:
         """Return the latest price of a pair.
 
-        Return the current close price of the last candle.
+        Return the last price record we have.
         """
         df = self.trades_df.loc[self.trades_df["pair"] == pair]
-        return df.iloc[-1]["close"]
+        last = df.iloc[-1]
+        return last["price"]
 
     def truncate_reorganised_data(self, latest_good_block):
         """Discard data because of the chain reorg.

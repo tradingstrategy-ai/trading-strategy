@@ -66,6 +66,8 @@ def test_add_trades():
     entry = feed.trades_df.iloc[0]
     assert entry["pair"] == "ETH-USD"
 
+    assert feed.get_latest_price("ETH-USD") == Decimal(1)
+
 
 def test_initial_load():
     """Read trades from a synthetic feed."""

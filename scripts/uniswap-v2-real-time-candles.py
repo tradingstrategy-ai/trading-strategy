@@ -93,7 +93,7 @@ def setup_uniswap_v2_market_data_feeds(
 
     oracles = {}
     for p in pairs:
-        oracles[p] = TrustedStablecoinOracle()
+        oracles[p.address] = TrustedStablecoinOracle()
 
     # Have two pairs
     trade_feed = UniswapV2TradeFeed(
