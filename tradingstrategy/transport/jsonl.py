@@ -40,6 +40,7 @@ CANDLE_MAPPINGS = {
     "sv": "sell_volume",
     "sb": "start_block",
     "eb": "end_block",
+    "tc": "total_count",
     "v": None,  # Deprecated
 }
 
