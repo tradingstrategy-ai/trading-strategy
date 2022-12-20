@@ -1,7 +1,8 @@
+import time
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
 from decimal import Decimal
-from typing import Dict, Optional, List,  Iterable, Type, TypeAlias
+from typing import Dict, Optional, List, Iterable, Type, TypeAlias, Protocol
 
 import pandas as pd
 from eth_defi.price_oracle.oracle import BasePriceOracle
@@ -130,6 +131,16 @@ class TradeDelta:
     trades: pd.DataFrame
 
 
+class SaveHook(Protocol):
+    """Save hook called by trade feed when downloading data.
+
+    Called every N seconds.
+    """
+
+    def __call__(self, feed: "TradeFeed"):
+        pass
+
+
 class TradeFeed:
     """Real-time blockchain trade feed.
 
@@ -149,6 +160,7 @@ class TradeFeed:
                  reorg_mon: ReorganisationMonitor,
                  timeframe: Timeframe = Timeframe("1min"),
                  data_retention_time: Optional[pd.Timedelta] = None,
+                 save_hook: Optional[SaveHook] = None,
                  ):
         """
         Create new real-time OHLCV tracker.
@@ -178,6 +190,9 @@ class TradeFeed:
             Discard entries older than this to avoid
             filling the RAM.
 
+        :param save_hook:
+            Sync the downloaded data to disk.
+
         """
 
         assert isinstance(reorg_mon, ReorganisationMonitor)
@@ -189,9 +204,9 @@ class TradeFeed:
         self.oracles = oracles
         self.data_retention_time = data_retention_time
         self.reorg_mon = reorg_mon
-        self.tqdm = tqdm
         self.timeframe = timeframe
         self.cycle = 1
+        self.last_save = 0
 
         self.trades_df = pd.DataFrame()
 
@@ -276,7 +291,7 @@ class TradeFeed:
         self.truncate_reorganised_data(reorg_resolution.latest_block_with_good_data)
         return reorg_resolution
 
-    def backfill_buffer(self, block_count: int, tqdm: Optional[Type[tqdm]] = None) -> TradeDelta:
+    def backfill_buffer(self, block_count: int, tqdm: Optional[Type[tqdm]] = None, save_hook=None) -> TradeDelta:
         """Populate the backbuffer before starting real-time tracker.
 
         :param block_count:
@@ -293,7 +308,8 @@ class TradeFeed:
         :return:
             Data loaded and filled to the work buffer.
         """
-        start_block, end_block = self.reorg_mon.load_initial_data(block_count)
+
+        start_block, end_block = self.reorg_mon.load_initial_data(block_count, tqdm, save_hook)
         trades = self.fetch_trades(start_block, end_block, tqdm)
         # On initial load, we do not care about reorgs
         return self.update_cycle(start_block, end_block, False, trades)
@@ -413,7 +429,8 @@ class TradeFeed:
 
     def to_pandas(self, partition_size: int) -> pd.DataFrame:
         df = self.trades_df
-        df["partition"] = df["block_number"].apply(lambda x: max((x // partition_size) * partition_size, 1))
+        if len(df) > 0:
+            df["partition"] = df["block_number"].apply(lambda x: max((x // partition_size) * partition_size, 1))
         return df
 
     def restore(self, df: pd.DataFrame):

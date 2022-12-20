@@ -38,14 +38,15 @@ def save_trade_feed(trade_feed: TradeFeed, base_path: Path, partition_size: int)
 
     # Save headers
     headers_df = trade_feed.reorg_mon.to_pandas(partition_size)
-    header_store.save(headers_df)
+    if len(headers_df) > 0:
+        header_store.save(headers_df)
+        assert not header_store.is_virgin(), f"Headers not correctly written"
 
     # Save trades
     trades_df = trade_feed.to_pandas(partition_size)
-    trade_store.save(trades_df, check_contains_all_blocks=False)
-
-    assert not header_store.is_virgin(), f"Headers not correctly written"
-    assert not trade_store.is_virgin(), f"Trades not correctly written"
+    if len(trades_df) > 0:
+        trade_store.save(trades_df, check_contains_all_blocks=False)
+        assert not trade_store.is_virgin(), f"Trades not correctly written"
 
 
 def load_trade_feed(trade_feed: TradeFeed, base_path: Path, partition_size: int) -> bool:
@@ -69,17 +70,13 @@ def load_trade_feed(trade_feed: TradeFeed, base_path: Path, partition_size: int)
     header_store = ParquetDatasetBlockDataStore(Path(base_path).joinpath("blocks"), partition_size)
     trade_store = ParquetDatasetBlockDataStore(Path(base_path).joinpath("trades"), partition_size)
 
-    if header_store.is_virgin():
-        return False
+    if not header_store.is_virgin():
+        headers_df_2 = header_store.load()
+        block_map = BlockHeader.from_pandas(headers_df_2)
+        trade_feed.reorg_mon.restore(block_map)
 
-    assert not trade_store.is_virgin(), f"Store {base_path} not in use / incorrectly written"
+    if not trade_store.is_virgin():
+        trades_df_2 = trade_store.load()
+        trade_feed.restore(trades_df_2)
 
-    headers_df_2 = header_store.load()
-    trades_df_2 = trade_store.load()
-
-    block_map = BlockHeader.from_pandas(headers_df_2)
-
-    trade_feed.reorg_mon.restore(block_map)
-    trade_feed.restore(trades_df_2)
-
-    return True
+    return not(header_store.is_virgin() or trade_store.is_virgin())

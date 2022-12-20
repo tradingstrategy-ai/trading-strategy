@@ -28,6 +28,7 @@ tqdm-loggable = "^0.1.2"
 # Needed for direct data feeds
 typer = {version = "^0.7.0", optional = true}
 web3-ethereum-defi = {version = "0.11.3", optional = true}
+dash = {version = "^2.7.1", optional = true}
 
 # Legacy strategy and trading engines
 trading-strategy-qstrader = {version="^0.5.0", optional = true}
@@ -48,7 +49,7 @@ pytest-asyncio = "^0.19.0"
 
 [tool.poetry.extras]
 # Real-time OHLCV feeds over JSON-RPC
-direct-feed = ["web3-ethereum-defi", "typer"]
+direct-feed = ["web3-ethereum-defi", "typer", "dash"]
 
 # Legacy qstrader framework support
 qstrader = ["scipy", "trading-strategy-qstrader"]

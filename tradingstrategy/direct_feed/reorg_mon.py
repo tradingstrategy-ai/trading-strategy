@@ -3,10 +3,11 @@
 import time
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
-from typing import Dict, Iterable, Tuple
+from typing import Dict, Iterable, Tuple, Optional, Type, Callable
 import logging
 
 import pandas as pd
+from tqdm import tqdm
 from web3 import Web3
 
 from eth_defi.event_reader.block_header import BlockHeader
@@ -75,17 +76,41 @@ class ReorganisationMonitor:
     def get_last_block_read(self):
         return self.last_block_read
 
-    def load_initial_data(self, block_count: int) -> Tuple[int, int]:
+    def load_initial_data(self, block_count: int, tqdm: Optional[Type[tqdm]] = None, save_callable: Optional[Callable] = None) -> Tuple[int, int]:
         """Get the inital block buffer filled up.
+
+        :param tqdm:
+            To display a progress bar
+
+        :param save_callable:
+            Save after every block.
+
+            Called after every block.
+
+            TODO: Hack. Design a better interface.
 
         :return:
             The initial block range to start to work with
         """
         end_block = self.get_last_block_live()
         start_block = max(end_block - block_count, 1)
+        blocks = end_block - start_block
+
+        if tqdm:
+            progress_bar = tqdm(total=blocks)
+            progress_bar.set_description(f"Downloading block headers {start_block:,} - {end_block:,}")
+        else:
+            progress_bar = None
 
         for block in self.fetch_block_data(start_block, end_block):
             self.add_block(block)
+            if progress_bar:
+                progress_bar.update(1)
+            if save_callable:
+                save_callable()
+
+        if progress_bar:
+            progress_bar.close()
 
         return start_block, end_block
 
@@ -238,7 +263,8 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
         return self.web3.eth.block_number
 
     def fetch_block_data(self, start_block, end_block) -> Iterable[BlockHeader]:
-        logger.info("Fetching block headers and timestamps for logs {start_block:,} - {end_block:,}")
+        total = end_block - start_block
+        logger.info(f"Fetching block headers and timestamps for logs {start_block:,} - {end_block:,}, total {total:,} blocks")
         web3 = self.web3
 
         # Collect block timestamps from the headers

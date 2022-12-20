@@ -40,7 +40,7 @@ from eth_defi.uniswap_v2.pair import fetch_pair_details
 from tradingstrategy.charting.candle_chart import visualise_ohlcv
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor, JSONRPCReorganisationMonitor
-from tradingstrategy.direct_feed.store import load_trade_feed
+from tradingstrategy.direct_feed.store import load_trade_feed, save_trade_feed
 from tradingstrategy.direct_feed.timeframe import Timeframe
 from tradingstrategy.direct_feed.trade_feed import TradeFeed
 from tradingstrategy.direct_feed.uniswap_v2 import UniswapV2TradeFeed
@@ -256,7 +256,22 @@ def main(
     # Display interactive tqdm progress bar.
     buffer_hours = 3
     blocks_needed = int(buffer_hours * 3600 // data_refresh_frequency) + 1
-    trade_feed.backfill_buffer(blocks_needed, tqdm)
+
+    last_save = 0
+    save_frequency = 10
+
+    def save_hook():
+        nonlocal last_save
+        nonlocal save_frequency
+        if time.time() - last_save > save_frequency:
+            save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
+            last_save = time.time()
+
+    logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", buffer_hours, blocks_needed)
+    trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
+
+    # Save that we do not need to backfill again
+    save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
 
     # Start blockchain data processor bg thread
     candle_bg_thread = Thread(target=start_block_consumer_thread, args=(data_refresh_frequency, trade_feed, candle_feed))
