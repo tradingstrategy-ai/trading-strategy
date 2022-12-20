@@ -5,9 +5,18 @@
 
 - It is a demo and interactive test applications for manual testing
 
+Example of viewing BNB/BUSD on PancakeSwap:
+
+.. code-block:: shell
+
+    python scripts/synthetic-real-time-candles.py \
+        --json_rpc_url=$BNB_CHAIN_JSON_RPC
+        --pair-address=
+
 """
 import logging
 import os
+import shutil
 import sys
 import time
 from threading import Thread
@@ -202,15 +211,20 @@ def setup_app(
     return app
 
 
-app = typer.Typer()
-
+# https://github.com/tiangolo/typer/issues/511#issuecomment-1331692007
+app = typer.Typer(context_settings={
+    "max_content_width": shutil.get_terminal_size().columns
+})
 
 @app.command()
 def main(
-        json_rpc_url: str = typer.Option(None, help="Connect to EVM blockchain using this JSON-RPC node"),
-        pair_address: str= typer.Option(None, help="Address of Uniswap v2 compatible pair contract"),
+        json_rpc_url: str = typer.Option(..., help="Connect to EVM blockchain using this JSON-RPC node URL"),
+        pair_address: str = typer.Option(..., help="Address of Uniswap v2 compatible pair contract"),
 ):
-    """Setup and run the dash app."""
+    """Render real-time price chart for Uniswap v2 compatible DEX.
+
+    Show a price chart of one trading pair with different candle durations.
+    """
 
     # Get rid of pesky Pandas FutureWarnings
     disable_pandas_warnings()
@@ -219,7 +233,7 @@ def main(
     logging.basicConfig(level=logging.DEBUG, handlers=[logging.StreamHandler()])
 
     # Setup the fake blockchain data generator
-    data_refresh_frequency, candle_feed, trade_feed = setup_uniswap_v2_market_data_feeds()
+    data_refresh_frequency, candle_feed, trade_feed = setup_uniswap_v2_market_data_feeds(json_rpc_url, pair_address)
     pairs = trade_feed.pairs
 
     cache_path = os.path.expanduser("~/.cache/uniswap-v2-candle-demo")
@@ -245,4 +259,4 @@ def main(
 
 
 if __name__ == '__main__':
-    main()
+    app()

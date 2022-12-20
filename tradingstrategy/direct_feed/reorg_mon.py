@@ -281,7 +281,7 @@ class MockChainAndReorganisationMonitor(ReorganisationMonitor):
         """
         for x in range(block_count):
             num = self.simulated_block_number
-            record = BlockHeader(num, hex(num), num * self.block_duration_seconds)
+            record = BlockHeader(num, hex(num), int(num * self.block_duration_seconds))
             self.simulated_blocks[self.simulated_block_number] = record
             self.simulated_block_number += 1
 
