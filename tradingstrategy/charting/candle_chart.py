@@ -17,6 +17,19 @@ import pandas as pd
 from plotly.subplots import make_subplots
 
 
+
+class BadOHLCVData(Exception):
+    """We could not figure out the data frame"""
+
+
+def validate_ohclv_dataframe(candles: pd.DataFrame):
+    required_columns = ["open", "close", "high", "low"]
+    for r in required_columns:
+        if r not in candles.columns:
+            raise BadOHLCVData(f"OHLCV DataFrame lacks column: {r}, has {candles.columns}")
+
+
+
 def visualise_ohlcv(
         candles: pd.DataFrame,
         chart_name: Optional[str] = None,
@@ -53,6 +66,8 @@ def visualise_ohlcv(
     :return:
         Plotly figure object
     """
+
+    validate_ohclv_dataframe(candles)
 
     # Add change percentages on candle mouse hover
     percentage_changes = ((candles['close'] - candles['open'])/candles['open']) * 100
