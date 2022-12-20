@@ -213,6 +213,7 @@ def setup_app(
         try:
             candles = candle_feeds[current_candle_duration].get_candles_by_pair(pair.address.lower())
             if len(candles) > 0:
+                logger.info("Drawing %d candles", len(candles))
                 fig = visualise_ohlcv(candles, height=500)
             else:
                 # Create empty figure as we do not have data yet

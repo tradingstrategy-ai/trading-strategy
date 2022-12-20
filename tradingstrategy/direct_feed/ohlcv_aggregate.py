@@ -177,12 +177,10 @@ def get_feed_for_pair(df: pd.DataFrame, pair: PairId) -> pd.DataFrame:
         return pd.DataFrame()
 
     # https://stackoverflow.com/a/45563615/315168
-    pair_address_unchecksummed = pair.lower()
     try:
-        return df.xs(pair_address_unchecksummed)
+        return df.xs(pair)
     except KeyError as e:
-        print(df)  # TODO: Remove
-        raise KeyError(f"Could not fid pair for address {pair_address_unchecksummed}") from e
+        raise KeyError(f"Could not fid pair for address {pair}") from e
 
 
 def truncate_ohlcv(df: pd.DataFrame, ts: pd.Timestamp) -> pd.DataFrame:
