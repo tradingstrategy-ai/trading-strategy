@@ -1069,7 +1069,8 @@ def resolve_pairs_based_on_ticker(
     for test_pair in pair_tickers:
         for idx, row in df_matches.iterrows():
             if row["base_token_symbol"] == test_pair[0] and \
-               row["quote_token_symbol"] == test_pair[1]:
+               row["quote_token_symbol"] == test_pair[1] and \
+               row["exchange_slug"] == exchange_slug:
                     result_pair_ids.add(row["pair_id"])
                     break
 
