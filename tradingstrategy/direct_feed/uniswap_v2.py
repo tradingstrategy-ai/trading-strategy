@@ -93,7 +93,7 @@ class UniswapV2TradeFeed(TradeFeed):
                  reorg_mon: ReorganisationMonitor,
                  timeframe: Timeframe,
                  data_retention_time: Optional[pd.Timedelta] = None,
-                 threads=16,
+                 threads=10,
                  chunk_size=100):
         """
 
@@ -134,7 +134,7 @@ class UniswapV2TradeFeed(TradeFeed):
         self.event_reader_context = LogContext()
 
         #: Pair address -> details mapping
-        self.pair_map: Dict[str, PairDetails] = {p.address: p for p in pairs}
+        self.pair_map: Dict[str, PairDetails] = {p.address.lower(): p for p in pairs}
         self.web3_factory = web3_factory
         # A web3 instance used in the main thread
         self.web3 = web3_factory(self.event_reader_context)
@@ -231,8 +231,8 @@ class UniswapV2TradeFeed(TradeFeed):
 
             if progress_bar:
                 # Update progress bar for every block
-                if last_block != log_result["block_number"]:
-                    last_block = log_result["block_number"]
+                if last_block != log_result["blockNumber"]:
+                    last_block = log_result["blockNumber"]
                     progress_bar.set_postfix({
                         "events": events_processed,
                         "trades": trades_processed,
@@ -262,7 +262,9 @@ class UniswapV2TradeFeed(TradeFeed):
             return None
 
         pair: PairDetails
-        pair = self.pair_map[swap["pair_contract_address"]]
+        swap_pair_address = swap["pair_contract_address"].lower()
+        pair = self.pair_map.get(swap_pair_address)
+        assert pair is not None, f"Pair {swap_pair_address} not in our pair map {self.pair_map.keys()}"
 
         oracle: BasePriceOracle = self.oracles.get(pair)
         if not oracle:

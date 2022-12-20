@@ -10,11 +10,15 @@ We do not store
 
 - Candles (always regenerated)
 """
+import logging
 from pathlib import Path
 
 from eth_defi.event_reader.block_header import BlockHeader
 from eth_defi.event_reader.parquet_block_data_store import ParquetDatasetBlockDataStore
 from tradingstrategy.direct_feed.trade_feed import TradeFeed
+
+
+logger = logging.getLogger(__name__)
 
 
 def save_trade_feed(trade_feed: TradeFeed, base_path: Path, partition_size: int):
@@ -71,9 +75,11 @@ def load_trade_feed(trade_feed: TradeFeed, base_path: Path, partition_size: int)
     trade_store = ParquetDatasetBlockDataStore(Path(base_path).joinpath("trades"), partition_size)
 
     if not header_store.is_virgin():
+        logger.info("Loading block header data from %s", header_store.path)
         headers_df_2 = header_store.load()
         block_map = BlockHeader.from_pandas(headers_df_2)
         trade_feed.reorg_mon.restore(block_map)
+        logger.info("Loaded %d blocks", len(block_map))
 
     if not trade_store.is_virgin():
         trades_df_2 = trade_store.load()

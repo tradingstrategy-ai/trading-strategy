@@ -83,10 +83,13 @@ def setup_uniswap_v2_market_data_feeds(
 
     pair_address = Web3.toChecksumAddress(pair_address)
 
-    pair_details = fetch_pair_details(web3, pair_address)
+    pair_details = fetch_pair_details(web3, pair_address, reverse_token_order=False)
     max_timeframe = list(candle_options.values())[-1]
 
     pairs = [pair_details]
+
+    for p in pairs:
+        logger.info("Setting up market data feeds for %s", p)
 
     oracles = {}
     for p in pairs:
