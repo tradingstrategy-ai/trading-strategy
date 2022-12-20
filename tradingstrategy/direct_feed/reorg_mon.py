@@ -94,6 +94,13 @@ class ReorganisationMonitor:
         """
         end_block = self.get_last_block_live()
         start_block = max(end_block - block_count, 1)
+
+        if len(self.block_map) > 0:
+            # We have some initial data from the last (aborted) run,
+            # We always need to start from the last save because no gaps in data allowed
+            oldest_saved_block = max(self.block_map.keys())
+            start_block = min(start_block, oldest_saved_block)
+
         blocks = end_block - start_block
 
         if tqdm:
