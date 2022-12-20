@@ -101,7 +101,8 @@ class ReorganisationMonitor:
         assert block_number not in self.block_map, f"Block already added: {block_number}"
         self.block_map[block_number] = record
 
-        assert self.last_block_read == block_number - 1, f"Blocks must be added in order. Last block we have: {self.last_block_read}, the new record is: {record}"
+        if self.last_block_read != 0:
+            assert self.last_block_read == block_number - 1, f"Blocks must be added in order. Last block we have: {self.last_block_read}, the new record is: {record}"
         self.last_block_read = block_number
 
     def check_block_reorg(self, block_number: int, block_hash: str):
@@ -237,7 +238,7 @@ class JSONRPCReorganisationMonitor(ReorganisationMonitor):
         return self.web3.eth.block_number
 
     def fetch_block_data(self, start_block, end_block) -> Iterable[BlockHeader]:
-        logger.info("Fetching block headers and timestamps for logs %d - %d", start_block, end_block)
+        logger.info("Fetching block headers and timestamps for logs {start_block:,} - {end_block:,}")
         web3 = self.web3
 
         # Collect block timestamps from the headers

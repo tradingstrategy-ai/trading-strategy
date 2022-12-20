@@ -9,9 +9,9 @@ Example of viewing BNB/BUSD on PancakeSwap:
 
 .. code-block:: shell
 
-    python scripts/synthetic-real-time-candles.py \
-        --json_rpc_url=$BNB_CHAIN_JSON_RPC
-        --pair-address=
+    python scripts/uniswap-v2-real-time-candles.py \
+        --json-rpc-url=$BNB_CHAIN_JSON_RPC \
+        --pair-address=0x58f876857a02d6762e0101bb5c46a8c1ed44dc16
 
 """
 import logging
@@ -71,16 +71,19 @@ def setup_uniswap_v2_market_data_feeds(
     This will generate random candle data to display.
     """
 
-    web3 = Web3(HTTPProvider(json_rpc_url))
+    assert json_rpc_url.startswith("https://"), f"Got URL {json_rpc_url}"
+
+    # Create connection factory and the default web3 instance
+    web3_factory = TunedWeb3Factory(json_rpc_url)
+    web3 = web3_factory(None)
 
     data_refresh_requency = measure_block_time(web3)
 
     reorg_mon = JSONRPCReorganisationMonitor(web3)
 
+    pair_address = Web3.toChecksumAddress(pair_address)
+
     pair_details = fetch_pair_details(web3, pair_address)
-
-    web3_factory = TunedWeb3Factory(json_rpc_url)
-
     max_timeframe = list(candle_options.values())[-1]
 
     pairs = [pair_details]
@@ -220,6 +223,7 @@ app = typer.Typer(context_settings={
 def main(
         json_rpc_url: str = typer.Option(..., help="Connect to EVM blockchain using this JSON-RPC node URL"),
         pair_address: str = typer.Option(..., help="Address of Uniswap v2 compatible pair contract"),
+        log_level: str = typer.Option("info", help="Python logging level"),
 ):
     """Render real-time price chart for Uniswap v2 compatible DEX.
 
@@ -230,15 +234,20 @@ def main(
     disable_pandas_warnings()
 
     # Setup logging
-    logging.basicConfig(level=logging.DEBUG, handlers=[logging.StreamHandler()])
+    level = logging.getLevelName(log_level.upper())
+    logging.basicConfig(level=level, handlers=[logging.StreamHandler()])
 
     # Setup the fake blockchain data generator
-    data_refresh_frequency, candle_feed, trade_feed = setup_uniswap_v2_market_data_feeds(json_rpc_url, pair_address)
+    data_refresh_frequency, candle_feed, trade_feed = setup_uniswap_v2_market_data_feeds(
+        json_rpc_url,
+        pair_address,
+        CANDLE_OPTIONS,
+    )
     pairs = trade_feed.pairs
 
     cache_path = os.path.expanduser("~/.cache/uniswap-v2-candle-demo")
 
-    if load_trade_feed(trade_feed, candle_feed, DATASET_PARTITION_SIZE):
+    if load_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE):
         logger.info("Loaded old data from %s", cache_path)
     else:
         logger.info("First run, cache is empty %s", cache_path)
