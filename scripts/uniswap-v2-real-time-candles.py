@@ -18,11 +18,14 @@ import logging
 import os
 import shutil
 import sys
+import threading
 import time
+from pathlib import Path
 from threading import Thread
 
 from typing import Tuple, List, Optional, Dict
 
+import coloredlogs
 import pandas as pd
 import typer
 from dash import html, Output, Input, Dash
@@ -79,7 +82,8 @@ def setup_uniswap_v2_market_data_feeds(
 
     data_refresh_requency = measure_block_time(web3)
 
-    reorg_mon = JSONRPCReorganisationMonitor(web3)
+    # Allow chain reorgs up to 3 blocks
+    reorg_mon = JSONRPCReorganisationMonitor(web3, check_depth=3)
 
     pair_address = Web3.toChecksumAddress(pair_address)
 
@@ -113,15 +117,41 @@ def setup_uniswap_v2_market_data_feeds(
 def start_block_consumer_thread(
         data_refresh_frequency,
         trade_feed: TradeFeed,
+        cache_path: Path,
         candle_feeds: Dict[str, CandleFeed]):
     """Consume blockchain data and update in-memory candles."""
-    while True:
-        # Read trades from the blockchain
-        delta = trade_feed.perform_duty_cycle()
-        logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.trades)} for candles")
-        for candle_feed in candle_feeds.values():
-            candle_feed.apply_delta(delta)
-            time.sleep(data_refresh_frequency)
+
+    last_save = 0
+    save_freq = 15
+
+    try:
+
+        while True:
+            # Read trades from the blockchain
+            start = time.time()
+            next_block = time.time() + data_refresh_frequency
+
+            delta = trade_feed.perform_duty_cycle()
+            logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.trades)} for candles")
+
+            for candle_feed in candle_feeds.values():
+                candle_feed.apply_delta(delta)
+                if time.time() - last_save > save_freq:
+                    logger.info("Saving data")
+                    save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
+                    last_save = time.time()
+
+            duration = time.time() - start
+            logger.info("Block processing loop took %f seconds", duration)
+
+            left_to_sleep = next_block - time.time()
+            if left_to_sleep > 0:
+                time.sleep(left_to_sleep)
+
+    except Exception as e:
+        logger.error("Reader thread died: %s", e)
+        logger.exception(e)
+        sys.exit(1)
 
 
 def setup_app(
@@ -167,6 +197,7 @@ def setup_app(
     @app.callback(Output('chain-stats', "children"),
                   Input('interval-component', 'n_intervals'))
     def update_chain_stats(n):
+        logger.info("update_chain_stats(%d)", n)
         try:
             if not block_producer.has_data():
                 return "No blocks produced yet"
@@ -183,17 +214,18 @@ def setup_app(
     # human readable table format
     @app.callback(Output('trades', "data"),
                   Input('interval-component', 'n_intervals'))
-    def update_last_trades(interval):
+    def update_last_trades(n):
+        logger.info("update_last_trades(%d)", n)
         try:
             df = trade_feed.get_latest_trades(5, pair.address.lower())
             df = df.sort_values("timestamp", ascending=False)
             quote_token = pair.get_quote_token().symbol
             output = pd.DataFrame()
             output["Block number"] = df["block_number"]
-            output["Pair"] = df["pair"]
+            output["Pair"] = f"{pair.get_base_token().symbol} - {pair.get_quote_token().symbol}"
             output["Transaction"] = df["tx_hash"]
             output["Price USD"] = df["price"]
-            if quote_token != "USD":
+            if quote_token not in ("BUSD", "USDC", "USDT"):
                 output[f"Price {quote_token}"] = df["price"] / df["exchange_rate"]
                 output[f"Exchange rate USD/{quote_token}"] = df["exchange_rate"]
 
@@ -210,6 +242,7 @@ def setup_app(
     @app.callback(Output('live-update-graph', 'figure'),
                   [Input('interval-component', 'n_intervals'), Input('candle-dropdown', 'value')])
     def update_ohlcv_chart_live(n, current_candle_duration):
+        logger.info("update_ohlcv_chart_live(%s)", n)
         try:
             candles = candle_feeds[current_candle_duration].get_candles_by_pair(pair.address.lower())
             if len(candles) > 0:
@@ -251,10 +284,15 @@ def main(
 
     # Setup logging
     level = logging.getLevelName(log_level.upper())
-    logging.basicConfig(level=level, handlers=[logging.StreamHandler()])
+
+    # Set log format to dislay the logger name to hunt down verbose logging modules
+    fmt = "%(asctime)s %(name)-50s %(levelname)-8s %(message)s"
+
+    # Use colored logging output for console
+    coloredlogs.install(level=level, fmt=fmt, logger=logger)
 
     # Setup the fake blockchain data generator
-    data_refresh_frequency, candle_feed, trade_feed = setup_uniswap_v2_market_data_feeds(
+    data_refresh_frequency, candle_feeds, trade_feed = setup_uniswap_v2_market_data_feeds(
         json_rpc_url,
         pair_address,
         CANDLE_OPTIONS,
@@ -270,7 +308,7 @@ def main(
 
     # Buffer the block data before starting the GUI application.
     # Display interactive tqdm progress bar.
-    buffer_hours = 3
+    buffer_hours = 6
     blocks_needed = int(buffer_hours * 3600 // data_refresh_frequency) + 1
 
     last_save = 0
@@ -283,8 +321,12 @@ def main(
             save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
             last_save = time.time()
 
+    # Fill the trade buffer with data
+    # and create the initial candles
     logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", buffer_hours, blocks_needed)
-    trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
+    delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
+    for feed in candle_feeds.values():
+        feed.apply_delta(delta)
 
     # Save that we do not need to backfill again
     save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
@@ -295,7 +337,10 @@ def main(
     logger.info("Current price is: %s %s/%s", price, pair_details.get_quote_token().symbol, pair_details.get_base_token().symbol)
 
     # Start blockchain data processor bg thread
-    candle_bg_thread = Thread(target=start_block_consumer_thread, args=(data_refresh_frequency, trade_feed, candle_feed))
+    logger.info("Starting blockchain data consumer, block time is %f seconds", data_refresh_frequency)
+    candle_bg_thread = Thread(
+        target=start_block_consumer_thread,
+        args=(data_refresh_frequency, trade_feed, cache_path, candle_feeds))
     candle_bg_thread.start()
 
     # Create the Dash web UI and start the web server
@@ -303,7 +348,7 @@ def main(
         pair_details,
         data_refresh_frequency,
         trade_feed,
-        candle_feed)
+        candle_feeds)
     app.run_server(debug=True)
 
 
