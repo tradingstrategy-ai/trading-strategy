@@ -140,15 +140,17 @@ class UniswapV2TradeFeed(TradeFeed):
         # A web3 instance used in the main thread
         self.web3 = web3_factory(self.event_reader_context)
         self.chunk_size = chunk_size
-
-        if threads > 1:
-            self.executor = create_thread_pool_executor(self.web3_factory, self.event_reader_context, max_workers=threads)
-        else:
-            self.executor = None
+        self.max_threads = threads
 
         # Get data from ABI
         Pair = get_contract(self.web3, "UniswapV2Pair.json")
         self.events_to_read = [Pair.events.Swap, Pair.events.Sync]
+
+    def get_pair_details(self, pair: str) -> PairDetails:
+        return self.pair_map[pair.lower()]
+
+    def get_all_pair_details(self) -> List[PairDetails]:
+        return list(self.pair_map.values())
 
     def get_block_number_at_chain_tip(self) -> int:
         return self.web3.eth.block_number
@@ -188,7 +190,9 @@ class UniswapV2TradeFeed(TradeFeed):
             event_types=self.events_to_read,
         )
 
-        if self.executor is None:
+        assert self.max_threads > 0
+
+        if self.max_threads == 1:
             # Read in the current thread
             generator = read_events(
                 self.web3,
@@ -201,9 +205,10 @@ class UniswapV2TradeFeed(TradeFeed):
                 filter=filter,
             )
         else:
-            # Read using a pool
+            # Read using a thread pool
+            executor = create_thread_pool_executor(self.web3_factory, self.event_reader_context, max_workers=self.max_threads)
             generator = read_events_concurrent(
-                executor=self.executor,
+                executor=executor,
                 start_block=start_block,
                 end_block=end_block,
                 notify=None,
@@ -307,7 +312,7 @@ class UniswapV2TradeFeed(TradeFeed):
             amount = -amount
 
         t = Trade(
-            pair=pair.address,
+            pair=pair.address.lower(),
             block_number=swap["block_number"],
             block_hash=swap["block_hash"],
             log_index=swap["log_index"],

@@ -27,7 +27,9 @@ class Trade:
     not suitable for accounting.
     """
 
-    #: Trading pair od
+    #: Trading pair id.
+    #:
+    #: Ethereum address. Always lowercased.
     pair: PairId
 
     #: Block number

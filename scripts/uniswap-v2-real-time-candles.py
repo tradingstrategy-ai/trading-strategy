@@ -118,13 +118,14 @@ def start_block_consumer_thread(
     while True:
         # Read trades from the blockchain
         delta = trade_feed.perform_duty_cycle()
+        logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.trades)} for candles")
         for candle_feed in candle_feeds.values():
             candle_feed.apply_delta(delta)
             time.sleep(data_refresh_frequency)
 
 
 def setup_app(
-        pairs: List[str],
+        pair: PairDetails,
         freq_seconds: float,
         trade_feed: TradeFeed,
         candle_feeds: Dict[str, CandleFeed],
@@ -146,7 +147,6 @@ def setup_app(
         Div(
             id="controls",
             children=[
-                Div([Label("Trading pair:"), Dropdown(pairs, pairs[0], id='pair-dropdown'),]),
                 Div([Label("Candle time:"), Dropdown(candle_labels, candle_labels[0], id='candle-dropdown')]),
                 Div([Label("Chain status:"), Div(id='chain-stats'),]),
             ],
@@ -182,27 +182,36 @@ def setup_app(
     # Get the raw trades and convert them to
     # human readable table format
     @app.callback(Output('trades', "data"),
-                  [Input('interval-component', 'n_intervals'), Input('pair-dropdown', 'value')])
-    def update_last_trades(n, pair):
-        df = trade_feed.get_latest_trades(5, pair)
-        df = df.sort_values("timestamp", ascending=False)
-        quote_token = pair.split("-")[-1]
-        output = pd.DataFrame()
-        output["Block number"] = df["block_number"]
-        output["Pair"] = df["pair"]
-        output["Transaction"] = df["tx_hash"]
-        output["Price USD"] = df["price"]
-        if quote_token != "USD":
-            output[f"Price {quote_token}"] = df["price"] / df["exchange_rate"]
-            output[f"Echange rate USD/{quote_token}"] = df["exchange_rate"]
-        return output.to_dict("records")
+                  Input('interval-component', 'n_intervals'))
+    def update_last_trades(interval):
+        try:
+            df = trade_feed.get_latest_trades(5, pair.address.lower())
+            df = df.sort_values("timestamp", ascending=False)
+            quote_token = pair.get_quote_token().symbol
+            output = pd.DataFrame()
+            output["Block number"] = df["block_number"]
+            output["Pair"] = df["pair"]
+            output["Transaction"] = df["tx_hash"]
+            output["Price USD"] = df["price"]
+            if quote_token != "USD":
+                output[f"Price {quote_token}"] = df["price"] / df["exchange_rate"]
+                output[f"Exchange rate USD/{quote_token}"] = df["exchange_rate"]
+
+            price = trade_feed.get_latest_price(pair.address.lower())
+            logger.info("Current price is: %s %s/%s", price, pair.get_quote_token().symbol, pair.get_base_token().symbol)
+
+            return output.to_dict("records")
+        except Exception as e:
+            logger.error("update_last_trades() error: %s", e)
+            logger.exception(e)
+            sys.exit(1)
 
     # Update the candle charts for the currently selected pair
     @app.callback(Output('live-update-graph', 'figure'),
-                  [Input('interval-component', 'n_intervals'), Input('pair-dropdown', 'value'), Input('candle-dropdown', 'value')])
-    def update_ohlcv_chart_live(n, current_pair, current_candle_duration):
+                  [Input('interval-component', 'n_intervals'), Input('candle-dropdown', 'value')])
+    def update_ohlcv_chart_live(n, current_candle_duration):
         try:
-            candles = candle_feeds[current_candle_duration].get_candles_by_pair(current_pair)
+            candles = candle_feeds[current_candle_duration].get_candles_by_pair(pair.address.lower())
             if len(candles) > 0:
                 fig = visualise_ohlcv(candles, height=500)
             else:
@@ -235,6 +244,9 @@ def main(
 
     # Get rid of pesky Pandas FutureWarnings
     disable_pandas_warnings()
+
+    # No Ethereum checksum addresses
+    pair_address = pair_address.lower()
 
     # Setup logging
     level = logging.getLevelName(log_level.upper())
@@ -277,15 +289,20 @@ def main(
     save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
 
     pair: PairDetails = pairs[0]
+    pair_details = trade_feed.get_pair_details(pair)
     price = trade_feed.get_latest_price(pair)
-    logger.info("Current price is: %s %s/%s", price, pair.get_quote_token().symbol, pair.get_base_token().symbol)
+    logger.info("Current price is: %s %s/%s", price, pair_details.get_quote_token().symbol, pair_details.get_base_token().symbol)
 
     # Start blockchain data processor bg thread
     candle_bg_thread = Thread(target=start_block_consumer_thread, args=(data_refresh_frequency, trade_feed, candle_feed))
     candle_bg_thread.start()
 
     # Create the Dash web UI and start the web server
-    app = setup_app(pairs, data_refresh_frequency, trade_feed, candle_feed)
+    app = setup_app(
+        pair_details,
+        data_refresh_frequency,
+        trade_feed,
+        candle_feed)
     app.run_server(debug=True)
 
 

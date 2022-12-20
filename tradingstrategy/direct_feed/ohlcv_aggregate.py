@@ -172,8 +172,17 @@ def get_feed_for_pair(df: pd.DataFrame, pair: PairId) -> pd.DataFrame:
     #             ('ETH-USDC', '2020-01-05')],
     #            names=['pair', 'timestamp'])
 
+    # No data, return empty dataframe
+    if len(df) == 0:
+        return pd.DataFrame()
+
     # https://stackoverflow.com/a/45563615/315168
-    return df.xs(pair)
+    pair_address_unchecksummed = pair.lower()
+    try:
+        return df.xs(pair_address_unchecksummed)
+    except KeyError as e:
+        print(df)  # TODO: Remove
+        raise KeyError(f"Could not fid pair for address {pair_address_unchecksummed}") from e
 
 
 def truncate_ohlcv(df: pd.DataFrame, ts: pd.Timestamp) -> pd.DataFrame:
