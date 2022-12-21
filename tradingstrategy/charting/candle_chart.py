@@ -14,6 +14,7 @@ from typing import Optional
 
 import plotly.graph_objects as go
 import pandas as pd
+from backtrader import List
 from plotly.subplots import make_subplots
 
 
@@ -28,6 +29,98 @@ def validate_ohclv_dataframe(candles: pd.DataFrame):
         if r not in candles.columns:
             raise BadOHLCVData(f"OHLCV DataFrame lacks column: {r}, has {candles.columns}")
 
+
+
+def make_candle_labels(
+        df: pd.DataFrame,
+        dollar_prices=True,
+        base_token_name: Optional[str]=None,
+        quote_token_name: Optional[str]=None) -> int:
+    """Generate individual labels for OHLCV chart candles.
+
+    This is a regenerative function: you can
+    call it when new data has been appended to the
+    DataFrame and it won't recalculate already existing labels.
+
+    :poram df:
+        OHLCV dataframe which is modified in place.
+
+        A column "label" is generated and it is populated
+        for every index timestamp that does not have label yet.
+
+    :param dollar_prices:
+        True if prices are in USD. Otherwise in the given quote token.
+
+    :param quote_token_name:
+        Cryptocurrency as the quote token pair.
+
+    :return:
+        Number of labels generated
+    """
+
+    labels = []
+
+    if dollar_prices:
+        if quote_token_name:
+            price_text = f"{quote_token_name}/USD"
+            volume_text = "USD"
+        else:
+            price_text = "USD"
+            volume_text = "USD"
+    else:
+        assert quote_token_name, "Quote token must be given"
+        price_text = f"{base_token_name} / {quote_token_name}"
+        volume_text = quote_token_name
+
+    # Create label in-place so we retain the same index.
+    # All labels have NaN as their initial value.
+    if "label" not in df.columns:
+        df["label"] = pd.Series(dtype=str)
+
+    index = []
+    data = []
+
+    # All label values are NA by default
+    for idx, row in df.loc[df.label.isna()].iterrows():
+        percentage_change = (row.close - row.open) / row.open
+        text = [
+            f"{row.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            "",
+            f"Open: {row.open} {price_text}",
+            f"High: {row.high} {price_text}",
+            f"Low: {row.low} {price_text}",
+            f"Close: {row.close} {price_text}",
+        ]
+
+        if "volume" in df.columns:
+            text += [
+                f"Volume: {row.volume} {volume_text}",
+            ]
+
+        text += [
+            f"Change: {percentage_change:.2f} %",
+            "",
+        ]
+
+        if "exchange_rate" in df.columns:
+            labels += [f"Exchange rate: {row.exchange_rate}", ""]
+
+        if "buys" in df.columns:
+            text += [
+                f"Buys: {row.buys} txs",
+                f"Sells: {row.sells} txs",
+                f"Total: {row.buys + row.sells} trades",
+                ""
+            ]
+
+        index.append(idx)
+        data.append("\n".join(text))
+
+    new_labels = pd.DataFrame({"label": data}, index=index, dtype=str)
+
+    df.update(new_labels)
+
+    return len(data)
 
 
 def visualise_ohlcv(
