@@ -18,12 +18,11 @@ import logging
 import os
 import shutil
 import sys
-import threading
 import time
 from pathlib import Path
 from threading import Thread
 
-from typing import Tuple, List, Optional, Dict
+from typing import Tuple, Optional, Dict
 
 import coloredlogs
 import pandas as pd
@@ -183,7 +182,7 @@ def setup_app(
         ),
         H2("Latest trades"),
         DataTable(id="trades"),
-        H2("Price chart"),
+        H2(f"{pair.get_base_token().symbol}-{pair.get_quote_token().symbol} price chart"),
         Graph(id='live-update-graph', responsive=True),
         # https://dash.plotly.com/live-updates
         Interval(
