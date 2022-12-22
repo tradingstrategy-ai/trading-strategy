@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Iterable
 
 import pandas as pd
 
@@ -25,11 +25,19 @@ class CandleFeed:
                  ):
         """
 
+        :param pairs:
+            List of pairs this address contains.
+
+            Symbolic names or addresses.
+
         :param freq:
             Pandas frequency string e.g. "1H", "min"
 
         :param candle_offset:
         """
+        for p in pairs:
+            assert type(p) == str, f"Got: {p}"
+        self.pairs = pairs
         self.timeframe = timeframe
         self.candle_df = pd.DataFrame()
         self.last_cycle = 0
@@ -51,6 +59,11 @@ class CandleFeed:
             block number (inclusive)
         """
         return self.candle_df["end_block"].max()
+
+    def iterate_pairs(self) -> Iterable[pd.DataFrame]:
+        """Get candles for all pairs we are tracking."""
+        for p in self.pairs:
+            yield self.get_candles_by_pair(p)
 
 
 

@@ -96,7 +96,7 @@ def setup_uniswap_v2_market_data_feeds(
 
     oracles = {}
     for p in pairs:
-        oracles[p.address] = TrustedStablecoinOracle()
+        oracles[p.checksum_free_address] = TrustedStablecoinOracle()
 
     # Have two pairs
     trade_feed = UniswapV2TradeFeed(
@@ -107,8 +107,9 @@ def setup_uniswap_v2_market_data_feeds(
         oracles=oracles,
     )
 
+    pair_addresses = [p.checksum_free_address for p in pairs]
     candle_feeds = {
-        label: CandleFeed(pairs, timeframe=timeframe) for label, timeframe in CANDLE_OPTIONS.items()
+        label: CandleFeed(pair_addresses, timeframe=timeframe) for label, timeframe in CANDLE_OPTIONS.items()
     }
     return data_refresh_requency, candle_feeds, trade_feed
 
@@ -328,18 +329,26 @@ def main(
             save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
             last_save = time.time()
 
+    pair: PairDetails = pairs[0]
+    pair_details = trade_feed.get_pair_details(pair)
+
     # Fill the trade buffer with data
     # and create the initial candles
     logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", buffer_hours, blocks_needed)
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
     for feed in candle_feeds.values():
         feed.apply_delta(delta)
+        for df in feed.iterate_pairs():
+            make_candle_labels(
+                df,
+                dollar_prices=False,
+                base_token_name=pair_details.get_base_token().symbol,
+                quote_token_name=pair_details.get_quote_token().symbol,
+            )
 
     # Save that we do not need to backfill again
     save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
 
-    pair: PairDetails = pairs[0]
-    pair_details = trade_feed.get_pair_details(pair)
     price = trade_feed.get_latest_price(pair)
     logger.info("Current price is: %s %s/%s", price, pair_details.get_quote_token().symbol, pair_details.get_base_token().symbol)
 
@@ -347,7 +356,7 @@ def main(
     logger.info("Starting blockchain data consumer, block time is %f seconds", data_refresh_frequency)
     candle_bg_thread = Thread(
         target=start_block_consumer_thread,
-        args=(data_refresh_frequency, trade_feed, cache_path, candle_feeds))
+        args=(data_refresh_frequency, pair_details, trade_feed, cache_path, candle_feeds))
     candle_bg_thread.start()
 
     # Create the Dash web UI and start the web server

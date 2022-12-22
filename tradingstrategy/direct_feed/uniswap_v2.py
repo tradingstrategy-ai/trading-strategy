@@ -125,7 +125,7 @@ class UniswapV2TradeFeed(TradeFeed):
         """
 
         super().__init__(
-            pairs=[p.address for p in pairs],
+            pairs=[p.checksum_free_address for p in pairs],
             oracles=oracles,
             reorg_mon=reorg_mon,
             timeframe=timeframe,
@@ -278,9 +278,9 @@ class UniswapV2TradeFeed(TradeFeed):
         pair = self.pair_map.get(swap_pair_address)
         assert pair is not None, f"Pair {swap_pair_address} not in our pair map {self.pair_map.keys()}"
 
-        oracle: BasePriceOracle = self.oracles.get(pair.address)
+        oracle: BasePriceOracle = self.oracles.get(pair.checksum_free_address)
         if not oracle:
-            raise RuntimeError(f"Exchange rate oracle missing for pair %s",pair)
+            raise RuntimeError(f"Exchange rate oracle missing for pair %s", pair)
 
         exchange_rate = oracle.calculate_price(swap["block_number"])
 

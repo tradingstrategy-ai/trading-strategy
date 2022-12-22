@@ -10,6 +10,7 @@ Draw price charts using Plotly.
 
 - Dark and light themes
 """
+import logging
 from typing import Optional
 
 import plotly.graph_objects as go
@@ -18,13 +19,16 @@ from backtrader import List
 from plotly.subplots import make_subplots
 
 
+logger = logging.getLogger(__name__)
+
+
 
 class BadOHLCVData(Exception):
     """We could not figure out the data frame"""
 
 
 def validate_ohclv_dataframe(candles: pd.DataFrame):
-    required_columns = ["open", "close", "high", "low"]
+    required_columns = ["timestamp", "open", "close", "high", "low"]
     for r in required_columns:
         if r not in candles.columns:
             raise BadOHLCVData(f"OHLCV DataFrame lacks column: {r}, has {candles.columns}")
@@ -58,6 +62,8 @@ def make_candle_labels(
         Number of labels generated
     """
 
+    validate_ohclv_dataframe(df)
+
     labels = []
 
     if dollar_prices:
@@ -82,9 +88,12 @@ def make_candle_labels(
 
     # All label values are NA by default
     for idx, row in df.loc[df.label.isna()].iterrows():
+        # Index here can be MultiIndex as well, so assume timestamp is available as a column
+        timestamp = row["timestamp"]
+
         percentage_change = (row.close - row.open) / row.open
         text = [
-            f"{row.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            f"{timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}",
             "",
             f"Open: {row.open} {price_text}",
             f"High: {row.high} {price_text}",
@@ -165,13 +174,14 @@ def visualise_ohlcv(
 
     validate_ohclv_dataframe(candles)
 
-    if "label" not in candles.columns:
+    if "label" in candles.columns:
+        text = candles["label"]
+        logger.info("Drawing with labels")
+    else:
         # TODO: Legacy - deprecate
         # Add change percentages on candle mouse hover
         percentage_changes = ((candles['close'] - candles['open'])/candles['open']) * 100
         text = ["Change: " + f"{percentage_changes[i]:.2f}%" for i in range(len(percentage_changes))]
-    else:
-        text = candles["label"]
 
     candlesticks = go.Candlestick(
         x=candles.index,

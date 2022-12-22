@@ -108,6 +108,10 @@ def resample_trades_into_ohlcv(
         'low': 'min',
         'close': 'last'})
 
+    # Retain timestamp as a column as well,
+    # because resample() drops it
+    df2["timestamp"] = df2.index.get_level_values(1)
+
     # TODO: Integers here get converted to floats when processed with agg().
     # Figure out how to prevent this.
     blocks_df = df["block_number"].resample(timeframe.freq).agg({
@@ -180,7 +184,7 @@ def get_feed_for_pair(df: pd.DataFrame, pair: PairId) -> pd.DataFrame:
     try:
         return df.xs(pair)
     except KeyError as e:
-        raise KeyError(f"Could not fid pair for address {pair}") from e
+        raise KeyError(f"Could not find pair for address {pair}") from e
 
 
 def truncate_ohlcv(df: pd.DataFrame, ts: pd.Timestamp) -> pd.DataFrame:
