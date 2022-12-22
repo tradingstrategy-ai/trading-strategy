@@ -42,10 +42,20 @@ class CandleFeed:
         self.candle_df = pd.DataFrame()
         self.last_cycle = 0
 
-    def apply_delta(self, delta: TradeDelta):
-        """Add new candle data generated from the latest blockchain input."""
+    def apply_delta(self, delta: TradeDelta, label_candles=True):
+        """Add new candle data generated from the latest blockchain input.
+
+        :param delta:
+            New trades coming in
+
+        :param label_candles:
+            Create and update label column.
+
+            Label column contains tooltips for the visual candle viewer.
+            This must be done before candle data is grouped by pairs.
+        """
         cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
-        candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
+        candles = resample_trades_into_ohlcv(delta.trades, self.timeframe, label_candles=label_candles)
         self.candle_df = pd.concat([cropped_df, candles])
         self.last_cycle = delta.cycle
 

@@ -16,6 +16,7 @@ from typing import Optional
 import plotly.graph_objects as go
 import pandas as pd
 from backtrader import List
+from pandas.core.groupby import DataFrameGroupBy
 from plotly.subplots import make_subplots
 
 
@@ -35,19 +36,24 @@ def validate_ohclv_dataframe(candles: pd.DataFrame):
 
 
 
+def create_label(row: pd.Series) -> str:
+    """Create labels for a single candle."""
+
+
 def make_candle_labels(
         df: pd.DataFrame,
         dollar_prices=True,
         base_token_name: Optional[str]=None,
-        quote_token_name: Optional[str]=None) -> int:
+        quote_token_name: Optional[str]=None) -> pd.Series:
     """Generate individual labels for OHLCV chart candles.
 
-    This is a regenerative function: you can
-    call it when new data has been appended to the
-    DataFrame and it won't recalculate already existing labels.
+    Used to display toolips on OHLCV chart.
 
-    :poram df:
-        OHLCV dataframe which is modified in place.
+    :poram candle_df:
+        Candles for which we need tooltips.
+
+    :poram label_df:
+        A target dataframe
 
         A column "label" is generated and it is populated
         for every index timestamp that does not have label yet.
@@ -59,12 +65,8 @@ def make_candle_labels(
         Cryptocurrency as the quote token pair.
 
     :return:
-        Number of labels generated
+        Series of text label
     """
-
-    validate_ohclv_dataframe(df)
-
-    labels = []
 
     if dollar_prices:
         if quote_token_name:
@@ -78,17 +80,10 @@ def make_candle_labels(
         price_text = f"{base_token_name} / {quote_token_name}"
         volume_text = quote_token_name
 
-    # Create label in-place so we retain the same index.
-    # All labels have NaN as their initial value.
-    if "label" not in df.columns:
-        df["label"] = pd.Series(dtype=str)
-
-    index = []
-    data = []
-
     # All label values are NA by default
-    for idx, row in df.loc[df.label.isna()].iterrows():
+    def _create_label_for_single_candle(row: pd.Series):
         # Index here can be MultiIndex as well, so assume timestamp is available as a column
+
         timestamp = row["timestamp"]
 
         percentage_change = (row.close - row.open) / row.open
@@ -101,7 +96,7 @@ def make_candle_labels(
             f"Close: {row.close} {price_text}",
         ]
 
-        if "volume" in df.columns:
+        if row.volume:
             text += [
                 f"Volume: {row.volume} {volume_text}",
             ]
@@ -111,10 +106,10 @@ def make_candle_labels(
             "",
         ]
 
-        if "exchange_rate" in df.columns:
-            labels += [f"Exchange rate: {row.exchange_rate}", ""]
+        if row.exchange_rate:
+            text += [f"Exchange rate: {row.exchange_rate}", ""]
 
-        if "buys" in df.columns:
+        if row.buys:
             text += [
                 f"Buys: {row.buys} txs",
                 f"Sells: {row.sells} txs",
@@ -122,14 +117,9 @@ def make_candle_labels(
                 ""
             ]
 
-        index.append(idx)
-        data.append("\n".join(text))
+        return "\n".join(text)
 
-    new_labels = pd.DataFrame({"label": data}, index=index, dtype=str)
-
-    df.update(new_labels)
-
-    return len(data)
+    return df.apply(_create_label_for_single_candle, axis="columns")
 
 
 def visualise_ohlcv(
@@ -140,6 +130,7 @@ def visualise_ohlcv(
         height: int = 800,
         theme: str = "plotly_white",
         volume_bar_colour: str = "rgba(128,128,128,0.5)",
+        labels: Optional[pd.Series] = None,
 ) -> go.Figure:
     """Draw a candlestick chart.
 
@@ -168,15 +159,19 @@ def visualise_ohlcv(
     :param volume_bar_colour:
         Override the default colour for volume bars
 
+    :param labels:
+        Tooltip labels for candles.
+
+        See :py:func:`make_candle_labels`
+
     :return:
         Plotly figure object
     """
 
     validate_ohclv_dataframe(candles)
 
-    if "label" in candles.columns:
-        text = candles["label"]
-        logger.info("Drawing with labels")
+    if labels is not None:
+        text = labels
     else:
         # TODO: Legacy - deprecate
         # Add change percentages on candle mouse hover
