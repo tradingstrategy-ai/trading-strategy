@@ -134,6 +134,9 @@ def visualise_ohlcv(
 ) -> go.Figure:
     """Draw a candlestick chart.
 
+    If the `candles` has `label` column this will be used
+    as the mouse hover text for candles.
+
     If the `candles` has `volume` column, draw also this column.
 
     We remove the default "minimap" scrolling as it has pretty
@@ -162,9 +165,13 @@ def visualise_ohlcv(
 
     validate_ohclv_dataframe(candles)
 
-    # Add change percentages on candle mouse hover
-    percentage_changes = ((candles['close'] - candles['open'])/candles['open']) * 100
-    text = ["Change: " + f"{percentage_changes[i]:.2f}%" for i in range(len(percentage_changes))]
+    if "label" not in candles.columns:
+        # TODO: Legacy - deprecate
+        # Add change percentages on candle mouse hover
+        percentage_changes = ((candles['close'] - candles['open'])/candles['open']) * 100
+        text = ["Change: " + f"{percentage_changes[i]:.2f}%" for i in range(len(percentage_changes))]
+    else:
+        text = candles["label"]
 
     candlesticks = go.Candlestick(
         x=candles.index,

@@ -39,7 +39,7 @@ from eth_defi.event_reader.block_time import measure_block_time
 from eth_defi.event_reader.web3factory import TunedWeb3Factory
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
 from eth_defi.uniswap_v2.pair import fetch_pair_details, PairDetails
-from tradingstrategy.charting.candle_chart import visualise_ohlcv
+from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor, JSONRPCReorganisationMonitor
 from tradingstrategy.direct_feed.store import load_trade_feed, save_trade_feed
@@ -115,6 +115,7 @@ def setup_uniswap_v2_market_data_feeds(
 
 def start_block_consumer_thread(
         data_refresh_frequency,
+        pair: PairDetails,
         trade_feed: TradeFeed,
         cache_path: Path,
         candle_feeds: Dict[str, CandleFeed]):
@@ -139,6 +140,13 @@ def start_block_consumer_thread(
                     logger.info("Saving data")
                     save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
                     last_save = time.time()
+
+                make_candle_labels(
+                    candle_feed.candle_df,
+                    dollar_prices=False,
+                    base_token_name=pair.get_base_token().symbol,
+                    quote_token_name=pair.get_quote_token().symbol,
+                )
 
             duration = time.time() - start
             logger.info("Block processing loop took %f seconds", duration)

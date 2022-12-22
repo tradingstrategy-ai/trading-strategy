@@ -46,7 +46,6 @@ def test_candle_chart(persistent_test_client: Client):
     display(figure)
 
 
-
 def test_candle_labels(persistent_test_client: Client):
     """Create labels for a candle chart."""
 
@@ -106,3 +105,7 @@ def test_candle_labels(persistent_test_client: Client):
         dollar_prices=False,
         base_token_name="BNB",
         quote_token_name="BUSD")
+
+    first_label = candles.iloc[0].label
+    assert "BUSD" in first_label
+    assert "BNB" in first_label
