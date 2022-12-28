@@ -104,17 +104,23 @@ class ReorganisationMonitor:
         blocks = end_block - start_block
 
         if tqdm:
-            progress_bar = tqdm(total=blocks)
+            progress_bar = tqdm(total=blocks, colour="green")
             progress_bar.set_description(f"Downloading block headers {start_block:,} - {end_block:,}")
         else:
             progress_bar = None
 
+        last_saved_block = None
         for block in self.fetch_block_data(start_block, end_block):
             self.add_block(block)
+
+            if save_callable:
+                last_saved_block, _ = save_callable()
+                if last_saved_block:
+                    last_saved_block_str = f"{last_saved_block:,}" if last_saved_block else "-"
+                    progress_bar.set_postfix({"Last saved block": last_saved_block_str}, refresh=False)
+
             if progress_bar:
                 progress_bar.update(1)
-            if save_callable:
-                save_callable()
 
         if progress_bar:
             progress_bar.close()

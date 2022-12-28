@@ -33,7 +33,7 @@ from dash.dcc import Graph, Interval, Dropdown
 from dash.html import Div, Label, H2
 from plotly.subplots import make_subplots
 from tqdm import tqdm
-from web3 import Web3, HTTPProvider
+from web3 import Web3
 
 from eth_defi.event_reader.block_time import measure_block_time
 from eth_defi.event_reader.web3factory import TunedWeb3Factory
@@ -42,7 +42,7 @@ from eth_defi.uniswap_v2.pair import fetch_pair_details, PairDetails
 from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor, JSONRPCReorganisationMonitor
-from tradingstrategy.direct_feed.store import load_trade_feed, save_trade_feed
+from tradingstrategy.direct_feed.store import DirectFeedStore
 from tradingstrategy.direct_feed.timeframe import Timeframe
 from tradingstrategy.direct_feed.trade_feed import TradeFeed
 from tradingstrategy.direct_feed.uniswap_v2 import UniswapV2TradeFeed
@@ -59,6 +59,8 @@ CANDLE_OPTIONS = {
 #: Store 100,000 blocks per Parquet dataset file
 DATASET_PARTITION_SIZE = 100_000
 
+#: How many hours worth of event data we buffer for the chart
+BUFFER_HOURS = 24
 
 logger: Optional[logging.Logger] = logging.getLogger()
 
@@ -117,8 +119,8 @@ def setup_uniswap_v2_market_data_feeds(
 def start_block_consumer_thread(
         data_refresh_frequency,
         pair: PairDetails,
+        store: DirectFeedStore,
         trade_feed: TradeFeed,
-        cache_path: Path,
         candle_feeds: Dict[str, CandleFeed]):
     """Consume blockchain data and update in-memory candles."""
 
@@ -139,7 +141,7 @@ def start_block_consumer_thread(
                 candle_feed.apply_delta(delta)
                 if time.time() - last_save > save_freq:
                     logger.info("Saving data")
-                    save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
+                    store.save_trade_feed(trade_feed)
                     last_save = time.time()
 
                 make_candle_labels(
@@ -278,10 +280,15 @@ def main(
         json_rpc_url: str = typer.Option(..., help="Connect to EVM blockchain using this JSON-RPC node URL"),
         pair_address: str = typer.Option(..., help="Address of Uniswap v2 compatible pair contract"),
         log_level: str = typer.Option("info", help="Python logging level"),
+        clear_cache: bool = typer.Option(False, is_flag=True, help="Clear the block header and trade disk cache at start"),
 ):
     """Render real-time price chart for Uniswap v2 compatible DEX.
 
     Show a price chart of one trading pair with different candle durations.
+
+    By default, the example loads 24 hours worth of data over JSON-RPC connection.
+    It may take several minutes depending on your blockchain node setup.
+    The script can automatically resume downloading data if it crashes or is shut down.
     """
 
     # Get rid of pesky Pandas FutureWarnings
@@ -309,32 +316,39 @@ def main(
 
     cache_path = os.path.expanduser("~/.cache/uniswap-v2-candle-demo")
 
-    if load_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE):
-        logger.info("Loaded old data from %s", cache_path)
+    store = DirectFeedStore(Path(cache_path), DATASET_PARTITION_SIZE)
+
+    if clear_cache:
+        logger.info("Clearing the cache: %s", cache_path)
+        store.clear()
     else:
-        logger.info("First run, cache is empty %s", cache_path)
+        if store.load_trade_feed(trade_feed):
+            logger.info("Loaded old data from %s", cache_path)
+        else:
+            logger.info("First run, cache is empty %s", cache_path)
 
     # Buffer the block data before starting the GUI application.
     # Display interactive tqdm progress bar.
-    buffer_hours = 6
-    blocks_needed = int(buffer_hours * 3600 // data_refresh_frequency) + 1
+    blocks_needed = int(BUFFER_HOURS * 3600 // data_refresh_frequency) + 1
 
     last_save = 0
     save_frequency = 10
 
-    def save_hook():
+    def save_hook() -> Tuple[int, int]:
         nonlocal last_save
         nonlocal save_frequency
         if time.time() - last_save > save_frequency:
-            save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
+            last_saved_tuple = store.save_trade_feed(trade_feed)
             last_save = time.time()
+            return last_saved_tuple
+        return 0, 0
 
     pair: PairDetails = pairs[0]
     pair_details = trade_feed.get_pair_details(pair)
 
     # Fill the trade buffer with data
     # and create the initial candles
-    logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", buffer_hours, blocks_needed)
+    logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", BUFFER_HOURS, blocks_needed)
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
     for feed in candle_feeds.values():
         feed.apply_delta(delta)
@@ -347,7 +361,7 @@ def main(
             )
 
     # Save that we do not need to backfill again
-    save_trade_feed(trade_feed, cache_path, DATASET_PARTITION_SIZE)
+    store.save_trade_feed(trade_feed)
 
     price = trade_feed.get_latest_price(pair)
     logger.info("Current price is: %s %s/%s", price, pair_details.get_quote_token().symbol, pair_details.get_base_token().symbol)
@@ -356,7 +370,7 @@ def main(
     logger.info("Starting blockchain data consumer, block time is %f seconds", data_refresh_frequency)
     candle_bg_thread = Thread(
         target=start_block_consumer_thread,
-        args=(data_refresh_frequency, pair_details, trade_feed, cache_path, candle_feeds))
+        args=(data_refresh_frequency, pair_details, store, trade_feed, candle_feeds))
     candle_bg_thread.start()
 
     # Create the Dash web UI and start the web server

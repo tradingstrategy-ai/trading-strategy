@@ -14,6 +14,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
+from typing import Tuple
 
 from eth_defi.event_reader.block_header import BlockHeader
 from eth_defi.event_reader.parquet_block_data_store import ParquetDatasetBlockDataStore
@@ -31,7 +32,8 @@ class DirectFeedStore:
     """
 
     def __init__(self, base_path: Path, partition_size: int):
-        """
+        """Initialise a new store.
+
         :param base_path:
             Base folder where data is dumped.
             Both headers and trades get their own Parquet datasets
@@ -57,12 +59,14 @@ class DirectFeedStore:
         if self.base_path.exists():
             shutil.rmtree(self.base_path)
 
-    def save_trade_feed(self, trade_feed: TradeFeed):
+    def save_trade_feed(self, trade_feed: TradeFeed) -> Tuple[int, int]:
         """Save the trade and block header data.
 
         :param trade_feed:
             Save trades and block headers from this feed.
 
+        :return:
+            Last saved header block number, last saved trade number
         """
 
         base_path = self.base_path
@@ -76,12 +80,20 @@ class DirectFeedStore:
         if len(headers_df) > 0:
             header_store.save(headers_df)
             assert not header_store.is_virgin(), f"Headers not correctly written"
+            last_header_block = headers_df.iloc[-1]["block_number"]
+        else:
+            last_header_block = 0
 
         # Save trades
         trades_df = trade_feed.to_pandas(partition_size)
         if len(trades_df) > 0:
             trade_store.save(trades_df, check_contains_all_blocks=False)
             assert not trade_store.is_virgin(), f"Trades not correctly written"
+            last_trade_block = trades_df.iloc[-1]["block_number"]
+        else:
+            last_trade_block = 0
+
+        return last_header_block, last_trade_block
 
     def load_trade_feed(self, trade_feed: TradeFeed) -> bool:
         """Load trade and block header data.
@@ -109,5 +121,6 @@ class DirectFeedStore:
         if not trade_store.is_virgin():
             trades_df_2 = trade_store.load()
             trade_feed.restore(trades_df_2)
+            logger.info(f"Loaded {len(trades_df_2)}, last block is {trade_feed.get_block_number_of_last_trade():,}")
 
         return not(header_store.is_virgin() or trade_store.is_virgin())

@@ -227,6 +227,10 @@ class TradeFeed:
 
         return self.trades_df.iloc[-1]["block_number"]
 
+    def get_trade_count(self) -> int:
+        """How many trades we track currently."""
+        return len(self.trades_df)
+
     def add_trades(self, trades: Iterable[Trade]):
         """Add trade to the ring buffer with support for fixing chain reorganisations.
 
@@ -361,7 +365,11 @@ class TradeFeed:
         else:
             return None
 
-    def update_cycle(self, start_block, end_block, reorg_detected, trades: Iterable[Trade]) -> TradeDelta:
+    def update_cycle(self,
+                     start_block,
+                     end_block,
+                     reorg_detected,
+                     trades: Iterable[Trade]) -> TradeDelta:
         """Update the internal work buffer.
 
         - Adds the new trades to the work buffer
@@ -386,6 +394,7 @@ class TradeFeed:
             Delta of new trades
         """
 
+        # Update the DataFrame buffer with new trades
         self.add_trades(trades)
 
         # We need to snap any trade delta update to the edge of candle timeframe
@@ -398,7 +407,14 @@ class TradeFeed:
         snap_block = data_start_block or start_block
 
         if len(self.trades_df) > 0:
-            exported_trades = self.trades_df.loc[snap_block:end_block+1]
+            last_to_export = end_block
+            try:
+                exported_trades = self.trades_df.loc[snap_block:last_to_export]
+            except KeyError as e:
+                # TODO: Figure out
+                real_start = self.trades_df.iloc[0]["block_number"]
+                real_end = self.trades_df.iloc[-1]["block_number"]
+                raise RuntimeError(f"Tried to export trades {snap_block:,} - {last_to_export:,}, but has data {real_start:,} - {real_end:,}") from e
         else:
             exported_trades = pd.DataFrame()
 
