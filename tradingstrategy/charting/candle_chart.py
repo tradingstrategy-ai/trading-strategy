@@ -68,6 +68,8 @@ def make_candle_labels(
         Series of text label
     """
 
+    validate_ohclv_dataframe(df)
+
     if dollar_prices:
         if quote_token_name:
             price_text = f"{quote_token_name}/USD"

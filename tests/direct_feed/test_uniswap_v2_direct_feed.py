@@ -114,16 +114,17 @@ def test_uniswap_v2_direct_feed(
 
     pair = fetch_pair_details(web3, pair_address, reverse_token_order)
 
+    pair_ids = [pair.address]
     pairs = [pair]
 
     oracles = {
-        pair.address: TrustedStablecoinOracle(),
+        pair.checksum_free_address: TrustedStablecoinOracle(),
     }
 
     timeframe = Timeframe("1min")
 
     candle_feed = CandleFeed(
-        pairs,
+        pair_ids,
         timeframe=timeframe,
     )
 

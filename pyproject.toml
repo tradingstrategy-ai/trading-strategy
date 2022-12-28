@@ -65,6 +65,7 @@ build-backend = "poetry.core.masonry.api"
 
 # https://docs.pytest.org/en/6.2.x/customize.html
 [tool.pytest.ini_options]
+addopts = "-s --tb=native"
 testpaths = [
     "tests",
 ]

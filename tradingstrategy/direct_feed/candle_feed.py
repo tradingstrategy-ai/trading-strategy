@@ -36,7 +36,7 @@ class CandleFeed:
         :param candle_offset:
         """
         for p in pairs:
-            assert type(p) == str, f"Got: {p}"
+            assert type(p) == str, f"Pairs must be a list of pair ids (str). Got: {p}"
         self.pairs = pairs
         self.timeframe = timeframe
         self.candle_df = pd.DataFrame()
@@ -55,7 +55,7 @@ class CandleFeed:
             This must be done before candle data is grouped by pairs.
         """
         cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
-        candles = resample_trades_into_ohlcv(delta.trades, self.timeframe, label_candles=label_candles)
+        candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
         self.candle_df = pd.concat([cropped_df, candles])
         self.last_cycle = delta.cycle
 
