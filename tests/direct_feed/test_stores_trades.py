@@ -1,10 +1,10 @@
 """Cache past trades on disk."""
 import tempfile
-
+from pathlib import Path
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
 from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor
-from tradingstrategy.direct_feed.store import save_trade_feed, load_trade_feed
+from tradingstrategy.direct_feed.store import DirectFeedStore
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 
 
@@ -17,6 +17,8 @@ def test_save_load_block_headers_and_trades():
 
     with tempfile.TemporaryDirectory() as tmp_dir:
 
+        store = DirectFeedStore(Path(tmp_dir), partition_size)
+
         mock_chain = MockChainAndReorganisationMonitor()
         feed = SyntheticTradeFeed(
             ["ETH-USD"],
@@ -28,7 +30,7 @@ def test_save_load_block_headers_and_trades():
         delta = feed.backfill_buffer(100, None)
         assert feed.get_block_number_of_last_trade() == 100
 
-        save_trade_feed(feed, tmp_dir, partition_size)
+        store.save_trade_feed(feed)
 
         mock_chain_2 = MockChainAndReorganisationMonitor()
 
@@ -38,7 +40,7 @@ def test_save_load_block_headers_and_trades():
             mock_chain,
         )
 
-        assert load_trade_feed(feed2, tmp_dir, partition_size) == True
+        assert store.load_trade_feed(feed2) == True
         mock_chain_2.restore(feed2.reorg_mon.block_map)  # Hack needed to restore the simulated chain
 
         # Check state looks correctly restored
@@ -54,4 +56,36 @@ def test_save_load_block_headers_and_trades():
         assert mock_chain.get_last_block_live() == 101
         assert feed2.get_block_number_of_last_trade() == 101
 
-        save_trade_feed(feed, tmp_dir, partition_size)
+        # Save again to ensure we do not have problems with repeatble writes
+        store.save_trade_feed(feed)
+
+
+def test_clear_store():
+    """Save and load all direct feed data from the disk."""
+
+    # Set some odd number to make it more likely
+    # to surface qny issues
+    partition_size = 27
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+
+        store = DirectFeedStore(Path(tmp_dir).joinpath("test_store"), partition_size)
+        assert store.is_empty()
+
+        mock_chain = MockChainAndReorganisationMonitor()
+        feed = SyntheticTradeFeed(
+            ["ETH-USD"],
+            {"ETH-USD": TrustedStablecoinOracle()},
+            mock_chain,
+        )
+        mock_chain.produce_blocks(100)
+        assert mock_chain.get_last_block_live() == 100
+        delta = feed.backfill_buffer(100, None)
+        assert feed.get_block_number_of_last_trade() == 100
+
+        store.save_trade_feed(feed)
+
+        assert not store.is_empty()
+        store.clear()
+        assert store.is_empty()
+
