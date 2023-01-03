@@ -16,7 +16,7 @@ from eth_defi.uniswap_v2.deployment import (
 from eth_defi.uniswap_v2.pair import fetch_pair_details
 from eth_defi.uniswap_v2.synthetic_data import generate_fake_uniswap_v2_data
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
-from tradingstrategy.direct_feed.reorg_mon import JSONRPCReorganisationMonitor
+from eth_defi.event_reader.reorganisation_monitor import JSONRPCReorganisationMonitor
 from tradingstrategy.direct_feed.timeframe import Timeframe
 from tradingstrategy.direct_feed.trade_feed import Trade
 from tradingstrategy.direct_feed.uniswap_v2 import UniswapV2TradeFeed

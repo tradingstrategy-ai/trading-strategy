@@ -5,12 +5,12 @@ from decimal import Decimal
 from typing import Dict, Optional, List, Iterable, Type, TypeAlias, Protocol
 
 import pandas as pd
-from eth_defi.price_oracle.oracle import BasePriceOracle
-
 from tqdm import tqdm
 
+from eth_defi.price_oracle.oracle import BasePriceOracle
+from eth_defi.event_reader.reorganisation_monitor import ReorganisationMonitor, ChainReorganisationResolution
+
 from .direct_feed_pair import PairId
-from .reorg_mon import ReorganisationMonitor, ChainReorganisationResolution
 from .timeframe import Timeframe
 
 
@@ -112,7 +112,6 @@ class TradeDelta:
     unadjusted_start_block: int
 
     #: Last block for which we have data
-    #:
     #:
     end_block: int
 
@@ -327,7 +326,10 @@ class TradeFeed:
             Data loaded and filled to the work buffer.
         """
 
-        start_block, end_block = self.reorg_mon.load_initial_block_headers(block_count, tqdm, save_hook)
+        start_block, end_block = self.reorg_mon.load_initial_block_headers(
+            block_count=block_count,
+            tqdm=tqdm,
+            save_callable=save_hook)
         trades = self.fetch_trades(start_block, end_block, tqdm)
         # On initial load, we do not care about reorgs
         return self.update_cycle(start_block, end_block, False, trades)
@@ -391,7 +393,10 @@ class TradeFeed:
             Iterable o new trades
 
         :return:
-            Delta of new trades
+            Delta of new trades.
+
+            Note that there might not be data for blocks towards `end_block`
+            if there were no trades.
         """
 
         # Update the DataFrame buffer with new trades
@@ -407,8 +412,15 @@ class TradeFeed:
         snap_block = data_start_block or start_block
 
         if len(self.trades_df) > 0:
-            last_to_export = end_block
+
+            # The last block might not contain trades and thus, does not appear in the index.
+            # This will cause KeyError in .loc slicing
+            last_to_export = min(end_block, self.trades_df.index.values[-1])
+
             try:
+                # Note .loc is inclusive
+                # https://medium.com/@curtisringelpeter/understanding-dataframe-selections-and-slices-with-pandas-102a0c2537fb
+                # https://medium.com/@curtisringelpeter/understanding-dataframe-selections-and-slices-with-pandas-102a0c2537fb
                 exported_trades = self.trades_df.loc[snap_block:last_to_export]
             except KeyError as e:
                 # TODO: Figure out

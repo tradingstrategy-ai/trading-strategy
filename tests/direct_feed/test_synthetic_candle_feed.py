@@ -3,7 +3,7 @@ import pandas as pd
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle, FixedPriceOracle
 
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
-from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor
+from eth_defi.event_reader.reorganisation_monitor import MockChainAndReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.timeframe import Timeframe
 
@@ -111,7 +111,7 @@ def test_candle_feed_increment():
 def test_candle_feed_fork():
     """Load trades with a chain fork."""
 
-    mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12)
+    mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12, check_depth=100)
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 

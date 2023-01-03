@@ -16,10 +16,10 @@ from eth_defi.event_reader.web3factory import Web3Factory
 from eth_defi.event_reader.web3worker import create_thread_pool_executor
 from eth_defi.price_oracle.oracle import PriceOracle, BasePriceOracle
 from eth_defi.uniswap_v2.pair import PairDetails
-from .timeframe import Timeframe
+from eth_defi.event_reader.reorganisation_monitor import ReorganisationMonitor
 
+from .timeframe import Timeframe
 from .trade_feed import Trade, TradeFeed
-from .reorg_mon import ReorganisationMonitor
 
 
 logger = logging.getLogger(__name__)

@@ -3,7 +3,8 @@ import tempfile
 from pathlib import Path
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
-from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor
+from eth_defi.event_reader.reorganisation_monitor import MockChainAndReorganisationMonitor
+
 from tradingstrategy.direct_feed.store import DirectFeedStore
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 

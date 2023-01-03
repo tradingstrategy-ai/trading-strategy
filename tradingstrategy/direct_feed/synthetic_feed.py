@@ -9,11 +9,11 @@ from tqdm import tqdm
 
 from eth_defi.event_reader.block_header import BlockHeader
 from eth_defi.price_oracle.oracle import BasePriceOracle
+from eth_defi.event_reader.reorganisation_monitor import ReorganisationMonitor
 
 from .timeframe import Timeframe
 from .trade_feed import TradeFeed, Trade
 from .direct_feed_pair import PairId
-from .reorg_mon import ReorganisationMonitor
 
 
 class SyntheticTradeFeed(TradeFeed):

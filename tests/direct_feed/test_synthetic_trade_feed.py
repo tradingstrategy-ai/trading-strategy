@@ -4,7 +4,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
-from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor
+from eth_defi.event_reader.reorganisation_monitor import MockChainAndReorganisationMonitor
+
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.trade_feed import Trade
 
@@ -160,7 +161,7 @@ def test_perform_cycle():
 def test_perform_chain_reorg():
     """Simulate a chain reorganisation."""
 
-    mock_chain = MockChainAndReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor(check_depth=100)
 
     feed = SyntheticTradeFeed(
         ["ETH-USD"],
@@ -195,7 +196,7 @@ def test_perform_chain_reorg():
 def test_incremental():
     """Simulate incremental 1 block updates."""
 
-    mock_chain = MockChainAndReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor(check_depth=100)
 
     feed = SyntheticTradeFeed(
         ["ETH-USD"],
@@ -211,12 +212,16 @@ def test_incremental():
     feed.perform_duty_cycle()
 
     mock_chain.produce_blocks(1)
-    feed.perform_duty_cycle()
+    feed.perform_duty_cycle ()
 
     mock_chain.produce_blocks(1)
     delta = feed.perform_duty_cycle()
 
     assert delta.end_block == 103
+
+
+
+
 
 
 

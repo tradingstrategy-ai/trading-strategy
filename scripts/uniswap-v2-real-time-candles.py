@@ -234,7 +234,9 @@ def setup_app(
             output["Block number"] = df["block_number"]
             output["Pair"] = f"{pair.get_base_token().symbol} - {pair.get_quote_token().symbol}"
             output["Transaction"] = df["tx_hash"]
+            # TODO: Check values here for non-stablecoin nominated tokens
             output["Price USD"] = df["price"]
+            output["Amount USD"] = df["amount"]
             if quote_token not in ("BUSD", "USDC", "USDT"):
                 output[f"Price {quote_token}"] = df["price"] / df["exchange_rate"]
                 output[f"Exchange rate USD/{quote_token}"] = df["exchange_rate"]
