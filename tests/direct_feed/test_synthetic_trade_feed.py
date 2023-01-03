@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import pandas as pd
+import pytest
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
@@ -220,8 +221,25 @@ def test_incremental():
     assert delta.end_block == 103
 
 
+def test_duplicate_trades():
+    """Internal check for duplicate trades."""
 
+    mock_chain = MockChainAndReorganisationMonitor(check_depth=100)
 
+    feed = SyntheticTradeFeed(
+        ["ETH-USD"],
+        {"ETH-USD": TrustedStablecoinOracle()},
+        mock_chain,
+    )
+    mock_chain.produce_blocks(100)
+    assert mock_chain.get_last_block_live() == 100
+    feed.backfill_buffer(100, None)
 
+    feed.check_duplicates()
 
+    # Manipulate feed
+    feed.trades_df["tx_hash"] = "1"
+    feed.trades_df["log_index"] = "1"
 
+    with pytest.raises(AssertionError):
+        feed.check_duplicates()

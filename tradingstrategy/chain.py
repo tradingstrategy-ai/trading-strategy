@@ -14,6 +14,7 @@ data.
 import os
 import enum
 import json
+import threading
 from typing import Optional, Dict
 
 #: In-process cached chain data, so we do not need to hit FS every time we access
@@ -27,47 +28,57 @@ class ChainDataDoesNotExist(Exception):
     """Cannot find data for a specific chain"""
 
 
+#: Prevent _ensure_chain_data_lazy_init() duplicates
+#:
+#: May happen in Dash application due to hot code reload
+_init_lock = threading.Lock()
+
+
 def _ensure_chain_data_lazy_init():
 
     global _chain_data
     global _slug_map
 
-    if _chain_data:
-        # Already initialized
-        return
+    with _init_lock:
 
-    for chain_id in ChainId:
-        chain_id = chain_id.value
-        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "chains", "_data", "chains"))
-        if not os.path.exists(path):
-            raise RuntimeError(f"Chain data folder {path} not found. Make sure you have initialised git submodules or Python packaking is correct.\nHint: git submodule update --recursive --init")
+        if _chain_data:
+            # Already initialized
+            return
 
-        # Ganache does not have chain data entry
-        dataless = _CHAIN_DATA_OVERRIDES.get(chain_id, {}).get("dataless", False)
+        for chain_id in ChainId:
+            chain_id = chain_id.value
+            path = os.path.abspath(os.path.join(os.path.dirname(__file__), "chains", "_data", "chains"))
+            if not os.path.exists(path):
+                raise RuntimeError(f"Chain data folder {path} not found. Make sure you have initialised git submodules or Python packaking is correct.\nHint: git submodule update --recursive --init")
 
-        if not dataless:
+            # Ganache does not have chain data entry
+            dataless = _CHAIN_DATA_OVERRIDES.get(chain_id, {}).get("dataless", False)
 
-            data_file = os.path.join(path, f"eip155-{chain_id}.json")
-            if not os.path.exists(data_file):
-                raise ChainDataDoesNotExist(f"Chain data does not exist: {data_file}")
+            if not dataless:
 
-            with open(data_file, "rt") as inp:
-                _chain_data[chain_id] = json.load(inp)
+                data_file = os.path.join(path, f"eip155-{chain_id}.json")
+                if not os.path.exists(data_file):
+                    raise ChainDataDoesNotExist(f"Chain data does not exist: {data_file}")
 
-        else:
+                with open(data_file, "rt") as inp:
+                    _chain_data[chain_id] = json.load(inp)
 
-            _chain_data[chain_id] = {}
+            else:
 
-        # Apply our own chain data records
-        _chain_data[chain_id].update(_CHAIN_DATA_OVERRIDES.get(chain_id, {}))
+                _chain_data[chain_id] = {}
 
-    # Build slug -> chain id reverse mapping
-    for chain_id, data in _chain_data.items():
-        _slug_map[data["slug"]] = chain_id
+            # Apply our own chain data records
+            _chain_data[chain_id].update(_CHAIN_DATA_OVERRIDES.get(chain_id, {}))
+
+        # Build slug -> chain id reverse mapping
+        for chain_id, data in _chain_data.items():
+            _slug_map[data["slug"]] = chain_id
 
 
 def _get_chain_data(chain_id: int):
+    assert type(chain_id) == int, f"Got chain_id {type(chain_id)}"
     _ensure_chain_data_lazy_init()
+    assert chain_id in _chain_data, f"Available chains: {_chain_data.keys()}"
     return _chain_data[chain_id]
 
 

@@ -271,7 +271,9 @@ class TradeFeed:
             Optional pair to filter with
 
         :return:
-            DataFrame containing n trades
+            DataFrame containing n trades.
+
+            See :py:class:`Trade` for column descriptions.
         """
         if pair:
             df = self.trades_df.loc[self.trades_df["pair"] == pair]
@@ -297,6 +299,18 @@ class TradeFeed:
 
         if len(self.trades_df) > 0:
             self.trades_df = self.trades_df.truncate(after=latest_good_block, copy=False)
+
+    def check_duplicates(self):
+        """Check for duplicate trades.
+
+        Internal sanity check - should not never happen.
+
+        :raise AssertionError:
+            Should not happen
+        """
+
+        duplicates = self.trades_df.duplicated(subset=["tx_hash", "log_index"]).any()
+        assert not duplicates, f"Duplicate trades detected in internal storage"
 
     def check_reorganisations_and_purge(self) -> ChainReorganisationResolution:
         """Check if any of block data has changed

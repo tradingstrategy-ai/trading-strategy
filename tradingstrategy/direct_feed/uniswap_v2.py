@@ -165,7 +165,7 @@ class UniswapV2TradeFeed(TradeFeed):
             In the case we notice chain data has changed during the reading
         """
 
-        logger.info("Fetching uniswap trades %d - %d", start_block, end_block)
+        logger.debug("Fetching uniswap trades %d - %d", start_block, end_block)
 
         def _extract_timestamps(web3, start_block, end_block):
             ts_map = {}
@@ -218,7 +218,7 @@ class UniswapV2TradeFeed(TradeFeed):
                 filter=filter,
             )
 
-        sync = swap = None
+        sync = None
 
         # Read specified events in block range.
         # Sync() event should always come one log_index before Swap()
@@ -251,7 +251,7 @@ class UniswapV2TradeFeed(TradeFeed):
                     }, refresh=False)
                     progress_bar.update(1)
 
-        logger.info("Mapped %d events, %d trades", events_processed, trades_processed)
+        logger.debug("Mapped %d events, %d trades", events_processed, trades_processed)
 
         if progress_bar:
             progress_bar.close()
