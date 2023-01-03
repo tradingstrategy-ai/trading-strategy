@@ -147,6 +147,8 @@ def setup_uniswap_v2_market_data_feeds(
         oracles=oracles,
     )
 
+    trade_feed.check_duplicates()
+
     pair_addresses = [p.checksum_free_address for p in pairs]
     candle_feeds = {
         label: CandleFeed(pair_addresses, timeframe=timeframe) for label, timeframe in CANDLE_OPTIONS.items()
@@ -435,6 +437,7 @@ def main(
     else:
         if store.load_trade_feed(trade_feed):
             logger.info("Loaded old data from %s", cache_path)
+            trade_feed.check_duplicates()
         else:
             logger.info("First run, cache is empty %s", cache_path)
 
@@ -449,6 +452,7 @@ def main(
         nonlocal last_save
         nonlocal save_frequency
         if time.time() - last_save > save_frequency:
+            trade_feed.check_duplicates()
             last_saved_tuple = store.save_trade_feed(trade_feed)
             last_save = time.time()
             return last_saved_tuple
@@ -461,6 +465,7 @@ def main(
     # and create the initial candles
     logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", BUFFER_HOURS, blocks_needed)
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
+    trade_feed.check_duplicates()
     for feed in candle_feeds.values():
         feed.apply_delta(delta)
         for df in feed.iterate_pairs():
