@@ -1,3 +1,7 @@
+"""Trade feed.
+
+Blockchain / exchange agnostic trade feed using Pandas :py:class:`DataFrame` as internal memory buffer.e
+"""
 import logging
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
@@ -260,6 +264,14 @@ class TradeFeed:
 
         new_data = pd.DataFrame(data, columns=list(Trade.get_dataframe_columns().keys()))
         new_data.set_index("block_number", inplace=True, drop=False)
+
+        # Check that there is no overlap, any block data should not be duplicated
+        if len(self.trades_df) > 0 and len(new_data) > 0:
+            last_block_in_buffer = self.trades_df.iloc[-1].block_number
+            incoming_block = new_data.iloc[0].block_number
+
+            assert incoming_block > last_block_in_buffer, f"Tried to insert existing data. Last block we have {last_block_in_buffer:,}, incoming data starts with block {incoming_block:,}"
+
         self.trades_df = pd.concat([self.trades_df, new_data])
 
     def get_latest_trades(self, n: int, pair: Optional[PairId] = None) -> pd.DataFrame:
