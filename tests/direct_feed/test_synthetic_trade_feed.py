@@ -207,16 +207,20 @@ def test_incremental():
     mock_chain.produce_blocks(100)
     assert mock_chain.get_last_block_live() == 100
     delta = feed.backfill_buffer(100, None)
+    feed.check_duplicates()
     assert delta.start_block
 
     mock_chain.produce_blocks(1)
     feed.perform_duty_cycle()
+    feed.check_duplicates()
 
     mock_chain.produce_blocks(1)
     feed.perform_duty_cycle ()
+    feed.check_duplicates()
 
     mock_chain.produce_blocks(1)
     delta = feed.perform_duty_cycle()
+    feed.check_duplicates()
 
     assert delta.end_block == 103
 

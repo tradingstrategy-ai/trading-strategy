@@ -1,4 +1,4 @@
-import time
+import logging
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
 from decimal import Decimal
@@ -12,6 +12,9 @@ from eth_defi.event_reader.reorganisation_monitor import ReorganisationMonitor, 
 
 from .direct_feed_pair import PairId
 from .timeframe import Timeframe
+
+
+logger = logging.getLogger(__name__)
 
 
 #: Hex presentation of transaction hash, such
@@ -303,14 +306,23 @@ class TradeFeed:
     def check_duplicates(self):
         """Check for duplicate trades.
 
-        Internal sanity check - should not never happen.
+        Internal sanity check - should not happen.
+
+        Dump debug output to error logger if happens.
 
         :raise AssertionError:
             Should not happen
         """
 
-        duplicates = self.trades_df.duplicated(subset=["tx_hash", "log_index"]).any()
-        assert not duplicates, f"Duplicate trades detected in internal storage"
+        # https://stackoverflow.com/questions/59618293/how-to-find-duplicates-in-pandas-dataframe-and-print-them
+        duplicate_index = self.trades_df.duplicated(subset=["tx_hash", "log_index"], keep=False)
+        duplicates = self.trades_df[duplicate_index]
+
+        # Output some hints
+        for idx, dup in duplicates.iloc[0:3].iterrows():
+            logger.error(f"block: {dup.block_number} {dup.block_hash} {dup.log_index} {dup.amount}")
+        logger.error("Total %d duplicates", len(duplicates))
+        assert not duplicate_index.any(), f"Duplicate trades detected in internal storage"
 
     def check_reorganisations_and_purge(self) -> ChainReorganisationResolution:
         """Check if any of block data has changed

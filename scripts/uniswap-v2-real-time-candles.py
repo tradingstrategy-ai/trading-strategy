@@ -30,6 +30,7 @@ import datetime
 import logging
 import os
 import shutil
+import signal
 import sys
 import time
 from pathlib import Path
@@ -81,6 +82,14 @@ DATASET_PARTITION_SIZE = 100_000
 BUFFER_HOURS = 24
 
 logger: Optional[logging.Logger] = logging.getLogger()
+
+
+def die():
+    """Hard kill Python application despite multiple threads.
+
+    https://stackoverflow.com/a/7099229/315168
+    """
+    os.kill(os.getpid(), signal.SIGINT)
 
 
 def setup_uniswap_v2_market_data_feeds(
@@ -196,7 +205,7 @@ def start_block_consumer_thread(
     except Exception as e:
         logger.error("Reader thread died: %s", e)
         logger.exception(e)
-        sys.exit(1)
+        die()
 
 
 def setup_app(
@@ -336,7 +345,7 @@ def setup_app(
         except Exception as e:
             logger.error("update_last_trades() error: %s", e)
             logger.exception(e)
-            sys.exit(1)
+            die()
 
     # Update the candle charts for the currently selected pair
     @app.callback(Output('live-update-graph', 'figure'),
@@ -355,7 +364,7 @@ def setup_app(
         except Exception as e:
             # Dash does not show errors in the console by default
             logger.exception(e)
-            sys.exit(1)
+            die()
 
     return app
 
@@ -376,6 +385,7 @@ def setup_logging(log_level: str):
     # Silencio!
     logging.getLogger("gql").setLevel(logging.WARNING)
     logging.getLogger("futureproof.executors").setLevel(logging.WARNING)
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
 
 # https://github.com/tiangolo/typer/issues/511#issuecomment-1331692007
@@ -481,7 +491,7 @@ def main(
         data_refresh_frequency,
         trade_feed,
         candle_feeds)
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 
 if __name__ == '__main__':
