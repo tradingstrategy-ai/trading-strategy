@@ -167,13 +167,6 @@ class UniswapV2TradeFeed(TradeFeed):
 
         logger.debug("Fetching uniswap trades %d - %d", start_block, end_block)
 
-        def _extract_timestamps(web3, start_block, end_block):
-            ts_map = {}
-            for block_num in range(start_block, end_block+1):
-                record = self.reorg_mon.get_block_by_number(block_num)
-                ts_map[record.block_hash] = record.timestamp
-            return ts_map
-
         last_block = None
 
         max_blocks = end_block - start_block
@@ -201,22 +194,23 @@ class UniswapV2TradeFeed(TradeFeed):
                 notify = None,
                 chunk_size=self.chunk_size,
                 context=self.event_reader_context,
-                extract_timestamps=_extract_timestamps,
                 filter=filter,
+                reorg_mon=self.reorg_mon,
             )
         else:
             # Read using a thread pool
             executor = create_thread_pool_executor(self.web3_factory, self.event_reader_context, max_workers=self.max_threads)
-            generator = read_events_concurrent(
-                executor=executor,
-                start_block=start_block,
-                end_block=end_block,
-                notify=None,
-                chunk_size=self.chunk_size,
-                context=self.event_reader_context,
-                extract_timestamps=_extract_timestamps,
-                filter=filter,
-            )
+            raise NotImplementedError()
+            # generator = read_events_concurrent(
+            #     executor=executor,
+            #     start_block=start_block,
+            #     end_block=end_block,
+            #     notify=None,
+            #     chunk_size=self.chunk_size,
+            #     context=self.event_reader_context,
+            #     extract_timestamps=_extract_timestamps,
+            #     filter=filter,
+            # )
 
         sync = None
 
