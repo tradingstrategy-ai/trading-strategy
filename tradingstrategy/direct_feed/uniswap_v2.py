@@ -224,7 +224,12 @@ class UniswapV2TradeFeed(TradeFeed):
         for log_result in generator:
             events_processed += 1
 
-            logger.debug("Reading %s event, block: %s, log_index: %s, tx: %s", log_result["event"].event_name, log_result["blockNumber"], log_result["logIndex"], log_result["transactionHash"])
+            logger.debug("Reading %s event, block: %s, chunk: %d, log_index: %s, tx: %s",
+                         log_result["event"].event_name,
+                         convert_jsonrpc_value_to_int(log_result["blockNumber"]),
+                         log_result["chunk_id"],
+                         log_result["logIndex"],
+                         log_result["transactionHash"])
 
             if log_result["event"].event_name == "Swap":
                 swap = decode_swap(log_result)
@@ -244,14 +249,19 @@ class UniswapV2TradeFeed(TradeFeed):
                 raise RuntimeError(f"Cannot handle: {log_result}")
 
             if progress_bar:
-                # Update progress bar for every block
+                # Update progress bar for any block range we have processed.
+                # Usually 1 but can be several if there has blocks without trades
                 if last_block != log_result["blockNumber"]:
+                    if last_block:
+                        diff = log_result["blockNumber"] - last_block
+                    else:
+                        diff = 0
                     last_block = log_result["blockNumber"]
                     progress_bar.set_postfix({
                         "events": events_processed,
                         "trades": trades_processed,
                     }, refresh=False)
-                    progress_bar.update(1)
+                    progress_bar.update(diff)
 
         logger.debug("Mapped %d events, %d trades", events_processed, trades_processed)
 
