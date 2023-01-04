@@ -195,22 +195,22 @@ class UniswapV2TradeFeed(TradeFeed):
                 chunk_size=self.chunk_size,
                 context=self.event_reader_context,
                 filter=filter,
-                reorg_mon=self.reorg_mon,
+
             )
         else:
             # Read using a thread pool
             executor = create_thread_pool_executor(self.web3_factory, self.event_reader_context, max_workers=self.max_threads)
-            raise NotImplementedError()
-            # generator = read_events_concurrent(
-            #     executor=executor,
-            #     start_block=start_block,
-            #     end_block=end_block,
-            #     notify=None,
-            #     chunk_size=self.chunk_size,
-            #     context=self.event_reader_context,
-            #     extract_timestamps=_extract_timestamps,
-            #     filter=filter,
-            # )
+            generator = read_events_concurrent(
+                 executor=executor,
+                 start_block=start_block,
+                 end_block=end_block,
+                 notify=None,
+                 chunk_size=self.chunk_size,
+                 context=self.event_reader_context,
+                 extract_timestamps=None,
+                 reorg_mon=self.reorg_mon,
+                 filter=filter,
+             )
 
         sync = None
 
