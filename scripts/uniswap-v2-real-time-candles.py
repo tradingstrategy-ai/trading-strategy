@@ -31,7 +31,7 @@ import logging
 import os
 import shutil
 import signal
-import sys
+
 import time
 from pathlib import Path
 from threading import Thread
@@ -147,7 +147,7 @@ def setup_uniswap_v2_market_data_feeds(
         oracles=oracles,
     )
 
-    trade_feed.check_duplicates()
+    trade_feed.check_current_trades_for_duplicates()
 
     pair_addresses = [p.checksum_free_address for p in pairs]
     candle_feeds = {
@@ -181,7 +181,7 @@ def start_block_consumer_thread(
             logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.trades)} for candles")
 
             # Internal sanity check
-            trade_feed.check_duplicates()
+            trade_feed.check_current_trades_for_duplicates()
 
             for candle_feed in candle_feeds.values():
                 candle_feed.apply_delta(delta)
@@ -387,7 +387,11 @@ def setup_logging(log_level: str):
     # Silencio!
     logging.getLogger("gql").setLevel(logging.WARNING)
     logging.getLogger("futureproof.executors").setLevel(logging.WARNING)
+    logging.getLogger("futureproof.task_manager").setLevel(logging.WARNING)
     logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    logging.getLogger("web3.providers.HTTPProvider").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
+    logging.getLogger("web3.RequestManager").setLevel(logging.WARNING)
 
 
 # https://github.com/tiangolo/typer/issues/511#issuecomment-1331692007
@@ -437,7 +441,7 @@ def main(
     else:
         if store.load_trade_feed(trade_feed):
             logger.info("Loaded old data from %s", cache_path)
-            trade_feed.check_duplicates()
+            trade_feed.check_current_trades_for_duplicates()
         else:
             logger.info("First run, cache is empty %s", cache_path)
 
@@ -452,7 +456,7 @@ def main(
         nonlocal last_save
         nonlocal save_frequency
         if time.time() - last_save > save_frequency:
-            trade_feed.check_duplicates()
+            trade_feed.check_current_trades_for_duplicates()
             last_saved_tuple = store.save_trade_feed(trade_feed)
             last_save = time.time()
             return last_saved_tuple
@@ -465,7 +469,7 @@ def main(
     # and create the initial candles
     logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", BUFFER_HOURS, blocks_needed)
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
-    trade_feed.check_duplicates()
+    trade_feed.check_current_trades_for_duplicates()
     for feed in candle_feeds.values():
         feed.apply_delta(delta)
         for df in feed.iterate_pairs():

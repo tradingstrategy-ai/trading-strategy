@@ -1,7 +1,7 @@
 import datetime
 import enum
 from decimal import Decimal
-from typing import List, Dict, Tuple, Optional, Iterable, Type
+from typing import List, Dict, Tuple, Optional, Iterable, Type, Set
 import logging
 
 import pandas as pd
@@ -224,6 +224,9 @@ class UniswapV2TradeFeed(TradeFeed):
         # Sync() event should always come one log_index before Swap()
         events_processed = trades_processed = 0
 
+        # Self sanity check that we don't create duplicates
+        processed_swaps: Set[tuple] = set()
+
         for log_result in generator:
             events_processed += 1
 
@@ -231,6 +234,11 @@ class UniswapV2TradeFeed(TradeFeed):
 
             if log_result["event"].event_name == "Swap":
                 swap = decode_swap(log_result)
+
+                # Check that our read did not have duplicates
+                swap_id = (swap["tx_hash"], swap["log_index"])
+                assert swap_id not in processed_swaps, f"Tried to add swap twice: {swap}"
+                processed_swaps.add(swap_id)
 
                 trade = self.construct_trade_from_uniswap_v2_events(sync, swap)
                 if trade:
@@ -261,6 +269,9 @@ class UniswapV2TradeFeed(TradeFeed):
 
         This is a stateful mapping: we need to be able
         to access previous Pair events to correctly deduct the price.
+
+        :param prev_sync:
+            The previous Sync() event that defines the price for this swap.
         """
 
         if prev_sync is None:

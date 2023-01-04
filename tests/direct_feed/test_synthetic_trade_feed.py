@@ -207,20 +207,20 @@ def test_incremental():
     mock_chain.produce_blocks(100)
     assert mock_chain.get_last_block_live() == 100
     delta = feed.backfill_buffer(100, None)
-    feed.check_duplicates()
+    feed.check_current_trades_for_duplicates()
     assert delta.start_block
 
     mock_chain.produce_blocks(1)
     feed.perform_duty_cycle()
-    feed.check_duplicates()
+    feed.check_current_trades_for_duplicates()
 
     mock_chain.produce_blocks(1)
     feed.perform_duty_cycle ()
-    feed.check_duplicates()
+    feed.check_current_trades_for_duplicates()
 
     mock_chain.produce_blocks(1)
     delta = feed.perform_duty_cycle()
-    feed.check_duplicates()
+    feed.check_current_trades_for_duplicates()
 
     assert delta.end_block == 103
 
@@ -239,11 +239,11 @@ def test_duplicate_trades():
     assert mock_chain.get_last_block_live() == 100
     feed.backfill_buffer(100, None)
 
-    feed.check_duplicates()
+    feed.check_current_trades_for_duplicates()
 
     # Manipulate feed
     feed.trades_df["tx_hash"] = "1"
     feed.trades_df["log_index"] = "1"
 
     with pytest.raises(AssertionError):
-        feed.check_duplicates()
+        feed.check_current_trades_for_duplicates()

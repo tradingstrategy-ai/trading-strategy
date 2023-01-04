@@ -257,6 +257,7 @@ class TradeFeed:
         """
         data = []
 
+        # For each trade added, check that
         for evt in trades:
             assert isinstance(evt, Trade)
             self.reorg_mon.check_block_reorg(evt.block_number, evt.block_hash)
@@ -270,6 +271,10 @@ class TradeFeed:
             last_block_in_buffer = self.trades_df.iloc[-1].block_number
             incoming_block = new_data.iloc[0].block_number
             assert incoming_block > last_block_in_buffer, f"Tried to insert existing data. Last block we have {last_block_in_buffer:,}, incoming data starts with block {incoming_block:,}"
+
+        logger.debug("add_trades(): Existing trades: %s, new trades: %s", len(self.trades_df), len(new_data))
+
+        self.check_duplicates_data_frame(new_data)
 
         self.trades_df = pd.concat([self.trades_df, new_data])
 
@@ -314,7 +319,7 @@ class TradeFeed:
         if len(self.trades_df) > 0:
             self.trades_df = self.trades_df.truncate(after=latest_good_block, copy=False)
 
-    def check_duplicates(self):
+    def check_current_trades_for_duplicates(self):
         """Check for duplicate trades.
 
         Internal sanity check - should not happen.
@@ -324,16 +329,38 @@ class TradeFeed:
         :raise AssertionError:
             Should not happen
         """
+        self.check_duplicates_data_frame(self.trades_df)
+
+    @staticmethod
+    def check_duplicates_data_frame(df: pd.DataFrame):
+        """Check data for duplicate trades.
+
+        - Bugs in the event reader system may cause duplicate trades
+
+        - All trades are uniquely identified by tx_hash and log_index
+
+        - In a perfectly working system duplicate trades do not happen
+
+        :param df:
+            Input trades
+
+        :raise AssertionError:
+            Should not happen
+        """
 
         # https://stackoverflow.com/questions/59618293/how-to-find-duplicates-in-pandas-dataframe-and-print-them
-        duplicate_index = self.trades_df.duplicated(subset=["tx_hash", "log_index"], keep=False)
-        duplicates = self.trades_df[duplicate_index]
+        duplicate_index = df.duplicated(subset=["tx_hash", "log_index"], keep=False)
+        duplicates = df[duplicate_index]
 
         # Output some hints
-        for idx, dup in duplicates.iloc[0:3].iterrows():
-            logger.error(f"block: {dup.block_number} {dup.block_hash} {dup.log_index} {dup.amount}")
-        logger.error("Total %d duplicates", len(duplicates))
-        assert not duplicate_index.any(), f"Duplicate trades detected in internal storage"
+        if duplicate_index.any():
+            for idx, dup in duplicates.iloc[0:3].iterrows():
+                logger.error(f"block: {dup.block_number} {dup.block_hash} {dup.log_index} {dup.amount}")
+
+            unique_blocks = df["block_number"].unique()
+
+            logger.error("Total %d duplicates over %d blocks", len(duplicates), len(unique_blocks))
+            raise AssertionError(f"Duplicate trades detected in dataframe")
 
     def check_reorganisations_and_purge(self) -> ChainReorganisationResolution:
         """Check if any of block data has changed
@@ -514,6 +541,7 @@ class TradeFeed:
 
     def restore(self, df: pd.DataFrame):
         """Restore data from the previous disk save."""
+        logger.debug("Restoring %d trades", len(df))
         self.trades_df = df
 
     @abstractmethod
