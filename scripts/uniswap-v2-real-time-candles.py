@@ -31,6 +31,7 @@ import logging
 import os
 import shutil
 import signal
+import threading
 
 import time
 from pathlib import Path
@@ -42,10 +43,10 @@ from urllib.parse import urljoin
 import coloredlogs
 import pandas as pd
 import typer
-from dash import html, Output, Input, Dash
+from dash import html, Output, Input, Dash, State
 from dash.dash_table import DataTable
 from dash.dcc import Graph, Interval, Dropdown
-from dash.html import Div, Label, H2
+from dash.html import Div, Label, H2, Button
 from plotly.subplots import make_subplots
 from tqdm import tqdm
 from web3 import Web3
@@ -75,11 +76,23 @@ CANDLE_OPTIONS = {
 }
 
 
+#: How much past data we render for different candles by default.
+#:
+#: These values are more or less randomly picked and do not
+#: present good UX.
+LOOK_BACK_HORIZON = {
+    Timeframe("1min"): pd.Timedelta("1h"),
+    Timeframe("5min"): pd.Timedelta("4h"),
+    Timeframe("1h"): pd.Timedelta("24h"),
+}
+
+
 #: Store 100,000 blocks per Parquet dataset file
 DATASET_PARTITION_SIZE = 100_000
 
 #: How many hours worth of event data we buffer for the chart
 BUFFER_HOURS = 24
+
 
 logger: Optional[logging.Logger] = logging.getLogger()
 
@@ -164,7 +177,9 @@ def start_block_consumer_thread(
         pair: PairDetails,
         store: DirectFeedStore,
         trade_feed: TradeFeed,
-        candle_feeds: Dict[str, CandleFeed]):
+        candle_feeds: Dict[str, CandleFeed],
+        paused: threading.Event,
+):
     """Consume blockchain data and update in-memory candles."""
 
     last_save = 0
@@ -173,32 +188,36 @@ def start_block_consumer_thread(
     try:
 
         while True:
-            # Read trades from the blockchain
-            start = time.time()
+
             next_block = time.time() + data_refresh_frequency
 
-            delta = trade_feed.perform_duty_cycle()
-            logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.trades)} for candles")
+            if not paused.is_set():
+                start = time.time()
 
-            # Internal sanity check
-            trade_feed.check_current_trades_for_duplicates()
+                # Read trades from the blockchain
+                delta = trade_feed.perform_duty_cycle()
+                logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.trades)} for candles")
 
-            for candle_feed in candle_feeds.values():
-                candle_feed.apply_delta(delta)
-                if time.time() - last_save > save_freq:
-                    logger.info("Saving data")
-                    store.save_trade_feed(trade_feed)
-                    last_save = time.time()
+                # Internal sanity check
+                trade_feed.check_current_trades_for_duplicates()
 
-                make_candle_labels(
-                    candle_feed.candle_df,
-                    dollar_prices=False,
-                    base_token_name=pair.get_base_token().symbol,
-                    quote_token_name=pair.get_quote_token().symbol,
-                )
+                # Update all candle feeds
+                for candle_feed in candle_feeds.values():
+                    candle_feed.apply_delta(delta)
+                    if time.time() - last_save > save_freq:
+                        logger.info("Saving data")
+                        store.save_trade_feed(trade_feed)
+                        last_save = time.time()
 
-            duration = time.time() - start
-            logger.info("Block processing loop took %f seconds", duration)
+                    make_candle_labels(
+                        candle_feed.candle_df,
+                        dollar_prices=False,
+                        base_token_name=pair.get_base_token().symbol,
+                        quote_token_name=pair.get_quote_token().symbol,
+                    )
+
+                duration = time.time() - start
+                logger.info("Block processing loop took %f seconds", duration)
 
             left_to_sleep = next_block - time.time()
             if left_to_sleep > 0:
@@ -216,6 +235,7 @@ def setup_app(
         freq_seconds: float,
         trade_feed: TradeFeed,
         candle_feeds: Dict[str, CandleFeed],
+        paused: threading.Event,
 ) -> Dash:
     """Build a Dash application UI using its framework.
 
@@ -241,7 +261,8 @@ def setup_app(
     else:
         extra_columns = []
 
-    app.layout = html.Div([
+    app.layout = Div([
+        Button('⏸️ Pause', id='pause-button', n_clicks=0),
         Div(
             id="controls",
             children=[
@@ -271,6 +292,21 @@ def setup_app(
         ),
     ])
 
+    # Simple toggle button to change the live reload state
+    @app.callback(
+        Output('pause-button', 'children'),
+        Input('pause-button', 'n_clicks'),
+    )
+    def toggle_button(n_clicks):
+        if paused.is_set():
+            paused.clear()
+            label = "⏸️ Pause live trade feed"
+        else:
+            paused.set()
+            label = "▶️ Resume live trade feed"
+        # https://community.plotly.com/t/how-can-i-change-the-text-on-a-button-if-it-is-clicked/59485
+        return label
+
     # Update the chain status
     @app.callback(Output('chain-stats', "children"),
                   Input('interval-component', 'n_intervals'))
@@ -285,7 +321,13 @@ def setup_app(
             block_header_count = len(reorg_mon.block_map)
             ago = datetime.datetime.utcnow() - timestamp.to_pydatetime()
             ago_seconds = ago.total_seconds()
-            return f"""Current block: {block_num:,} {ago_seconds} seconds ago, block headers cached: {block_header_count:,}"""
+            stat_str = f"""Current block: {block_num:,} {ago_seconds} seconds ago, block headers cached: {block_header_count:,}"""
+
+            if paused.is_set():
+                stat_str += " (PAUSED)"
+
+            return stat_str
+
         except Exception as e:
             logger.exception(e)
             raise
@@ -488,9 +530,13 @@ def main(
 
     # Start blockchain data processor bg thread
     logger.info("Starting blockchain data consumer, block time is %f seconds", data_refresh_frequency)
+
+    # Create the paused flag
+    paused = threading.Event()
+
     candle_bg_thread = Thread(
         target=start_block_consumer_thread,
-        args=(data_refresh_frequency, pair_details, store, trade_feed, candle_feeds))
+        args=(data_refresh_frequency, pair_details, store, trade_feed, candle_feeds, paused))
     candle_bg_thread.start()
 
     # Create the Dash web UI and start the web server
@@ -499,7 +545,9 @@ def main(
         pair_details,
         data_refresh_frequency,
         trade_feed,
-        candle_feeds)
+        candle_feeds,
+        paused
+    )
     app.run_server(debug=False)
 
 
