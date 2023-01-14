@@ -1,3 +1,7 @@
+# 0.9.2
+
+- Update pyarrow dependency to ^10.0.1
+
 # 0.9.1
 
 - Add support for average duration statistic to be expressed in terms of `bars`
