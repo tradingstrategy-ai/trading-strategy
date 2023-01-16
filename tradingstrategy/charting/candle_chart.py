@@ -15,13 +15,10 @@ from typing import Optional
 
 import plotly.graph_objects as go
 import pandas as pd
-from backtrader import List
-from pandas.core.groupby import DataFrameGroupBy
 from plotly.subplots import make_subplots
 
 
 logger = logging.getLogger(__name__)
-
 
 
 class BadOHLCVData(Exception):
