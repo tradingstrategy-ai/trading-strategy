@@ -1,6 +1,6 @@
-# Current
+# 0.10.0
 
-- Add initial implementation for direct-to-blockchain node data feeds
+- Add the initial implementation for direct-to-blockchain node data feeds
 
 # 0.9.1
 
