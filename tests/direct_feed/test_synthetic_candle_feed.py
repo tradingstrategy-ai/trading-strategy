@@ -3,7 +3,7 @@ import pandas as pd
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle, FixedPriceOracle
 
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
-from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor
+from eth_defi.event_reader.reorganisation_monitor import MockChainAndReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.timeframe import Timeframe
 
@@ -111,7 +111,7 @@ def test_candle_feed_increment():
 def test_candle_feed_fork():
     """Load trades with a chain fork."""
 
-    mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12)
+    mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12, check_depth=100)
     mock_chain.produce_blocks(100)
     timeframe = Timeframe("1min")
 
@@ -147,7 +147,10 @@ def test_candle_feed_fork():
 
 
 def test_candle_feed_fork_last_block():
-    """Make sure if the last block forks we do not get confused."""
+    """Make sure if the last block forks we do not get confused.
+
+    Chain reorganisation happens at the last block we have read.
+    """
 
     mock_chain = MockChainAndReorganisationMonitor(block_duration_seconds=12)
     mock_chain.produce_blocks(100)
@@ -170,7 +173,7 @@ def test_candle_feed_fork_last_block():
     delta = feed.backfill_buffer(100, None)
     candle_feed.apply_delta(delta)
     assert candle_feed.get_last_block_number() == 100
-    flat = candle_feed.candle_df.reset_index()
+    flat = candle_feed.candle_df.reset_index(drop=True)
     assert len(flat) == 21
 
     # Add 1 block
@@ -178,7 +181,7 @@ def test_candle_feed_fork_last_block():
     delta = feed.perform_duty_cycle()
     candle_feed.apply_delta(delta)
     assert candle_feed.get_last_block_number() == 101
-    flat = candle_feed.candle_df.reset_index()
+    flat = candle_feed.candle_df.reset_index(drop=True)
     assert len(flat) == 21
 
     # Reorg the last block
@@ -190,7 +193,7 @@ def test_candle_feed_fork_last_block():
     assert delta.unadjusted_start_block == 101
     assert delta.end_block == 101
     assert candle_feed.get_last_block_number() == 101
-    flat = candle_feed.candle_df.reset_index()
+    flat = candle_feed.candle_df.reset_index(drop=True)
     assert len(flat) == 21
 
 
@@ -223,7 +226,7 @@ def test_candle_feed_two_pairs():
     delta = feed.backfill_buffer(100, None)
     candle_feed.apply_delta(delta)
     assert candle_feed.get_last_block_number() == 100
-    flat = candle_feed.candle_df.reset_index()
+    flat = candle_feed.candle_df.reset_index(drop=True)
     assert len(flat) == 42
 
     # Add 1 block
@@ -231,7 +234,7 @@ def test_candle_feed_two_pairs():
     delta = feed.perform_duty_cycle()
     candle_feed.apply_delta(delta)
     assert candle_feed.get_last_block_number() == 101
-    flat = candle_feed.candle_df.reset_index()
+    flat = candle_feed.candle_df.reset_index(drop=True)
     assert len(flat) == 42
 
     # Reorg the last block
@@ -243,7 +246,7 @@ def test_candle_feed_two_pairs():
     assert delta.unadjusted_start_block == 101
     assert delta.end_block == 101
     assert candle_feed.get_last_block_number() == 101
-    flat = candle_feed.candle_df.reset_index()
+    flat = candle_feed.candle_df.reset_index(drop=True)
     assert len(flat) == 42
 
     # Build on the top of the fork
@@ -255,5 +258,5 @@ def test_candle_feed_two_pairs():
     assert delta.unadjusted_start_block == 102
     assert delta.end_block == 201
     assert candle_feed.get_last_block_number() == 201
-    flat = candle_feed.candle_df.reset_index()
+    flat = candle_feed.candle_df.reset_index(drop=True)
     assert len(flat) == 82

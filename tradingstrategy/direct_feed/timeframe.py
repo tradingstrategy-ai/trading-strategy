@@ -25,6 +25,18 @@ class Timeframe:
     #: E.g. move hourly candles 5 minutes backwards to start at 00:55
     offset: pd.Timedelta = pd.Timedelta(seconds=0)
 
+    def __eq__(self, other):
+        """Implemented for set() and dict()"""
+        assert isinstance(other, Timeframe)
+        return self.freq == other.freq and self.offset == other.offset
+
+    def __hash__(self) -> int:
+        """Implemented for set() and dict()"""
+        return (self.freq, self.offset).__hash__()
+
+    def __repr__(self) -> str:
+        return f"<Timeframe freq:{self.freq} offset:{self.offset}>"
+
     def round_timestamp_down(self, ts: pd.Timestamp) -> pd.Timestamp:
         """Snap to previous available timedelta.
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Iterable
 
 import pandas as pd
 
@@ -25,17 +25,35 @@ class CandleFeed:
                  ):
         """
 
+        :param pairs:
+            List of pairs this address contains.
+
+            Symbolic names or addresses.
+
         :param freq:
             Pandas frequency string e.g. "1H", "min"
 
         :param candle_offset:
         """
+        for p in pairs:
+            assert type(p) == str, f"Pairs must be a list of pair ids (str). Got: {p}"
+        self.pairs = pairs
         self.timeframe = timeframe
         self.candle_df = pd.DataFrame()
         self.last_cycle = 0
 
-    def apply_delta(self, delta: TradeDelta):
-        """Add new candle data generated from the latest blockchain input."""
+    def apply_delta(self, delta: TradeDelta, label_candles=True):
+        """Add new candle data generated from the latest blockchain input.
+
+        :param delta:
+            New trades coming in
+
+        :param label_candles:
+            Create and update label column.
+
+            Label column contains tooltips for the visual candle viewer.
+            This must be done before candle data is grouped by pairs.
+        """
         cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
         candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
         self.candle_df = pd.concat([cropped_df, candles])
@@ -51,6 +69,11 @@ class CandleFeed:
             block number (inclusive)
         """
         return self.candle_df["end_block"].max()
+
+    def iterate_pairs(self) -> Iterable[pd.DataFrame]:
+        """Get candles for all pairs we are tracking."""
+        for p in self.pairs:
+            yield self.get_candles_by_pair(p)
 
 
 

@@ -1,3 +1,7 @@
+# Current
+
+- Add initial implementation for direct-to-blockchain node data feeds
+
 # 0.9.1
 
 - Add support for average duration statistic to be expressed in terms of `bars`

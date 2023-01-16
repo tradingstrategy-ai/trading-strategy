@@ -6,12 +6,14 @@ from typing import Dict, Optional, List, Iterable, Type
 
 import pandas as pd
 from tqdm import tqdm
-from eth_defi.price_oracle.oracle import BaseOracle
+
+from eth_defi.event_reader.block_header import BlockHeader
+from eth_defi.price_oracle.oracle import BasePriceOracle
+from eth_defi.event_reader.reorganisation_monitor import ReorganisationMonitor
 
 from .timeframe import Timeframe
 from .trade_feed import TradeFeed, Trade
 from .direct_feed_pair import PairId
-from .reorg_mon import ReorganisationMonitor, BlockRecord
 
 
 class SyntheticTradeFeed(TradeFeed):
@@ -19,7 +21,7 @@ class SyntheticTradeFeed(TradeFeed):
 
     def __init__(self,
                  pairs: List[PairId],
-                 oracles: Dict[PairId, BaseOracle],
+                 oracles: Dict[PairId, BasePriceOracle],
                  reorg_mon: ReorganisationMonitor,
                  data_retention_time: Optional[pd.Timedelta] = None,
                  random_seed = 1,
@@ -60,7 +62,7 @@ class SyntheticTradeFeed(TradeFeed):
     def fetch_trades(self, start_block: int, end_block: Optional[int], tqdm: Optional[Type[tqdm]] = None) -> Iterable[Trade]:
         """Generate few random trades per block per pair."""
 
-        block_data = {b.block_number: b for b in self.reorg_mon.get_block_data(start_block, end_block)}
+        block_data = {b.block_number: b for b in self.reorg_mon.fetch_block_data(start_block, end_block)}
 
         max_blocks = end_block - start_block
 
@@ -79,7 +81,7 @@ class SyntheticTradeFeed(TradeFeed):
                     price = self.prices[p]
                     amount = self.random_gen.uniform(self.min_amount, self.max_amount)
 
-                    block: BlockRecord = block_data[block_num]
+                    block: BlockHeader = block_data[block_num]
                     tx_hash = hex(self.random_gen.randint(2**31, 2**32))
                     log_index = trade_idx
 

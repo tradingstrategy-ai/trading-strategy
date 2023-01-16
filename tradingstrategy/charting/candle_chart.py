@@ -10,6 +10,7 @@ Draw price charts using Plotly.
 
 - Dark and light themes
 """
+import logging
 from typing import Optional
 
 import plotly.graph_objects as go
@@ -17,17 +18,107 @@ import pandas as pd
 from plotly.subplots import make_subplots
 
 
+logger = logging.getLogger(__name__)
+
 
 class BadOHLCVData(Exception):
     """We could not figure out the data frame"""
 
 
 def validate_ohclv_dataframe(candles: pd.DataFrame):
-    required_columns = ["open", "close", "high", "low"]
+    required_columns = ["timestamp", "open", "close", "high", "low"]
     for r in required_columns:
         if r not in candles.columns:
             raise BadOHLCVData(f"OHLCV DataFrame lacks column: {r}, has {candles.columns}")
 
+
+
+def create_label(row: pd.Series) -> str:
+    """Create labels for a single candle."""
+
+
+def make_candle_labels(
+        df: pd.DataFrame,
+        dollar_prices=True,
+        base_token_name: Optional[str]=None,
+        quote_token_name: Optional[str]=None) -> pd.Series:
+    """Generate individual labels for OHLCV chart candles.
+
+    Used to display toolips on OHLCV chart.
+
+    :poram candle_df:
+        Candles for which we need tooltips.
+
+    :poram label_df:
+        A target dataframe
+
+        A column "label" is generated and it is populated
+        for every index timestamp that does not have label yet.
+
+    :param dollar_prices:
+        True if prices are in USD. Otherwise in the given quote token.
+
+    :param quote_token_name:
+        Cryptocurrency as the quote token pair.
+
+    :return:
+        Series of text label
+    """
+
+    validate_ohclv_dataframe(df)
+
+    if dollar_prices:
+        if quote_token_name:
+            price_text = f"{quote_token_name}/USD"
+            volume_text = "USD"
+        else:
+            price_text = "USD"
+            volume_text = "USD"
+    else:
+        assert quote_token_name, "Quote token must be given"
+        price_text = f"{base_token_name} / {quote_token_name}"
+        volume_text = quote_token_name
+
+    # All label values are NA by default
+    def _create_label_for_single_candle(row: pd.Series):
+        # Index here can be MultiIndex as well, so assume timestamp is available as a column
+
+        timestamp = row["timestamp"]
+
+        percentage_change = (row.close - row.open) / row.open
+        text = [
+            f"{timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            "",
+            f"Open: {row.open} {price_text}",
+            f"High: {row.high} {price_text}",
+            f"Low: {row.low} {price_text}",
+            f"Close: {row.close} {price_text}",
+        ]
+
+        if row.volume:
+            text += [
+                f"Volume: {row.volume} {volume_text}",
+            ]
+
+        text += [
+            f"Change: {percentage_change:.2f} %",
+            "",
+        ]
+
+        if row.exchange_rate:
+            text += [f"Exchange rate: {row.exchange_rate}", ""]
+
+        if row.buys:
+            text += [
+                f"Buys: {row.buys} txs",
+                f"Sells: {row.sells} txs",
+                f"Total: {row.buys + row.sells} trades",
+                ""
+            ]
+
+        return "\n".join(text)
+
+    return df.apply(_create_label_for_single_candle, axis="columns")
 
 
 def visualise_ohlcv(
@@ -38,8 +129,12 @@ def visualise_ohlcv(
         height: int = 800,
         theme: str = "plotly_white",
         volume_bar_colour: str = "rgba(128,128,128,0.5)",
+        labels: Optional[pd.Series] = None,
 ) -> go.Figure:
     """Draw a candlestick chart.
+
+    If the `candles` has `label` column this will be used
+    as the mouse hover text for candles.
 
     If the `candles` has `volume` column, draw also this column.
 
@@ -63,15 +158,24 @@ def visualise_ohlcv(
     :param volume_bar_colour:
         Override the default colour for volume bars
 
+    :param labels:
+        Tooltip labels for candles.
+
+        See :py:func:`make_candle_labels`
+
     :return:
         Plotly figure object
     """
 
     validate_ohclv_dataframe(candles)
 
-    # Add change percentages on candle mouse hover
-    percentage_changes = ((candles['close'] - candles['open'])/candles['open']) * 100
-    text = ["Change: " + f"{percentage_changes[i]:.2f}%" for i in range(len(percentage_changes))]
+    if labels is not None:
+        text = labels
+    else:
+        # TODO: Legacy - deprecate
+        # Add change percentages on candle mouse hover
+        percentage_changes = ((candles['close'] - candles['open'])/candles['open']) * 100
+        text = ["Change: " + f"{percentage_changes[i]:.2f}%" for i in range(len(percentage_changes))]
 
     candlesticks = go.Candlestick(
         x=candles.index,

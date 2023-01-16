@@ -5,10 +5,10 @@ import pytest
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
-from tradingstrategy.direct_feed.reorg_mon import MockChainAndReorganisationMonitor, BlockRecord
+from eth_defi.event_reader.reorganisation_monitor import MockChainAndReorganisationMonitor
+
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.trade_feed import Trade
-from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 
 
 def test_synthetic_block_mon_produce_blocks():
@@ -67,6 +67,8 @@ def test_add_trades():
     assert len(feed.trades_df) == 1
     entry = feed.trades_df.iloc[0]
     assert entry["pair"] == "ETH-USD"
+
+    assert feed.get_latest_price("ETH-USD") == Decimal(1)
 
 
 def test_initial_load():
@@ -160,7 +162,7 @@ def test_perform_cycle():
 def test_perform_chain_reorg():
     """Simulate a chain reorganisation."""
 
-    mock_chain = MockChainAndReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor(check_depth=100)
 
     feed = SyntheticTradeFeed(
         ["ETH-USD"],
@@ -195,7 +197,7 @@ def test_perform_chain_reorg():
 def test_incremental():
     """Simulate incremental 1 block updates."""
 
-    mock_chain = MockChainAndReorganisationMonitor()
+    mock_chain = MockChainAndReorganisationMonitor(check_depth=100)
 
     feed = SyntheticTradeFeed(
         ["ETH-USD"],
@@ -205,18 +207,43 @@ def test_incremental():
     mock_chain.produce_blocks(100)
     assert mock_chain.get_last_block_live() == 100
     delta = feed.backfill_buffer(100, None)
+    feed.check_current_trades_for_duplicates()
     assert delta.start_block
 
     mock_chain.produce_blocks(1)
     feed.perform_duty_cycle()
+    feed.check_current_trades_for_duplicates()
 
     mock_chain.produce_blocks(1)
-    feed.perform_duty_cycle()
+    feed.perform_duty_cycle ()
+    feed.check_current_trades_for_duplicates()
 
     mock_chain.produce_blocks(1)
     delta = feed.perform_duty_cycle()
+    feed.check_current_trades_for_duplicates()
 
     assert delta.end_block == 103
 
 
+def test_duplicate_trades():
+    """Internal check for duplicate trades."""
 
+    mock_chain = MockChainAndReorganisationMonitor(check_depth=100)
+
+    feed = SyntheticTradeFeed(
+        ["ETH-USD"],
+        {"ETH-USD": TrustedStablecoinOracle()},
+        mock_chain,
+    )
+    mock_chain.produce_blocks(100)
+    assert mock_chain.get_last_block_live() == 100
+    feed.backfill_buffer(100, None)
+
+    feed.check_current_trades_for_duplicates()
+
+    # Manipulate feed
+    feed.trades_df["tx_hash"] = "1"
+    feed.trades_df["log_index"] = "1"
+
+    with pytest.raises(AssertionError):
+        feed.check_current_trades_for_duplicates()

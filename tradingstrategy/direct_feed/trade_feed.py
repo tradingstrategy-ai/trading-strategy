@@ -1,16 +1,24 @@
+"""Trade feed.
+
+Blockchain / exchange agnostic trade feed using Pandas :py:class:`DataFrame` as internal memory buffer.e
+"""
+import logging
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
 from decimal import Decimal
-from typing import Dict, Optional, List,  Iterable, Type, TypeAlias
+from typing import Dict, Optional, List, Iterable, Type, TypeAlias, Protocol
 
 import pandas as pd
-from eth_defi.price_oracle.oracle import BaseOracle
-
 from tqdm import tqdm
 
+from eth_defi.price_oracle.oracle import BasePriceOracle
+from eth_defi.event_reader.reorganisation_monitor import ReorganisationMonitor, ChainReorganisationResolution
+
 from .direct_feed_pair import PairId
-from .reorg_mon import ReorganisationMonitor, ChainReorganisationResolution
 from .timeframe import Timeframe
+
+
+logger = logging.getLogger(__name__)
 
 
 #: Hex presentation of transaction hash, such
@@ -26,7 +34,9 @@ class Trade:
     not suitable for accounting.
     """
 
-    #: Trading pair od
+    #: Trading pair id.
+    #:
+    #: Ethereum address. Always lowercased.
     pair: PairId
 
     #: Block number
@@ -52,8 +62,13 @@ class Trade:
     #: Positive for buys, negative for sells.
     amount: Decimal
 
-    #: The US dollar conversion rate used for this rate
+    #: The US dollar conversion rate.
+    #:
+    #: You can use this to convert price and amount to US dollars.
     exchange_rate: Decimal
+
+    def __repr__(self):
+        return f"<Trade pair: {self.pair}, price: {self.price}, amount: {self.amount}, exchange rate: {self.exchange_rate}>"
 
     def __post_init__(self):
         assert self.timestamp.tzinfo is None, "Don't use timezone aware timestamps - everything must be naive UTC"
@@ -73,6 +88,16 @@ class Trade:
             ("exchange_rate", "object"),
         ])
         return fields
+
+    @staticmethod
+    def filter_buys(df: pd.DataFrame) -> pd.DataFrame:
+        """Filter buy in trades."""
+        return df.loc[df.amount > 0]
+
+    @staticmethod
+    def filter_sells(df: pd.DataFrame) -> pd.DataFrame:
+        """Filter buy in trades."""
+        return df.loc[df.amount < 0]
 
 
 @dataclass(slots=True, frozen=True)
@@ -95,7 +120,6 @@ class TradeDelta:
 
     #: Last block for which we have data
     #:
-    #:
     end_block: int
 
     #: Timestamp of the start block
@@ -115,6 +139,16 @@ class TradeDelta:
     trades: pd.DataFrame
 
 
+class SaveHook(Protocol):
+    """Save hook called by trade feed when downloading data.
+
+    Called every N seconds.
+    """
+
+    def __call__(self, feed: "TradeFeed"):
+        pass
+
+
 class TradeFeed:
     """Real-time blockchain trade feed.
 
@@ -130,10 +164,11 @@ class TradeFeed:
 
     def __init__(self,
                  pairs: List[PairId],
-                 oracles: Dict[PairId, BaseOracle],
+                 oracles: Dict[PairId, BasePriceOracle],
                  reorg_mon: ReorganisationMonitor,
                  timeframe: Timeframe = Timeframe("1min"),
                  data_retention_time: Optional[pd.Timedelta] = None,
+                 save_hook: Optional[SaveHook] = None,
                  ):
         """
         Create new real-time OHLCV tracker.
@@ -163,20 +198,26 @@ class TradeFeed:
             Discard entries older than this to avoid
             filling the RAM.
 
+        :param save_hook:
+            Sync the downloaded data to disk.
+
         """
 
         assert isinstance(reorg_mon, ReorganisationMonitor)
 
         for o in oracles.values():
-            assert isinstance(o, BaseOracle)
+            assert isinstance(o, BasePriceOracle)
+
+        for p in pairs:
+            assert type(p) == PairId, f"Only ids allowed, got {p}"
 
         self.pairs = pairs
         self.oracles = oracles
         self.data_retention_time = data_retention_time
         self.reorg_mon = reorg_mon
-        self.tqdm = tqdm
         self.timeframe = timeframe
         self.cycle = 1
+        self.last_save = 0
 
         self.trades_df = pd.DataFrame()
 
@@ -191,6 +232,10 @@ class TradeFeed:
             return None
 
         return self.trades_df.iloc[-1]["block_number"]
+
+    def get_trade_count(self) -> int:
+        """How many trades we track currently."""
+        return len(self.trades_df)
 
     def add_trades(self, trades: Iterable[Trade]):
         """Add trade to the ring buffer with support for fixing chain reorganisations.
@@ -212,6 +257,7 @@ class TradeFeed:
         """
         data = []
 
+        # For each trade added, check that
         for evt in trades:
             assert isinstance(evt, Trade)
             self.reorg_mon.check_block_reorg(evt.block_number, evt.block_hash)
@@ -219,6 +265,17 @@ class TradeFeed:
 
         new_data = pd.DataFrame(data, columns=list(Trade.get_dataframe_columns().keys()))
         new_data.set_index("block_number", inplace=True, drop=False)
+
+        # Check that there is no overlap, any block data should not be duplicated
+        if len(self.trades_df) > 0 and len(new_data) > 0:
+            last_block_in_buffer = self.trades_df.iloc[-1].block_number
+            incoming_block = new_data.iloc[0].block_number
+            assert incoming_block > last_block_in_buffer, f"Tried to insert existing data. Last block we have {last_block_in_buffer:,}, incoming data starts with block {incoming_block:,}"
+
+        logger.debug("add_trades(): Existing trades: %s, new trades: %s", len(self.trades_df), len(new_data))
+
+        self.check_duplicates_data_frame(new_data)
+
         self.trades_df = pd.concat([self.trades_df, new_data])
 
     def get_latest_trades(self, n: int, pair: Optional[PairId] = None) -> pd.DataFrame:
@@ -233,13 +290,24 @@ class TradeFeed:
             Optional pair to filter with
 
         :return:
-            DataFrame containing n trades
+            DataFrame containing n trades.
+
+            See :py:class:`Trade` for column descriptions.
         """
         if pair:
             df = self.trades_df.loc[self.trades_df["pair"] == pair]
         else:
             df = self.trades_df
         return df.tail(n)
+
+    def get_latest_price(self, pair: PairId) -> Decimal:
+        """Return the latest price of a pair.
+
+        Return the last price record we have.
+        """
+        df = self.trades_df.loc[self.trades_df["pair"] == pair]
+        last = df.iloc[-1]
+        return last["price"]
 
     def truncate_reorganised_data(self, latest_good_block):
         """Discard data because of the chain reorg.
@@ -251,6 +319,49 @@ class TradeFeed:
         if len(self.trades_df) > 0:
             self.trades_df = self.trades_df.truncate(after=latest_good_block, copy=False)
 
+    def check_current_trades_for_duplicates(self):
+        """Check for duplicate trades.
+
+        Internal sanity check - should not happen.
+
+        Dump debug output to error logger if happens.
+
+        :raise AssertionError:
+            Should not happen
+        """
+        self.check_duplicates_data_frame(self.trades_df)
+
+    @staticmethod
+    def check_duplicates_data_frame(df: pd.DataFrame):
+        """Check data for duplicate trades.
+
+        - Bugs in the event reader system may cause duplicate trades
+
+        - All trades are uniquely identified by tx_hash and log_index
+
+        - In a perfectly working system duplicate trades do not happen
+
+        :param df:
+            Input trades
+
+        :raise AssertionError:
+            Should not happen
+        """
+
+        # https://stackoverflow.com/questions/59618293/how-to-find-duplicates-in-pandas-dataframe-and-print-them
+        duplicate_index = df.duplicated(subset=["tx_hash", "log_index"], keep=False)
+        duplicates = df[duplicate_index]
+
+        # Output some hints
+        if duplicate_index.any():
+            for idx, dup in duplicates.iloc[0:3].iterrows():
+                logger.error(f"block: {dup.block_number} {dup.block_hash} {dup.log_index} {dup.amount}")
+
+            unique_blocks = df["block_number"].unique()
+
+            logger.error("Total %d duplicates over %d blocks", len(duplicates), len(unique_blocks))
+            raise AssertionError(f"Duplicate trades detected in dataframe")
+
     def check_reorganisations_and_purge(self) -> ChainReorganisationResolution:
         """Check if any of block data has changed
 
@@ -261,7 +372,7 @@ class TradeFeed:
         self.truncate_reorganised_data(reorg_resolution.latest_block_with_good_data)
         return reorg_resolution
 
-    def backfill_buffer(self, block_count: int, tqdm: Optional[Type[tqdm]] = None) -> TradeDelta:
+    def backfill_buffer(self, block_count: int, tqdm: Optional[Type[tqdm]] = None, save_hook=None) -> TradeDelta:
         """Populate the backbuffer before starting real-time tracker.
 
         :param block_count:
@@ -278,7 +389,11 @@ class TradeFeed:
         :return:
             Data loaded and filled to the work buffer.
         """
-        start_block, end_block = self.reorg_mon.load_initial_data(block_count)
+
+        start_block, end_block = self.reorg_mon.load_initial_block_headers(
+            block_count=block_count,
+            tqdm=tqdm,
+            save_callable=save_hook)
         trades = self.fetch_trades(start_block, end_block, tqdm)
         # On initial load, we do not care about reorgs
         return self.update_cycle(start_block, end_block, False, trades)
@@ -316,7 +431,11 @@ class TradeFeed:
         else:
             return None
 
-    def update_cycle(self, start_block, end_block, reorg_detected, trades: Iterable[Trade]) -> TradeDelta:
+    def update_cycle(self,
+                     start_block,
+                     end_block,
+                     reorg_detected,
+                     trades: Iterable[Trade]) -> TradeDelta:
         """Update the internal work buffer.
 
         - Adds the new trades to the work buffer
@@ -338,9 +457,13 @@ class TradeFeed:
             Iterable o new trades
 
         :return:
-            Delta of new trades
+            Delta of new trades.
+
+            Note that there might not be data for blocks towards `end_block`
+            if there were no trades.
         """
 
+        # Update the DataFrame buffer with new trades
         self.add_trades(trades)
 
         # We need to snap any trade delta update to the edge of candle timeframe
@@ -353,7 +476,21 @@ class TradeFeed:
         snap_block = data_start_block or start_block
 
         if len(self.trades_df) > 0:
-            exported_trades = self.trades_df.loc[snap_block:end_block+1]
+
+            # The last block might not contain trades and thus, does not appear in the index.
+            # This will cause KeyError in .loc slicing
+            last_to_export = min(end_block, self.trades_df.index.values[-1])
+
+            try:
+                # Note .loc is inclusive
+                # https://medium.com/@curtisringelpeter/understanding-dataframe-selections-and-slices-with-pandas-102a0c2537fb
+                # https://medium.com/@curtisringelpeter/understanding-dataframe-selections-and-slices-with-pandas-102a0c2537fb
+                exported_trades = self.trades_df.loc[snap_block:last_to_export]
+            except KeyError as e:
+                # TODO: Figure out
+                real_start = self.trades_df.iloc[0]["block_number"]
+                real_end = self.trades_df.iloc[-1]["block_number"]
+                raise RuntimeError(f"Tried to export trades {snap_block:,} - {last_to_export:,}, but has data {real_start:,} - {real_end:,}") from e
         else:
             exported_trades = pd.DataFrame()
 
@@ -396,8 +533,15 @@ class TradeFeed:
         trades = self.fetch_trades(start_block, end_block)
         return self.update_cycle(start_block, end_block, reorg_resolution.reorg_detected, trades)
 
+    def to_pandas(self, partition_size: int) -> pd.DataFrame:
+        df = self.trades_df
+        if len(df) > 0:
+            df["partition"] = df["block_number"].apply(lambda x: max((x // partition_size) * partition_size, 1))
+        return df
+
     def restore(self, df: pd.DataFrame):
         """Restore data from the previous disk save."""
+        logger.debug("Restoring %d trades", len(df))
         self.trades_df = df
 
     @abstractmethod
