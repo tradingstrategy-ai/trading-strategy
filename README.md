@@ -48,11 +48,17 @@ See [the Getting Started tutorial](https://tradingstrategy.ai/docs/programming/c
 
 You can install this package with 
 
-`poetry`:
+`poetry` dependency:
 
 ```shell
 poetry add trading-strategy -E direct-feed
 ```
+
+`poetry` development:
+
+```shell
+poetry install -E direct-feed
+
 
 `pip`:
 

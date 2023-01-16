@@ -1,3 +1,9 @@
+# Current 
+
+TODO
+- 
+- Initial implementation for direct-to-blockchain node data feeds
+
 # 0.9.0
 
 - Make the default behavior not to return the current candle if asked by timestamp
