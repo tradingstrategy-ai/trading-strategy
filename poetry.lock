@@ -3046,14 +3046,14 @@ tester = ["eth-tester[py-evm] (==v0.6.0-beta.7)", "py-geth (>=3.9.1,<4)"]
 
 [[package]]
 name = "web3-ethereum-defi"
-version = "0.13.6"
+version = "0.13.7"
 description = "DeFi integration library for smart contracts, DeFi trading (Uniswap, PancakeSwap), Ethereum JSON-RPC, EVM transactions and automated test suites."
 category = "main"
 optional = true
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "web3_ethereum_defi-0.13.6-py3-none-any.whl", hash = "sha256:9f09a7e4ec1f439e7dcf018611ca70cb163e26b62be12ff5fb7971c4ce5dbbf4"},
-    {file = "web3_ethereum_defi-0.13.6.tar.gz", hash = "sha256:8182025c1ff6da6894844b8db8918616a129d7aa66930c0dbddf48cb0eb50344"},
+    {file = "web3_ethereum_defi-0.13.7-py3-none-any.whl", hash = "sha256:54747583d98562e05dfcc04f3c950dfbd6d45b5f71d605ef297e712fbd3522f9"},
+    {file = "web3_ethereum_defi-0.13.7.tar.gz", hash = "sha256:1033f82fa67806ee15aedf241d563d94b9f11470d1dba8eae222391d440d5cb4"},
 ]
 
 [package.dependencies]
@@ -3225,4 +3225,4 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "8632332e152381f584698eef8029013057064323cfc7e8314541f40fa1bf2d4a"
+content-hash = "43abe86939b65a2621d01d8571b31017cb2b28d94273b9ec0ebe0946a0319334"
