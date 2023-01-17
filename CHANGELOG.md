@@ -1,3 +1,7 @@
+# Current
+
+- Fix missing dependencies because web3-ethereum-defi data extras
+
 # 0.10.0
 
 - Add the initial implementation for direct-to-blockchain node data feeds
