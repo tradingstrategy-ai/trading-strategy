@@ -3,6 +3,12 @@
 - This application is shows real-time OHLCV candles from Uniswap v2 compatible
   exchanges
 
+- It is important that `/graphql` endpoint is enabled for your EVM node if you are displaying
+  any longer duration of data. For example, displaying 24h data using a public Polygon RPC
+  endpoint, without `/graphql` support, will take more than 1 hour to buffer the data
+  even on a fast Internet connection. Thus, if you want to analyse any long periods of data
+  you need to run your own node with GraphQL endpoints enabled.
+
 - It is a demo and interactive test applications for manual testing
 
 - TODO: Non-USD pairs are not yet supported
@@ -74,18 +80,6 @@ CANDLE_OPTIONS = {
     "5 minutes": Timeframe("5min"),
     "1 hour": Timeframe("1h"),
 }
-
-
-#: How much past data we render for different candles by default.
-#:
-#: These values are more or less randomly picked and do not
-#: present good UX.
-LOOK_BACK_HORIZON = {
-    Timeframe("1min"): pd.Timedelta("1h"),
-    Timeframe("5min"): pd.Timedelta("4h"),
-    Timeframe("1h"): pd.Timedelta("24h"),
-}
-
 
 #: Store 100,000 blocks per Parquet dataset file
 DATASET_PARTITION_SIZE = 100_000
@@ -398,9 +392,28 @@ def setup_app(
         logger.debug("update_ohlcv_chart_live(%s)", n)
         try:
             candles = candle_feeds[current_candle_duration].get_candles_by_pair(pair.address.lower())
-            if len(candles) > 0:
-                logger.info("Drawing %d candles", len(candles))
-                fig = visualise_ohlcv(candles, height=500)
+
+            # Clip candles to our chart width
+            # which we think in sensible
+            time_frame = CANDLE_OPTIONS[current_candle_duration]
+            window_width = time_frame.get_default_chart_display_window()
+
+            start_time = pd.Timestamp.utcnow() - window_width
+
+            # Candles are timestamp indexed
+            rendered_candles = candles.loc[start_time:]
+
+            if len(rendered_candles) > 0:
+                last_candle = rendered_candles.iloc[-1]
+                logger.info("Rendering candles. Timeframe %s, drawing %d candles, total candles %d, window width is %s, start time is %s, last candle is at %s",
+                            time_frame,
+                            len(rendered_candles),
+                            len(candles),
+                            window_width,
+                            start_time,
+                            last_candle["timestamp"],
+                            )
+                fig = visualise_ohlcv(rendered_candles, height=500)
             else:
                 # Create empty figure as we do not have data yet
                 fig = make_subplots(rows=1, cols=1)

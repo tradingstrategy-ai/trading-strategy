@@ -56,7 +56,10 @@ class CandleFeed:
         """
         cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
         candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
-        self.candle_df = pd.concat([cropped_df, candles])
+        # Only if we have any new candles from our timeframe add them to the
+        # in-memory buffer
+        if len(candles) > 0:
+            self.candle_df = pd.concat([cropped_df, candles])
         self.last_cycle = delta.cycle
 
     def get_candles_by_pair(self, pair: PairId) -> pd.DataFrame:
