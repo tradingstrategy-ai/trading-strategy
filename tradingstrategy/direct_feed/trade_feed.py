@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Dict, Optional, List, Iterable, Type, TypeAlias, Protocol
 
 import pandas as pd
+from numpy import isnan
 from tqdm import tqdm
 
 from eth_defi.price_oracle.oracle import BasePriceOracle
@@ -253,7 +254,7 @@ class TradeFeed:
         """How many trades we track currently."""
         return len(self.trades_df)
 
-    def add_trades(self, trades: Iterable[Trade]) -> pd.DataFrame:
+    def add_trades(self, trades: Iterable[Trade], start_block: Optional[int]=None, end_block: Optional[int]=None) -> pd.DataFrame:
         """Add trade to the ring buffer with support for fixing chain reorganisations.
 
         Transactions may hop between different blocks when the chain tip reorganises,
@@ -262,6 +263,18 @@ class TradeFeed:
         .. note::
 
             It is safe to call this function multiple times for the same event.
+
+        :param start_block:
+
+            Expected block range. Inclusive.
+
+            Used for debug assets
+
+        :param end_block:
+
+            Expected block range. Inclusive.
+
+            Used for debug assets
 
         :return:
             DataFrame of new trades
@@ -276,11 +289,26 @@ class TradeFeed:
         # For each trade added, check that
         for evt in trades:
             assert isinstance(evt, Trade)
+            assert type(evt.block_number) == int, f"Got bad block number {evt.block_number} {type(evt.block_number)}"
             self.reorg_mon.check_block_reorg(evt.block_number, evt.block_hash)
             data.append(asdict(evt))
 
         new_data = pd.DataFrame(data, columns=list(Trade.get_dataframe_columns().keys()))
         new_data.set_index("block_number", inplace=True, drop=False)
+
+        if len(new_data) > 0:
+
+            if start_block:
+                min_block = new_data["block_number"].min()
+                if isnan(min_block):
+                    logger.error("Bad trade event data:")
+                    for idx, r in new_data.iterrows():
+                        logger.error("%s: %s", idx, r)
+                assert min_block >= start_block, f"Trade event outside desired block range. {min_block} earlier than {start_block}"
+
+            if end_block:
+                max_block = new_data["block_number"].max()
+                assert max_block <= end_block, f"Trade event outside desired block range. {max_block} later than {end_block}"
 
         # Check that there is no overlap, any block data should not be duplicated
         if len(self.trades_df) > 0 and len(new_data) > 0:
@@ -370,6 +398,10 @@ class TradeFeed:
             How much tolerance we need.
 
             Default to 100%, no forgiveness for any lack of data.
+
+            There are several reasons for data mismatch, notably
+            being that we estimate blockchain timepoints using block ranges with
+            expected block time which is not always stable.
 
         :raise AssertionError:
             If we do not have old enough data
@@ -551,7 +583,7 @@ class TradeFeed:
         """
 
         # Update the DataFrame buffer with new trades
-        new_trades = self.add_trades(trades)
+        new_trades = self.add_trades(trades, start_block=start_block, end_block=end_block)
 
         # We need to snap any trade delta update to the edge of candle timeframe
         event_start_ts = self.reorg_mon.get_block_timestamp_as_pandas(start_block)
@@ -600,7 +632,7 @@ class TradeFeed:
 
         return res
 
-    def perform_duty_cycle(self) -> TradeDelta:
+    def perform_duty_cycle(self, verbose=False) -> TradeDelta:
         """Update the candle data
 
         1. Check for block reorganisations
@@ -608,10 +640,16 @@ class TradeFeed:
         2. Read new data
 
         3. Process and index data to candles
+
+        :param verbose:
+            More debug logging
         """
         reorg_resolution = self.check_reorganisations_and_purge()
         start_block = reorg_resolution.latest_block_with_good_data + 1
         end_block = self.reorg_mon.get_last_block_read()
+
+        if verbose:
+            logger.info(f"Resolved block range to {start_block:,} - {end_block:,}: resolution is {reorg_resolution}")
 
         if start_block > end_block:
             # This situation can happen when the lsat block in the chain has reorganised,
@@ -621,8 +659,6 @@ class TradeFeed:
         trades = self.fetch_trades(start_block, end_block)
 
         delta = self.update_cycle(start_block, end_block, reorg_resolution.reorg_detected, trades)
-        # Sanity check we did not mess up the block range
-        TradeFeed.check_correct_block_range(delta.new_trades, start_block, end_block)
         return delta
 
     def to_pandas(self, partition_size: int) -> pd.DataFrame:

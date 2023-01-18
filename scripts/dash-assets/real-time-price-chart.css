@@ -1,3 +1,5 @@
+/* Formatting Uniswap v2 price displayer demo Dash app */
+
 body {
     background: #FEFDFA;
     padding: 2em;
@@ -69,8 +71,6 @@ body {
     color: red;
 }
 
-
-
 label {
     font-weight: bold;
     width: 200px;
@@ -80,7 +80,7 @@ label {
     width: 200px;
 }
 
-#footer {
+#brand-footer {
     margin-top: 2em;
     display: flex;
     justify-content: right;

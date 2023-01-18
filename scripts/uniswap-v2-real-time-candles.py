@@ -195,8 +195,8 @@ def start_block_consumer_thread(
                 start = time.time()
 
                 # Read trades from the blockchain
-                delta = trade_feed.perform_duty_cycle()
-                logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.trades)} for candles")
+                delta = trade_feed.perform_duty_cycle(verbose=True)
+                logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.new_trades)} new trades and {len(delta.trades)} timeframe adjusted trades")
 
                 # Internal sanity check
                 trade_feed.check_current_trades_for_duplicates()
@@ -256,7 +256,7 @@ def setup_app(
 
     app.layout = Div([
 
-        H1(f"{pair.get_base_token().symbol}-{pair.get_quote_token().symbol} explorer"),
+        H1(f"{pair.get_base_token().symbol}-{pair.get_quote_token().symbol} trading pair monitor"),
         Div(
             id="playback",
             children=[
@@ -288,7 +288,7 @@ def setup_app(
         Graph(id='live-update-graph', responsive=True),
 
         Div(
-            id="footer",
+            id="brand-footer",
             children=[
                 Img(src=app.get_asset_url("trading-strategy-logo.svg"), id="logo"),
             ],
@@ -376,6 +376,7 @@ def setup_app(
     def update_last_trades(n):
         logger.debug("update_last_trades(%d)", n)
 
+        # Make trading pair cell to link to Trading Strategy website
         def get_pair_markdown(pair_id: str) -> str:
             # TODO: We are hardcoded to a single pair here
             pair_name = f"{pair.get_base_token().symbol} - {pair.get_quote_token().symbol}"
@@ -383,6 +384,8 @@ def setup_app(
             return f"[{pair_name}]({pair_link})"
 
         # Friendly presentation of prices
+        #
+        # Render using HTML inside a Markdown output format
         # https://github.com/plotly/dash-table/issues/915
         def get_amount_markdown(amount: Decimal) -> str:
             if amount < 0:
@@ -392,7 +395,6 @@ def setup_app(
                 klass = "buy"
             amount = amount.quantize(Decimal(10) ** -8)
             html = f"""<span class="trade-amount {klass}">{amount:>16}</span>"""
-            print("HTML is", html)
             return html
 
         try:
@@ -576,7 +578,7 @@ def main(
 
     # Fill the trade buffer with data
     # and create the initial candles
-    logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", BUFFER_HOURS, blocks_needed)
+    logger.info("Backfilling trade buffer for %f hours, %d blocks, block time is %f seconds", BUFFER_HOURS, blocks_needed, data_refresh_frequency)
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
     trade_feed.check_current_trades_for_duplicates()
 

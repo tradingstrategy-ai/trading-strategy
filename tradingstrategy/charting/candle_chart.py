@@ -1,4 +1,4 @@
-"""Price (OHLCV) charting utilities.
+"""Drawing OHLCV candle charts using Plotly.
 
 Draw price charts using Plotly.
 
@@ -44,7 +44,6 @@ def validate_ohclv_dataframe(candles: pd.DataFrame):
     for r in required_columns:
         if r not in candles.columns:
             raise BadOHLCVData(f"OHLCV DataFrame lacks column: {r}, has {candles.columns}")
-
 
 
 def create_label(row: pd.Series) -> str:
@@ -274,16 +273,20 @@ def visualise_ohlcv(
             fig.update_yaxes(secondary_y=True, showgrid=False)
 
             if volume_axis_name:
-                fig.update_yaxes(title=volume_axis_name, secondary_y=True)
+                fig.update_yaxes(title=volume_axis_name, secondary_y=True, row=1)
     else:
         volume_bars = None
 
     fig.add_trace(candlesticks, secondary_y=False)
 
+    # Add the separate volume chart below
     if volume_available:
         if volume_bar_mode == VolumeBarMode.separate:
             # https://stackoverflow.com/a/65997291/315168
             fig.add_trace(volume_bars, row=2, col=1)
+
+            if volume_axis_name:
+                fig.update_yaxes(title=volume_axis_name, row=2)
 
     # Move legend to the bottom so we have more space for
     # time axis in narrow notebook views
