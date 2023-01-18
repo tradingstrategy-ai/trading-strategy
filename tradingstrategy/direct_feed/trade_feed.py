@@ -340,6 +340,33 @@ class TradeFeed:
         """
         self.check_duplicates_data_frame(self.trades_df)
 
+    def check_enough_history(self,
+            required_duration: pd.Timedelta,
+            now_: Optional[pd.Timestamp] = None,
+        ):
+        """Check that the dafa we have is good time window wise.
+
+        Internal sanity check - should not happen.
+
+        Dump debug output to error logger if happens.
+
+        :param required_duration:
+            How far back we need to have data in our buffer.
+
+        :param now_:
+            UTC timestamp what's the current time
+
+        :raise AssertionError:
+            If we do not have old enough data
+        """
+
+        if not now_:
+            now_ = pd.Timestamp.utcnow().tz_localize(None)
+
+        start_threshold = now_ - required_duration
+        first_trade = self.trades_df.iloc[0]
+        assert first_trade["timestamp"] < start_threshold, f"We need data to start at {start_threshold}, but first trade is:\n{first_trade}"
+
     @staticmethod
     def check_duplicates_data_frame(df: pd.DataFrame):
         """Check data for duplicate trades.

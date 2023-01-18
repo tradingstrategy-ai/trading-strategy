@@ -60,11 +60,17 @@ class CandleFeed:
 
         return f"<{name} using timeframe {self.timeframe.freq}, having data {first_ts} - {last_ts} total {candle_count:,} candles>"
 
-    def apply_delta(self, delta: TradeDelta, label_candles=True):
+    def apply_delta(self, delta: TradeDelta, initial_load=False, label_candles=True):
         """Add new candle data generated from the latest blockchain input.
 
         :param delta:
             New trades coming in
+
+        :param initial_load:
+            This is not an incremental snapshot, but initial buffer fill.
+
+            Ignore `delta.start_ts` and fill the candle buffer
+            as long as we get data.
 
         :param label_candles:
             Create and update label column.
@@ -72,9 +78,12 @@ class CandleFeed:
             Label column contains tooltips for the visual candle viewer.
             This must be done before candle data is grouped by pairs.
         """
-        import ipdb ; ipdb.set_trace()
+
+
         cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
+
         candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
+
         # Only if we have any new candles from our timeframe add them to the
         # in-memory buffer
         if len(candles) > 0:

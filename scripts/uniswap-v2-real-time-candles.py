@@ -85,7 +85,7 @@ CANDLE_OPTIONS = {
 DATASET_PARTITION_SIZE = 100_000
 
 #: How many hours worth of event data we buffer for the chart
-BUFFER_HOURS = 24
+BUFFER_HOURS = 24 * 3
 
 
 logger: Optional[logging.Logger] = logging.getLogger()
@@ -527,6 +527,8 @@ def main(
     logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", BUFFER_HOURS, blocks_needed)
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
     trade_feed.check_current_trades_for_duplicates()
+
+    trade_feed.check_enough_history(pd.Timedelta(hours=BUFFER_HOURS))
 
     logger.info("Initialised trade feed: %s", trade_feed)
 
