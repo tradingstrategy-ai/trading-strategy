@@ -72,6 +72,7 @@ class CandleFeed:
             Label column contains tooltips for the visual candle viewer.
             This must be done before candle data is grouped by pairs.
         """
+        import ipdb ; ipdb.set_trace()
         cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
         candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
         # Only if we have any new candles from our timeframe add them to the
