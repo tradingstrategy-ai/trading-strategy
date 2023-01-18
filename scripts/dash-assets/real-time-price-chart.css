@@ -5,6 +5,10 @@ body {
     padding: 2em;
 }
 
+#initial-load-progress {
+    margin: 2em auto;
+}
+
 #controls {
     display: flex;
     flex-direction: column;
@@ -87,5 +91,5 @@ label {
 }
 
 #logo {
-    max-width: 128px;
+    max-width: 256px;
 }

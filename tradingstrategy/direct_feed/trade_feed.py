@@ -339,7 +339,13 @@ class TradeFeed:
             DataFrame containing n trades.
 
             See :py:class:`Trade` for column descriptions.
+
+            Return empty DataFrame if no trades.
         """
+
+        if len(self.trades_df) == 0:
+            return pd.DataFrame()
+
         if pair:
             df = self.trades_df.loc[self.trades_df["pair"] == pair]
         else:
@@ -650,6 +656,11 @@ class TradeFeed:
 
         if verbose:
             logger.info(f"Resolved block range to {start_block:,} - {end_block:,}: resolution is {reorg_resolution}")
+
+        # Make sure we do not read ahead of chain tip by accident, because we have forced + 1
+        # block above
+        if start_block > reorg_resolution.last_live_block:
+            start_block = reorg_resolution.last_live_block
 
         if start_block > end_block:
             # This situation can happen when the lsat block in the chain has reorganised,
