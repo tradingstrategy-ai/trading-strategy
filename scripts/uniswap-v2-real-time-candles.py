@@ -126,7 +126,9 @@ def setup_uniswap_v2_market_data_feeds(
             check_depth=check_depth)
     else:
         # Default slow implementation
-        logger.warning("The node does not support /graphql interface. Downloading block headers and timestamps will be extremely slow.")
+        logger.warning("The node does not support /graphql interface. "
+                       "Downloading block headers and timestamps will be extremely slow."
+                       "Check documentation how to configure your node or choose a smaller timeframe for the buffer of trades.")
         reorg_mon = JSONRPCReorganisationMonitor(web3, check_depth=check_depth)
 
     data_refresh_requency = measure_block_time(web3)
@@ -139,7 +141,7 @@ def setup_uniswap_v2_market_data_feeds(
     pairs = [pair_details]
 
     for p in pairs:
-        logger.info("Setting up market data feeds for %s", p)
+        logger.info("Setting up market data feeds for %s, max time frame is %s", p, max_timeframe)
 
     oracles = {}
     for p in pairs:
@@ -495,7 +497,7 @@ def main(
         store.clear()
     else:
         if store.load_trade_feed(trade_feed):
-            logger.info("Loaded old data from %s", cache_path)
+            logger.info("Loaded old data from %s, we have %d trades", cache_path, trade_feed.get_trade_count())
             trade_feed.check_current_trades_for_duplicates()
         else:
             logger.info("First run, cache is empty %s", cache_path)
@@ -525,8 +527,12 @@ def main(
     logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", BUFFER_HOURS, blocks_needed)
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
     trade_feed.check_current_trades_for_duplicates()
+
+    logger.info("Initialised trade feed: %s", trade_feed)
+
     for feed in candle_feeds.values():
         feed.apply_delta(delta)
+        logger.info("Initialised candle feed: %s", feed)
         for df in feed.iterate_pairs():
             make_candle_labels(
                 df,

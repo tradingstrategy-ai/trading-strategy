@@ -225,6 +225,15 @@ class TradeFeed:
         for p in self.pairs:
             assert p in self.oracles, f"Pair {p} lacks price oracle. Add oracles by pair identifiers."
 
+    def __repr__(self):
+        if len(self.trades_df) > 0:
+            first_ts = self.trades_df.iloc[0]["timestamp"]
+            last_ts = self.trades_df.iloc[-1]["timestamp"]
+        else:
+            first_ts = last_ts = "-"
+
+        return f"<TradeFeed {first_ts} - {last_ts} with {len(self.trades_df)} trades>"
+
     def get_block_number_of_last_trade(self) -> Optional[int]:
         """Get the last block number for which we have good data."""
 

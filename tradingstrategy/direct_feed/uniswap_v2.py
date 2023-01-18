@@ -109,7 +109,12 @@ class UniswapV2TradeFeed(TradeFeed):
 
         :param timeframe:
             Maximum timeframe for produced candles
-            when doing candle refreshes
+            when doing candle refreshes.
+
+            This must be the width of the buffer so that we can render
+            the candles at their longest resolution. E.g.
+            get at least 50 hourly candles when 1h candles are rendered,
+            which means we need to have data for ~2 days in the buffer.
 
         :param reorg_mon:
             Chain reorganistaion manager

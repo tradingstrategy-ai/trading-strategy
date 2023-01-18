@@ -16,7 +16,9 @@ class CandleFeed:
 
     - Generates candles based on this feed
 
-    - Can only generate candles of one duration
+    - Can only generate candles of one timeframe
+
+    - May contain multiple pairs in one candle feed
     """
 
     def __init__(self,
@@ -41,6 +43,22 @@ class CandleFeed:
         self.timeframe = timeframe
         self.candle_df = pd.DataFrame()
         self.last_cycle = 0
+
+    def __repr__(self):
+        if len(self.pairs) == 1:
+            name = f"CandleFeed for {self.pairs[0]}"
+        else:
+            name = f"CandleFeed for {len(self.pairs)} pairs"
+
+        if len(self.candle_df) > 0:
+            first_ts = self.candle_df.iloc[0]["timestamp"]
+            last_ts = self.candle_df.iloc[-1]["timestamp"]
+        else:
+            first_ts = last_ts = "-"
+
+        candle_count = len(self.candle_df)
+
+        return f"<{name} using timeframe {self.timeframe.freq}, having data {first_ts} - {last_ts} total {candle_count:,} candles>"
 
     def apply_delta(self, delta: TradeDelta, label_candles=True):
         """Add new candle data generated from the latest blockchain input.
