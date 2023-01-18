@@ -5,7 +5,26 @@ body {
     padding: 2em;
 }
 
+#header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
 #initial-load-progress {
+    margin: 2em auto;
+}
+
+#initial-load-progress label {
+    display: block;
+    margin: 2em auto;
+    text-align: center;
+}
+
+#initial-load-progress progress {
+    display: block;
+    width: 600px;
     margin: 2em auto;
 }
 
@@ -19,6 +38,16 @@ body {
     flex-direction: row;
     padding: 10px 0;
 }
+
+#controls label {
+    font-weight: bold;
+    width: 200px;
+}
+
+#controls .dash-dropdown {
+    width: 200px;
+}
+
 
 #chain-stats, #data-stats {
     font-family: monospace;
@@ -75,15 +104,6 @@ body {
     color: red;
 }
 
-label {
-    font-weight: bold;
-    width: 200px;
-}
-
-#controls .dash-dropdown {
-    width: 200px;
-}
-
 #brand-footer {
     margin-top: 2em;
     display: flex;
@@ -91,5 +111,5 @@ label {
 }
 
 #logo {
-    max-width: 256px;
+    max-width: 128px;
 }

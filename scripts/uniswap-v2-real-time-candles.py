@@ -256,11 +256,22 @@ def setup_app(
 
     app.layout = Div([
 
-        H1(f"{pair.get_base_token().symbol}-{pair.get_quote_token().symbol} trading pair monitor"),
+        Div(
+            id="header",
+            children=[
+                H1(f"{pair.get_base_token().symbol}-{pair.get_quote_token().symbol} trading pair monitor"),
+                Img(src=app.get_asset_url("trading-strategy-logo.svg"), id="logo"),
+            ],
+        ),
 
-        Progress(  # Display spinner when initial data is loading
+        Div( # Display spinner when initial data is loading
             id="initial-load-progress",
-            style={'display': 'block'}),
+            style={'display': 'block'},
+            children=[
+                Label("Loading data from blockchain. Check console for details"),
+                Progress(),
+            ]
+        ),
 
         Div(id="app-body", style={'display': 'none'}, children=[
             Div(
@@ -293,13 +304,6 @@ def setup_app(
 
             Graph(id='live-update-graph', responsive=True),
             ]
-        ),
-
-        Div(
-            id="brand-footer",
-            children=[
-                Img(src=app.get_asset_url("trading-strategy-logo.svg"), id="logo"),
-            ],
         ),
 
         Interval(  # https://dash.plotly.com/live-updates

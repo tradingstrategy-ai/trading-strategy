@@ -232,9 +232,12 @@ def visualise_ohlcv(
     # We need to use sublot to make volume bar overlay
     if volume_bar_mode == VolumeBarMode.separate:
         # https://stackoverflow.com/a/65997291/315168
-        fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
-               vertical_spacing=0.03,
-               row_width=[0.2, 0.7])
+        fig = make_subplots(
+            rows=2,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.1,
+            row_width=[0.2, 0.7])
     else:
         fig = make_subplots(specs=[[{"secondary_y": should_create_volume_subplot}]])
 
