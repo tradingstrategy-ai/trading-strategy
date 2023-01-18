@@ -325,7 +325,7 @@ def setup_app(
     )
     def reveal_body(n):
         # https://stackoverflow.com/a/50417291/315168
-        logger.info("reveal_body() state, tick %d", n)
+        logger.debug("reveal_body(%d)", n)
         if loaded.is_set():
             return [{'display': 'block'}, {'display': 'none'}, True]
         else:
