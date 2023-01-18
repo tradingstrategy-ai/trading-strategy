@@ -136,7 +136,14 @@ class TradeDelta:
 
     #: List of individual trades
     #:
+    #: This dataframe is snapped to the given time frame to make candle processing easier,
+    #: and may contain
+    #: historical data from the previous cycles.
     trades: pd.DataFrame
+
+    #: List of trades added in this batch
+    #:
+    new_trades: pd.DataFrame
 
 
 class SaveHook(Protocol):
@@ -246,7 +253,7 @@ class TradeFeed:
         """How many trades we track currently."""
         return len(self.trades_df)
 
-    def add_trades(self, trades: Iterable[Trade]):
+    def add_trades(self, trades: Iterable[Trade]) -> pd.DataFrame:
         """Add trade to the ring buffer with support for fixing chain reorganisations.
 
         Transactions may hop between different blocks when the chain tip reorganises,
@@ -257,7 +264,7 @@ class TradeFeed:
             It is safe to call this function multiple times for the same event.
 
         :return:
-            True if the transaction hopped to a different block
+            DataFrame of new trades
 
         :raise ChainReorganisationDetected:
             If we have detected a block reorganisation
@@ -286,6 +293,8 @@ class TradeFeed:
         self.check_duplicates_data_frame(new_data)
 
         self.trades_df = pd.concat([self.trades_df, new_data])
+
+        return new_data
 
     def get_latest_trades(self, n: int, pair: Optional[PairId] = None) -> pd.DataFrame:
         """Returns the latest trades.
@@ -343,6 +352,7 @@ class TradeFeed:
     def check_enough_history(self,
             required_duration: pd.Timedelta,
             now_: Optional[pd.Timestamp] = None,
+            tolerance=1.0,
         ):
         """Check that the dafa we have is good time window wise.
 
@@ -356,6 +366,11 @@ class TradeFeed:
         :param now_:
             UTC timestamp what's the current time
 
+        :param tolerance:
+            How much tolerance we need.
+
+            Default to 100%, no forgiveness for any lack of data.
+
         :raise AssertionError:
             If we do not have old enough data
         """
@@ -363,9 +378,10 @@ class TradeFeed:
         if not now_:
             now_ = pd.Timestamp.utcnow().tz_localize(None)
 
-        start_threshold = now_ - required_duration
+        start_threshold = now_ - (required_duration * tolerance)
         first_trade = self.trades_df.iloc[0]
-        assert first_trade["timestamp"] < start_threshold, f"We need data to start at {start_threshold}, but first trade is:\n{first_trade}"
+        assert first_trade["timestamp"] <= start_threshold, f"We need data to start at {start_threshold}\n" \
+                                                            f"Required duration: {required_duration}, now: {now_}, tolerance: {tolerance}, but first trade is:\n{first_trade}"
 
     @staticmethod
     def check_duplicates_data_frame(df: pd.DataFrame):
@@ -397,6 +413,38 @@ class TradeFeed:
 
             logger.error("Total %d duplicates over %d blocks", len(duplicates), len(unique_blocks))
             raise AssertionError(f"Duplicate trades detected in dataframe")
+
+    @staticmethod
+    def check_correct_block_range(df: pd.DataFrame, start_block: int, end_block: int):
+        """Check that trades in the given DataFrame are for correct block range.
+
+        - Bugs in the event reader system may cause duplicate trades
+
+        - All trades are uniquely identified by tx_hash and log_index
+
+        - In a perfectly working system duplicate trades do not happen
+
+        :param df:
+            Input trades
+
+        :param start_block:
+            First block we expect tradse to have. Inclusive.
+
+        :param end_block:
+            Last block we expect tradse to have. Inclusive.
+
+        :raise AssertionError:
+            Should not happen
+        """
+
+        if len(df) == 0:
+            return
+
+        first_trade_block = df["block_number"].min()
+        last_trade_block = df["block_number"].max()
+
+        assert first_trade_block >= start_block, f"First trade at {first_trade_block:,} was outside the range starting at {start_block:,}"
+        assert last_trade_block <= end_block, f"Last trade at {last_trade_block:,} was outside the range ending at {end_block:,}"
 
     def check_reorganisations_and_purge(self) -> ChainReorganisationResolution:
         """Check if any of block data has changed
@@ -430,7 +478,9 @@ class TradeFeed:
             block_count=block_count,
             tqdm=tqdm,
             save_callable=save_hook)
+
         trades = self.fetch_trades(start_block, end_block, tqdm)
+
         # On initial load, we do not care about reorgs
         return self.update_cycle(start_block, end_block, False, trades)
 
@@ -500,7 +550,7 @@ class TradeFeed:
         """
 
         # Update the DataFrame buffer with new trades
-        self.add_trades(trades)
+        new_trades = self.add_trades(trades)
 
         # We need to snap any trade delta update to the edge of candle timeframe
         event_start_ts = self.reorg_mon.get_block_timestamp_as_pandas(start_block)
@@ -542,6 +592,7 @@ class TradeFeed:
             end_ts,
             reorg_detected,
             exported_trades,
+            new_trades,
         )
 
         self.cycle += 1
@@ -567,7 +618,11 @@ class TradeFeed:
             start_block = end_block
 
         trades = self.fetch_trades(start_block, end_block)
-        return self.update_cycle(start_block, end_block, reorg_resolution.reorg_detected, trades)
+
+        delta = self.update_cycle(start_block, end_block, reorg_resolution.reorg_detected, trades)
+        # Sanity check we did not mess up the block range
+        TradeFeed.check_correct_block_range(delta.new_trades, start_block, end_block)
+        return delta
 
     def to_pandas(self, partition_size: int) -> pd.DataFrame:
         df = self.trades_df

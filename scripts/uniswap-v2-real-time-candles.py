@@ -84,7 +84,10 @@ CANDLE_OPTIONS = {
 #: Store 100,000 blocks per Parquet dataset file
 DATASET_PARTITION_SIZE = 100_000
 
-#: How many hours worth of event data we buffer for the chart
+#: How many hours worth of event data we buffer for the chart.
+#:
+#: We always want to display ~100 candles. Our largest candle is
+#: 1h so we want to have buffer for around ~100 hours.
 BUFFER_HOURS = 24 * 3
 
 
@@ -528,7 +531,7 @@ def main(
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
     trade_feed.check_current_trades_for_duplicates()
 
-    trade_feed.check_enough_history(pd.Timedelta(hours=BUFFER_HOURS))
+    trade_feed.check_enough_history(pd.Timedelta(hours=BUFFER_HOURS), tolerance=0.9)
 
     logger.info("Initialised trade feed: %s", trade_feed)
 

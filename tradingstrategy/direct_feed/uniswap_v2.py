@@ -322,7 +322,13 @@ class UniswapV2TradeFeed(TradeFeed):
         )
 
         if kind == SwapKind.invalid:
-            logger.info("Could not determine trade: %s", swap)
+            # Example trade:
+            #
+            # Has only amount1_in and amount1_out, probably
+            # crafted by a buggy low level bot / aggregator
+            #
+            # {'type': 'swap', 'block_number': 38101777, 'block_hash': '0x8380f28ebb2ad49337631d688c213bd3fe398d8e1417759c1c9c9b3e6a57baa5', 'timestamp': 1673770206, 'tx_hash': '0x90cd4e551e917c101638ac93068325468a6cfba965c607a179f5b1d74c018f98', 'log_index': 108, 'pair_contract_address': '0x6e7a5fafcec6bb1e78bae2a1f0b612012bf14827', 'amount0_in': 0, 'amount1_in': 8707155, 'amount0_out': 0, 'amount1_out': 8681033}
+            logger.debug("Could not determine trade: %s", swap)
             return None
 
         timestamp = self.reorg_mon.get_block_timestamp(swap["block_number"])
