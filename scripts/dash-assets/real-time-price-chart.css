@@ -1,3 +1,8 @@
+body {
+    background: #FEFDFA;
+    padding: 2em;
+}
+
 #controls {
     display: flex;
     flex-direction: column;
@@ -9,6 +14,63 @@
     padding: 10px 0;
 }
 
+#chain-stats, #data-stats {
+    font-family: monospace;
+}
+
+#trades table td {
+    font-size: 1em;
+    font-family: monospace;
+}
+
+#trades table a {
+    font-size: 1em;
+    font-family: monospace;
+}
+
+#trades tr {
+    min-height: auto;
+    height: auto;
+}
+
+/* Markdown cells autogenerate p */
+#trades table p {
+    margin: 0;
+    padding: 0;
+}
+
+#trades th,
+#trades td {
+    text-align: left;
+    padding: 4px;
+}
+
+/* Make the last column display properly aligned with decimal point */
+#trades th[data-dash-column="Amount USD"],
+#trades td[data-dash-column="Amount USD"] {
+    text-align: right;
+}
+
+#trades td[data-dash-column="Amount USD"] .cell-markdown {
+    width: auto;
+}
+
+.trade-amount {
+    font-family: monospace;
+    font-size: 1em;
+    white-space: pre;
+}
+
+.buy {
+    color: green;
+}
+
+.sell {
+    color: red;
+}
+
+
+
 label {
     font-weight: bold;
     width: 200px;
@@ -16,4 +78,14 @@ label {
 
 #controls .dash-dropdown {
     width: 200px;
+}
+
+#footer {
+    margin-top: 2em;
+    display: flex;
+    justify-content: right;
+}
+
+#logo {
+    max-width: 128px;
 }

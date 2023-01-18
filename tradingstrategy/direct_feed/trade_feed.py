@@ -378,10 +378,11 @@ class TradeFeed:
         if not now_:
             now_ = pd.Timestamp.utcnow().tz_localize(None)
 
-        start_threshold = now_ - (required_duration * tolerance)
+        adjusted_duration = (required_duration * tolerance)
+        start_threshold = now_ - adjusted_duration
         first_trade = self.trades_df.iloc[0]
         assert first_trade["timestamp"] <= start_threshold, f"We need data to start at {start_threshold}\n" \
-                                                            f"Required duration: {required_duration}, now: {now_}, tolerance: {tolerance}, but first trade is:\n{first_trade}"
+                                                            f"Required duration: {required_duration}, adjusted duration: {adjusted_duration}, now: {now_}, tolerance: {tolerance}, but first trade is:\n{first_trade}"
 
     @staticmethod
     def check_duplicates_data_frame(df: pd.DataFrame):

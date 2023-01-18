@@ -79,15 +79,17 @@ class CandleFeed:
             This must be done before candle data is grouped by pairs.
         """
 
+        if len(delta.trades) > 0:
 
-        cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
+            cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
 
-        candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
+            candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
 
-        # Only if we have any new candles from our timeframe add them to the
-        # in-memory buffer
-        if len(candles) > 0:
-            self.candle_df = pd.concat([cropped_df, candles])
+            # Only if we have any new candles from our timeframe add them to the
+            # in-memory buffer
+            if len(candles) > 0:
+                self.candle_df = pd.concat([cropped_df, candles])
+
         self.last_cycle = delta.cycle
 
     def get_candles_by_pair(self, pair: PairId) -> pd.DataFrame:

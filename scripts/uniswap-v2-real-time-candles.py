@@ -40,6 +40,7 @@ import signal
 import threading
 
 import time
+from decimal import Decimal
 from pathlib import Path
 from threading import Thread
 
@@ -49,10 +50,10 @@ from urllib.parse import urljoin
 import coloredlogs
 import pandas as pd
 import typer
-from dash import html, Output, Input, Dash, State
+from dash import Output, Input, Dash
 from dash.dash_table import DataTable
 from dash.dcc import Graph, Interval, Dropdown
-from dash.html import Div, Label, H2, Button
+from dash.html import Div, Label, H1, H2, Button, Img
 from plotly.subplots import make_subplots
 from tqdm import tqdm
 from web3 import Web3
@@ -66,7 +67,7 @@ from eth_defi.event_reader.reorganisation_monitor import MockChainAndReorganisat
     JSONRPCReorganisationMonitor, ReorganisationMonitor, GraphQLReorganisationMonitor
 from tradingstrategy.chain import ChainId
 
-from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels
+from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels, VolumeBarMode
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.store import DirectFeedStore
 from tradingstrategy.direct_feed.timeframe import Timeframe
@@ -208,13 +209,6 @@ def start_block_consumer_thread(
                         store.save_trade_feed(trade_feed)
                         last_save = time.time()
 
-                    make_candle_labels(
-                        candle_feed.candle_df,
-                        dollar_prices=False,
-                        base_token_name=pair.get_base_token().symbol,
-                        quote_token_name=pair.get_quote_token().symbol,
-                    )
-
                 duration = time.time() - start
                 logger.info("Block processing loop took %f seconds", duration)
 
@@ -261,7 +255,15 @@ def setup_app(
         extra_columns = []
 
     app.layout = Div([
-        Button('⏸️ Pause', id='pause-button', n_clicks=0),
+
+        H1(f"{pair.get_base_token().symbol}-{pair.get_quote_token().symbol} explorer"),
+        Div(
+            id="playback",
+            children=[
+                Button('⏸️ Pause', id='pause-button', n_clicks=0),
+            ],
+        ),
+
         Div(
             id="controls",
             children=[
@@ -273,16 +275,25 @@ def setup_app(
         H2("Latest trades"),
         DataTable(
             id="trades",
+            markdown_options={"html": True},  # https://github.com/plotly/dash-table/issues/915
             columns=[
                 {"id": "Block number", "name": "Block number"},
                 {"id": "Pair", "name": "Pair", "presentation": "markdown"},
                 {"id": "Transaction", "name": "Transaction", "presentation": "markdown"},
                 {"id": "Price USD", "name": "Price USD"},
-                {"id": "Amount USD", "name": "Amount USD"},
+                {"id": "Amount USD", "name": "Amount USD", "presentation": "markdown"},
             ] + extra_columns,
         ),
-        H2(f"{pair.get_base_token().symbol}-{pair.get_quote_token().symbol} price chart"),
+
         Graph(id='live-update-graph', responsive=True),
+
+        Div(
+            id="footer",
+            children=[
+                Img(src=app.get_asset_url("trading-strategy-logo.svg"), id="logo"),
+            ],
+        ),
+
         # https://dash.plotly.com/live-updates
         Interval(
             id='interval-component',
@@ -291,20 +302,26 @@ def setup_app(
         ),
     ])
 
-    # Simple toggle button to change the live reload state
+    # Simple toggle button to change the live feed refresh
     @app.callback(
         Output('pause-button', 'children'),
+        Output("interval-component", "disabled"),
         Input('pause-button', 'n_clicks'),
     )
     def toggle_button(n_clicks):
-        if paused.is_set():
-            paused.clear()
-            label = "⏸️ Pause live trade feed"
-        else:
+
+        # https://community.plotly.com/t/how-can-i-change-the-text-on-a-button-if-it-is-clicked/59485
+        toggle_state = n_clicks % 2
+
+        if toggle_state:
             paused.set()
             label = "▶️ Resume live trade feed"
-        # https://community.plotly.com/t/how-can-i-change-the-text-on-a-button-if-it-is-clicked/59485
-        return label
+        else:
+            paused.clear()
+            label = "⏸️ Pause live trade feed"
+
+        # See disabling the interval https://community.plotly.com/t/how-to-turn-off-interval-event/5565/10
+        return [label, paused.is_set()]
 
     # Update the chain status
     @app.callback(Output('chain-stats', "children"),
@@ -365,6 +382,19 @@ def setup_app(
             pair_link = f"https://tradingstrategy.ai/search?q={pair.address}"
             return f"[{pair_name}]({pair_link})"
 
+        # Friendly presentation of prices
+        # https://github.com/plotly/dash-table/issues/915
+        def get_amount_markdown(amount: Decimal) -> str:
+            if amount < 0:
+                amount = abs(amount)
+                klass = "sell"
+            else:
+                klass = "buy"
+            amount = amount.quantize(Decimal(10) ** -8)
+            html = f"""<span class="trade-amount {klass}">{amount:>16}</span>"""
+            print("HTML is", html)
+            return html
+
         try:
             df = trade_feed.get_latest_trades(5, pair.address.lower())
             df = df.sort_values("timestamp", ascending=False)
@@ -372,11 +402,11 @@ def setup_app(
             output = pd.DataFrame()
             output["Block number"] = df["block_number"]
             output["Pair"] = df["pair"].apply(get_pair_markdown)
-            #output["Transaction"] =
             output["Transaction"] = df["tx_hash"].apply(lambda tx_hash: f"[{tx_hash}]({chain_id.get_tx_link(tx_hash)})")
-            # TODO: Check values here for non-stablecoin nominated tokens
             output["Price USD"] = df["price"]
-            output["Amount USD"] = df["amount"]
+            output["Amount USD"] = df["amount"].apply(get_amount_markdown)
+
+            # TODO: Check values here for non-stablecoin nominated tokens
             if quote_token not in ("BUSD", "USDC", "USDT"):
                 output[f"Price {quote_token}"] = df["price"] / df["exchange_rate"]
                 output[f"Exchange rate USD/{quote_token}"] = df["exchange_rate"]
@@ -395,6 +425,9 @@ def setup_app(
                   [Input('interval-component', 'n_intervals'), Input('candle-dropdown', 'value')])
     def update_ohlcv_chart_live(n, current_candle_duration):
         logger.debug("update_ohlcv_chart_live(%s)", n)
+
+
+
         try:
             candles = candle_feeds[current_candle_duration].get_candles_by_pair(pair.address.lower())
 
@@ -409,18 +442,34 @@ def setup_app(
             rendered_candles = candles.loc[start_time:]
 
             if len(rendered_candles) > 0:
+
+                # Create descriptive tooltips for the candles
+                labels = make_candle_labels(
+                    rendered_candles,
+                    dollar_prices=False,
+                    base_token_name=pair.get_base_token().symbol,
+                    quote_token_name=pair.get_quote_token().symbol,
+                )
+
                 last_candle = rendered_candles.iloc[-1]
-                logger.info("Rendering candles. Timeframe %s, drawing %d candles, total candles %d, window width is %s, start time is %s, last candle is at %s",
+                logger.info("Rendering candles. Timeframe %s, drawing %d candles, total candles %d, window width is %s, start time is %s, last candle is at %s, paused is %s",
                             time_frame,
                             len(rendered_candles),
                             len(candles),
                             window_width,
                             start_time,
                             last_candle["timestamp"],
+                            paused.is_set(),
                             )
-                fig = visualise_ohlcv(rendered_candles, height=500)
+                fig = visualise_ohlcv(
+                    rendered_candles,
+                    height=500,
+                    labels=labels,
+                    volume_bar_mode=VolumeBarMode.separate,
+                )
             else:
                 # Create empty figure as we do not have data yet
+                logger.info("Creating empty figure - no data")
                 fig = make_subplots(rows=1, cols=1)
             return fig
         except Exception as e:
@@ -531,7 +580,7 @@ def main(
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
     trade_feed.check_current_trades_for_duplicates()
 
-    trade_feed.check_enough_history(pd.Timedelta(hours=BUFFER_HOURS), tolerance=0.9)
+    trade_feed.check_enough_history(pd.Timedelta(hours=BUFFER_HOURS), tolerance=0.75)
 
     logger.info("Initialised trade feed: %s", trade_feed)
 
