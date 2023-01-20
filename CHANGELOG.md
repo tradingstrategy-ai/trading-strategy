@@ -1,6 +1,8 @@
 # Current
 
 - Fix missing dependencies because web3-ethereum-defi data extras
+- Add `VolumeBarMode` option to `visualise_ohlcv` to allow different rendering modes for volume bars, in-chart 
+  or outside chart
 
 # 0.10.0
 
