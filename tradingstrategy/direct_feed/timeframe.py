@@ -5,12 +5,32 @@ from dataclasses import dataclass
 import pandas as pd
 
 
+#: Default chart settings for different timeframes.
+#:
+#: A sensible default of a history for different candle timeframes.
+#:
+#: Timeframe -> the default history lookback duration mappings.
+#: Have around 100 candles per timeframe with the default zoom level.
+#:
+DEFAULT_DISPLAY_WINDOW_FOR_TIMEFRAME = {
+    "1min": pd.Timedelta("2h"),
+    "5min": pd.Timedelta("6h"),
+    "1h": pd.Timedelta("3d"),
+}
+
+
 @dataclass
 class Timeframe:
     """Describe candle timeframe.
 
     This structure allows us to pass candle resample
     data around the framework.
+
+    This class is very similar to :py:class:`tradingstrategy.timebucket.TimeBucket`,
+    but unlike the bucket it allows any time frames presented, not just predefined choices.
+
+    These is also :py:attr:`offset` which allows to shift the starting point of candles
+    around.
     """
 
     #: Pandas frequency string.
@@ -51,3 +71,16 @@ class Timeframe:
             When to wake up from the sleep next time
         """
         return ts.floor(self.freq) + self.offset
+
+    def get_default_chart_display_window(self) -> pd.Timedelta:
+        """Get the default candle chart time buffer for this frequency.
+
+        See :py:attr:`DEFAULT_DISPLAY_WINDOW_FOR_TIMEFRAME`.
+
+        :return:
+            Pandas frequency string
+        """
+        window = DEFAULT_DISPLAY_WINDOW_FOR_TIMEFRAME.get(self.freq)
+        if window:
+            return window
+        return pd.Timedelta("24h")

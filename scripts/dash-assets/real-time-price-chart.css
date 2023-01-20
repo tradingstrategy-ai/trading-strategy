@@ -1,3 +1,33 @@
+/* Formatting Uniswap v2 price displayer demo Dash app */
+
+body {
+    background: #FEFDFA;
+    padding: 2em;
+}
+
+#header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+#initial-load-progress {
+    margin: 2em auto;
+}
+
+#initial-load-progress label {
+    display: block;
+    margin: 2em auto;
+    text-align: center;
+}
+
+#initial-load-progress progress {
+    display: block;
+    width: 600px;
+    margin: 2em auto;
+}
+
 #controls {
     display: flex;
     flex-direction: column;
@@ -9,11 +39,77 @@
     padding: 10px 0;
 }
 
-label {
+#controls label {
     font-weight: bold;
     width: 200px;
 }
 
 #controls .dash-dropdown {
     width: 200px;
+}
+
+
+#chain-stats, #data-stats {
+    font-family: monospace;
+}
+
+#trades table td {
+    font-size: 1em;
+    font-family: monospace;
+}
+
+#trades table a {
+    font-size: 1em;
+    font-family: monospace;
+}
+
+#trades tr {
+    min-height: auto;
+    height: auto;
+}
+
+/* Markdown cells autogenerate p */
+#trades table p {
+    margin: 0;
+    padding: 0;
+}
+
+#trades th,
+#trades td {
+    text-align: left;
+    padding: 4px;
+}
+
+/* Make the last column display properly aligned with decimal point */
+#trades th[data-dash-column="Amount USD"],
+#trades td[data-dash-column="Amount USD"] {
+    text-align: right;
+}
+
+#trades td[data-dash-column="Amount USD"] .cell-markdown {
+    width: auto;
+}
+
+.trade-amount {
+    font-family: monospace;
+    font-size: 1em;
+    white-space: pre;
+}
+
+.buy {
+    color: green;
+}
+
+.sell {
+    color: red;
+}
+
+#brand-footer {
+    margin-top: 2em;
+    display: flex;
+    justify-content: right;
+}
+
+#logo {
+    max-width: 128px;
 }

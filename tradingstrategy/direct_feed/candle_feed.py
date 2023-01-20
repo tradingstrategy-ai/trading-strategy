@@ -16,7 +16,9 @@ class CandleFeed:
 
     - Generates candles based on this feed
 
-    - Can only generate candles of one duration
+    - Can only generate candles of one timeframe
+
+    - May contain multiple pairs in one candle feed
     """
 
     def __init__(self,
@@ -42,11 +44,33 @@ class CandleFeed:
         self.candle_df = pd.DataFrame()
         self.last_cycle = 0
 
-    def apply_delta(self, delta: TradeDelta, label_candles=True):
+    def __repr__(self):
+        if len(self.pairs) == 1:
+            name = f"CandleFeed for {self.pairs[0]}"
+        else:
+            name = f"CandleFeed for {len(self.pairs)} pairs"
+
+        if len(self.candle_df) > 0:
+            first_ts = self.candle_df.iloc[0]["timestamp"]
+            last_ts = self.candle_df.iloc[-1]["timestamp"]
+        else:
+            first_ts = last_ts = "-"
+
+        candle_count = len(self.candle_df)
+
+        return f"<{name} using timeframe {self.timeframe.freq}, having data {first_ts} - {last_ts} total {candle_count:,} candles>"
+
+    def apply_delta(self, delta: TradeDelta, initial_load=False, label_candles=True):
         """Add new candle data generated from the latest blockchain input.
 
         :param delta:
             New trades coming in
+
+        :param initial_load:
+            This is not an incremental snapshot, but initial buffer fill.
+
+            Ignore `delta.start_ts` and fill the candle buffer
+            as long as we get data.
 
         :param label_candles:
             Create and update label column.
@@ -54,9 +78,18 @@ class CandleFeed:
             Label column contains tooltips for the visual candle viewer.
             This must be done before candle data is grouped by pairs.
         """
-        cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
-        candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
-        self.candle_df = pd.concat([cropped_df, candles])
+
+        if len(delta.trades) > 0:
+
+            cropped_df = truncate_ohlcv(self.candle_df, delta.start_ts)
+
+            candles = resample_trades_into_ohlcv(delta.trades, self.timeframe)
+
+            # Only if we have any new candles from our timeframe add them to the
+            # in-memory buffer
+            if len(candles) > 0:
+                self.candle_df = pd.concat([cropped_df, candles])
+
         self.last_cycle = delta.cycle
 
     def get_candles_by_pair(self, pair: PairId) -> pd.DataFrame:

@@ -42,9 +42,10 @@ def test_candle_chart(persistent_test_client: Client):
         y_axis_name=f"$ {pair.base_token_symbol} price",
     )
 
+    # TODO: How to disable stdout
     # Does not show actually in unit tests, but checks
     # we can render the figure
-    display(figure)
+    # display(figure)
 
 
 def test_candle_labels(persistent_test_client: Client):

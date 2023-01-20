@@ -1,4 +1,4 @@
-"""Price (OHLCV) charting utilities.
+"""Drawing OHLCV candle charts using Plotly.
 
 Draw price charts using Plotly.
 
@@ -10,6 +10,7 @@ Draw price charts using Plotly.
 
 - Dark and light themes
 """
+import enum
 import logging
 from typing import Optional
 
@@ -25,12 +26,24 @@ class BadOHLCVData(Exception):
     """We could not figure out the data frame"""
 
 
+class VolumeBarMode(enum.Enum):
+    """Should candlestick chart come with the volume bars."""
+
+    #: Volume bars are in a chart below candle chart
+    separate = "separate"
+
+    #: Volume bars are transparently inside the candle chart
+    overlay = "overlay"
+
+    #: Do not show volume bars
+    hidden = "hidden"
+
+
 def validate_ohclv_dataframe(candles: pd.DataFrame):
     required_columns = ["timestamp", "open", "close", "high", "low"]
     for r in required_columns:
         if r not in candles.columns:
             raise BadOHLCVData(f"OHLCV DataFrame lacks column: {r}, has {candles.columns}")
-
 
 
 def create_label(row: pd.Series) -> str:
@@ -41,7 +54,9 @@ def make_candle_labels(
         df: pd.DataFrame,
         dollar_prices=True,
         base_token_name: Optional[str]=None,
-        quote_token_name: Optional[str]=None) -> pd.Series:
+        quote_token_name: Optional[str]=None,
+        line_separator="<br>",
+) -> pd.Series:
     """Generate individual labels for OHLCV chart candles.
 
     Used to display toolips on OHLCV chart.
@@ -60,6 +75,11 @@ def make_candle_labels(
 
     :param quote_token_name:
         Cryptocurrency as the quote token pair.
+
+    :param line_separator:
+        New line format.
+
+        Plotly wants raw HTML.
 
     :return:
         Series of text label
@@ -106,7 +126,7 @@ def make_candle_labels(
         ]
 
         if row.exchange_rate:
-            text += [f"Exchange rate: {row.exchange_rate}", ""]
+            text += [f"Exchange rate: {row.exchange_rate} {quote_token_name} / USD", ""]
 
         if row.buys:
             text += [
@@ -116,7 +136,7 @@ def make_candle_labels(
                 ""
             ]
 
-        return "\n".join(text)
+        return line_separator.join(text)
 
     return df.apply(_create_label_for_single_candle, axis="columns")
 
@@ -129,6 +149,7 @@ def visualise_ohlcv(
         height: int = 800,
         theme: str = "plotly_white",
         volume_bar_colour: str = "rgba(128,128,128,0.5)",
+        volume_bar_mode = VolumeBarMode.overlay,
         labels: Optional[pd.Series] = None,
 ) -> go.Figure:
     """Draw a candlestick chart.
@@ -158,6 +179,15 @@ def visualise_ohlcv(
     :param volume_bar_colour:
         Override the default colour for volume bars
 
+    :param volume_bar_mode:
+
+        Draw volume chart as a separate chart under the candlestick chart.
+
+        If not set, draw as an overlay.
+
+        `Note that Plotly does not allow reodering of tracing <https://github.com/plotly/plotly.py/issues/2345#issuecomment-809339043>`__,
+        and the volume bars will always be on the top of the candlesticks.
+
     :param labels:
         Tooltip labels for candles.
 
@@ -185,13 +215,31 @@ def visualise_ohlcv(
         close=candles['close'],
         showlegend=False,
         text=text,
+        hoverinfo="text",
     )
 
-    # Synthetic data may not have volume available
-    should_create_volume_subplot: bool = "volume" in candles.columns
+    volume_available = "volume" in candles.columns
 
-    # We need to use sublot to make volume bars
-    fig = make_subplots(specs=[[{"secondary_y": should_create_volume_subplot}]])
+    if volume_bar_mode != VolumeBarMode.hidden:
+        # Synthetic data may not have volume available
+        if volume_bar_mode == VolumeBarMode.overlay:
+            should_create_volume_subplot = True
+        else:
+            should_create_volume_subplot = False
+    else:
+        should_create_volume_subplot = False
+
+    # We need to use sublot to make volume bar overlay
+    if volume_bar_mode == VolumeBarMode.separate:
+        # https://stackoverflow.com/a/65997291/315168
+        fig = make_subplots(
+            rows=2,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.1,
+            row_width=[0.2, 0.7])
+    else:
+        fig = make_subplots(specs=[[{"secondary_y": should_create_volume_subplot}]])
 
     # Set chart core options
     fig.update_layout(
@@ -212,7 +260,8 @@ def visualise_ohlcv(
     # disable it for now
     fig.update_xaxes(rangeslider={"visible": False})
 
-    if should_create_volume_subplot:
+    # Do we need volume overlay?
+    if volume_available:
         volume_bars = go.Bar(
             x=candles.index,
             y=candles['volume'],
@@ -221,14 +270,26 @@ def visualise_ohlcv(
                 "color": volume_bar_colour,
             }
         )
-        fig.add_trace(volume_bars, secondary_y=True)
 
-        fig.update_yaxes(secondary_y=True, showgrid=False)
+        if volume_bar_mode == VolumeBarMode.overlay:
+            fig.add_trace(volume_bars, secondary_y=True)
+            fig.update_yaxes(secondary_y=True, showgrid=False)
 
-        if volume_axis_name:
-            fig.update_yaxes(title=volume_axis_name, secondary_y=True)
+            if volume_axis_name:
+                fig.update_yaxes(title=volume_axis_name, secondary_y=True, row=1)
+    else:
+        volume_bars = None
 
     fig.add_trace(candlesticks, secondary_y=False)
+
+    # Add the separate volume chart below
+    if volume_available:
+        if volume_bar_mode == VolumeBarMode.separate:
+            # https://stackoverflow.com/a/65997291/315168
+            fig.add_trace(volume_bars, row=2, col=1)
+
+            if volume_axis_name:
+                fig.update_yaxes(title=volume_axis_name, row=2)
 
     # Move legend to the bottom so we have more space for
     # time axis in narrow notebook views

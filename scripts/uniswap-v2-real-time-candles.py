@@ -3,6 +3,12 @@
 - This application is shows real-time OHLCV candles from Uniswap v2 compatible
   exchanges
 
+- It is important that `/graphql` endpoint is enabled for your EVM node if you are displaying
+  any longer duration of data. For example, displaying 24h data using a public Polygon RPC
+  endpoint, without `/graphql` support, will take more than 1 hour to buffer the data
+  even on a fast Internet connection. Thus, if you want to analyse any long periods of data
+  you need to run your own node with GraphQL endpoints enabled.
+
 - It is a demo and interactive test applications for manual testing
 
 - TODO: Non-USD pairs are not yet supported
@@ -25,6 +31,10 @@ Example of viewing BNB/BUSD on PancakeSwap:
         --json-rpc-url=$BNB_CHAIN_JSON_RPC \
         --pair-address=0x58f876857a02d6762e0101bb5c46a8c1ed44dc16
 
+
+Further information
+
+- `Dash documentation <https://dash.plotly.com/>`__
 """
 import datetime
 import logging
@@ -34,6 +44,7 @@ import signal
 import threading
 
 import time
+from decimal import Decimal
 from pathlib import Path
 from threading import Thread
 
@@ -43,10 +54,10 @@ from urllib.parse import urljoin
 import coloredlogs
 import pandas as pd
 import typer
-from dash import html, Output, Input, Dash, State
+from dash import Output, Input, Dash
 from dash.dash_table import DataTable
-from dash.dcc import Graph, Interval, Dropdown
-from dash.html import Div, Label, H2, Button
+from dash.dcc import Graph, Interval, Dropdown, Loading
+from dash.html import Div, Label, H1, H2, Button, Img, Progress
 from plotly.subplots import make_subplots
 from tqdm import tqdm
 from web3 import Web3
@@ -56,11 +67,10 @@ from eth_defi.event_reader.block_time import measure_block_time
 from eth_defi.event_reader.web3factory import TunedWeb3Factory
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
 from eth_defi.uniswap_v2.pair import fetch_pair_details, PairDetails
-from eth_defi.event_reader.reorganisation_monitor import MockChainAndReorganisationMonitor, \
-    JSONRPCReorganisationMonitor, ReorganisationMonitor, GraphQLReorganisationMonitor
+from eth_defi.event_reader.reorganisation_monitor import JSONRPCReorganisationMonitor, ReorganisationMonitor, GraphQLReorganisationMonitor
 from tradingstrategy.chain import ChainId
 
-from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels
+from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels, VolumeBarMode
 from tradingstrategy.direct_feed.candle_feed import CandleFeed
 from tradingstrategy.direct_feed.store import DirectFeedStore
 from tradingstrategy.direct_feed.timeframe import Timeframe
@@ -75,23 +85,14 @@ CANDLE_OPTIONS = {
     "1 hour": Timeframe("1h"),
 }
 
-
-#: How much past data we render for different candles by default.
-#:
-#: These values are more or less randomly picked and do not
-#: present good UX.
-LOOK_BACK_HORIZON = {
-    Timeframe("1min"): pd.Timedelta("1h"),
-    Timeframe("5min"): pd.Timedelta("4h"),
-    Timeframe("1h"): pd.Timedelta("24h"),
-}
-
-
 #: Store 100,000 blocks per Parquet dataset file
 DATASET_PARTITION_SIZE = 100_000
 
-#: How many hours worth of event data we buffer for the chart
-BUFFER_HOURS = 24
+#: How many hours worth of event data we buffer for the chart.
+#:
+#: We always want to display ~100 candles. Our largest candle is
+#: 1h so we want to have buffer for around ~100 hours.
+BUFFER_HOURS = 24 * 3
 
 
 logger: Optional[logging.Logger] = logging.getLogger()
@@ -132,7 +133,9 @@ def setup_uniswap_v2_market_data_feeds(
             check_depth=check_depth)
     else:
         # Default slow implementation
-        logger.warning("The node does not support /graphql interface. Downloading block headers and timestamps will be extremely slow.")
+        logger.warning("The node does not support /graphql interface. "
+                       "Downloading block headers and timestamps will be extremely slow."
+                       "Check documentation how to configure your node or choose a smaller timeframe for the buffer of trades.")
         reorg_mon = JSONRPCReorganisationMonitor(web3, check_depth=check_depth)
 
     data_refresh_requency = measure_block_time(web3)
@@ -145,7 +148,7 @@ def setup_uniswap_v2_market_data_feeds(
     pairs = [pair_details]
 
     for p in pairs:
-        logger.info("Setting up market data feeds for %s", p)
+        logger.info("Setting up market data feeds for %s, max time frame is %s", p, max_timeframe)
 
     oracles = {}
     for p in pairs:
@@ -195,8 +198,8 @@ def start_block_consumer_thread(
                 start = time.time()
 
                 # Read trades from the blockchain
-                delta = trade_feed.perform_duty_cycle()
-                logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.trades)} for candles")
+                delta = trade_feed.perform_duty_cycle(verbose=True)
+                logger.info(f"Block {delta.unadjusted_start_block} - {delta.end_block} has total {len(delta.new_trades)} new trades and {len(delta.trades)} timeframe adjusted trades")
 
                 # Internal sanity check
                 trade_feed.check_current_trades_for_duplicates()
@@ -208,13 +211,6 @@ def start_block_consumer_thread(
                         logger.info("Saving data")
                         store.save_trade_feed(trade_feed)
                         last_save = time.time()
-
-                    make_candle_labels(
-                        candle_feed.candle_df,
-                        dollar_prices=False,
-                        base_token_name=pair.get_base_token().symbol,
-                        quote_token_name=pair.get_quote_token().symbol,
-                    )
 
                 duration = time.time() - start
                 logger.info("Block processing loop took %f seconds", duration)
@@ -236,6 +232,7 @@ def setup_app(
         trade_feed: TradeFeed,
         candle_feeds: Dict[str, CandleFeed],
         paused: threading.Event,
+        loaded: threading.Event,
 ) -> Dash:
     """Build a Dash application UI using its framework.
 
@@ -262,50 +259,103 @@ def setup_app(
         extra_columns = []
 
     app.layout = Div([
-        Button('⏸️ Pause', id='pause-button', n_clicks=0),
+
         Div(
-            id="controls",
+            id="header",
             children=[
-                Div([Label("Candle time:"), Dropdown(candle_labels, candle_labels[0], id='candle-dropdown')]),
-                Div([Label("Chain status:"), Div(id='chain-stats'),]),
-                Div([Label("Data status:"), Div(id='data-stats'), ]),
+                H1(f"{pair.get_base_token().symbol}-{pair.get_quote_token().symbol} trading pair monitor"),
+                Img(src=app.get_asset_url("trading-strategy-logo.svg"), id="logo"),
             ],
         ),
-        H2("Latest trades"),
-        DataTable(
-            id="trades",
-            columns=[
-                {"id": "Block number", "name": "Block number"},
-                {"id": "Pair", "name": "Pair", "presentation": "markdown"},
-                {"id": "Transaction", "name": "Transaction", "presentation": "markdown"},
-                {"id": "Price USD", "name": "Price USD"},
-                {"id": "Amount USD", "name": "Amount USD"},
-            ] + extra_columns,
+
+        Div( # Display spinner when initial data is loading
+            id="initial-load-progress",
+            style={'display': 'block'},
+            children=[
+                Label("Loading data from blockchain. Check console for details"),
+                Progress(),
+            ]
         ),
-        H2(f"{pair.get_base_token().symbol}-{pair.get_quote_token().symbol} price chart"),
-        Graph(id='live-update-graph', responsive=True),
-        # https://dash.plotly.com/live-updates
-        Interval(
+
+        Div(id="app-body", style={'display': 'none'}, children=[
+            Div(
+                id="playback",
+                children=[
+                    Button('⏸️ Pause', id='pause-button', n_clicks=0),
+                ],
+            ),
+
+            Div(
+                id="controls",
+                children=[
+                    Div([Label("Candle time:"), Dropdown(candle_labels, candle_labels[0], id='candle-dropdown')]),
+                    Div([Label("Chain status:"), Div(id='chain-stats'),]),
+                    Div([Label("Data status:"), Div(id='data-stats'), ]),
+                ],
+            ),
+            H2("Latest trades"),
+            DataTable(
+                id="trades",
+                markdown_options={"html": True},  # https://github.com/plotly/dash-table/issues/915
+                columns=[
+                    {"id": "Block number", "name": "Block number"},
+                    {"id": "Pair", "name": "Pair", "presentation": "markdown"},
+                    {"id": "Transaction", "name": "Transaction", "presentation": "markdown"},
+                    {"id": "Price USD", "name": "Price USD"},
+                    {"id": "Amount USD", "name": "Amount USD", "presentation": "markdown"},
+                ] + extra_columns,
+            ),
+
+            Graph(id='live-update-graph', responsive=True),
+            ]
+        ),
+
+        Interval(  # https://dash.plotly.com/live-updates
             id='interval-component',
             interval=freq_seconds * 1000,
-            n_intervals=0
+            n_intervals=0,
         ),
+
+        Interval(
+            id='load-done-poller',
+            interval=1000,
+            n_intervals=0,
+        ),
+
     ])
 
-    # Simple toggle button to change the live reload state
+    # Hide main app body during the initial loading and push progress bar forward
+    @app.callback(
+        Output('app-body', component_property='style'),
+        Output('initial-load-progress', component_property='style'),
+        Output("load-done-poller", "disabled"),
+        Input("load-done-poller", "n_intervals"),
+    )
+    def reveal_body(n):
+        # https://stackoverflow.com/a/50417291/315168
+        logger.debug("reveal_body(%d)", n)
+        if loaded.is_set():
+            return [{'display': 'block'}, {'display': 'none'}, True]
+        else:
+            return [{'display': 'none'}, {'display': 'block'}, False]
+
+    # Simple toggle button to change the live feed refresh
     @app.callback(
         Output('pause-button', 'children'),
+        Output("interval-component", "disabled"),
         Input('pause-button', 'n_clicks'),
     )
     def toggle_button(n_clicks):
-        if paused.is_set():
-            paused.clear()
-            label = "⏸️ Pause live trade feed"
-        else:
+        # https://community.plotly.com/t/how-can-i-change-the-text-on-a-button-if-it-is-clicked/59485
+        toggle_state = n_clicks % 2
+        if toggle_state:
             paused.set()
             label = "▶️ Resume live trade feed"
-        # https://community.plotly.com/t/how-can-i-change-the-text-on-a-button-if-it-is-clicked/59485
-        return label
+        else:
+            paused.clear()
+            label = "⏸️ Pause live trade feed"
+        # See disabling the interval https://community.plotly.com/t/how-to-turn-off-interval-event/5565/10
+        return [label, paused.is_set()]
 
     # Update the chain status
     @app.callback(Output('chain-stats', "children"),
@@ -315,19 +365,15 @@ def setup_app(
         try:
             if not reorg_mon.has_data():
                 return "No blocks produced yet"
-
             block_num = reorg_mon.get_last_block_read()
             timestamp = reorg_mon.get_block_timestamp_as_pandas(block_num)
             block_header_count = len(reorg_mon.block_map)
             ago = datetime.datetime.utcnow() - timestamp.to_pydatetime()
             ago_seconds = ago.total_seconds()
             stat_str = f"""Current block: {block_num:,} {ago_seconds} seconds ago, block headers cached: {block_header_count:,}"""
-
             if paused.is_set():
                 stat_str += " (PAUSED)"
-
             return stat_str
-
         except Exception as e:
             logger.exception(e)
             raise
@@ -339,45 +385,60 @@ def setup_app(
         logger.debug("update_data_stats(%d)", n)
         try:
             candles = candle_feeds[current_candle_duration].get_candles_by_pair(pair.address.lower())
+            if len(candles) == 0:
+                return ""  # Loading
             trade_count = len(trade_feed.trades_df)
             last_candle = candles.iloc[-1]
             timestamp_fmt = last_candle.timestamp.strftime("%Y-%m-%d, %H:%M:%S UTC")
-
             ago = datetime.datetime.utcnow() - last_candle.timestamp.to_pydatetime()
             ago_seconds = ago.total_seconds()
-
             trade_data_duration = candles.iloc[-1].timestamp - candles.iloc[0].timestamp
-
             return f"""Candles: {len(candles):,} last at {timestamp_fmt}, {ago_seconds}s ago, trades cached: {trade_count:,}, trade data availability: {trade_data_duration}"""
         except Exception as e:
             logger.exception(e)
             raise
 
     # Get the raw trades and convert them to
-    # human readable table format
+    # human-readable table format
     @app.callback(Output('trades', "data"),
                   Input('interval-component', 'n_intervals'))
     def update_last_trades(n):
         logger.debug("update_last_trades(%d)", n)
-
+        # Make trading pair cell to link to Trading Strategy website
         def get_pair_markdown(pair_id: str) -> str:
             # TODO: We are hardcoded to a single pair here
             pair_name = f"{pair.get_base_token().symbol} - {pair.get_quote_token().symbol}"
             pair_link = f"https://tradingstrategy.ai/search?q={pair.address}"
             return f"[{pair_name}]({pair_link})"
 
+        # Friendly presentation of prices
+        #
+        # Render using HTML inside a Markdown output format
+        # https://github.com/plotly/dash-table/issues/915
+        def get_amount_markdown(amount: Decimal) -> str:
+            if amount < 0:
+                amount = abs(amount)
+                klass = "sell"
+            else:
+                klass = "buy"
+            amount = amount.quantize(Decimal(10) ** -8)
+            html = f"""<span class="trade-amount {klass}">{amount:>16}</span>"""
+            return html
+
         try:
             df = trade_feed.get_latest_trades(5, pair.address.lower())
+            if len(df) == 0:
+                return pd.DataFrame().to_dict("records")
             df = df.sort_values("timestamp", ascending=False)
             quote_token = pair.get_quote_token().symbol
             output = pd.DataFrame()
             output["Block number"] = df["block_number"]
             output["Pair"] = df["pair"].apply(get_pair_markdown)
-            #output["Transaction"] =
             output["Transaction"] = df["tx_hash"].apply(lambda tx_hash: f"[{tx_hash}]({chain_id.get_tx_link(tx_hash)})")
-            # TODO: Check values here for non-stablecoin nominated tokens
             output["Price USD"] = df["price"]
-            output["Amount USD"] = df["amount"]
+            output["Amount USD"] = df["amount"].apply(get_amount_markdown)
+
+            # TODO: Check values here for non-stablecoin nominated tokens
             if quote_token not in ("BUSD", "USDC", "USDT"):
                 output[f"Price {quote_token}"] = df["price"] / df["exchange_rate"]
                 output[f"Exchange rate USD/{quote_token}"] = df["exchange_rate"]
@@ -398,9 +459,43 @@ def setup_app(
         logger.debug("update_ohlcv_chart_live(%s)", n)
         try:
             candles = candle_feeds[current_candle_duration].get_candles_by_pair(pair.address.lower())
-            if len(candles) > 0:
-                logger.info("Drawing %d candles", len(candles))
-                fig = visualise_ohlcv(candles, height=500)
+
+            # Clip candles to our chart width
+            # which we think in sensible
+            time_frame = CANDLE_OPTIONS[current_candle_duration]
+            window_width = time_frame.get_default_chart_display_window()
+
+            start_time = pd.Timestamp.utcnow() - window_width
+
+            # Candles are timestamp indexed
+            rendered_candles = candles.loc[start_time:]
+
+            if len(rendered_candles) > 0:
+
+                # Create descriptive tooltips for the candles
+                labels = make_candle_labels(
+                    rendered_candles,
+                    dollar_prices=False,
+                    base_token_name=pair.get_base_token().symbol,
+                    quote_token_name=pair.get_quote_token().symbol,
+                )
+
+                last_candle = rendered_candles.iloc[-1]
+                logger.info("Rendering candles. Timeframe %s, drawing %d candles, total candles %d, window width is %s, start time is %s, last candle is at %s, paused is %s",
+                            time_frame,
+                            len(rendered_candles),
+                            len(candles),
+                            window_width,
+                            start_time,
+                            last_candle["timestamp"],
+                            paused.is_set(),
+                            )
+                fig = visualise_ohlcv(
+                    rendered_candles,
+                    height=500,
+                    labels=labels,
+                    volume_bar_mode=VolumeBarMode.separate,
+                )
             else:
                 # Create empty figure as we do not have data yet
                 fig = make_subplots(rows=1, cols=1)
@@ -471,18 +566,43 @@ def main(
         pair_address,
         CANDLE_OPTIONS,
     )
+
+    paused = threading.Event()  # Create the paused flag
+    loaded = threading.Event()  # Create the loaded flag
+
+    # Assume only 1 trading pair for now
     pairs = trade_feed.pairs
+    pair_details = trade_feed.get_pair_details(pairs[0])
 
+    # Create the Dash web UI and start the web server
+    app = setup_app(
+        chain_id,
+        pair_details,
+        data_refresh_frequency,
+        trade_feed,
+        candle_feeds,
+        paused,
+        loaded
+    )
+
+    def _run():
+        app.run(debug=False)
+
+    # Start the app in the progress bar state, while the loading progresses in the main thread
+    ui_thread = Thread(target=_run)
+    ui_thread.start()
+
+    # Recover any previous stored data, so we do not have
+    # cold startup
     cache_path = os.path.expanduser("~/.cache/uniswap-v2-candle-demo")
-
     store = DirectFeedStore(Path(cache_path), DATASET_PARTITION_SIZE)
-
     if clear_cache:
-        logger.info("Clearing the cache: %s", cache_path)
-        store.clear()
+        if not store.is_empty():
+            logger.info("Clearing the cache: %s", cache_path)
+            store.clear()
     else:
         if store.load_trade_feed(trade_feed):
-            logger.info("Loaded old data from %s", cache_path)
+            logger.info("Loaded old data from %s, we have %d trades", cache_path, trade_feed.get_trade_count())
             trade_feed.check_current_trades_for_duplicates()
         else:
             logger.info("First run, cache is empty %s", cache_path)
@@ -494,7 +614,9 @@ def main(
     last_save = 0
     save_frequency = 10
 
-    def save_hook() -> Tuple[int, int]:
+    # TODO: This is a hacky hook to do disk saves
+    # during the buffering phase
+    def _save_hook() -> Tuple[int, int]:
         nonlocal last_save
         nonlocal save_frequency
         if time.time() - last_save > save_frequency:
@@ -504,16 +626,17 @@ def main(
             return last_saved_tuple
         return 0, 0
 
-    pair: PairDetails = pairs[0]
-    pair_details = trade_feed.get_pair_details(pair)
-
-    # Fill the trade buffer with data
-    # and create the initial candles
-    logger.info("Backfilling blockchain data buffer for %f hours, %d blocks", BUFFER_HOURS, blocks_needed)
-    delta = trade_feed.backfill_buffer(blocks_needed, tqdm, save_hook)
+    logger.info("Backfilling trade buffer for %f hours, %d blocks, block time is %f seconds", BUFFER_HOURS, blocks_needed, data_refresh_frequency)
+    delta = trade_feed.backfill_buffer(blocks_needed, tqdm, _save_hook)
     trade_feed.check_current_trades_for_duplicates()
+
+    trade_feed.check_enough_history(pd.Timedelta(hours=BUFFER_HOURS), tolerance=0.75)
+
+    logger.info("Initialised trade feed: %s", trade_feed)
+
     for feed in candle_feeds.values():
         feed.apply_delta(delta)
+        logger.info("Initialised candle feed: %s", feed)
         for df in feed.iterate_pairs():
             make_candle_labels(
                 df,
@@ -525,30 +648,22 @@ def main(
     # Save that we do not need to backfill again
     store.save_trade_feed(trade_feed)
 
-    price = trade_feed.get_latest_price(pair)
+    # Display current price in the console  before we start
+    price = trade_feed.get_latest_price(pairs[0])
     logger.info("Current price is: %s %s/%s", price, pair_details.get_quote_token().symbol, pair_details.get_base_token().symbol)
 
     # Start blockchain data processor bg thread
     logger.info("Starting blockchain data consumer, block time is %f seconds", data_refresh_frequency)
-
-    # Create the paused flag
-    paused = threading.Event()
 
     candle_bg_thread = Thread(
         target=start_block_consumer_thread,
         args=(data_refresh_frequency, pair_details, store, trade_feed, candle_feeds, paused))
     candle_bg_thread.start()
 
-    # Create the Dash web UI and start the web server
-    app = setup_app(
-        chain_id,
-        pair_details,
-        data_refresh_frequency,
-        trade_feed,
-        candle_feeds,
-        paused
-    )
-    app.run_server(debug=False)
+    loaded.set()  # Remove the app loading progress bar
+
+    while True:
+        time.sleep(9999)  # Idle until CTRL+C or some thread crashes
 
 
 if __name__ == '__main__':
