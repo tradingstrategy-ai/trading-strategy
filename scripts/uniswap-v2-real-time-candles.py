@@ -31,6 +31,10 @@ Example of viewing BNB/BUSD on PancakeSwap:
         --json-rpc-url=$BNB_CHAIN_JSON_RPC \
         --pair-address=0x58f876857a02d6762e0101bb5c46a8c1ed44dc16
 
+
+Further information
+
+- `Dash documentation <https://dash.plotly.com/>`__
 """
 import datetime
 import logging
