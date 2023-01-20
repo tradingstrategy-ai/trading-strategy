@@ -1,5 +1,7 @@
 # Current
 
+# 0.10.1
+
 - Fix missing dependencies because web3-ethereum-defi data extras
 - Fix `make_candle_labels` not working correctly if some keys were not present in the OHCLV DataFrame
 - Add `VolumeBarMode` option to `visualise_ohlcv` to allow different rendering modes for volume bars, in-chart 
