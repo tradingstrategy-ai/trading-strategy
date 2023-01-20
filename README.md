@@ -60,7 +60,7 @@ Poetry, local development:
 poetry install -E direct-feed
 ```
 
-`pip`:
+Pip:
 
 ```shell
 pip install "trading-strategy[direct-feed]" 
