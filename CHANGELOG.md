@@ -1,5 +1,9 @@
 # Current
 
+TODO
+
+# 0.10.2
+
 - Add `TradeSummary.show` to simplify usage in notebooks
 
 # 0.10.1
