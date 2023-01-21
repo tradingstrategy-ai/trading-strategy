@@ -1,6 +1,6 @@
 # Current
 
-TODO
+- Add `TradeSummary.show` to simplify usage in notebooks
 
 # 0.10.1
 
