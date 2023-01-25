@@ -239,6 +239,17 @@ class DEXPair:
         chain_name = self.chain_id.get_slug()
         return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange #{self.exchange_id} on {chain_name}>"
 
+    def __eq__(self, other: "DEXPair"):
+        """Trade positions are unique by opening timestamp and pair id.]
+
+        We assume there cannot be a position opened for the same asset at the same time twice.
+        """
+        return self.pair_id == other.pair_id
+
+    def __hash__(self):
+        """set() and dict() compatibility"""
+        return hash(self.pair_id)
+
     @property
     def base_token_address(self) -> str:
         """Get smart contract address for the base token.

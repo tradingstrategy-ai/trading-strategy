@@ -104,10 +104,10 @@ def load_trading_strategy_like_jsonl_data(
     }
 
     if start_time:
-        params["start_time"] = start_time.isoformat()
+        params["start"] = start_time.isoformat()
 
     if end_time:
-        params["end_time"] = end_time.isoformat()
+        params["end"] = end_time.isoformat()
 
     if max_bytes:
         params["max_bytes"] = max_bytes

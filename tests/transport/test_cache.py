@@ -61,19 +61,19 @@ def test_get_cached_item_cache_file_no_end_time_expired(transport, tmp_path):
     (
         (
             {},  # no overrides
-            "candles-jsonl-1m-b445ce65b8b8117fef6ee7b9b44b98ac.parquet"
+            "candles-jsonl-1m-between-2021-07-01_14-35-17-and-any-b445ce65b8b8117fef6ee7b9b44b98ac.parquet"
         ),
         (
             {"pair_ids": {22, 1717, 88}},
-            "candles-jsonl-1m-3650b4fd16270e6522eddbeffa6fa676.parquet"
+            "candles-jsonl-1m-between-2021-07-01_14-35-17-and-any-3650b4fd16270e6522eddbeffa6fa676.parquet"
         ),
         (
             {"start_time": dt.datetime(2021, 11, 15, 19, 7, 50, 654321)},
-            "candles-jsonl-1m-932cd917d5f82f60c3c1e39c6725a427.parquet"
+            "candles-jsonl-1m-between-2021-11-15_19-07-50-and-any-932cd917d5f82f60c3c1e39c6725a427.parquet"
         ),
         (
             {"max_bytes": 1024 * 1024},
-            "candles-jsonl-1m-58000fef3f0a6af9d8393f50d530d3db.parquet"
+            "candles-jsonl-1m-between-2021-07-01_14-35-17-and-any-58000fef3f0a6af9d8393f50d530d3db.parquet"
         ),
     ),
 )
@@ -98,12 +98,12 @@ def test__generate_cache_name_no_end_time(transport, kwarg_overrides, expected_n
         (
             TimeBucket.m1,
             dt.datetime(2022, 8, 18, 12, 59, 24, 987654),
-            "candles-jsonl-1m-to_2022-08-18_12-59-00-3d66bc1d7a463e6ddb99fbc57e83b98e.parquet"
+            "candles-jsonl-1m-between-any-and-2022-08-18_12-59-00-3d66bc1d7a463e6ddb99fbc57e83b98e.parquet"
         ),
         (
             TimeBucket.m15,
             dt.datetime(2022, 8, 18, 12, 59, 59, 999999),
-            "candles-jsonl-15m-to_2022-08-18_12-59-00-42b45ce03eb586963e1e660f8bd7cab8.parquet"
+            "candles-jsonl-15m-between-any-and-2022-08-18_12-59-00-42b45ce03eb586963e1e660f8bd7cab8.parquet"
         ),
     ),
 )
@@ -127,12 +127,12 @@ def test__generate_cache_name_end_time_minute_precision(
         (
             TimeBucket.h1,
             dt.datetime(2022, 8, 18, 12, 34, 56, 987654),
-            "candles-jsonl-1h-to_2022-08-18_12-00-00-e0c2fcf28f4b3a68761bcad0ba4e3e0e.parquet"
+            "candles-jsonl-1h-between-any-and-2022-08-18_12-00-00-e0c2fcf28f4b3a68761bcad0ba4e3e0e.parquet"
         ),
         (
             TimeBucket.h4,
             dt.datetime(2022, 8, 18, 12, 59, 59, 999999),
-            "candles-jsonl-4h-to_2022-08-18_12-00-00-01dc13144bc9902e795b62eff9d17ed2.parquet"
+            "candles-jsonl-4h-between-any-and-2022-08-18_12-00-00-01dc13144bc9902e795b62eff9d17ed2.parquet"
         ),
     ),
 )
@@ -156,17 +156,17 @@ def test__generate_cache_name_end_time_hour_precision(
         (
             TimeBucket.d1,
             dt.datetime(2022, 8, 18, 9, 5, 11, 111222),
-            "candles-jsonl-1d-to_2022-08-18_00-00-00-c57f41e7e5bc1a97a2b09d1f326e4e27.parquet"
+            "candles-jsonl-1d-between-any-and-2022-08-18_00-00-00-c57f41e7e5bc1a97a2b09d1f326e4e27.parquet"
         ),
         (
             TimeBucket.d7,
             dt.datetime(2022, 8, 18, 12, 34, 56, 987654),
-            "candles-jsonl-7d-to_2022-08-18_00-00-00-dd6d1182e6075c6c4ce1bebf1375fcae.parquet"
+            "candles-jsonl-7d-between-any-and-2022-08-18_00-00-00-dd6d1182e6075c6c4ce1bebf1375fcae.parquet"
         ),
         (
             TimeBucket.d30,
             dt.datetime(2022, 8, 18, 23, 59, 59, 999999),
-            "candles-jsonl-30d-to_2022-08-18_00-00-00-977074bcdc3cc020db20871d944ca183.parquet"
+            "candles-jsonl-30d-between-any-and-2022-08-18_00-00-00-977074bcdc3cc020db20871d944ca183.parquet"
         ),
         # We omit d360, because yearly candles do not make much sense in trading and nobody
         # uses them.
