@@ -30,6 +30,7 @@ def test_trading_data_availability(persistent_test_client: Client):
     assert len(pairs_availability) == 1
     avail = pairs_availability[pair.pair_id]
 
+    # Check values are properly deserialised
     assert avail["chain_id"] == ChainId.bsc
     assert avail["pair_address"] == "0x58f876857a02d6762e0101bb5c46a8c1ed44dc16"
     assert avail["last_candle_at"] > datetime.datetime(1970, 1, 1)
