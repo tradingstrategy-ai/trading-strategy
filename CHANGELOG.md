@@ -1,7 +1,7 @@
-# Current
+# 0.11.1
 
 - Add: Make `DEXPair` hashable
-- Change: Cover historical candle downlad for JSONL endpoint
+- Fix: Historical candle download for JSONL endpoint - make time ranges to work correctly 
 - Change: Make JSONL cache filenames more descriptive 
 
 # 0.11
