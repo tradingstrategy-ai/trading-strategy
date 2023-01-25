@@ -15,14 +15,15 @@ For more information about candles see :term:`candle` in glossary.
 
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, TypedDict
 
 import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
 
-from tradingstrategy.caip import ChainAddressTuple
-from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
+from tradingstrategy.chain import ChainId
+from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey, NonChecksummedAddress, \
+    RawChainId
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
 
@@ -490,6 +491,40 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         Useful for synthetic data/testing.
         """
         return GroupedCandleUniverse(df)
+
+
+class TradingPairDataAvailability(TypedDict):
+    """Trading data avaioilability description for a single pair.
+
+    - Trading Strategy oracle uses sparse data format where candles
+      with zero trades are not generated. This is better suited
+      for illiquid DEX markets with few trades.
+
+    - Because of sparse data format, we do not know if there is a last
+      candle available - candle may not be available yet or there might not be trades
+      to generate a candle
+
+    - This information is always time frame (15m, 1h, 1d) specific
+
+    - See :py:meth:`tradingstrategy.client.Client.fetch_trading_data_availability`
+    """
+
+    #: Blockchain of the pair
+    chain_id: ChainId
+
+    #: Address of the pair
+    pair_address: NonChecksummedAddress
+
+    #: Internal id of the pair
+    pair_id: PrimaryKey
+
+    #: What is the last full available candle for this trading pair
+    last_candle_at: datetime.datetime
+
+    #: What is the last trade oracle has seen for this trading pair.
+    #:
+    #: This trade might not be rolled up to a candle yet.
+    last_trade_at: datetime.datetime
 
 
 def is_candle_green(candle: pd.Series) -> bool:

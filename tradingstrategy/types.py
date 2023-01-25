@@ -18,6 +18,7 @@ from typing import TypeAlias
 PrimaryKey: TypeAlias = int
 
 
+
 #: Ethereum address that does *not* use EIP-55 checksumming.
 #:
 #:     EIP-55 https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md
@@ -33,6 +34,7 @@ NonChecksummedAddress: TypeAlias = str
 #: and our price data is not for exact transactions, but for modelling,
 #: this is ok.
 #:
+USDollarAmount: TypeAlias = float
 
 #: Seconds since 1.1.1970 as UTC time as integer
 UNIXTimestamp: TypeAlias = int
@@ -43,3 +45,8 @@ BlockNumber: TypeAlias = int
 
 #: Multiplier as 1/10000 or 0.01%
 BasisPoint: TypeAlias = int
+
+#: Chain id that is not a wrapped enum.
+#:
+#: See :py:class:`tradingstategy.chain.ChainId` for details
+RawChainId: TypeAlias = int

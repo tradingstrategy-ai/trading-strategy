@@ -1,9 +1,11 @@
+"""A HTTP API transport that offers optional local caching of the results."""
+
 import datetime
 import hashlib
 import os
 import pathlib
 import re
-from typing import Optional, Callable, Set, Union
+from typing import Optional, Callable, Set, Union, Collection, Dict
 import shutil
 import logging
 
@@ -12,8 +14,11 @@ import pandas as pd
 import requests
 from requests import Response
 
+from tradingstrategy.candle import TradingPairDataAvailability
+from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
+from tradingstrategy.types import PrimaryKey
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +28,11 @@ class APIError(Exception):
 
 
 class CachedHTTPTransport:
-    """Download live and cached datasets from the candle server and cache locally.
+    """A HTTP API transport that offers optional local caching of the results.
 
-    The download files are very large and expect to need several gigabytes of space for them.
+    - Download live and cached datasets from the candle server and cache locally.
+
+    - The download files are very large and expect to need several gigabytes of space for them.
     """
 
     def __init__(self,
@@ -332,3 +339,50 @@ class CachedHTTPTransport:
         logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
 
         return df
+
+    def fetch_trading_data_availability(self,
+          pair_ids: Collection[PrimaryKey],
+          time_bucket: TimeBucket,
+        ) -> Dict[PrimaryKey, TradingPairDataAvailability]:
+        """Check the trading data availability at oracle's real time market feed endpoint.
+
+        - Trading Strategy oracle uses sparse data format where candles
+          with zero trades are not generated. This is better suited
+          for illiquid DEX markets with few trades.
+
+        - Because of sparse data format, we do not know if there is a last
+          candle available - candle may not be available yet or there might not be trades
+          to generate a candle
+
+        - This endpoint allows to check the trading data availability for multiple of trading pairs.
+
+        - This endpoint is public
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+        :param time_bucket:
+            Candle time frame
+
+        :return:
+            Map of pairs -> their trading data availability
+
+        """
+        params = {
+            "pair_ids": list(pair_ids),
+            "time_bucket":  time_bucket.value,
+        }
+        array = self.get_json_response("trading-pair-data-availability", params=params)
+
+        # Make to typed and deseralise
+        def _convert(p: dict) -> TradingPairDataAvailability:
+            return {
+                "chain_id": ChainId(p["chain_id"]),
+                "pair_id": p["pair_id"],
+                "pair_address": p["pair_address"],
+                "last_candle_at": datetime.datetime.fromisoformat(p["last_candle_at"]),
+                "last_trade_at": datetime.datetime.fromisoformat(p["last_trade_at"]),
+            }
+
+        return {p["pair_id"]: _convert(p) for p in array}
