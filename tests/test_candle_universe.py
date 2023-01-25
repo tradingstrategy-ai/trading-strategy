@@ -1,3 +1,4 @@
+import datetime
 import resource
 
 import pandas
@@ -415,3 +416,29 @@ def test_load_candles_using_jsonl_max_bytes(persistent_test_client: Client):
             max_bytes=5_000, # 5kBytes
         )
 
+
+def test_load_candles_using_json_historical(persistent_test_client: Client):
+    """Load historical candles using JSONL endpoint"""
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create filtered exchange and pair data
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+    pair_universe = PandasPairUniverse.create_single_pair_universe(
+            pairs_df,
+            exchange,
+            "WBNB",
+            "BUSD",
+            pick_by_highest_vol=True,
+        )
+
+    pair = pair_universe.get_single()
+    candles_df = client.fetch_candles_by_pair_ids(
+        {pair.pair_id},
+        TimeBucket.h1,
+        start_time=datetime.datetime(2023, 1, 1),
+        end_time=datetime.datetime(2023, 1, 2)
+    )
+    assert len(candles_df) == 24

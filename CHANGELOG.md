@@ -1,9 +1,15 @@
+# Current
+
+- Add: Make `DEXPair` hashable
+- Change: Cover historical candle downlad for JSONL endpoint
+- Change: Make JSONL cache filenames more descriptive 
+
 # 0.11
 
 - Adding `Client.fetch_trading_data_availability` API
 - Moved `types.py` to properly Python 3.10 TypeAlias system
 
-# 0.10.2
+# 0.10.2 
 
 - Add `TradeSummary.show` to simplify usage in notebooks
 

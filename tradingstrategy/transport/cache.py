@@ -152,9 +152,14 @@ class CachedHTTPTransport:
         md5 = hashlib.md5(full_cache_key.encode("utf-8")).hexdigest()
 
         # If exists, include the end time info in filename for cache invalidation logic.
-        end_part = end_time.strftime("-to_%Y-%m-%d_%H-%M-%S") if end_time else ""
+        if start_time:
+            start_part = start_time.strftime("%Y-%m-%d_%H-%M-%S")
+        else:
+            start_part = "any"
 
-        return f"candles-jsonl-{time_bucket.value}{end_part}-{md5}.parquet"
+        end_part = end_time.strftime("%Y-%m-%d_%H-%M-%S") if end_time else "any"
+
+        return f"candles-jsonl-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.parquet"
 
     def purge_cache(self, filename: Optional[Union[str, pathlib.Path]] = None):
         """Delete all cached files on the filesystem.
