@@ -1,6 +1,7 @@
 # Current
 
-TODO
+- Moved `types.py` to properly Python 3.10 TypeAlias system
+- Adding `Client.fetch_trading_data_availability`
 
 # 0.10.2
 
