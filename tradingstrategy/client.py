@@ -264,6 +264,28 @@ class Client:
 
         This endpoint allows to check the trading data availability for multiple of trading pairs.
 
+        Example:
+
+        .. code-block:: python
+
+            exchange_universe = client.fetch_exchange_universe()
+            pairs_df = client.fetch_pair_universe().to_pandas()
+
+            # Create filtered exchange and pair data
+            exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+            pair_universe = PandasPairUniverse.create_single_pair_universe(
+                    pairs_df,
+                    exchange,
+                    "WBNB",
+                    "BUSD",
+                    pick_by_highest_vol=True,
+                )
+
+            pair = pair_universe.get_single()
+
+            # Get the latest candle availability for BNB-BUSD pair
+            pairs_availability = client.fetch_trading_data_availability({pair.pair_id}, TimeBucket.m15)
+
         :param pair_ids:
             Trading pairs internal ids we query data for.
             Get internal ids from pair dataset.

@@ -77,7 +77,7 @@ def test_combined_candles_and_liquidity(persistent_test_client: Client):
 
     # Should be 95% same, some minor differences because of token
     # where liquidity was added but which never traded
-    print(liq_pair_count, candle_pair_count)
+    # print(liq_pair_count, candle_pair_count)
     assert abs((liq_pair_count - candle_pair_count) / liq_pair_count) < 0.10
 
 
