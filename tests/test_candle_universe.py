@@ -441,4 +441,4 @@ def test_load_candles_using_json_historical(persistent_test_client: Client):
         start_time=datetime.datetime(2023, 1, 1),
         end_time=datetime.datetime(2023, 1, 2)
     )
-    assert len(candles_df) == 24
+    assert len(candles_df) == 25  # 24 hours + 1 inclusive
