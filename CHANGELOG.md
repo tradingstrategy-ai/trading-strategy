@@ -1,6 +1,6 @@
 # Current
 
-TODO
+- More direct data feed infrastructure
 
 # 0.11.1
 

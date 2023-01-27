@@ -21,6 +21,7 @@ Example of viewing MATIC/USDC on QuickSwap:
     python scripts/uniswap-v2-real-time-candles.py \
         --json-rpc-url=$JSON_RPC_POLYGON \
         --pair-address=0x6e7a5fafcec6bb1e78bae2a1f0b612012bf14827
+        --node-performance=low
 
 
 Example of viewing BNB/BUSD on PancakeSwap:
@@ -37,6 +38,7 @@ Further information
 - `Dash documentation <https://dash.plotly.com/>`__
 """
 import datetime
+import enum
 import logging
 import os
 import shutil
@@ -78,24 +80,23 @@ from tradingstrategy.direct_feed.trade_feed import TradeFeed
 from tradingstrategy.direct_feed.uniswap_v2 import UniswapV2TradeFeed
 from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 
-#: Which candles our app can render
-CANDLE_OPTIONS = {
-    "1 minute": Timeframe("1min"),
-    "5 minutes": Timeframe("5min"),
-    "1 hour": Timeframe("1h"),
-}
 
 #: Store 100,000 blocks per Parquet dataset file
 DATASET_PARTITION_SIZE = 100_000
 
-#: How many hours worth of event data we buffer for the chart.
-#:
-#: We always want to display ~100 candles. Our largest candle is
-#: 1h so we want to have buffer for around ~100 hours.
-BUFFER_HOURS = 24 * 3
-
 
 logger: Optional[logging.Logger] = logging.getLogger()
+
+
+class NodeOperatingMode(enum.Enum):
+    """Are we running on a crappy public RPC or a good node."""
+
+    #: We have suppor for /graphql block headers API, can back load data for several days
+    #: E.g. locally run GoEthereum, Erigon
+    high_performance = "high"
+
+    #: API throttled, no block header download support
+    low_performance = "low"
 
 
 def die():
@@ -109,7 +110,7 @@ def die():
 def setup_uniswap_v2_market_data_feeds(
         json_rpc_url: str,
         pair_address: str,
-        candle_options: Dict[str, Timeframe],
+        candle_choices: Dict[str, Timeframe],
 ) -> Tuple[ChainId, float, Dict[str, CandleFeed], UniswapV2TradeFeed]:
     """Create the synthetic blockchain and trading pairs.
 
@@ -139,16 +140,13 @@ def setup_uniswap_v2_market_data_feeds(
         reorg_mon = JSONRPCReorganisationMonitor(web3, check_depth=check_depth)
 
     data_refresh_requency = measure_block_time(web3)
-
     pair_address = Web3.toChecksumAddress(pair_address)
-
     pair_details = fetch_pair_details(web3, pair_address, reverse_token_order=False)
-    max_timeframe = list(candle_options.values())[-1]
-
+    max_refresh_size = list(candle_choices.values())[-1]
     pairs = [pair_details]
 
     for p in pairs:
-        logger.info("Setting up market data feeds for %s, max time frame is %s", p, max_timeframe)
+        logger.info("Setting up market data feeds for %s, max time frame is %s", p, max_refresh_size)
 
     oracles = {}
     for p in pairs:
@@ -159,7 +157,7 @@ def setup_uniswap_v2_market_data_feeds(
         pairs=pairs,
         reorg_mon=reorg_mon,
         web3_factory=web3_factory,
-        timeframe=max_timeframe,
+        timeframe=max_refresh_size,
         oracles=oracles,
     )
 
@@ -167,7 +165,7 @@ def setup_uniswap_v2_market_data_feeds(
 
     pair_addresses = [p.checksum_free_address for p in pairs]
     candle_feeds = {
-        label: CandleFeed(pair_addresses, timeframe=timeframe) for label, timeframe in CANDLE_OPTIONS.items()
+        label: CandleFeed(pair_addresses, timeframe=timeframe) for label, timeframe in candle_choices.items()
     }
 
     chain_id = ChainId(web3.eth.chain_id)
@@ -183,15 +181,17 @@ def start_block_consumer_thread(
         candle_feeds: Dict[str, CandleFeed],
         paused: threading.Event,
 ):
-    """Consume blockchain data and update in-memory candles."""
+    """Consume blockchain data and update in-memory candles.
+
+    This thread is responsible to fetch event data from blockchain,
+    convert it to trades and then candles.
+    """
 
     last_save = 0
     save_freq = 15
 
     try:
-
         while True:
-
             next_block = time.time() + data_refresh_frequency
 
             if not paused.is_set():
@@ -207,6 +207,7 @@ def start_block_consumer_thread(
                 # Update all candle feeds
                 for candle_feed in candle_feeds.values():
                     candle_feed.apply_delta(delta)
+                    # Save our buffer to disk
                     if time.time() - last_save > save_freq:
                         logger.info("Saving data")
                         store.save_trade_feed(trade_feed)
@@ -231,6 +232,7 @@ def setup_app(
         freq_seconds: float,
         trade_feed: TradeFeed,
         candle_feeds: Dict[str, CandleFeed],
+        candle_choices: Dict[str, Timeframe],
         paused: threading.Event,
         loaded: threading.Event,
 ) -> Dash:
@@ -246,7 +248,7 @@ def setup_app(
 
     reorg_mon: ReorganisationMonitor = trade_feed.reorg_mon
 
-    candle_labels = list(CANDLE_OPTIONS.keys())
+    candle_labels = list(candle_choices.keys())
 
     quote_token = pair.get_quote_token().symbol
 
@@ -403,7 +405,12 @@ def setup_app(
     @app.callback(Output('trades', "data"),
                   Input('interval-component', 'n_intervals'))
     def update_last_trades(n):
+
+        if not loaded.is_set():
+            return
+
         logger.debug("update_last_trades(%d)", n)
+
         # Make trading pair cell to link to Trading Strategy website
         def get_pair_markdown(pair_id: str) -> str:
             # TODO: We are hardcoded to a single pair here
@@ -444,7 +451,7 @@ def setup_app(
                 output[f"Exchange rate USD/{quote_token}"] = df["exchange_rate"]
 
             price = trade_feed.get_latest_price(pair.address.lower())
-            logger.info("Current price is: %s %s/%s", price, pair.get_quote_token().symbol, pair.get_base_token().symbol)
+            # logger.info("Current price is: %s %s/%s", price, pair.get_quote_token().symbol, pair.get_base_token().symbol)
 
             return output.to_dict("records")
         except Exception as e:
@@ -462,7 +469,7 @@ def setup_app(
 
             # Clip candles to our chart width
             # which we think in sensible
-            time_frame = CANDLE_OPTIONS[current_candle_duration]
+            time_frame = candle_choices[current_candle_duration]
             window_width = time_frame.get_default_chart_display_window()
 
             start_time = pd.Timestamp.utcnow() - window_width
@@ -540,6 +547,7 @@ app = typer.Typer(context_settings={
 def main(
         json_rpc_url: str = typer.Option(..., help="Connect to EVM blockchain using this JSON-RPC node URL"),
         pair_address: str = typer.Option(..., help="Address of Uniswap v2 compatible pair contract"),
+        node_performance: NodeOperatingMode = typer.Option("low", help="Address of Uniswap v2 compatible pair contract"),
         log_level: str = typer.Option("info", help="Python logging level"),
         clear_cache: bool = typer.Option(False, is_flag=True, help="Clear the block header and trade disk cache at start"),
 ):
@@ -547,7 +555,10 @@ def main(
 
     Show a price chart of one trading pair with different candle durations.
 
-    By default, the example loads 24 hours worth of data over JSON-RPC connection.
+    In low performance mode loads 2 hours worth of data over JSON-RPC connection.
+
+    In high performance mode loads 72 hours worth of data over JSON-RPC connection.
+
     It may take several minutes depending on your blockchain node setup.
     The script can automatically resume downloading data if it crashes or is shut down.
     """
@@ -560,11 +571,30 @@ def main(
     # No Ethereum checksum addresses
     pair_address = pair_address.lower()
 
+    #: Which candles our app can render
+    match node_performance:
+        case NodeOperatingMode.high_performance:
+            candle_choices = {
+                "1 minute": Timeframe("1min"),
+                "15 minutes": Timeframe("15min"),
+                "1 hour": Timeframe("1h"),
+            }
+            # High perf node can easily server 3 days historical data under 1 min
+            buffer_hours = 3 * 24
+        case NodeOperatingMode.low_performance:
+            candle_choices = {
+                "1 minute": Timeframe("1min"),
+                "5 minutes": Timeframe("5min"),
+            }
+            buffer_hours = 0.5
+        case _:
+            raise NotImplementedError()
+
     # Setup the fake blockchain data generator
     chain_id, data_refresh_frequency, candle_feeds, trade_feed = setup_uniswap_v2_market_data_feeds(
         json_rpc_url,
         pair_address,
-        CANDLE_OPTIONS,
+        candle_choices,
     )
 
     paused = threading.Event()  # Create the paused flag
@@ -581,6 +611,7 @@ def main(
         data_refresh_frequency,
         trade_feed,
         candle_feeds,
+        candle_choices,
         paused,
         loaded
     )
@@ -609,7 +640,7 @@ def main(
 
     # Buffer the block data before starting the GUI application.
     # Display interactive tqdm progress bar.
-    blocks_needed = int(BUFFER_HOURS * 3600 // data_refresh_frequency) + 1
+    blocks_needed = int(buffer_hours * 3600 // data_refresh_frequency) + 1
 
     last_save = 0
     save_frequency = 10
@@ -626,11 +657,16 @@ def main(
             return last_saved_tuple
         return 0, 0
 
-    logger.info("Backfilling trade buffer for %f hours, %d blocks, block time is %f seconds", BUFFER_HOURS, blocks_needed, data_refresh_frequency)
+    logger.info("Backfilling trade buffer for %f hours, %d blocks, %s block time is %f seconds/block",
+                buffer_hours,
+                blocks_needed,
+                chain_id.get_name(),
+                data_refresh_frequency)
+
     delta = trade_feed.backfill_buffer(blocks_needed, tqdm, _save_hook)
     trade_feed.check_current_trades_for_duplicates()
 
-    trade_feed.check_enough_history(pd.Timedelta(hours=BUFFER_HOURS), tolerance=0.75)
+    trade_feed.check_enough_history(pd.Timedelta(hours=buffer_hours), tolerance=0.75)
 
     logger.info("Initialised trade feed: %s", trade_feed)
 
@@ -655,6 +691,7 @@ def main(
     # Start blockchain data processor bg thread
     logger.info("Starting blockchain data consumer, block time is %f seconds", data_refresh_frequency)
 
+    # Start blockchain reader + candle producer thread
     candle_bg_thread = Thread(
         target=start_block_consumer_thread,
         args=(data_refresh_frequency, pair_details, store, trade_feed, candle_feeds, paused))
