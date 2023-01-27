@@ -92,7 +92,7 @@ def create_summary_table(data: dict) -> pd.DataFrame:
     df = pd.DataFrame.from_dict(formatted_data, orient="index")
     # https://pandas.pydata.org/docs/dev/reference/api/pandas.io.formats.style.Styler.hide.html
     df.style.hide(axis="index", names=True)
-    df.style.hide(axis="columns", names=True)
+    df.style.hide(axis="columns", names=False)
     # df.style.hide_columns()
     df.style.set_table_styles([
         {'selector': 'thead', 'props': [('display', 'none')]}

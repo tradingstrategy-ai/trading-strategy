@@ -115,7 +115,7 @@ def make_candle_labels(
             f"Close: {row.close} {price_text}",
         ]
 
-        if row.volume:
+        if "volume" in row.index:
             text += [
                 f"Volume: {row.volume} {volume_text}",
             ]
@@ -125,10 +125,10 @@ def make_candle_labels(
             "",
         ]
 
-        if row.exchange_rate:
+        if "exchange_rate" in row.index:
             text += [f"Exchange rate: {row.exchange_rate} {quote_token_name} / USD", ""]
 
-        if row.buys:
+        if "buys" in row.index:
             text += [
                 f"Buys: {row.buys} txs",
                 f"Sells: {row.sells} txs",

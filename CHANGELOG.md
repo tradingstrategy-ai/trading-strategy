@@ -1,6 +1,29 @@
 # Current
 
+TODO
+
+# 0.11.1
+
+- Add: Make `DEXPair` hashable
+- Fix: Historical candle download for JSONL endpoint - make time ranges to work correctly 
+- Change: Make JSONL cache filenames more descriptive 
+
+# 0.11
+
+- Adding `Client.fetch_trading_data_availability` API
+- Moved `types.py` to properly Python 3.10 TypeAlias system
+
+# 0.10.2 
+
+- Add `TradeSummary.show` to simplify usage in notebooks
+
+# 0.10.1
+
 - Fix missing dependencies because web3-ethereum-defi data extras
+- Fix `make_candle_labels` not working correctly if some keys were not present in the OHCLV DataFrame
+- Add `VolumeBarMode` option to `visualise_ohlcv` to allow different rendering modes for volume bars, in-chart 
+  or outside chart
+- More implementation of direct-to-blockchain node data feeds
 
 # 0.10.0
 

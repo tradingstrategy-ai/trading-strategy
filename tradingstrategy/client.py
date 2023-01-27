@@ -16,15 +16,17 @@ import warnings
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Final, Optional, Set, Union
+from typing import Final, Optional, Set, Union, Collection, Dict
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 import pandas as pd
 from tqdm import TqdmExperimentalWarning
 
+from tradingstrategy.candle import TradingPairDataAvailability
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
+from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.jupyter import is_pyodide
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
@@ -194,7 +196,7 @@ class Client:
         return read_parquet(path)
 
     def fetch_candles_by_pair_ids(self,
-          pair_ids: Set[int],
+          pair_ids: Collection[PrimaryKey],
           bucket: TimeBucket,
           start_time: Optional[datetime.datetime] = None,
           end_time: Optional[datetime.datetime] = None,
@@ -244,6 +246,60 @@ class Client:
             end_time,
             max_bytes=max_bytes,
             progress_bar_description=progress_bar_description,
+        )
+
+    def fetch_trading_data_availability(self,
+          pair_ids: Collection[PrimaryKey],
+          bucket: TimeBucket,
+        ) -> Dict[PrimaryKey, TradingPairDataAvailability]:
+        """Check the trading data availability at oracle's real time market feed endpoint.
+
+        - Trading Strategy oracle uses sparse data format where candles
+          with zero trades are not generated. This is better suited
+          for illiquid DEX markets with few trades.
+
+        - Because of sparse data format, we do not know if there is a last
+          candle available - candle may not be available yet or there might not be trades
+          to generate a candle
+
+        This endpoint allows to check the trading data availability for multiple of trading pairs.
+
+        Example:
+
+        .. code-block:: python
+
+            exchange_universe = client.fetch_exchange_universe()
+            pairs_df = client.fetch_pair_universe().to_pandas()
+
+            # Create filtered exchange and pair data
+            exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+            pair_universe = PandasPairUniverse.create_single_pair_universe(
+                    pairs_df,
+                    exchange,
+                    "WBNB",
+                    "BUSD",
+                    pick_by_highest_vol=True,
+                )
+
+            pair = pair_universe.get_single()
+
+            # Get the latest candle availability for BNB-BUSD pair
+            pairs_availability = client.fetch_trading_data_availability({pair.pair_id}, TimeBucket.m15)
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+        :param time_bucket:
+            Candle time frame
+
+        :return:
+            Map of pairs -> their trading data availability
+
+        """
+        return self.transport.fetch_trading_data_availability(
+            pair_ids,
+            bucket,
         )
 
     def fetch_candle_dataset(self, bucket: TimeBucket) -> Path:
