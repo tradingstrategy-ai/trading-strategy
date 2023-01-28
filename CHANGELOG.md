@@ -1,5 +1,7 @@
 # Current
 
+- Add default HTTP request retry policy to `Client`
+- Add default HTTP user agent to `Client`
 - More direct data feed infrastructure
 
 # 0.11.1

@@ -59,6 +59,7 @@ class CachedHTTPTransport:
         :param retry_policy:
 
             How to handle failed HTTP requests.
+            If not given use the default somewhat graceful retry policy.
         """
 
         self.download_func = download_func
