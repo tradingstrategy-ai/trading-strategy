@@ -4,7 +4,9 @@ import datetime
 import hashlib
 import os
 import pathlib
+import platform
 import re
+from importlib.metadata import version
 from typing import Optional, Callable, Set, Union, Collection, Dict
 import shutil
 import logging
@@ -13,12 +15,14 @@ import pandas
 import pandas as pd
 import requests
 from requests import Response
+from requests.adapters import HTTPAdapter
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey
+from urllib3 import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +46,8 @@ class CachedHTTPTransport:
                  cache_path: Optional[str] = None,
                  api_key: Optional[str] = None,
                  timeout: float = 15.0,
-                 add_exception_hook=True):
+                 add_exception_hook=True,
+                 retry_policy: Optional[Retry]=None):
         """
         :param download_func: Interactive download progress bar displayed during the download
         :param endpoint: API server we are using - default is `https://tradingstrategy.ai/api`
@@ -51,6 +56,9 @@ class CachedHTTPTransport:
         :param api_key: Trading Strategy API key to use download
         :param timeout: requests HTTP lib timeout
         :param add_exception_hook: Automatically raise an error in the case of HTTP error. Prevents auto retries.
+        :param retry_policy:
+
+            How to handle failed HTTP requests.
         """
 
         self.download_func = download_func
@@ -67,7 +75,11 @@ class CachedHTTPTransport:
         else:
             self.cache_path = os.path.expanduser("~/.cache/trading-strategy")
 
-        self.requests = self.create_requests_client(api_key=api_key)
+        self.requests = self.create_requests_client(
+            api_key=api_key,
+            retry_policy=retry_policy,
+            add_exception_hook=add_exception_hook,
+        )
 
         self.api_key = api_key
         self.timeout = timeout
@@ -76,7 +88,10 @@ class CachedHTTPTransport:
         """Release any underlying sockets."""
         self.requests.close()
 
-    def create_requests_client(self, api_key: Optional[str] = None, add_exception_hook=True):
+    def create_requests_client(self,
+                               retry_policy: Optional[Retry]=None,
+                               api_key: Optional[str] = None,
+                               add_exception_hook=True):
         """Create HTTP 1.1 keep-alive connection to the server with optional authorization details.
 
         :param add_exception_hook: Automatically raise an error in the case of HTTP error
@@ -84,8 +99,24 @@ class CachedHTTPTransport:
 
         session = requests.Session()
 
+        # Set up dealing with network connectivity flakey
+        if retry_policy is None:
+            # https://stackoverflow.com/a/35504626/315168
+            retry_policy = Retry(
+                total=5,
+                backoff_factor=0.1,
+                status_forcelist=[ 500, 502, 503, 504 ],
+            )
+            session.mount('http://', HTTPAdapter(max_retries=retry_policy))
+            session.mount('https://', HTTPAdapter(max_retries=retry_policy))
+
         if api_key:
             session.headers.update({'Authorization': api_key})
+
+        package_version = version("trading-strategy")
+        system = platform.system()
+        release = platform.release()
+        session.headers.update({"User-Agent": f"trading-strategy {package_version} on {system} {platform} {release}"})
 
         if add_exception_hook:
             def exception_hook(response: Response, *args, **kwargs):
