@@ -114,10 +114,11 @@ class CachedHTTPTransport:
         if api_key:
             session.headers.update({'Authorization': api_key})
 
+        # - Add default HTTP request retry policy to the client
         package_version = version("trading-strategy")
         system = platform.system()
         release = platform.release()
-        session.headers.update({"User-Agent": f"trading-strategy {package_version} on {system} {platform} {release}"})
+        session.headers.update({"User-Agent": f"trading-strategy {package_version} on {system} {release}"})
 
         if add_exception_hook:
             def exception_hook(response: Response, *args, **kwargs):
