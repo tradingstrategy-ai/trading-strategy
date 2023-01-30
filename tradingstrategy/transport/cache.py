@@ -24,6 +24,7 @@ from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey
 from urllib3 import Retry
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,9 +35,13 @@ class APIError(Exception):
 class CachedHTTPTransport:
     """A HTTP API transport that offers optional local caching of the results.
 
-    - Download live and cached datasets from the candle server and cache locally.
+    - Download live and cached datasets from the candle server and cache locally
+      on the filesystem
 
-    - The download files are very large and expect to need several gigabytes of space for them.
+    - The download files are very large and expect to need several gigabytes of space for them
+
+    - Has a default HTTP retry policy in the case network or server flakiness
+
     """
 
     def __init__(self,
@@ -47,7 +52,7 @@ class CachedHTTPTransport:
                  api_key: Optional[str] = None,
                  timeout: float = 15.0,
                  add_exception_hook=True,
-                 retry_policy: Optional[Retry]=None):
+                 retry_policy: Optional[Retry] = None):
         """
         :param download_func: Interactive download progress bar displayed during the download
         :param endpoint: API server we are using - default is `https://tradingstrategy.ai/api`
