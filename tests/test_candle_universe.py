@@ -8,7 +8,7 @@ from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_ca
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
-from tradingstrategy.reader import read_parquet, read_parquet_pyarrow
+from tradingstrategy.reader import read_parquet_fastparquet, read_parquet_pyarrow
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles
@@ -30,6 +30,10 @@ def test_grouped_candles(persistent_test_client: Client):
     sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
     sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "USDT")
     assert sushi_usdt.get_trading_pair_page_url() == "https://tradingstrategy.ai/trading-view/ethereum/sushi/sushi-usdt"
+
+    import ipdb ; ipdb.set_trace()
+    assert sushi_usdt.pair_id in candle_universe.pairs.groups
+
     sushi_usdt_candles = candle_universe.get_candles_by_pair(sushi_usdt.pair_id)
 
     # Get max and min weekly candle of SUSHI-USDT on SushiSwap
@@ -349,7 +353,7 @@ def test_filter_pyarrow(persistent_test_client: Client):
         # Load everything to Pandas,
         # then filter down
         path = client.fetch_candle_dataset(TimeBucket.h1)
-        df = read_parquet(path)
+        df = read_parquet_fastparquet(path)
         pair = pair_universe.get_single()
         single_pair_candles = df.loc[df["pair_id"] == pair.pair_id]
 

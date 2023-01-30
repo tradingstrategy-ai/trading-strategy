@@ -24,7 +24,7 @@ from tqdm import TqdmExperimentalWarning
 
 from tradingstrategy.candle import TradingPairDataAvailability
 # "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
-from tradingstrategy.reader import BrokenData, read_parquet
+from tradingstrategy.reader import BrokenData, read_parquet_fastparquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.jupyter import is_pyodide
@@ -166,7 +166,7 @@ class Client:
         If the download seems to be corrupted, it will be attempted 3 times.
         """
         path = self.transport.fetch_pair_universe()
-        return read_parquet(path)
+        return read_parquet_fastparquet(path)
 
     def fetch_exchange_universe(self) -> ExchangeUniverse:
         """Fetch list of all exchanges form the :term:`dataset server`.
@@ -192,7 +192,7 @@ class Client:
         If the download seems to be corrupted, it will be attempted 3 times.
         """
         path = self.transport.fetch_candles_all_time(bucket)
-        return read_parquet(path)
+        return read_parquet_fastparquet(path)
 
     def fetch_candles_by_pair_ids(self,
           pair_ids: Collection[PrimaryKey],
@@ -327,7 +327,7 @@ class Client:
         If the download seems to be corrupted, it will be attempted 3 times.
         """
         path = self.transport.fetch_liquidity_all_time(bucket)
-        return read_parquet(path)
+        return read_parquet_fastparquet(path)
 
     def fetch_chain_status(self, chain_id: ChainId) -> dict:
         """Get live information about how a certain blockchain indexing and candle creation is doing."""

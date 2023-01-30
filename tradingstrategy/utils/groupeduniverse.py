@@ -57,6 +57,8 @@ class PairGroupedUniverse:
             # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_index.html
         else:
             self.df = df
+
+        #: pairs is a .DataFrameGroupBy for the raw candle data, using pair as a key
         self.pairs: pd.GroupBy = self.df.groupby(["pair_id"])
         self.timestamp_column = timestamp_column
         self.time_bucket = time_bucket

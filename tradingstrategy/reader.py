@@ -31,7 +31,7 @@ def read_parquet_pyarrow(path: Path, filters: Optional[List[Tuple]]=None) -> "py
 
     .. note ::
 
-        This function has been deprecated in the havour of fastparquet reader.
+        This function has been deprecated in the favour of :py:funct:`read_parquet_fastparquet`.
 
     `For filtering options see Parquet documentation <https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html>`_.
 
@@ -65,12 +65,27 @@ def read_parquet_pyarrow(path: Path, filters: Optional[List[Tuple]]=None) -> "py
     return table
 
 
-def read_parquet(path: Path) -> "pd.DataFrame":
+def read_parquet_fastparquet(path: Path) -> "pd.DataFrame":
     """Read Parquent input file using fastparquet library."
 
     - `More about fastparquet <https://pypi.org/project/fastparquet/>`__
 
+    .. note ::
+
+        We modify the returned Python object to have no-op method
+        `to_pandas()` to make sure we do not break legacy code that
+        was using :py:class:`pyarrow.Table` right away.
+
+    :param path:
+        Local file system path
+
+    :return:
+        The read file as Pandas DataFrame
     """
-    pf = ParquetFile('myfile.parq')
+
+    pf = ParquetFile(path)
     df = pf.to_pandas()
+
+    df.to_pandas = lambda: df
+
     return df

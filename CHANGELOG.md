@@ -1,5 +1,11 @@
 # Current
 
+- Breaking change: Change all methods to return `pandas.DataFrame` were `pyarrow.Table` was used before.
+  We no longer expose `pyarrow` library externally. `pyarrow` has been dropped in favour of `fastparquet`
+  that is used by Pandas internally and that is easier to build for Pyodide. The returned `DataFrame`
+  has been modified to have no-op `DataFrame.to_pandas` method to make sure we do not break
+  any existing code that relied to `pyarrow.Table` like objects be returned from `Client`.
+- add `read_parquet_pyarrow` if there is still need to access raw `pyarrow.Table` reads
 - Add default HTTP request retry policy to `Client`
 - Add default HTTP user agent to `Client`
 - More direct data feed infrastructure
