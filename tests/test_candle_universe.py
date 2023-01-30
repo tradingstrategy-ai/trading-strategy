@@ -8,7 +8,7 @@ from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_ca
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
-from tradingstrategy.reader import read_parquet
+from tradingstrategy.reader import read_parquet, read_parquet_pyarrow
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles
@@ -336,19 +336,20 @@ def test_filter_pyarrow(persistent_test_client: Client):
             pick_by_highest_vol=True,
         )
 
-    method = "filtered_parquet"
+    method = "normal"
 
     # # Load candles for the named pair only
     if method == "filtered_parquet":
         # Load by using Parquet filter functoin
         candle_file = client.fetch_candle_dataset(TimeBucket.h1)
         filter = pair_universe.create_parquet_load_filter()
-        pq = read_parquet(candle_file, filter)
+        pq = read_parquet_pyarrow(candle_file, filter)
         single_pair_candles: pandas.DataFrame = pq.to_pandas()
     else:
         # Load everything to Pandas,
         # then filter down
-        df = client.fetch_candle_dataset(TimeBucket.h1).to_pandas()
+        path = client.fetch_candle_dataset(TimeBucket.h1)
+        df = read_parquet(path)
         pair = pair_universe.get_single()
         single_pair_candles = df.loc[df["pair_id"] == pair.pair_id]
 

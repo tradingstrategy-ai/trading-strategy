@@ -40,9 +40,6 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     import dataclasses_json  # Trigger marsmallow import to supress the warning
 
-import pyarrow
-import pyarrow as pa
-from pyarrow import Table
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.environment.base import Environment, download_with_progress_plain
@@ -68,6 +65,8 @@ def _retry_corrupted_parquet_fetch(method):
     """A helper decorator to down with download/Parquet corruption issues.
 
     Attempt download and read 3 times. If download is corrpted, clear caches.
+
+    TODO: Update to fastparquet exceptions
     """
     # https://stackoverflow.com/a/36944992/315168
     @wraps(method)
@@ -159,7 +158,7 @@ class Client:
         self.transport.purge_cache(filename)
 
     @_retry_corrupted_parquet_fetch
-    def fetch_pair_universe(self) -> pa.Table:
+    def fetch_pair_universe(self) -> pd.DataFrame:
         """Fetch pair universe from local cache or the candle server.
 
         The compressed file size is around 5 megabytes.
@@ -180,7 +179,7 @@ class Client:
                 raise RuntimeError(f"Could not read JSON file {path}") from e
 
     @_retry_corrupted_parquet_fetch
-    def fetch_all_candles(self, bucket: TimeBucket) -> pyarrow.Table:
+    def fetch_all_candles(self, bucket: TimeBucket) -> pd.DataFrame:
         """Get cached blob of candle data of a certain candle width.
 
         The returned data can be between several hundreds of megabytes to several gigabytes
@@ -307,12 +306,15 @@ class Client:
 
         Do not attempt to decode the Parquet file to the memory,
         but instead of return raw
+
+        :return:
+            Path to the Parquet file
         """
         path = self.transport.fetch_candles_all_time(bucket)
         return path
 
     @_retry_corrupted_parquet_fetch
-    def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:
+    def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> pd.DataFrame:
         """Get cached blob of liquidity events of a certain time window.
 
         The returned data can be between several hundreds of megabytes to several gigabytes

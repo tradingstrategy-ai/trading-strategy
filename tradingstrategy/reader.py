@@ -4,8 +4,8 @@ import logging
 from pathlib import Path
 from typing import Optional, List, Tuple
 
-import pyarrow as pa
-from pyarrow import parquet as pq, ArrowInvalid
+import pandas as pd
+from fastparquet import ParquetFile
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class BrokenData(Exception):
         self.path = path
 
 
-def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
+def read_parquet_pyarrow(path: Path, filters: Optional[List[Tuple]]=None) -> "pyarrow.Table":
     """Reads compressed Parquet file of data to memory.
 
     File or stream can describe :py:class:`tradingstrategy.candle.Candle`
@@ -28,6 +28,10 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
     during the read time, so that large dataset files do not need
     to be fully loaded to the memory. This severely reduces
     the RAM usage for low-memory environments when dealing Parquet.
+
+    .. note ::
+
+        This function has been deprecated in the havour of fastparquet reader.
 
     `For filtering options see Parquet documentation <https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html>`_.
 
@@ -40,6 +44,10 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
         Parquet read_table filters.
 
     """
+
+    import pyarrow as pa
+    from pyarrow import parquet as pq, ArrowInvalid
+
     assert isinstance(path, Path), f"Expected path: {path}"
     f = path.as_posix()
     logger.info("Reading Parquet %s", f)
@@ -55,3 +63,14 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
                          path=path) \
                         from e
     return table
+
+
+def read_parquet(path: Path) -> "pd.DataFrame":
+    """Read Parquent input file using fastparquet library."
+
+    - `More about fastparquet <https://pypi.org/project/fastparquet/>`__
+
+    """
+    pf = ParquetFile('myfile.parq')
+    df = pf.to_pandas()
+    return df
