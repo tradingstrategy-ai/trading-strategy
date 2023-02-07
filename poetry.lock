@@ -3297,7 +3297,7 @@ name = "pyarrow"
 version = "10.0.1"
 description = "Python library for Apache Arrow"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "pyarrow-10.0.1-cp310-cp310-macosx_10_14_x86_64.whl", hash = "sha256:e00174764a8b4e9d8d5909b6d19ee0c217a6cf0232c5682e31fdfbd5a9f0ae52"},
@@ -4738,4 +4738,4 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "55c385cb0f1cf5a9c4ce2f266527353f25fe940b75e59cc0806f0d24fe5c65f7"
+content-hash = "4a743363bdbe8d6e7ea49358df8892aa80131fe0196a23ab42103e5b3424915c"

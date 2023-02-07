@@ -4,6 +4,8 @@ import resource
 import pandas
 import pandas as pd
 import pytest
+from fastparquet import ParquetFile
+
 from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
@@ -12,6 +14,38 @@ from tradingstrategy.reader import read_parquet_fastparquet, read_parquet_pyarro
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles
+
+
+
+def test_parquet_reader_sanity_check(persistent_test_client: Client):
+    """Figure out issues when migrating from parrow to fastparquet.
+
+    Check out the read result is the same, because fastparquet
+    initially gives unexpected results.
+    """
+
+    client = persistent_test_client
+
+    path = client.transport.fetch_candles_all_time(TimeBucket.d30)
+    print(path)
+    df1 = read_parquet_fastparquet(path)
+    pf1 = ParquetFile(path)
+
+    df2 = read_parquet_pyarrow(path).to_pandas()
+
+    row_iter_1 = iter(df1.to_dict(orient="records"))
+    row_iter_2 = iter(df2.to_dict(orient="records"))
+
+    row_idx = 0
+    while True:
+        row_1 = next(row_iter_1)
+        row_2 = next(row_iter_2)
+        assert row_1 == row_2, f"Row is different: {row_idx} {row_1} {row_2}"
+        row_idx += 1
+
+    pairs1 = df1["pair_id"].unique()
+    pairs2 = df2["pair_id"].unique()
+    assert len(pairs1) == len(pairs2)
 
 
 def test_grouped_candles(persistent_test_client: Client):
@@ -31,7 +65,6 @@ def test_grouped_candles(persistent_test_client: Client):
     sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "USDT")
     assert sushi_usdt.get_trading_pair_page_url() == "https://tradingstrategy.ai/trading-view/ethereum/sushi/sushi-usdt"
 
-    import ipdb ; ipdb.set_trace()
     assert sushi_usdt.pair_id in candle_universe.pairs.groups
 
     sushi_usdt_candles = candle_universe.get_candles_by_pair(sushi_usdt.pair_id)

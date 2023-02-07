@@ -84,7 +84,13 @@ def read_parquet_fastparquet(path: Path) -> "pd.DataFrame":
     """
 
     pf = ParquetFile(path)
-    df = pf.to_pandas()
+
+    # Deal with row groups
+    dfs = []
+    for df in pf.iter_row_groups():
+        dfs.append(df)
+
+    df = pd.concat(dfs)
 
     df.to_pandas = lambda: df
 

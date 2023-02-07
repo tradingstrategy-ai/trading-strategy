@@ -164,6 +164,14 @@ class Client:
         The compressed file size is around 5 megabytes.
 
         If the download seems to be corrupted, it will be attempted 3 times.
+
+            def fetch_pair_universe(self) -> pa.Table:
+
+        To convert the result to a dataframe:
+
+        .. code-block:: shell
+
+
         """
         path = self.transport.fetch_pair_universe()
         return read_parquet_fastparquet(path)
