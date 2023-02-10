@@ -130,9 +130,9 @@ class CachedHTTPTransport:
                 if response.status_code >= 400:
                     raise APIError(f"Server error reply: code:{response.status_code} message:{response.text}")
 
-        session.hooks = {
-            "response": exception_hook,
-        }
+            session.hooks = {
+                "response": exception_hook,
+            }
         return session
 
     def get_abs_cache_path(self):

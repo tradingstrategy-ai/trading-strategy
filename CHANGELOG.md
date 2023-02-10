@@ -3,6 +3,7 @@
 - Add default HTTP request retry policy to `Client`
 - Add default HTTP user agent to `Client`
 - More direct data feed infrastructure
+- Fix `create_requests_client(add_exception_hook=True)` not working correctly
 
 # 0.11.1
 
