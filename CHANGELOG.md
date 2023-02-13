@@ -4,6 +4,7 @@
 - Add default HTTP user agent to `Client`
 - More direct data feed infrastructure
 - Fix `create_requests_client(add_exception_hook=True)` not working correctly
+- Add `GroupedCandleUniverse.create_from_multiple_candle_datafarames`
 
 # 0.11.1
 

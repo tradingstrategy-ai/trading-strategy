@@ -493,12 +493,20 @@ class PandasPairUniverse:
     def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
         """Look up pair information and return its data.
 
-        :return: Nicely presented :py:class:`DEXPair`.
+        :return:
+            Nicely presented :py:class:`DEXPair`.
+
+            If we do not have an entry for `pair_id`,
+            return None.
         """
 
         if self.pair_map:
             # TODO: Eliminate non-indexed code path?
             data = self.pair_map.get(pair_id)
+
+            if data is None:
+                return None
+
             return DEXPair.from_dict(data)
 
         # TODO: Remove

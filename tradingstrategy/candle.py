@@ -15,7 +15,7 @@ For more information about candles see :term:`candle` in glossary.
 
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, TypedDict
+from typing import List, Optional, Tuple, TypedDict, Collection, Iterable
 
 import pandas as pd
 import pyarrow as pa
@@ -492,7 +492,20 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """
         return GroupedCandleUniverse(df)
 
+    @staticmethod
+    def create_from_multiple_candle_datafarames(dfs: Iterable[pd.DataFrame]) -> "GroupedCandleUniverse":
+        """Construct universe based on multiple trading pairs.
 
+        Useful for synthetic data/testing.
+
+        :param dfs:
+            List of dataframes/series where each trading pair is as isolated
+            OHLCV data feed.
+        """
+        merged = pd.concat(dfs)
+        return GroupedCandleUniverse(merged)
+
+\
 class TradingPairDataAvailability(TypedDict):
     """Trading data avaioilability description for a single pair.
 
