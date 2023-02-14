@@ -706,6 +706,11 @@ class PandasPairUniverse:
 
         chain_id, exchange_slug, base_token, quote_token = desc
 
+        assert isinstance(chain_id, ChainId), f"Not ChainId: {chain_id}"
+        assert type(exchange_slug) == str, f"Not exchange slug: {exchange_slug}"
+        assert type(base_token) == str, f"Not base token string: {base_token}"
+        assert type(quote_token) == str, f"Not quote token string: {quote_token}"
+
         exchange = exchange_universe.get_by_chain_and_slug(chain_id, exchange_slug)
         if exchange is None:
             raise NoPairFound(f"Exchange {exchange_slug} does not exist on chain {chain_id.name}")
