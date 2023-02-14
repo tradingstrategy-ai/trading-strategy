@@ -15,7 +15,7 @@ To download the pairs dataset see
 import logging
 import enum
 from dataclasses import dataclass
-from typing import Optional, List, Iterable, Dict, Union, Set, Tuple
+from typing import Optional, List, Iterable, Dict, Union, Set, Tuple, TypeAlias
 
 import pandas as pd
 import numpy as np
@@ -42,6 +42,20 @@ class NoPairFound(Exception):
 
 class DuplicatePair(Exception):
     """Found multiple trading pairs for the same naive lookup."""
+
+
+
+#: Shorthand method to identify trading pairs when written down by a human.
+#:
+#: This is `(chain, exchange slug, base token, quote token)`.
+#:
+#: Each major trading pair is identifiable as (chain, exchange, base token, quote token tuple).
+#: Note that because there can be multipe tokens and fake tokens with the same name,
+#: we usually refer to the "best" token which is the highest liquidty/volume trading
+#: pair on the particular exchange.
+#:
+HumanReadableTradingPairDescription: TypeAlias = Tuple[ChainId, str, str, str]
+
 
 
 @dataclass_json
@@ -667,6 +681,46 @@ class PandasPairUniverse:
             return DEXPair.from_dict(data)
 
         return None
+
+    def get_pair_by_human_description(self,
+                                      exchange_universe: ExchangeUniverse,
+                                      desc: HumanReadableTradingPairDescription) -> DEXPair:
+        """Get pair by its human readable description.
+
+        Look up a trading pair by chain, exchange, base, quote token tuple.
+
+        See :py:data:`HumanReadableTradingPairDescription` for more information.
+
+        :param exchange_universe:
+            The current database used to decode exchanges.
+
+        :return:
+            The trading pair on the exchange.
+
+            Highest volume trading pair if multiple matches.
+
+        :raise NoPairFound:
+            In the case input data cannot be resolved.
+
+        """
+
+        chain_id, exchange_slug, base_token, quote_token = desc
+
+        exchange = exchange_universe.get_by_chain_and_slug(chain_id, exchange_slug)
+        if exchange is None:
+            raise NoPairFound(f"Exchange {exchange_slug} does not exist on chain {chain_id.name}")
+
+        pair = self.get_one_pair_from_pandas_universe(
+            exchange.exchange_id,
+            base_token,
+            quote_token,
+            pick_by_highest_vol=True,
+        )
+
+        if pair is None:
+            raise NoPairFound(f"Exchange {exchange_slug} does not have a pair {base_token}-{quote_token}")
+
+        return pair
 
     def create_parquet_load_filter(self, count_limit=10_000) -> List[Tuple]:
         """Returns a Parquet loading filter that contains pairs in this universe.
