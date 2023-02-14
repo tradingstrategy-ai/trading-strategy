@@ -691,6 +691,17 @@ class PandasPairUniverse:
 
         See :py:data:`HumanReadableTradingPairDescription` for more information.
 
+        Example:
+
+        .. code-block::
+
+            # Get BNB-BUSD pair on PancakeSwap v2
+            desc = (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD")
+            bnb_busd = pair_universe.get_pair_by_human_description(exchange_universe, desc)
+            assert bnb_busd.base_token_symbol == "WBNB"
+            assert bnb_busd.quote_token_symbol == "BUSD"
+            assert bnb_busd.buy_volume_30d > 1_000_000
+
         :param exchange_universe:
             The current database used to decode exchanges.
 
