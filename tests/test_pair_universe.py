@@ -4,7 +4,7 @@ import pytest
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
-from tradingstrategy.pair import DEXPair, PandasPairUniverse, resolve_pairs_based_on_ticker
+from tradingstrategy.pair import DEXPair, PandasPairUniverse, resolve_pairs_based_on_ticker, NoPairFound
 
 
 @pytest.fixture
@@ -124,5 +124,20 @@ def test_get_token(persistent_test_client):
     assert token.chain_id == ChainId.bsc
 
 
+def test_resolve_based_on_human_description(persistent_test_client):
+    """Human description resolves pairs.."""
 
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    pair_universe = PandasPairUniverse(pairs_df)
 
+    desc = (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD")
+    bnb_busd = pair_universe.get_pair_by_human_description(exchange_universe, desc)
+    assert bnb_busd.base_token_symbol == "WBNB"
+    assert bnb_busd.quote_token_symbol == "BUSD"
+    assert bnb_busd.buy_volume_30d > 1_000_000
+
+    desc = (ChainId.bsc, "pancakeswap-v2", "MIKKO", "BUSD")
+    with pytest.raises(NoPairFound):
+        pair_universe.get_pair_by_human_description(exchange_universe, desc)

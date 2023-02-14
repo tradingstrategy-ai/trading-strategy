@@ -1,6 +1,7 @@
 # Current
 
-- TODO
+- Add `tradingstrategy.pair.HumanReadableTradingPairDescription`
+- Add `PandasPairUniverse.get_pair_by_human_description`
 - 
 # 0.12
 
