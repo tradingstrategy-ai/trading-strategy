@@ -1,5 +1,10 @@
 # Current
 
+- TODO
+
+# 0.12.1
+
+- Better multipair lookup when typing out pair names by hand 
 - Add `tradingstrategy.pair.HumanReadableTradingPairDescription`
 - Add `PandasPairUniverse.get_pair_by_human_description`
 - 
