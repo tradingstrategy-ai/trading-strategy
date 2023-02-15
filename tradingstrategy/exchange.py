@@ -11,7 +11,7 @@ To download the pairs dataset see
 
 import enum
 from dataclasses import dataclass
-from typing import Optional, List, Iterable, Dict
+from typing import Optional, List, Iterable, Dict, Collection
 
 from dataclasses_json import dataclass_json
 
@@ -164,6 +164,12 @@ class ExchangeUniverse:
 
     #: Exchange id -> Exchange data mapping
     exchanges: Dict[PrimaryKey, Exchange]
+
+    @staticmethod
+    def from_collection(exchanges: Collection[Exchange]) -> "ExchangeUniverse":
+        """Create exchange universe from a collection of exchanges."""
+        exchange_dict = {e.exchange_id: e for e in exchanges}
+        return ExchangeUniverse(exchanges=exchange_dict)
 
     def get_by_id(self, id) -> Optional[Exchange]:
         return self.exchanges.get(id)

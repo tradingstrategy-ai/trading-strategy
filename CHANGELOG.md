@@ -2,6 +2,12 @@
 
 - TODO
 
+# 0.12.2
+
+- Add `ExchangeUniverse.from_collection()`
+- Pass `ExchangeUniverse` instance as a part of `Universe.exchange_universe` instead just raw array of
+  of `univer.exchanges`
+
 # 0.12.1
 
 - Better multipair lookup when typing out pair names by hand 

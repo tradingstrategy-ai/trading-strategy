@@ -184,7 +184,9 @@ class PairGroupedUniverse:
                 momentum = (last_candle["close"] - first_candle["open"]) / first_candle["open"] - 1
 
         :param start: start of the range (inclusive)
+
         :param end: end of the range (inclusive)
+
         :return: `DataFrame.groupby` result
         """
         samples = self.get_all_samples_by_range(start, end)

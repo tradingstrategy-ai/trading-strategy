@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trading-strategy"
-version = "0.12.1"
+version = "0.12.2"
 description = "DEX and cryptocurrency trading data for Python - OHCLV, Uniswap, others"
 authors = ["Mikko Ohtamaa <mikko@tradingstrategy.ai>"]
 homepage = "https://tradingstrategy.ai"
