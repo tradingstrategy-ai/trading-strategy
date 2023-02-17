@@ -1,6 +1,6 @@
 # Current
 
-- TODO
+- Improve `CandleSampleUnavailable` error messge further to offer friendly advises how to fix
 
 # 0.12.2
 

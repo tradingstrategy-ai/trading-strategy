@@ -467,7 +467,10 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         raise CandleSampleUnavailable(
             f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
             f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
-            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
+            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
+            f"\n"
+            f"This is usually due to sparse candle data - trades have not been made or the blockchain was halted during the price look-up period.\n"
+            f"Try to increase look back perid in your code."
             )
 
 
