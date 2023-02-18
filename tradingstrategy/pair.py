@@ -729,7 +729,6 @@ class PandasPairUniverse:
                 our_exchange_slug = exchange_universe.get_single().exchange_slug
                 exchange_message = f"The slug of the only exchange we have is {our_exchange_slug}."
             else:
-                exchange_slug = None
                 exchange_message = ""
 
             raise NoPairFound(f"The trading universe does not contain data for the exchange {exchange_slug} on chain {chain_id.name}.\n"
