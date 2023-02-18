@@ -2,6 +2,10 @@
 - 
 - TODO
 
+# 0.12.4
+- 
+- Quick fix on `get_pair_by_human_description` error message
+
 # 0.12.3
 
 - Improve `CandleSampleUnavailable` error messge further to offer friendly advises how to fix
