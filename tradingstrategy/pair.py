@@ -724,7 +724,8 @@ class PandasPairUniverse:
 
         exchange = exchange_universe.get_by_chain_and_slug(chain_id, exchange_slug)
         if exchange is None:
-            raise NoPairFound(f"Exchange {exchange_slug} does not exist on chain {chain_id.name}")
+            raise NoPairFound(f"The trading universe does not contain data for the exchange {exchange_slug} on chain {chain_id.name}.\n"
+                              f"Did you construct the trading universe correctly?")
 
         pair = self.get_one_pair_from_pandas_universe(
             exchange.exchange_id,
@@ -734,7 +735,8 @@ class PandasPairUniverse:
         )
 
         if pair is None:
-            raise NoPairFound(f"Exchange {exchange_slug} does not have a pair {base_token}-{quote_token}")
+            raise NoPairFound(f"Exchange {exchange_slug} does not have a pair {base_token}-{quote_token}.\n"
+                              f"Did you construct the trading universe correctly?")
 
         return pair
 
