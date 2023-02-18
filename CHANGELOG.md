@@ -1,6 +1,11 @@
 # Current
+- 
+- TODO
+
+# 0.12.3
 
 - Improve `CandleSampleUnavailable` error messge further to offer friendly advises how to fix
+- Improve `ExchangeUniverse` interface with more helpful shorthand methods
 
 # 0.12.2
 

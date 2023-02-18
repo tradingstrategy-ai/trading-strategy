@@ -174,6 +174,9 @@ class ExchangeUniverse:
     def get_by_id(self, id) -> Optional[Exchange]:
         return self.exchanges.get(id)
 
+    def get_exchange_count(self) -> int:
+        return len(self.exchanges)
+
     def get_top_exchanges_by_30d_volume(self) -> List[Exchange]:
         """Get top exchanges sorted by their 30d volume.
 
@@ -227,4 +230,16 @@ class ExchangeUniverse:
             if xchg.address.lower() == factory_address:
                 return xchg
         return None
+
+    def get_single(self) -> Exchange:
+        """Get the one and the only exchange in this universe.
+
+        :return:
+            The exchange
+
+        :raise AssertionError:
+            in the case the universe does not contain a single exchange
+        """
+        assert self.get_exchange_count() == 1
+        return next(iter(self.exchanges.values()))
 

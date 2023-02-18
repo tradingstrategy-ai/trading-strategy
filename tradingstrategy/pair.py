@@ -724,8 +724,18 @@ class PandasPairUniverse:
 
         exchange = exchange_universe.get_by_chain_and_slug(chain_id, exchange_slug)
         if exchange is None:
+            # Try to produce very helpful error message
+            if exchange_universe.get_exchange_count() == 1:
+                exchange_slug = exchange_universe.get_single().exchange_slug
+                exchange_message = f"The slug of the only exchange we have is {exchange_slug}."
+            else:
+                exchange_slug = None
+                exchange_message = ""
+
             raise NoPairFound(f"The trading universe does not contain data for the exchange {exchange_slug} on chain {chain_id.name}.\n"
-                              f"Did you construct the trading universe correctly?")
+                              f"Did you construct the trading universe correctly?\n"
+                              f"We have data for {exchange_universe.get_exchange_count()} exchange.\n"
+                              f"{exchange_message}")
 
         pair = self.get_one_pair_from_pandas_universe(
             exchange.exchange_id,
@@ -736,6 +746,7 @@ class PandasPairUniverse:
 
         if pair is None:
             raise NoPairFound(f"Exchange {exchange_slug} does not have a pair {base_token}-{quote_token}.\n"
+                              f"This might be a problem in your data filtering.?"
                               f"Did you construct the trading universe correctly?")
 
         return pair
