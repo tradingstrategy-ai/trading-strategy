@@ -200,13 +200,13 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
 
         .. code-block:: python
 
-            amount, delay = liquidity_universe.get_liquidity_with_tolerance(
+            liquidity_amount, last_trade_delay = liquidity_universe.get_liquidity_with_tolerance(
             sushi_usdt.pair_id,
                 pd.Timestamp("2021-12-31"),
                 tolerance=pd.Timedelta("1y"),
             )
-            assert amount == pytest.approx(2292.4517)
-            assert delay == pd.Timedelta('4 days 00:00:00')
+            assert liquidity_amount == pytest.approx(2292.4517)
+            assert last_trade_delay == pd.Timedelta('4 days 00:00:00')
 
         :param pair_id:
             Trading pair id
@@ -232,8 +232,16 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
 
             Candles are always timestamped by their opening.
 
-        :raise CandleSampleUnavailable:
+        :raise LiquidityDataUnavailable:
+
             There were no samples available with the given condition.
+
+            This can happen when
+
+            - There has not been a single trade yet
+
+            - There hasn't been any trades since `tolerance`
+              time window
 
         """
 
@@ -252,7 +260,12 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
         # TODO: self.timestamp_column is no longer needed after we drop QSTrader support,
         # it is legacy. In the future use hardcoded "timestamp" column name.
         timestamp_column = candles_per_pair[self.timestamp_column]
-        latest_or_equal_sample = candles_per_pair.loc[timestamp_column <= when].iloc[-1]
+
+        try:
+            latest_or_equal_sample = candles_per_pair.loc[timestamp_column <= when].iloc[-1]
+        except IndexError:
+            # No liquidity at all before the timestamp
+            raise LiquidityDataUnavailable(f"Pair {pair_id} does not contain any liquidity samples before {when}")
 
         # Check if the last sample before the cut off is within time range our tolerance
         sample_timestamp = latest_or_equal_sample[self.timestamp_column]

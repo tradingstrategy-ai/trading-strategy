@@ -3,7 +3,7 @@ import pytest
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.liquidity import GroupedLiquidityUniverse
+from tradingstrategy.liquidity import GroupedLiquidityUniverse, LiquidityDataUnavailable
 from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 
@@ -54,6 +54,14 @@ def test_grouped_liquidity(persistent_test_client: Client):
     )
     assert amount == pytest.approx(2292.4517)
     assert delay == pd.Timedelta('4 days 00:00:00')
+
+    # Test that we get a correct exception by asking non-existing timestamp
+    with pytest.raises(LiquidityDataUnavailable):
+        liquidity_universe.get_liquidity_with_tolerance(
+            sushi_usdt.pair_id,
+            pd.Timestamp("1970-01-01"),
+            tolerance=pd.Timedelta("1y"),
+        )
 
 
 def test_combined_candles_and_liquidity(persistent_test_client: Client):
