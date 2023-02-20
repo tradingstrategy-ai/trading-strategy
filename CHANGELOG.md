@@ -1,6 +1,6 @@
 # Current
 - 
-- TODO
+- Add `LiquidityUniverse.get_liquidity_with_tolerance`
 
 # 0.12.4
 - 

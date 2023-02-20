@@ -17,6 +17,10 @@ from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, Pr
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
 
+# Preconstructed pd.Tiemdelta for optimisation
+_ZERO_TIMEDELTA = pd.Timedelta(0)
+
+
 class LiquidityDataUnavailable(Exception):
     """We tried to look up liquidity info for a trading pair, but count not find a sample."""
 
@@ -183,10 +187,113 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
         except KeyError:
             return None
 
+    def get_liquidity_with_tolerance(self,
+                          pair_id: PrimaryKey,
+                          when: pd.Timestamp,
+                          tolerance: pd.Timedelta,
+                          kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
+        """Get the available liquidity for a trading pair at a specific time point/
+
+        The liquidity is defined as one-sided as in :term:`XY liquidity model`.
+
+        Example:
+
+        .. code-block:: python
+
+            amount, delay = liquidity_universe.get_liquidity_with_tolerance(
+            sushi_usdt.pair_id,
+                pd.Timestamp("2021-12-31"),
+                tolerance=pd.Timedelta("1y"),
+            )
+            assert amount == pytest.approx(2292.4517)
+            assert delay == pd.Timedelta('4 days 00:00:00')
+
+        :param pair_id:
+            Trading pair id
+
+        :param when:
+            Timestamp to query
+
+        :param kind:
+            One of OHLC data points: "open", "close", "low", "high"
+
+        :param tolerance:
+            If there is no liquidity sample available at the exact timepoint,
+            look to the past to the get the nearest sample.
+            For example if candle time interval is 5 minutes and look_back_timeframes is 10,
+            then accept a candle that is maximum of 50 minutes before the timepoint.
+
+        :return:
+            Return (price, delay) tuple.
+
+            We always return a price. In the error cases an exception is raised.
+            The delay is the timedelta between the wanted timestamp
+            and the actual timestamp of the candle.
+
+            Candles are always timestamped by their opening.
+
+        :raise CandleSampleUnavailable:
+            There were no samples available with the given condition.
+
+        """
+
+        assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
+
+        last_allowed_timestamp = when - tolerance
+
+        candles_per_pair = self.get_samples_by_pair(pair_id)
+        assert candles_per_pair is not None, f"No candle data available for pair {pair_id}"
+
+        samples_per_kind = candles_per_pair[kind]
+
+        # Look up all the candles before the cut off timestamp.
+        # Assumes data is sorted by timestamp column,
+        # so our "closest time" candles should be the last of this lookup.
+        # TODO: self.timestamp_column is no longer needed after we drop QSTrader support,
+        # it is legacy. In the future use hardcoded "timestamp" column name.
+        timestamp_column = candles_per_pair[self.timestamp_column]
+        latest_or_equal_sample = candles_per_pair.loc[timestamp_column <= when].iloc[-1]
+
+        # Check if the last sample before the cut off is within time range our tolerance
+        sample_timestamp = latest_or_equal_sample[self.timestamp_column]
+
+        distance = when - sample_timestamp
+        assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a timestamp {sample_timestamp} that is newer than asked {when}"
+
+        if sample_timestamp >= last_allowed_timestamp:
+            # Return the chosen price column of the sample
+            return latest_or_equal_sample[kind], distance
+
+        # Try to be helpful with the errors here,
+        # so one does not need to open ipdb to inspect faulty data
+        try:
+            first_sample = candles_per_pair.iloc[0]
+            second_sample = candles_per_pair.iloc[1]
+            last_sample = candles_per_pair.iloc[-1]
+        except KeyError:
+            raise LiquidityDataUnavailable(
+                f"Could not find any liquidity samples for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
+                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
+            )
+
+        raise LiquidityDataUnavailable(
+            f"Could not find any liquidity samples for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
+            f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
+            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
+            f"\n"
+            f"This is usually due to sparse candle data - trades have not been made or the blockchain was halted during the price look-up period.\n"
+            f"Try to increase look back perid in your code."
+            )
+
     def get_closest_liquidity(self, pair_id: PrimaryKey, when: pd.Timestamp, kind="open", look_back_time_frames=5) -> USDollarAmount:
         """Get the available liuqidity for a trading pair at a specific timepoint or some candles before the timepoint.
 
         The liquidity is defined as one-sided as in :term:`XY liquidity model`.
+
+        .. warning::
+
+                This is an early alpha method and has been deprecated.
+                Please use  :py:meth:`get_liquidity_with_tolerance` instead.
 
         :param pair_id: Traing pair id
         :param when: Timestamp to query

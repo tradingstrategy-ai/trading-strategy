@@ -27,7 +27,7 @@ from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, Pr
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
 
-
+# Preconstructed pd.Tiemdelta for optimisation
 _ZERO_TIMEDELTA = pd.Timedelta(0)
 
 
