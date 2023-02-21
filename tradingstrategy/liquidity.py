@@ -462,20 +462,29 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
 
 
 class ResampledLiquidityUniverse:
-    """Backtesting performanec optimised version of liquidity universe.
-
-    - Because liquidity information does not need to be as accurate as pricing information,
-      and a rough estimate of liquidity is enough, we can preconstruct
-      an optimised version of liquidity universe
-
-    - This version of liquidity universe is designed for the maximum speed of
-      :py:meth:`get_liquidity_with_tolerance` with (pair id, timestamp) parameter
-
-    - The speed is achieved by precomputing an upsampled liquidity data.
+    """Backtesting performance optimised version of liquidity universe.
 
     - The class is designed to be used with strategies that trade
       a large number of pairs and picks pairs by their liquidity criteria,
       which varies over time
+
+    - Because liquidity information does not need to be as accurate as pricing information,
+      and a rough estimate of liquidity is enough for most strategies, we can preconstruct
+      an optimised version of liquidity universe
+
+    - This version of liquidity universe is designed for the maximum speed of
+      :py:meth:`get_liquidity_fast` with (pair id, timestamp) parameter
+
+    - Some of the speed is achieved by precomputing upsampling liquidity data
+      to a longer frequency (day, week)
+
+    - Some of the speed is achieved by using extra indexes and memory
+
+    .. note ::
+
+        The resampling itself will take some time, so optimally
+        the resampled data should be stored on-disk cache between different backtest runs
+
     """
 
     def __init__(self,
@@ -512,7 +521,7 @@ class ResampledLiquidityUniverse:
 
             Pandas frequency alias string for the new timeframe duration.
 
-            E.g. `D` for daily.
+            E.g. `1D` for daily.
 
             Must be a fixed frequency e.g. `30D` instead of `M`.
 

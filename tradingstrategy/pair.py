@@ -518,6 +518,7 @@ class PandasPairUniverse:
             return None.
         """
 
+        # First try the cached suing self.pair_map
         if self.pair_map:
             # Convert any pairs in-fly to DEXPair objects and store them.
             # We do not initially construct these objects,
@@ -530,12 +531,14 @@ class PandasPairUniverse:
             if isinstance(data, DEXPair):
                 return data
 
+            # Convert
             obj = DEXPair.from_dict(data)
             self.pair_map[pair_id] = obj
             return obj
 
-        # TODO: Remove
-
+        # We did not build this universe with pair index
+        # Not sure why anyone would really want to do this
+        # maybe eliminate this code path altogether in the future
         df = self.df
 
         pairs: pd.DataFrame = df.loc[df["pair_id"] == pair_id]
