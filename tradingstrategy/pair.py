@@ -59,7 +59,7 @@ HumanReadableTradingPairDescription: TypeAlias = Tuple[ChainId, str, str, str]
 
 
 @dataclass_json
-@dataclass
+@dataclass(slots=True)
 class DEXPair:
     """ Trading pair information for a single pair.
 
@@ -515,13 +515,20 @@ class PandasPairUniverse:
         """
 
         if self.pair_map:
-            # TODO: Eliminate non-indexed code path?
+            # Convert any pairs in-fly to DEXPair objects and store them.
+            # We do not initially construct these objects,
+            # as we do not know what pairs a strategy might access.
             data = self.pair_map.get(pair_id)
 
             if data is None:
                 return None
 
-            return DEXPair.from_dict(data)
+            if isinstance(data, DEXPair):
+                return data
+
+            obj = DEXPair.from_dict(data)
+            self.pair_map[pair_id] = obj
+            return obj
 
         # TODO: Remove
 

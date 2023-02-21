@@ -1,3 +1,12 @@
+# Current
+
+A large impact optimisation update.
+
+- Optimise `PandasPairUniver.get_pair_by_id` to cache full `DEXPair` objects to speed up
+  strategies using large number of trading pairs
+
+- Make `DEXPAir` Python `__slots__` based to make the object property access faster
+
 # 0.12.5
 - 
 - Add `LiquidityUniverse.get_liquidity_with_tolerance`
