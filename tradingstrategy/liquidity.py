@@ -435,12 +435,15 @@ class ResampledLiquidityUniverse:
         grouped_df = new_df.groupby("pair_id")
 
         # https://pandas.pydata.org/docs/reference/api/pandas.core.groupby.DataFrameGroupBy.resample.html
-        resampled_df = grouped_df.resample(resample_period).agg({"value": resample_method}).ffill()
-        # grouper = df.groupby([pd.Grouper(freq='1H'), 'Location'])
+        #
+        # Important to set origin="epoch" here, or otherwise
+        # pd.Timestamp().floor() does not match our range values in get_liquidity_fast()
+        #
+        resampled_df = grouped_df.resample(resample_period, origin="epoch").agg({"value": resample_method}).ffill()
         self.resample_period = resample_period
         self.df: pd.DataFrame = resampled_df
 
-        self.pair_cache = {}
+        self.pair_cache: Dict[PrimaryKey, pd.DataFrame] = {}
 
     def get_samples_by_pair(self, pair_id: int) -> pd.DataFrame:
         """Access and cache the resampled liquidity data per pair."""
@@ -449,7 +452,6 @@ class ResampledLiquidityUniverse:
         if pair_id not in self.pair_cache:
             try:
                 self.pair_cache[pair_id] = self.df.xs(pair_id)
-                import ipdb ; ipdb.set_trace()
             except KeyError as e:
                 raise KeyError(f"Could not find pair for pair_id {pair_id}") from e
         return self.pair_cache[pair_id]
