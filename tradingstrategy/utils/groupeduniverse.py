@@ -73,10 +73,16 @@ class PairGroupedUniverse:
         """Return the number of pairs in this dataset"""
         return len(self.pairs.groups)
 
-    def get_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
+    def get_samples_by_pair(self, pair_id: PrimaryKey) -> pd.DataFrame:
         """Get samples for a single pair.
 
         After the samples have been extracted, set `timestamp` as the index for the data.
+
+        :return:
+            Data frame group
+
+        :raise KeyError:
+            If we do not have data for pair_id
         """
         try:
             pair = self.pairs.get_group(pair_id)

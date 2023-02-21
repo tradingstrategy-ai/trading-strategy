@@ -7,7 +7,7 @@ import pandas as pd
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange, ExchangeUniverse
-from tradingstrategy.liquidity import GroupedLiquidityUniverse
+from tradingstrategy.liquidity import GroupedLiquidityUniverse, ResampledLiquidityUniverse
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 
@@ -39,9 +39,18 @@ class Universe:
     candles: GroupedCandleUniverse
 
     #: Historical liquidity samples.
+    #:
     #: Might not be loaded if the strategy does not need to access
     #: liquidity data.
     liquidity: Optional[GroupedLiquidityUniverse] = None
+
+    #: Historical liquidity samples, resampled for backtesting speed.
+    #:
+    #: As strategies often do not need accurate liquidity information,
+    #: approximation is enough, this resampled liquidity is
+    #: optimised for backtesting speed.
+    #:
+    resampled_liquidity: Optional[ResampledLiquidityUniverse] = None
 
     #: All the exchanges for this strategy
     #:

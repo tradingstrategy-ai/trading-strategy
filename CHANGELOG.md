@@ -7,6 +7,8 @@ A large impact optimisation update.
 
 - Make `DEXPAir` Python `__slots__` based to make the object property access faster
 
+- Added `ResampledLiquidityUniverse` for faster backtesting with liquidity data
+
 # 0.12.5
 - 
 - Add `LiquidityUniverse.get_liquidity_with_tolerance`
