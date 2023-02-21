@@ -522,8 +522,8 @@ class ResampledLiquidityUniverse:
             How to we resample the liquidity
 
         """
-        new_df = df[["timestamp", "pair_id", column]]
-        new_df.rename(columns={column: "value"}, inplace=True)
+        new_df = df[["timestamp", "pair_id"]].copy()
+        new_df["value"] = df[[column]]
         new_df.set_index(new_df["timestamp"], inplace=True, drop=True)
         grouped_df = new_df.groupby("pair_id")
 
@@ -581,16 +581,3 @@ class ResampledLiquidityUniverse:
             return samples.loc[rounded_ts]["value"]
         except KeyError:
             return 0.0
-
-
-class LiquidityUniverseIterator:
-
-    def __init__(self):
-        self.data = {}
-
-    def iterate_to(self, when: pd.Timestamp):
-        pass
-
-    def get_liquidity_by_pair(self, pair_id):
-        pass
-
