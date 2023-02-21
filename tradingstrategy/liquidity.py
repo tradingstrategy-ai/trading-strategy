@@ -6,13 +6,14 @@ and :term:`XY liquidity model`.
 
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Iterable, Tuple
+from typing import List, Optional, Iterable, Tuple, Dict
 
 import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
-from pandas.core.groupby import GroupBy
+from pandas.core.groupby import GroupBy, DataFrameGroupBy
 
+from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
@@ -177,6 +178,16 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
     raw liquidity sample.
     """
 
+    def __init__(self,
+                 df: pd.DataFrame,
+                 time_bucket=TimeBucket.d1,
+                 timestamp_column="timestamp",
+                 index_automatically=True):
+        super().__init__(df, time_bucket, timestamp_column, index_automatically)
+
+        # For fast liquidity lookup
+        self.indexer_cache: Dict[PrimaryKey, int] = {}
+
     def get_liquidity_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
         """Get samples for a single pair.
 
@@ -249,7 +260,122 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
 
         last_allowed_timestamp = when - tolerance
 
-        candles_per_pair = self.get_samples_by_pair(pair_id)
+        try:
+            candles_per_pair = self.get_samples_by_pair(pair_id)
+        except KeyError as e:
+            raise LiquidityDataUnavailable(f"Pair {pair_id} does not contain any liquidity samples at all") from e
+
+        samples_per_kind = candles_per_pair[kind]
+
+        # https://pandas.pydata.org/docs/reference/api/pandas.Index.get_indexer.html
+        # https://stackoverflow.com/questions/71027193/datetimeindex-get-loc-is-deprecated
+        indexer = candles_per_pair.index.get_indexer([when], method="pad")
+
+        if indexer[0] != -1:
+            discrete_ts_idx = indexer[0]
+        else:
+            first_sample = candles_per_pair.index[0]
+            raise LiquidityDataUnavailable(f"Pair {pair_id} does not have data older data than {first_sample}. Tried to look up {when}.")
+
+        sample_timestamp = candles_per_pair.index[discrete_ts_idx]
+
+        latest_value = candles_per_pair.iloc[discrete_ts_idx][kind]
+
+        distance = when - sample_timestamp
+        assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a timestamp {sample_timestamp} that is newer than asked {when}"
+
+        if sample_timestamp >= last_allowed_timestamp:
+            # Return the chosen price column of the sample
+            return latest_value, distance
+
+        # Try to be helpful with the errors here,
+        # so one does not need to open ipdb to inspect faulty data
+        try:
+            first_sample = candles_per_pair.iloc[0]
+            second_sample = candles_per_pair.iloc[1]
+            last_sample = candles_per_pair.iloc[-1]
+        except KeyError:
+            raise LiquidityDataUnavailable(
+                f"Could not find any liquidity samples for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
+                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
+            )
+
+        raise LiquidityDataUnavailable(
+            f"Could not find any liquidity samples for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
+            f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
+            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
+            f"\n"
+            f"This is usually due to sparse candle data - trades have not been made or the blockchain was halted during the price look-up period.\n"
+            f"Try to increase look back perid in your code."
+            )
+
+    def get_liquidity_with_tolerance_old(self,
+                          pair_id: PrimaryKey,
+                          when: pd.Timestamp,
+                          tolerance: pd.Timedelta,
+                          kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
+        """Get the available liquidity for a trading pair at a specific time point/
+
+        The liquidity is defined as one-sided as in :term:`XY liquidity model`.
+
+        Example:
+
+        .. code-block:: python
+
+            liquidity_amount, last_trade_delay = liquidity_universe.get_liquidity_with_tolerance(
+            sushi_usdt.pair_id,
+                pd.Timestamp("2021-12-31"),
+                tolerance=pd.Timedelta("1y"),
+            )
+            assert liquidity_amount == pytest.approx(2292.4517)
+            assert last_trade_delay == pd.Timedelta('4 days 00:00:00')
+
+        :param pair_id:
+            Trading pair id
+
+        :param when:
+            Timestamp to query
+
+        :param kind:
+            One of OHLC data points: "open", "close", "low", "high"
+
+        :param tolerance:
+            If there is no liquidity sample available at the exact timepoint,
+            look to the past to the get the nearest sample.
+            For example if candle time interval is 5 minutes and look_back_timeframes is 10,
+            then accept a candle that is maximum of 50 minutes before the timepoint.
+
+        :return:
+            Return (price, delay) tuple.
+
+            We always return a price. In the error cases an exception is raised.
+            The delay is the timedelta between the wanted timestamp
+            and the actual timestamp of the candle.
+
+            Candles are always timestamped by their opening.
+
+        :raise LiquidityDataUnavailable:
+
+            There were no samples available with the given condition.
+
+            This can happen when
+
+            - There has not been a single trade yet
+
+            - There hasn't been any trades since `tolerance`
+              time window
+
+        """
+
+        assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
+
+        last_allowed_timestamp = when - tolerance
+
+        try:
+            candles_per_pair = self.get_samples_by_pair(pair_id)
+        except KeyError as e:
+            raise LiquidityDataUnavailable(f"Pair {pair_id} does not contain any liquidity samples at all") from e
+
         assert candles_per_pair is not None, f"No candle data available for pair {pair_id}"
 
         samples_per_kind = candles_per_pair[kind]
@@ -261,11 +387,6 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
         # it is legacy. In the future use hardcoded "timestamp" column name.
         timestamp_column = candles_per_pair[self.timestamp_column]
 
-        try:
-            latest_or_equal_sample = candles_per_pair.loc[timestamp_column <= when].iloc[-1]
-        except IndexError:
-            # No liquidity at all before the timestamp
-            raise LiquidityDataUnavailable(f"Pair {pair_id} does not contain any liquidity samples before {when}")
 
         # Check if the last sample before the cut off is within time range our tolerance
         sample_timestamp = latest_or_equal_sample[self.timestamp_column]
@@ -338,3 +459,132 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
     def create_empty() -> "GroupedLiquidityUniverse":
         """Create a liquidity universe without any data."""
         return GroupedLiquidityUniverse(df=XYLiquidity.to_dataframe(), index_automatically=False)
+
+
+class ResampledLiquidityUniverse:
+    """Backtesting performanec optimised version of liquidity universe.
+
+    - Because liquidity information does not need to be as accurate as pricing information,
+      and a rough estimate of liquidity is enough, we can preconstruct
+      an optimised version of liquidity universe
+
+    - This version of liquidity universe is designed for the maximum speed of
+      :py:meth:`get_liquidity_with_tolerance` with (pair id, timestamp) parameter
+
+    - The speed is achieved by precomputing an upsampled liquidity data.
+
+    - The class is designed to be used with strategies that trade
+      a large number of pairs and picks pairs by their liquidity criteria,
+      which varies over time
+    """
+
+    def __init__(self,
+                df: pd.DataFrame,
+                column="close",
+                resample_period=pd.Timedelta("1d"),
+                resample_method="min",
+        ):
+        """Calculate optimised liquidity universe.
+
+        - Only extract the column we are interested in
+
+        - Resample to a smaller  data
+
+        - Resample by the
+
+        .. note::
+
+            For a large number of pairs, resampling will take a long time.
+            You should remove any unnecessary pairs in `df` before creating a resampled version.
+
+        :param df:
+
+            Liquidity dataframe.
+
+            You should prepare this by dropping any unwanted pairs.
+
+        :param column:
+            Which column value we use for the resampled series.
+
+            Defaults to (daily) close liquidity value.
+
+        :param resample_period:
+
+            Pandas frequency alias string for the new timeframe duration.
+
+            E.g. `D` for daily.
+
+            Must be a fixed frequency e.g. `30D` instead of `M`.
+
+            See https://stackoverflow.com/a/35339226/315168
+
+        :param resample_method:
+            How to we resample the liquidity
+
+        """
+        new_df = df[["timestamp", "pair_id", column]]
+        new_df.rename(columns={column: "value"}, inplace=True)
+        new_df.set_index(new_df["timestamp"], inplace=True, drop=True)
+        grouped_df = new_df.groupby("pair_id")
+
+        # https://pandas.pydata.org/docs/reference/api/pandas.core.groupby.DataFrameGroupBy.resample.html
+        resampled_df = grouped_df.resample(resample_period).agg({"value": resample_method}).ffill()
+        # grouper = df.groupby([pd.Grouper(freq='1H'), 'Location'])
+        self.resample_period = resample_period
+        self.df: pd.DataFrame = resampled_df
+
+    def get_samples_by_pair(self, pair_id: int):
+        """How to access resampled data"""
+        # https://stackoverflow.com/a/45563615/315168
+        try:
+            return self.df.xs(pair_id)
+        except KeyError as e:
+            raise KeyError(f"Could not find pair for pair_id {pair_id}") from e
+
+    def get_liquidity_fast(self,
+                      pair_id: PrimaryKey,
+                      when: pd.Timestamp) -> USDollarAmount:
+        """Get the available liquidity for a trading pair at a specific time point.
+
+        The liquidity is read from an upsampled buffer.
+
+        The lookup is fast because any timestamp is rounded down to the nearest frequency full timestamp
+        and looked up there.
+
+        :param pair_id:
+            Trading pair id
+
+        :param when:
+            Timestamp to query
+
+        :return:
+            Return available liquidty or `0` if no liquidity was seen before the timestamp.
+        """
+        assert isinstance(when, pd.Timestamp)
+
+        try:
+            samples = self.get_samples_by_pair(pair_id)
+        except KeyError as e:
+            raise LiquidityDataUnavailable(f"No liquidity data for {pair_id}") from e
+
+        # https://pandas.pydata.org/docs/reference/api/pandas.DatetimeIndex.floor.html
+        # discrete_ts = samples.index.floor(self.resample_period)
+        # https://pandas.pydata.org/docs/reference/api/pandas.Index.get_loc.html
+        try:
+            discrete_ts_idx = samples.index.get_loc(when, method='pad')
+            return samples.iloc[discrete_ts_idx]["value"]
+        except KeyError:
+            return 0.0
+
+
+class LiquidityUniverseIterator:
+
+    def __init__(self):
+        self.data = {}
+
+    def iterate_to(self, when: pd.Timestamp):
+        pass
+
+    def get_liquidity_by_pair(self, pair_id):
+        pass
+

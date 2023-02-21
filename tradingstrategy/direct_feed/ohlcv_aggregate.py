@@ -75,9 +75,12 @@ def resample_trades_into_ohlcv(
         Must have columns `price`, `amount`
 
     :param freq:
-        Pandas frequency string for the candle duration.
 
-        E.g. `1D`
+        Pandas frequency string for the new timeframe duration.
+
+        E.g. `D` for daily.
+
+        See https://stackoverflow.com/a/35339226/315168
 
     :param offset:
         Allows you to "shift" candles

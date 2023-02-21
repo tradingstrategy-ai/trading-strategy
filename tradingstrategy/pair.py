@@ -15,7 +15,7 @@ To download the pairs dataset see
 import logging
 import enum
 from dataclasses import dataclass
-from typing import Optional, List, Iterable, Dict, Union, Set, Tuple, TypeAlias
+from typing import Optional, List, Iterable, Dict, Union, Set, Tuple, TypeAlias, Collection
 
 import pandas as pd
 import numpy as np
@@ -499,6 +499,10 @@ class PandasPairUniverse:
 
     def get_all_pair_ids(self) -> List[PrimaryKey]:
         return self.df["pair_id"].unique()
+
+    def get_pair_ids_by_exchange(self, exchange_id: PrimaryKey):
+        """Get all pair ids on a specific exchange"""
+        return self.df.loc[self.df["exchange_id"] == exchange_id]["pair_id"]
 
     def get_count(self) -> int:
         """How many trading pairs there are."""
@@ -1024,7 +1028,7 @@ class LegacyPairUniverse:
         return filter(lambda p: p.flag_inactive, self.pairs.values())
 
 
-def filter_for_exchanges(pairs: pd.DataFrame, exchanges: List[Exchange]) -> pd.DataFrame:
+def filter_for_exchanges(pairs: pd.DataFrame, exchanges: Collection[Exchange]) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs from a certain exchange.
 
     Useful as a preprocess step for creating :py:class:`tradingstrategy.candle.GroupedCandleUniverse`
