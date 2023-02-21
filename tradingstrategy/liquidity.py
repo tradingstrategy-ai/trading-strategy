@@ -480,11 +480,7 @@ class ResampledLiquidityUniverse:
         except KeyError as e:
             raise LiquidityDataUnavailable(f"No liquidity data for {pair_id}") from e
 
-        # https://pandas.pydata.org/docs/reference/api/pandas.DatetimeIndex.floor.html
-        # discrete_ts = samples.index.floor(self.resample_period)
-        # https://pandas.pydata.org/docs/reference/api/pandas.Index.get_loc.html
         try:
-            # discrete_ts_idx = samples.index.get_loc(when, method='pad')
             rounded_ts = when.floor(self.resample_period)
             return samples.loc[rounded_ts]["value"]
         except KeyError:
