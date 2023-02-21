@@ -481,7 +481,7 @@ class ResampledLiquidityUniverse:
     def __init__(self,
                 df: pd.DataFrame,
                 column="close",
-                resample_period=pd.Timedelta("1d"),
+                resample_period="1D",
                 resample_method="min",
         ):
         """Calculate optimised liquidity universe.
@@ -533,13 +533,18 @@ class ResampledLiquidityUniverse:
         self.resample_period = resample_period
         self.df: pd.DataFrame = resampled_df
 
+        self.pair_cache = {}
+
     def get_samples_by_pair(self, pair_id: int):
         """How to access resampled data"""
         # https://stackoverflow.com/a/45563615/315168
-        try:
-            return self.df.xs(pair_id)
-        except KeyError as e:
-            raise KeyError(f"Could not find pair for pair_id {pair_id}") from e
+
+        if pair_id not in self.pair_cache:
+            try:
+                self.pair_cache[pair_id] = self.df.xs(pair_id)
+            except KeyError as e:
+                raise KeyError(f"Could not find pair for pair_id {pair_id}") from e
+        return self.pair_cache[pair_id]
 
     def get_liquidity_fast(self,
                       pair_id: PrimaryKey,
@@ -571,8 +576,9 @@ class ResampledLiquidityUniverse:
         # discrete_ts = samples.index.floor(self.resample_period)
         # https://pandas.pydata.org/docs/reference/api/pandas.Index.get_loc.html
         try:
-            discrete_ts_idx = samples.index.get_loc(when, method='pad')
-            return samples.iloc[discrete_ts_idx]["value"]
+            # discrete_ts_idx = samples.index.get_loc(when, method='pad')
+            rounded_ts = when.floor(self.resample_period)
+            return samples.loc[rounded_ts]["value"]
         except KeyError:
             return 0.0
 

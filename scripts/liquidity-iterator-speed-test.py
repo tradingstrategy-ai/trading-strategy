@@ -1,4 +1,5 @@
 import datetime
+import sys
 import timeit
 
 import pandas as pd
@@ -27,6 +28,8 @@ raw_liquidity_samples = raw_liquidity_samples.loc[raw_liquidity_samples["pair_id
 liq_uni = GroupedLiquidityUniverse(raw_liquidity_samples)
 
 resampled_liq_uni = ResampledLiquidityUniverse(raw_liquidity_samples)
+
+grouped_by_date = raw_liquidity_samples
 
 # The duration of the backtesting period
 start_at = datetime.datetime(2022, 11, 1)
@@ -57,6 +60,24 @@ def method2():
                 pass
         print(when, "hits", hits)
 
+
+def method3():
+    for when in pd.date_range(start_at, end_at,freq="4h"):
+        hits = 0
+        for pair_id in pair_universe.pair_map.keys():
+            try:
+                sample = resampled_liq_uni.get_liquidity_fast(pair_id, when)
+                hits += 1
+            except LiquidityDataUnavailable:
+                pass
+        print(when, "hits", hits)
+
+
+#import cProfile
+#p = cProfile.Profile()
+#p.runcall(method2)
+#p.print_stats(sort="cumtime")
+#sys.exit(1)
 
 print("Method 2")
 time2 = timeit.timeit(method2, number=1)
