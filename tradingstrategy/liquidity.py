@@ -309,116 +309,6 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
             f"Try to increase look back perid in your code."
             )
 
-    def get_liquidity_with_tolerance_old(self,
-                          pair_id: PrimaryKey,
-                          when: pd.Timestamp,
-                          tolerance: pd.Timedelta,
-                          kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
-        """Get the available liquidity for a trading pair at a specific time point/
-
-        The liquidity is defined as one-sided as in :term:`XY liquidity model`.
-
-        Example:
-
-        .. code-block:: python
-
-            liquidity_amount, last_trade_delay = liquidity_universe.get_liquidity_with_tolerance(
-            sushi_usdt.pair_id,
-                pd.Timestamp("2021-12-31"),
-                tolerance=pd.Timedelta("1y"),
-            )
-            assert liquidity_amount == pytest.approx(2292.4517)
-            assert last_trade_delay == pd.Timedelta('4 days 00:00:00')
-
-        :param pair_id:
-            Trading pair id
-
-        :param when:
-            Timestamp to query
-
-        :param kind:
-            One of OHLC data points: "open", "close", "low", "high"
-
-        :param tolerance:
-            If there is no liquidity sample available at the exact timepoint,
-            look to the past to the get the nearest sample.
-            For example if candle time interval is 5 minutes and look_back_timeframes is 10,
-            then accept a candle that is maximum of 50 minutes before the timepoint.
-
-        :return:
-            Return (price, delay) tuple.
-
-            We always return a price. In the error cases an exception is raised.
-            The delay is the timedelta between the wanted timestamp
-            and the actual timestamp of the candle.
-
-            Candles are always timestamped by their opening.
-
-        :raise LiquidityDataUnavailable:
-
-            There were no samples available with the given condition.
-
-            This can happen when
-
-            - There has not been a single trade yet
-
-            - There hasn't been any trades since `tolerance`
-              time window
-
-        """
-
-        assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
-
-        last_allowed_timestamp = when - tolerance
-
-        try:
-            candles_per_pair = self.get_samples_by_pair(pair_id)
-        except KeyError as e:
-            raise LiquidityDataUnavailable(f"Pair {pair_id} does not contain any liquidity samples at all") from e
-
-        assert candles_per_pair is not None, f"No candle data available for pair {pair_id}"
-
-        samples_per_kind = candles_per_pair[kind]
-
-        # Look up all the candles before the cut off timestamp.
-        # Assumes data is sorted by timestamp column,
-        # so our "closest time" candles should be the last of this lookup.
-        # TODO: self.timestamp_column is no longer needed after we drop QSTrader support,
-        # it is legacy. In the future use hardcoded "timestamp" column name.
-        timestamp_column = candles_per_pair[self.timestamp_column]
-
-
-        # Check if the last sample before the cut off is within time range our tolerance
-        sample_timestamp = latest_or_equal_sample[self.timestamp_column]
-
-        distance = when - sample_timestamp
-        assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a timestamp {sample_timestamp} that is newer than asked {when}"
-
-        if sample_timestamp >= last_allowed_timestamp:
-            # Return the chosen price column of the sample
-            return latest_or_equal_sample[kind], distance
-
-        # Try to be helpful with the errors here,
-        # so one does not need to open ipdb to inspect faulty data
-        try:
-            first_sample = candles_per_pair.iloc[0]
-            second_sample = candles_per_pair.iloc[1]
-            last_sample = candles_per_pair.iloc[-1]
-        except KeyError:
-            raise LiquidityDataUnavailable(
-                f"Could not find any liquidity samples for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
-                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
-            )
-
-        raise LiquidityDataUnavailable(
-            f"Could not find any liquidity samples for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
-            f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
-            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
-            f"\n"
-            f"This is usually due to sparse candle data - trades have not been made or the blockchain was halted during the price look-up period.\n"
-            f"Try to increase look back perid in your code."
-            )
-
     def get_closest_liquidity(self, pair_id: PrimaryKey, when: pd.Timestamp, kind="open", look_back_time_frames=5) -> USDollarAmount:
         """Get the available liuqidity for a trading pair at a specific timepoint or some candles before the timepoint.
 
@@ -479,6 +369,14 @@ class ResampledLiquidityUniverse:
       to a longer frequency (day, week)
 
     - Some of the speed is achieved by using extra indexes and memory
+
+    - Some of the speed is achieved by forward filling any data gaps,
+      so we do not need to worry about the sparse data
+
+    The speedup difference between :py:meth`LiquidityUniverse.get_liquidity_with_tolerance`
+    and py:meth:`get_liquidity_fast` is more than 10x.
+    The practice speed increase for multipair liquidity aware strategy backtest can be
+    2x - 3x.
 
     .. note ::
 
@@ -544,13 +442,14 @@ class ResampledLiquidityUniverse:
 
         self.pair_cache = {}
 
-    def get_samples_by_pair(self, pair_id: int):
-        """How to access resampled data"""
+    def get_samples_by_pair(self, pair_id: int) -> pd.DataFrame:
+        """Access and cache the resampled liquidity data per pair."""
         # https://stackoverflow.com/a/45563615/315168
 
         if pair_id not in self.pair_cache:
             try:
                 self.pair_cache[pair_id] = self.df.xs(pair_id)
+                import ipdb ; ipdb.set_trace()
             except KeyError as e:
                 raise KeyError(f"Could not find pair for pair_id {pair_id}") from e
         return self.pair_cache[pair_id]
