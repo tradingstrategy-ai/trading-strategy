@@ -1,6 +1,8 @@
 """Test the speed of different methods to read liquidity data."""
 
 import datetime
+import datetime
+import sys
 import timeit
 
 import pandas as pd
@@ -60,6 +62,7 @@ def method2():
             except LiquidityDataUnavailable:
                 pass
         print(when, "hits", hits)
+
 
 
 #import cProfile

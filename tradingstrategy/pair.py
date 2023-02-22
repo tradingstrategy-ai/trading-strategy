@@ -542,16 +542,9 @@ class PandasPairUniverse:
                 # as we do not know what pairs a strategy might access.
                 data = self.pair_map.get(pair_id)
 
-                if data is None:
-                    return None
-
-                if isinstance(data, DEXPair):
-                    return data
-
-                # Construct full object (slow)
-                obj = DEXPair.from_dict(data)
-                self.dex_pair_obj_cache[pair_id] = obj
-
+            # Convert
+            obj = DEXPair.from_dict(data)
+            self.pair_map[pair_id] = obj
             return obj
 
         # We did not build this universe with pair index
