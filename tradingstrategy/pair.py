@@ -519,6 +519,10 @@ class PandasPairUniverse:
     def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
         """Look up pair information and return its data.
 
+        Uses a cached path. Constructing :py:class:`DEXPair`
+        objects is a bit slow, so this is a preferred method
+        if you need to access multiple pairs in a hot loop.
+
         :return:
             Nicely presented :py:class:`DEXPair`.
 
@@ -580,7 +584,7 @@ class PandasPairUniverse:
         address = address.lower()
         assert self.smart_contract_map, "You need to build the index to use this function"
         data = self.smart_contract_map.get(address)
-        return DEXPair.from_dict(data)
+        return self.get_pair_by_id(data["pair_id"])
 
     def get_token(self, address: str) -> Optional[Token]:
         """Get a token that is part of any trade pair.
