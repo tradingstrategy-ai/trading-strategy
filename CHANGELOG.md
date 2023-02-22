@@ -1,5 +1,9 @@
 # Current
 
+- TODO
+
+# 0.13
+
 A large impact optimisation update.
 
 - Optimise `PandasPairUniver.get_pair_by_id` to cache full `DEXPair` objects to speed up
@@ -8,6 +12,8 @@ A large impact optimisation update.
 - Make `DEXPAir` Python `__slots__` based to make the object property access faster
 
 - Added `ResampledLiquidityUniverse` for faster backtesting with liquidity data
+
+- Allow different granularity of OHLCV and liquidity data in `Universe`
 
 # 0.12.5
 - 
