@@ -1,3 +1,6 @@
+"""Test the speed of different methods to read liquidity data."""
+
+import datetime
 import datetime
 import sys
 import timeit
@@ -60,17 +63,6 @@ def method2():
                 pass
         print(when, "hits", hits)
 
-
-def method3():
-    for when in pd.date_range(start_at, end_at,freq="4h"):
-        hits = 0
-        for pair_id in pair_universe.pair_map.keys():
-            try:
-                sample = resampled_liq_uni.get_liquidity_fast(pair_id, when)
-                hits += 1
-            except LiquidityDataUnavailable:
-                pass
-        print(when, "hits", hits)
 
 
 #import cProfile
