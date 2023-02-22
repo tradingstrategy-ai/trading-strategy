@@ -460,9 +460,17 @@ class PandasPairUniverse:
         assert isinstance(df, pd.DataFrame)
         self.df = df.set_index(df["pair_id"])
 
-        #: pair_id -> DEXPair mappings
+        #: pair_id -> raw dict data mappings
+        #:
+        #: Constructed in one pass from Pandas DataFrame.
+        #:
         #: Don't access directly, use :py:meth:`iterate_pairs`.
         self.pair_map: Dict[int, dict] = {}
+
+        #: pair_id -> constructed DEXPair cache
+        #:
+        #: Don't access directly, use :py:meth:`iterate_pairs`.
+        self.dex_pair_obj_cache: Dict[int, DEXPair] = {}
 
         # pair smart contract address -> DEXPair
         self.smart_contract_map = {}
@@ -476,8 +484,8 @@ class PandasPairUniverse:
 
     def iterate_pairs(self) -> Iterable[DEXPair]:
         """Iterate over all pairs in this universe."""
-        for p in self.pair_map.values():
-            yield DEXPair.from_dict(p)
+        for pair_id in self.pair_map.keys():
+            yield self.get_pair_by_id(pair_id)
 
     def build_index(self):
         """Create pair_id -> data mapping.
@@ -518,22 +526,28 @@ class PandasPairUniverse:
             return None.
         """
 
-        # First try the cached suing self.pair_map
+        # First try the cached paths
         if self.pair_map:
-            # Convert any pairs in-fly to DEXPair objects and store them.
-            # We do not initially construct these objects,
-            # as we do not know what pairs a strategy might access.
-            data = self.pair_map.get(pair_id)
 
-            if data is None:
-                return None
+            # First try object cache
+            obj = self.dex_pair_obj_cache.get(pair_id)
+            if not obj:
 
-            if isinstance(data, DEXPair):
-                return data
+                # Convert any pairs in-fly to DEXPair objects and store them.
+                # We do not initially construct these objects,
+                # as we do not know what pairs a strategy might access.
+                data = self.pair_map.get(pair_id)
 
-            # Convert
-            obj = DEXPair.from_dict(data)
-            self.pair_map[pair_id] = obj
+                if data is None:
+                    return None
+
+                if isinstance(data, DEXPair):
+                    return data
+
+                # Construct full object (slow)
+                obj = DEXPair.from_dict(data)
+                self.dex_pair_obj_cache[pair_id] = obj
+
             return obj
 
         # We did not build this universe with pair index
