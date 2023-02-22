@@ -14,12 +14,28 @@ from tradingstrategy.timebucket import TimeBucket
 
 @dataclass
 class Universe:
-    """Set up trading universe.
+    """Trading universe description.
 
     Encapsulates all the data we need to make trading decisions.
-    This includes blockchains, exchanges, trading pairs, etc.
+    A trading strategy or a research notebook can use this
+    class to pass around information of its available data.
+
+    This includes
+
+    - blockchains
+
+    - exchanges
+
+    - trading pairs
+
+    - OHLCV data
+
+    - Liquidity data
+
+    - Data timeframes (see :py:attr:`time_bucket`)
     """
 
+    #: OHLCV data granularity
     time_bucket: TimeBucket
 
     #: List of blockchains the strategy trades on
@@ -37,6 +53,9 @@ class Universe:
 
     #: Historical candles for the decision making
     candles: GroupedCandleUniverse
+
+    #: Liquidity data granularity
+    liquidity_time_bucket: Optional[TimeBucket] = None
 
     #: Historical liquidity samples.
     #:
