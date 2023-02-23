@@ -44,6 +44,18 @@ class DuplicatePair(Exception):
     """Found multiple trading pairs for the same naive lookup."""
 
 
+#: Data needed to identify a trading pair with human description.
+#:
+#: This is `(chain, exchange slug, base token, quote token)`.
+FeelessPair: TypeAlias = Tuple[ChainId, str, str, str]
+
+#: Data needed to identify a trading pair with human description.
+#:
+#: A version that can sepearate different fee variants.
+#:
+#: This is `(chain, exchange slug, base token, quote token, pool fee)`.
+FeePair: TypeAlias = Tuple[ChainId, str, str, str, float]
+
 
 #: Shorthand method to identify trading pairs when written down by a human.
 #:
@@ -54,7 +66,7 @@ class DuplicatePair(Exception):
 #: we usually refer to the "best" token which is the highest liquidty/volume trading
 #: pair on the particular exchange.
 #:
-HumanReadableTradingPairDescription: TypeAlias = Tuple[ChainId, str, str, str]
+HumanReadableTradingPairDescription: TypeAlias = FeePair | FeelessPair
 
 
 
@@ -451,11 +463,22 @@ class PandasPairUniverse:
 
     """
 
-    def __init__(self, df: pd.DataFrame, build_index=True):
+    def __init__(self,
+                 df: pd.DataFrame,
+                 build_index=True,
+                 exchange_universe: Optional[ExchangeUniverse]=None):
         """
-        :param df: The source DataFrame that contains all DEXPair entries
+        :param df:
+            The source DataFrame that contains all DEXPair entries
 
-        :param build_index: Build quick lookup index for pairs
+        :param build_index:
+            Build quick lookup index for pairs
+
+        :param exchange_universe:
+            Optional exchange universe needed for human-readable pair lookup.
+
+            We cannot properly resolve pairs unless we can map exchange names to their ids.
+            Currently optional, only needed by `get_pair()`.
         """
         assert isinstance(df, pd.DataFrame)
         self.df = df.set_index(df["pair_id"])
@@ -505,11 +528,16 @@ class PandasPairUniverse:
         self.pair_map = self.df.T.to_dict()
         self.smart_contract_map = {d["address"].lower(): d for d in self.pair_map.values()}
 
-    def get_all_pair_ids(self) -> List[PrimaryKey]:
+    def get_all_pair_ids(self) -> Collection[PrimaryKey]:
+        """Get all pair ids in the data frame."""
         return self.df["pair_id"].unique()
 
-    def get_pair_ids_by_exchange(self, exchange_id: PrimaryKey):
-        """Get all pair ids on a specific exchange"""
+    def get_pair_ids_by_exchange(self, exchange_id: PrimaryKey) -> pd.DataFrame:
+        """Get all pair ids on a specific exchange.
+
+        :return:
+            Raw slide of DataFrame
+        """
         return self.df.loc[self.df["exchange_id"] == exchange_id]["pair_id"]
 
     def get_count(self) -> int:
@@ -706,6 +734,36 @@ class PandasPairUniverse:
             return DEXPair.from_dict(data)
 
         return None
+
+    def get_pair(self,
+                 chain_id: ChainId,
+                 exchange_slug: str,
+                 base_token: str,
+                 quote_token: str,
+                 fee_tier: Optional[float] = None
+                 ) -> DEXPair:
+        """Get a pair by its description.
+
+        The simplest way to access pairs in the pair universe.
+
+        To use this method, we must include `exchange_universe` in the :py:meth:`__init__`
+        as otherwise we do not have required look up tables.
+
+        :return:
+            The trading pair on the exchange.
+
+            Highest volume trading pair if multiple matches.
+
+        :raise NoPairFound:
+            In the case input data cannot be resolved.
+        """
+
+        if fee_tier:
+            desc = (chain_id, exchange_slug, base_token, quote_token, fee_tier)
+        else:
+            desc = (chain_id, exchange_slug, base_token, quote_token,)
+
+        return self.get_pair_by_human_description(desc)
 
     def get_pair_by_human_description(self,
                                       exchange_universe: ExchangeUniverse,
