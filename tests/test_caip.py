@@ -1,6 +1,6 @@
 import pytest
 
-from tradingstrategy.caip import ChainAddressTuple, BadAddress
+from tradingstrategy.caip import BadAddress, ChainAddressTuple
 from tradingstrategy.chain import ChainId
 
 
@@ -32,13 +32,23 @@ def test_bsc():
     assert c.get_name() == "Binance Smart Chain"
     assert c.get_slug() == "binance"
 
+
 def test_avalanche():
     c = ChainId(43114)
     assert c.get_name() == "Avalanche C-chain"
     assert c.get_slug() == "avalanche"
 
 
+def test_arbitrum():
+    c = ChainId(42161)
+    assert c.get_name() == "Arbitrum One"
+    assert c.get_slug() == "arbitrum"
+
+
 def test_resolve_by_slug():
     c = ChainId.get_by_slug("binance")
     assert c.value == 56
+
+    c = ChainId.get_by_slug("arbitrum")
+    assert c.value == 42161
 
