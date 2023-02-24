@@ -2,6 +2,10 @@
 
 - TODO
 
+# 0.13.1
+
+- Support Arbitrum L2 in `ChainId` class
+
 # 0.13
 
 A large impact optimisation update.
