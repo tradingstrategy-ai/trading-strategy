@@ -11,11 +11,11 @@ as the submodule for the Python package. This data is used to populate some :py:
 data.
 """
 
-import os
 import enum
 import json
+import os
 import threading
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 #: In-process cached chain data, so we do not need to hit FS every time we access
 _chain_data: Dict[int, dict] = {}
@@ -128,6 +128,9 @@ class ChainId(enum.IntEnum):
 
     #: Avalanche C-chain id
     avalanche = 43114
+
+    #: Arbitrum One id
+    arbitrum = 42161
 
     #: Ethereum Classic chain id.
     #: This is also the value used by EthereumTester in unit tests.
@@ -255,10 +258,19 @@ _CHAIN_DATA_OVERRIDES = {
     # 
     # Avalanche
     #
-    43114: {
+    ChainId.avalanche.value: {
         "name": "Avalanche C-chain",
         "slug": "avalanche",
-        "svg_icon": "https://cryptologos.cc/logos/avalanche-avax-logo.svg", # TODO
+        "svg_icon": "https://cryptologos.cc/logos/avalanche-avax-logo.svg",
+    },
+
+    # 
+    # Arbitrum
+    #
+    ChainId.arbitrum.value: {
+        "name": "Arbitrum One",
+        "slug": "arbitrum",
+        "svg_icon": "https://offchainlabs.com/wp-content/themes/offchain/images/home/arbitrum/arbirtum_logo.svg",
     },
 
     #
