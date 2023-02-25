@@ -2,6 +2,11 @@
 
 - TODO
 
+# 0.13.2
+
+- Same as 0.13.1 - fixing broken release
+
+
 # 0.13.1
 
 - Support Arbitrum L2 in `ChainId` class
