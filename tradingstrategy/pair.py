@@ -52,6 +52,8 @@ FeelessPair: TypeAlias = Tuple[ChainId, str, str, str]
 #: Data needed to identify a trading pair with human description.
 #:
 #: A version that can sepearate different fee variants.
+#: This is all Uniswap v3 pairs, as a single exchange
+#: supports the same pair with different pools having different fees.
 #:
 #: This is `(chain, exchange slug, base token, quote token, pool fee)`.
 FeePair: TypeAlias = Tuple[ChainId, str, str, str, float]
