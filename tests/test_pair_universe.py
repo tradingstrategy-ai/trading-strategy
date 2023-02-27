@@ -141,3 +141,22 @@ def test_resolve_based_on_human_description(persistent_test_client):
     desc = (ChainId.bsc, "pancakeswap-v2", "MIKKO", "BUSD")
     with pytest.raises(NoPairFound):
         pair_universe.get_pair_by_human_description(exchange_universe, desc)
+
+
+def test_get_pair(persistent_test_client):
+    """Human description get_pair() resolves pairs."""
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    bnb_busd = pair_universe.get_pair(
+        ChainId.bsc,
+        "pancakeswap-v2",
+        "WBNB",
+        "BUSD"
+    )
+    assert bnb_busd.base_token_symbol == "WBNB"
+    assert bnb_busd.quote_token_symbol == "BUSD"
+    assert bnb_busd.buy_volume_30d > 1_000_000
