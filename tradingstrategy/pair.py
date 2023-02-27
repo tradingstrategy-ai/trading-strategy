@@ -505,6 +505,8 @@ class PandasPairUniverse:
         if build_index:
             self.build_index()
 
+        self.exchange_universe = exchange_universe
+
     def iterate_pairs(self) -> Iterable[DEXPair]:
         """Iterate over all pairs in this universe."""
         for pair_id in self.pair_map.keys():
@@ -758,12 +760,22 @@ class PandasPairUniverse:
             In the case input data cannot be resolved.
         """
 
+        assert isinstance(chain_id, ChainId)
+        assert type(exchange_slug) == str
+        assert type(base_token) == str
+        assert type(quote_token) == str
+
+        if fee_tier is not None:
+            assert type(quote_token) == float
+
+        assert self.exchange_universe is not None, "You need to set exchange_universe argument in the construction to use this method"
+
         if fee_tier:
             desc = (chain_id, exchange_slug, base_token, quote_token, fee_tier)
         else:
             desc = (chain_id, exchange_slug, base_token, quote_token,)
 
-        return self.get_pair_by_human_description(desc)
+        return self.get_pair_by_human_description(self.exchange_universe, desc)
 
     def get_pair_by_human_description(self,
                                       exchange_universe: ExchangeUniverse,
