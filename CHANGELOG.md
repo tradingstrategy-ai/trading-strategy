@@ -1,17 +1,19 @@
 # Current
 
-- TODO
+- Add `PandasPairUniverse.get_pair(chain_id, exchange_id, base_token, quote_token)` for simplified 
+  pair access
+- Support passing `exchange_universe` in `PandasPairUniverse` construction, so we have all metadata
+  needed to look up pairs
 
 # 0.13.2
-
+- 
 - Same as 0.13.1 - fixing broken release
-
 
 # 0.13.1
 
 - Support Arbitrum L2 in `ChainId` class
 
-# 0.13
+# 0.13.1
 
 A large impact optimisation update.
 
@@ -20,9 +22,13 @@ A large impact optimisation update.
 
 - Make `DEXPAir` Python `__slots__` based to make the object property access faster
 
-- Added `ResampledLiquidityUniverse` for faster backtesting with liquidity data
+- Added `ResampledLiquidityUniverse` for faster backtesting with luidity data
 
 - Allow different granularity of OHLCV and liquidity data in `Universe`
+
+# 0.13
+
+- Release failed
 
 # 0.12.5
 - 
