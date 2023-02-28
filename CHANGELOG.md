@@ -1,4 +1,4 @@
-# Current
+# 0.13.3
 
 - Add `GroupedCandleUniverse.get_last_entries_by_pair_and_timestamp(pair_id, timestamp)` for simplified 
   candle data access
