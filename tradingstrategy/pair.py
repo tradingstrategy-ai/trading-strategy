@@ -628,14 +628,15 @@ class PandasPairUniverse:
 
         token: Optional[Token] = None
 
+        assert len(self.pair_map) > 0, "This method can be only used with in-memory pair index"
+
         if address not in self.token_cache:
-            for pair_data in self.pair_map.values():
-                if pair_data["token0_address"] == address:
-                    p = DEXPair.from_dict(pair_data)
+            for pair_id in self.pair_map.keys():
+                p = self.get_pair_by_id(pair_id)
+                if p.token0_address == address:
                     token = Token(p.chain_id, p.token0_symbol, p.token0_address, p.token0_decimals)
                     break
-                elif pair_data["token1_address"] == address:
-                    p = DEXPair.from_dict(pair_data)
+                elif p.token1_address == address:
                     token = Token(p.chain_id, p.token1_symbol, p.token1_address, p.token1_decimals)
                     break
             self.token_cache[address] = token
@@ -651,8 +652,8 @@ class PandasPairUniverse:
 
         """
         tokens = set()
-        for pair_data in self.pair_map.values():
-            p = DEXPair.from_dict(pair_data)
+        for pair_id in self.pair_map.keys():
+            p = self.get_pair_by_id(pair_id)
             tokens.add(self.get_token(p.base_token_address))
             tokens.add(self.get_token(p.quote_token_address))
         return tokens
@@ -676,9 +677,10 @@ class PandasPairUniverse:
             a random pair is returned.g
 
         """
-        for pair in self.pair_map.values():
-            if pair["base_token_symbol"] == base_token_symbol and pair["quote_token_symbol"] == quote_token_symbol:
-                return DEXPair.from_dict(pair)
+        for pair_id in self.pair_map.keys():
+            pair = self.get_pair_by_id(pair_id)
+            if pair.base_token_symbol == base_token_symbol and pair.quote_token_symbol == quote_token_symbol:
+                return pair
         return None
 
     def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str, pick_by_highest_vol=False) -> Optional[DEXPair]:

@@ -1,9 +1,12 @@
 # Current
 
+- Add `GroupedCandleUniverse.get_last_entries_by_pair_and_timestamp(pair_id, timestamp)` for simplified 
+  candle data access
 - Add `PandasPairUniverse.get_pair(chain_id, exchange_id, base_token, quote_token)` for simplified 
   pair access
 - Support passing `exchange_universe` in `PandasPairUniverse` construction, so we have all metadata
   needed to look up pairs
+- Fixes to various token data accessor
 
 # 0.13.2
 - 
