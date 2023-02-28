@@ -90,6 +90,35 @@ class PairGroupedUniverse:
             raise KeyError(f"No OHLC samples for pair id {pair_id} in {self}") from e
         return pair
 
+    def get_last_entries_by_pair_and_timestamp(self,
+            pair_id: PrimaryKey,
+            timestamp: pd.Timestamp,
+            small_time=pd.Timedelta(seconds=1),
+        ) -> pd.DataFrame:
+        """Get samples for a single pair before a timestamp.
+
+        Return a DataFrame slice containing all datapoints before the timestamp.
+
+        :param pair_id:
+            Integer id for a trading pair
+
+        :param timestamp:
+            Get all samples excluding this timestamp.
+
+        :return:
+            Dataframe that contains samples for a single trading pair.
+
+            Indexed by timestamp.
+
+        :raise KeyError:
+            If we do not have data for pair_id
+        """
+        pair_candles = self.get_samples_by_pair(pair_id)
+        # Watch out for inclusive timestamp
+        # https://stackoverflow.com/questions/49962417/why-does-loc-have-inclusive-behavior-for-slices
+        adjusted_timestamp = timestamp - small_time
+        return pair_candles.loc[:adjusted_timestamp]
+
     def get_all_pairs(self) -> Iterable[Tuple[PrimaryKey, pd.DataFrame]]:
         """Go through all liquidity samples, one DataFrame per trading pair."""
         for pair_id, data in self.pairs:

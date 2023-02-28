@@ -299,6 +299,39 @@ def test_candle_upsample(persistent_test_client: Client):
     assert len(monthly_candles) <= len(single_pair_candles) / 4
 
 
+def test_candle_get_last_entries(persistent_test_client: Client):
+    """Get candles before a certain timestamp."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    columnar_pair_table = client.fetch_pair_universe()
+    pairs_df = columnar_pair_table.to_pandas()
+
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+
+    pair_universe = PandasPairUniverse.create_single_pair_universe(
+            pairs_df,
+            exchange,
+            "WBNB",
+            "BUSD",
+            pick_by_highest_vol=True,
+        )
+
+    pair = pair_universe.get_single()
+    raw_candles = client.fetch_all_candles(TimeBucket.d7).to_pandas()
+    candle_universe = GroupedCandleUniverse(raw_candles)
+
+    candles = candle_universe.get_last_entries_by_pair_and_timestamp(
+        pair.pair_id,
+        pd.Timestamp("2022-01-01"),
+    )
+    last = candles.iloc[-1]
+    assert last["timestamp"] == pd.Timestamp("2021-12-27")
+    assert last["pair_id"] == pair.pair_id
+
+
+
 @pytest.mark.skip(reason="This test currently downloads a 3.4G parquet and load it to RAM, TODO: move to manual test")
 def test_filter_pyarrow(persistent_test_client: Client):
     """Filter loaded pyarrow files without loading them fully to the memory.
