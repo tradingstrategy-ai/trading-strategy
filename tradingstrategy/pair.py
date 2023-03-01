@@ -1180,10 +1180,11 @@ def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -
     return our_pairs
 
 def resolve_pairs_based_on_ticker(
-        df: pd.DataFrame,
-        chain_id: ChainId,
-        exchange_slug: str,
-        pair_tickers: Set[Tuple[str, str]],
+    df: pd.DataFrame,
+    chain_id: ChainId,
+    exchange_slug: str,
+    pair_tickers: set[tuple[str, str] | tuple[str, str, BasisPoint]],
+    sorting_criteria: str = "buy_volume_all_time",
 ) -> pd.DataFrame:
     """Resolve symbolic trading pairs to their internal integer primary key ids.
 
@@ -1249,9 +1250,18 @@ def resolve_pairs_based_on_ticker(
     # Create list of conditions to filter out dataframe,
     # one condition per pair
     conditions = []
-    for base, quote in pair_tickers:
-        condition = (df["base_token_symbol"].str.lower() == base.lower()) & \
-                    (df["quote_token_symbol"].str.lower() == quote.lower())
+    for base, quote, *fee in pair_tickers:
+        condition = (
+            (df["base_token_symbol"].str.lower() == base.lower())
+            & (df["quote_token_symbol"].str.lower() == quote.lower())
+            & (df["exchange_slug"].str.lower() == exchange_slug.lower())
+            & (df["chain_id"] == chain_id.value)
+        )
+
+        # also filter by pair fee if pair ticker specifies it
+        if len(fee) > 0:
+            condition &= (df["fee"] == fee[0])
+
         conditions.append(condition)
 
     # OR call conditions together
@@ -1260,19 +1270,20 @@ def resolve_pairs_based_on_ticker(
 
     # Sort by the buy volume as a preparation
     # for the scam filter
-    df_matches = df_matches.sort_values(by="buy_volume_all_time", ascending=False)
+    df_matches = df_matches.sort_values(by=sorting_criteria, ascending=False)
 
     result_pair_ids = set()
 
     # Scam filter.
     # Pick the tokens by the highest buy volume to the result map.
-    for test_pair in pair_tickers:
-        for idx, row in df_matches.iterrows():
-            if row["base_token_symbol"] == test_pair[0] and \
-               row["quote_token_symbol"] == test_pair[1] and \
-               row["exchange_slug"] == exchange_slug:
-                    result_pair_ids.add(row["pair_id"])
-                    break
+    for base, quote, *_ in pair_tickers:
+        for _, row in df_matches.iterrows():
+            if (
+                row["base_token_symbol"] == base
+                and row["quote_token_symbol"] == quote
+            ):
+                result_pair_ids.add(row["pair_id"])
+                break
 
     result_df = df.loc[df["pair_id"].isin(result_pair_ids)]
     return result_df
