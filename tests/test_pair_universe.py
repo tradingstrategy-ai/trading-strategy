@@ -100,6 +100,26 @@ def test_resolve_pairs_based_on_ticker(persistent_test_client):
     assert wbnb_busd["buy_volume_30d"] > 0
 
 
+def test_resolve_pairs_based_on_ticker_with_fee(persistent_test_client):
+    """Check that we can find multiple pairs with specified fee."""
+
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    tickers = {
+        ("WETH", "USDC", 5),
+        ("DAI", "USDC"),
+    }
+
+    filtered_pairs_df = resolve_pairs_based_on_ticker(
+        pairs_df,
+        ChainId.ethereum,
+        "uniswap-v3",
+        tickers
+    )
+
+    assert len(filtered_pairs_df) == 2
+
 def test_get_token(persistent_test_client):
     """Check that we can decode token information fom pair data."""
 
