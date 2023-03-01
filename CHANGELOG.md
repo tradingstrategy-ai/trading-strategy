@@ -1,3 +1,8 @@
+# 0.13.4
+
+- Improve `resolve_pairs_based_on_ticker()` to be able to filter pairs with specified fee. Change 
+default sorting criteria `buy_volume_all_time` to be function argument for more flexible filtering
+
 # 0.13.3
 
 - Add `GroupedCandleUniverse.get_last_entries_by_pair_and_timestamp(pair_id, timestamp)` for simplified 
@@ -23,7 +28,7 @@ A large impact optimisation update.
 - Optimise `PandasPairUniver.get_pair_by_id` to cache full `DEXPair` objects to speed up
   strategies using large number of trading pairs
 
-- Make `DEXPAir` Python `__slots__` based to make the object property access faster
+- Make `DEXPair` Python `__slots__` based to make the object property access faster
 
 - Added `ResampledLiquidityUniverse` for faster backtesting with luidity data
 
