@@ -50,7 +50,7 @@ def validate_ohclv_dataframe(candles: pd.DataFrame):
         candles.index.name not in {"date", "timestamp"} and \
         not ({"date", "timestamp"}).issubset(candles.columns)
     ):
-        raise BadOHLCVData("OHLCV DataFrame lacks date index or column")
+        raise BadOHLCVData("OHLCV DataFrame lacks date/timestamp index or column")
 
     for r in required_columns:
         if r not in candles.columns:
