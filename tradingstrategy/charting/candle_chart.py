@@ -40,7 +40,18 @@ class VolumeBarMode(enum.Enum):
 
 
 def validate_ohclv_dataframe(candles: pd.DataFrame):
+    """Ensures that ohclv dataframe contains valid data:
+    1. Must either contain an index or column named date or timestamp
+    2. Must contain columns named open, close, high, and low"""
+
     required_columns = ["open", "close", "high", "low"]
+
+    if (
+        candles.index.name not in {"date", "timestamp"} and \
+        not ({"date", "timestamp"}).issubset(candles.columns)
+    ):
+        raise BadOHLCVData("OHLCV DataFrame lacks date index or column")
+
     for r in required_columns:
         if r not in candles.columns:
             raise BadOHLCVData(f"OHLCV DataFrame lacks column: {r}, has {candles.columns}")
