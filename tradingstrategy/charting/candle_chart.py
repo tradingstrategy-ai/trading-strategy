@@ -40,7 +40,7 @@ class VolumeBarMode(enum.Enum):
 
 
 def validate_ohclv_dataframe(candles: pd.DataFrame):
-    required_columns = ["timestamp", "open", "close", "high", "low"]
+    required_columns = ["open", "close", "high", "low"]
     for r in required_columns:
         if r not in candles.columns:
             raise BadOHLCVData(f"OHLCV DataFrame lacks column: {r}, has {candles.columns}")
