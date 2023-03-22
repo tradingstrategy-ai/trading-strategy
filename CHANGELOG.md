@@ -2,6 +2,11 @@
 
 - Improve `validate_ohclv_dataframe()` to check for date/timestamp index as well as column
 
+# 0.13.5
+
+- Fixes for filtering by `chain_id` in `ExchangeUniverse`
+
+
 # 0.13.4
 
 - Improve `resolve_pairs_based_on_ticker()` to be able to filter pairs with specified fee. Change 

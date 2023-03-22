@@ -200,7 +200,7 @@ class ExchangeUniverse:
         name = name.lower()
         assert isinstance(chain_id, ChainId)
         for xchg in self.exchanges.values():
-            if xchg.name.lower() == name.lower():
+            if xchg.name.lower() == name.lower() and xchg.chain_id == chain_id:
                 return xchg
         return None
 
@@ -213,7 +213,7 @@ class ExchangeUniverse:
         """
         assert isinstance(chain_id, ChainId)
         for xchg in self.exchanges.values():
-            if xchg.exchange_slug == slug:
+            if xchg.exchange_slug == slug and xchg.chain_id == chain_id:
                 return xchg
         return None
 
@@ -227,7 +227,7 @@ class ExchangeUniverse:
         assert isinstance(chain_id, ChainId)
         factory_address = factory_address.lower()
         for xchg in self.exchanges.values():
-            if xchg.address.lower() == factory_address:
+            if xchg.address.lower() == factory_address and xchg.chain_id == chain_id:
                 return xchg
         return None
 
