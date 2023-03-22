@@ -327,6 +327,23 @@ class Client:
         path = self.transport.fetch_liquidity_all_time(bucket)
         return read_parquet(path)
 
+    @_retry_corrupted_parquet_fetch
+    def fetch_all_lending_protocol_reserves(self) -> Table:
+        """Get a cached blob of lending protocol reserve events and precomupted stats.
+
+        The returned data can be between several hundreds of megabytes to several
+        gigabytes in size, and is cached locally.
+
+        Note that at present the only available data is for the AAVE v3 lending
+        protocol.
+
+        The returned data is saved in a PyArrow Parquet format.
+
+        If the download seems to be corrupted, it will be attempted 3 times.
+        """
+        path = self.transport.fetch_reserves_data_all_time()
+        return read_parquet(path)
+
     def fetch_chain_status(self, chain_id: ChainId) -> dict:
         """Get live information about how a certain blockchain indexing and candle creation is doing."""
         return self.transport.fetch_chain_status(chain_id.value)

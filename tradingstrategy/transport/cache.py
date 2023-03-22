@@ -296,6 +296,20 @@ class CachedHTTPTransport:
         self.save_response(path, "liquidity-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading liquidity data for {bucket.value} time bucket")
         return self.get_cached_item(path)
 
+    def fetch_reserves_data_all_time(self) -> pathlib.Path:
+        fname = f"reserves-all.parquet"
+        cached = self.get_cached_item(fname)
+        if cached:
+            return cached
+        # Download save the file
+        path = self.get_cached_file_path(fname)
+
+        # We only have AAVE v3 data for now...
+        self.save_response(
+            path, "aave-v3-all", human_readable_hint=f"Downloading AAVE v3 reserve data"
+        )
+        return self.get_cached_item(path)
+
     def ping(self) -> dict:
         reply = self.get_json_response("ping")
         return reply
