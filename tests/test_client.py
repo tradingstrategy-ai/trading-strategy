@@ -109,6 +109,14 @@ def test_client_download_all_liquidity_samples(client: Client, cache_path: str):
     assert len(df) > 100
 
 
+def test_client_download_all_lending_protocol_reserves(client: Client, cache_path: str):
+    """Download all available data on lending protocol reserves."""
+    df = client.fetch_all_lending_protocol_reserves()
+    # Check we cached the file correctly
+    assert os.path.exists(f"{cache_path}/reserves-all.parquet")
+    assert len(df) > 100
+
+
 def test_client_convert_all_pairs_to_pandas(client: Client, cache_path: str):
     """We can convert the columnar Pyarrow data to Pandas format.
 
