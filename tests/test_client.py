@@ -113,7 +113,7 @@ def test_client_download_all_lending_protocol_reserves(client: Client, cache_pat
     """Download all available data on lending protocol reserves."""
     df = client.fetch_all_lending_protocol_reserves()
     # Check we cached the file correctly
-    assert os.path.exists(f"{cache_path}/aave-v3-all.parquet")
+    assert os.path.exists(f"{cache_path}/reserves-all.parquet")
     assert len(df) > 100
 
 
