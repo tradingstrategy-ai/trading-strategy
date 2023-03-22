@@ -6,7 +6,6 @@
 
 # 0.13.5
 
-- Improve `validate_ohclv_dataframe()` to check for date/timestamp index as well as column
 - Fixes for filtering by `chain_id` in `ExchangeUniverse`
 
 
