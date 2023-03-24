@@ -219,7 +219,7 @@ _CHAIN_DATA_OVERRIDES = {
     # BSC
     #
     56: {
-        "name": "Binance Smart Chain",
+        "name": "BNB Smart Chain",
         # Deployed on Arweave for good
         "slug": "binance",
         "svg_icon": "https://hv4gxzchk24cqfezebn3ujjz6oy2kbtztv5vghn6kpbkjc3vg4rq.arweave.net/fgp9wHyH92hION8E6CuPtUNbmiTlqsl23QbQlwA8cZQ",

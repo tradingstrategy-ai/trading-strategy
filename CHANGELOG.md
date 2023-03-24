@@ -1,6 +1,6 @@
 # Current
 
-- TODO
+- Rename "Binance Smart Chain" to "BNB Smart Chain"
 
 # 0.13.6
 
