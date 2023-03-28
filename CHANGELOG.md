@@ -1,3 +1,7 @@
+# 0.13.7
+
+- Silence pandas warning in `PairGroupedUniverse.get_pair_ids()`
+
 # 0.13.6
 
 - Add a new method `Client.fetch_all_lending_protocol_reserves()` for fetching data on
