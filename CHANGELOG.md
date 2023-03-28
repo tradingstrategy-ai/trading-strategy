@@ -2,6 +2,10 @@
 
 - Silence pandas warning in `PairGroupedUniverse.get_pair_ids()`
 
+# Current
+
+- Rename "Binance Smart Chain" to "BNB Smart Chain"
+
 # 0.13.6
 
 - Add a new method `Client.fetch_all_lending_protocol_reserves()` for fetching data on
@@ -11,7 +15,6 @@
 # 0.13.5
 
 - Fixes for filtering by `chain_id` in `ExchangeUniverse`
-
 
 # 0.13.4
 
