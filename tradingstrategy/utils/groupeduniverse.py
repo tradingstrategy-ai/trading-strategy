@@ -1,6 +1,7 @@
 """Helpers to create Pandas dataframes for per-pair analytics."""
 
 import logging
+import warnings
 from typing import Optional, Tuple, Iterable
 
 import pandas as pd
@@ -126,8 +127,15 @@ class PairGroupedUniverse:
 
     def get_pair_ids(self) -> Iterable[PrimaryKey]:
         """Get all pairs present in the dataset"""
-        for pair_id, data in self.pairs:
-            yield pair_id
+        with warnings.catch_warnings():
+            # FutureWarning: In a future version of pandas, a length 1 tuple will be returned when 
+            # iterating over a groupby with a grouper equal to a list of length 1. 
+            # Don't supply a list with a single grouper to avoid this warning.
+            
+            warnings.simplefilter("ignore")
+        
+            for pair_id, data in self.pairs:
+                yield pair_id
 
     def get_all_samples_by_timestamp(self, ts: pd.Timestamp) -> pd.DataFrame:
         """Get list of candles/samples for all pairs at a certain timepoint.
