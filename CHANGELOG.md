@@ -1,5 +1,6 @@
 # 0.13.8
 
+- Match dependencies and Python version pindowns with Web3.py 6.0
 - Adding [Ethereum Tester](https://github.com/ethereum/eth-tester/) chain id 
 
 # 0.13.7
