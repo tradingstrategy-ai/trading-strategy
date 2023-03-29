@@ -29,7 +29,7 @@ def test_chain_homepage():
 
 def test_bsc():
     c = ChainId(56)
-    assert c.get_name() == "Binance Smart Chain"
+    assert c.get_name() == "BNB Smart Chain"
     assert c.get_slug() == "binance"
 
 

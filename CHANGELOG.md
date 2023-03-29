@@ -1,5 +1,6 @@
-# Current
+# 0.13.7
 
+- Silence pandas warning in `PairGroupedUniverse.get_pair_ids()`
 - Rename "Binance Smart Chain" to "BNB Smart Chain"
 
 # 0.13.6
