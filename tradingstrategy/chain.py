@@ -290,6 +290,17 @@ _CHAIN_DATA_OVERRIDES = {
     },
 
     #
+    # Ethreum tester
+    #
+    ChainId.ethereum_tester.value: {
+        "name": "Unknown",
+        "slug": "unknown",
+        "svg_icon": None,
+        "active": False,
+        "dataless": True,
+    },
+
+    #
     # Unknown
     #
     ChainId.unknown.value: {
