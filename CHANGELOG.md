@@ -1,3 +1,7 @@
+# 0.13.8
+
+- Adding [Ethereum Tester](https://github.com/ethereum/eth-tester/) chain id 
+
 # 0.13.7
 
 - Silence pandas warning in `PairGroupedUniverse.get_pair_ids()`
