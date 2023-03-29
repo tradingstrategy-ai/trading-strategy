@@ -13,8 +13,8 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-# Scipy compatibility
-# https://stackoverflow.com/questions/71764027/numpy-installation-fails-when-installing-through-poetry-on-m1-and-macos/71764028#71764028
+# Web3.py dependency compatibility
+# E.g. ethpm
 python = ">=3.10,<3.11"
 dataclasses-json = "^0.5.4"
 pandas = "^1.3.5"
