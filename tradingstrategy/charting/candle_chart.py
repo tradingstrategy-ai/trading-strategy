@@ -328,8 +328,9 @@ def _get_volume_grid(
         fig = make_subplots(
             rows = num_detached_indicators + 1,
             cols = 1,
-            specs=specs
-            )
+            specs=specs,
+            shared_xaxes=True
+        )
 
         if volume_bars is not None:
             # If overlayed, we need to add volume first
@@ -342,7 +343,10 @@ def _get_volume_grid(
         specs.insert(0, [{"secondary_y": is_secondary_y}])
         
         # No volume
-        return make_subplots(specs=[[{"secondary_y": is_secondary_y}]])
+        return make_subplots(
+            specs=[[{"secondary_y": is_secondary_y}]],
+            shared_xaxes=True,
+        )
     
     else:
         raise ValueError(f"Unknown volume bar mode: {volume_bar_mode}")
