@@ -230,7 +230,7 @@ def visualise_ohlcv(
         hoverinfo="text",
     )
 
-    is_secondary_y = _get_secondary_y(volume_bar_mode)
+    
     
     if "volume" in candles.columns:
         volume_bars = go.Bar(
@@ -249,7 +249,6 @@ def visualise_ohlcv(
         volume_bars, 
         volume_bar_mode, 
         volume_axis_name, 
-        is_secondary_y, 
         num_detached_indicators
     )
 
@@ -297,9 +296,10 @@ def _get_volume_grid(
     volume_bars, 
     volume_bar_mode: bool, 
     volume_axis_name: str, 
-    is_secondary_y: bool,
     num_detached_indicators: int) -> go.Figure:
     """Get subplot grid, with volume information, based on the volume bar mode"""
+    
+    is_secondary_y = _get_secondary_y(volume_bar_mode)
     
     if volume_bar_mode == VolumeBarMode.separate:
         # If separate, we need to use detached subplots
@@ -322,10 +322,13 @@ def _get_volume_grid(
     elif volume_bar_mode == VolumeBarMode.overlay:
         # If overlayed (or hidden), we need to use secondary Y axis
         # Add 1 row for price
+        specs = [[{}] for _ in range(num_detached_indicators)]
+        specs.insert(0, [{"secondary_y": is_secondary_y}])
+        
         fig = make_subplots(
             rows = num_detached_indicators + 1,
             cols = 1,
-            specs=[[{"secondary_y": is_secondary_y}]]
+            specs=specs
             )
 
         if volume_bars is not None:
@@ -335,6 +338,9 @@ def _get_volume_grid(
         return fig
     
     elif volume_bar_mode == VolumeBarMode.hidden:
+        specs = [[{}] for _ in range(num_detached_indicators)]
+        specs.insert(0, [{"secondary_y": is_secondary_y}])
+        
         # No volume
         return make_subplots(specs=[[{"secondary_y": is_secondary_y}]])
     
