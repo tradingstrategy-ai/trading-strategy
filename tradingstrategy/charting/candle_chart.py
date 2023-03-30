@@ -252,7 +252,7 @@ def visualise_ohlcv(
         num_detached_indicators
     )
 
-    # Set chart core options
+    # Set overall chart layout
     _set_chart_core_options(chart_name, y_axis_name, height, theme, fig)
     
     # Add candlesticks last since we want them on top if overlayed
