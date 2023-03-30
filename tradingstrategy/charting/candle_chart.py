@@ -300,54 +300,69 @@ def _get_volume_grid(
     """Get subplot grid, with volume information, based on the volume bar mode"""
     
     is_secondary_y = _get_secondary_y(volume_bar_mode)
+
+    vertical_spacing = 0.05
     
     if volume_bar_mode == VolumeBarMode.separate:
         # If separate, we need to use detached subplots
+
+        row_heights = [0.2 for _ in range(num_detached_indicators+1)]
+        row_heights.insert(0, 0.7)
+
         # https://stackoverflow.com/a/65997291/315168
         # Add two rows for volume and price
         fig = make_subplots(
             rows=num_detached_indicators + 2,
             cols=1,
             shared_xaxes=True,
-            vertical_spacing=0.1,
-            row_width=[0.2, 0.7],
+            vertical_spacing=vertical_spacing,
+            row_heights=[0],
         )
-        
+
         if volume_bars is not None:
             # https://stackoverflow.com/a/65997291/315168
             _update_separate_volume(volume_bars, volume_axis_name, fig)
-        
+
         return fig
-    
+
     elif volume_bar_mode == VolumeBarMode.overlay:
         # If overlayed (or hidden), we need to use secondary Y axis
         # Add 1 row for price
         specs = [[{}] for _ in range(num_detached_indicators)]
         specs.insert(0, [{"secondary_y": is_secondary_y}])
+
+        row_heights = [0.2 for _ in range(num_detached_indicators)]
+        row_heights.insert(0, 0.7)
         
         fig = make_subplots(
             rows = num_detached_indicators + 1,
             cols = 1,
             specs=specs,
-            shared_xaxes=True
+            shared_xaxes=True,
+            row_heights=[0.9, 0.1, 0.1],
+            vertical_spacing=vertical_spacing,
         )
 
         if volume_bars is not None:
             # If overlayed, we need to add volume first
             _update_overlay_volume(volume_bars, volume_axis_name, fig)
-        
+
         return fig
-    
+
     elif volume_bar_mode == VolumeBarMode.hidden:
         specs = [[{}] for _ in range(num_detached_indicators)]
         specs.insert(0, [{"secondary_y": is_secondary_y}])
         
+        row_heights = [0.2 for _ in range(num_detached_indicators)]
+        row_heights.insert(0, 0.7)
+
         # No volume
         return make_subplots(
             specs=[[{"secondary_y": is_secondary_y}]],
             shared_xaxes=True,
+            vertical_spacing=vertical_spacing,
         )
-    
+
     else:
         raise ValueError(f"Unknown volume bar mode: {volume_bar_mode}")
 
