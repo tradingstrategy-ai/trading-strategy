@@ -165,9 +165,10 @@ def visualise_ohlcv(
         volume_bar_colour: str = "rgba(128,128,128,0.5)",
         volume_bar_mode = VolumeBarMode.overlay,
         labels: Optional[pd.Series] = None,
-        num_detached_indicators: int = 0,
-        vertical_spacing: float = 0.05,
-        relative_sizing: list[float]  = None
+        num_detached_indicators: Optional[int] = 0,
+        vertical_spacing: Optional[float] = 0.05,
+        relative_sizing: Optional[list[float]]  = None,
+        subplot_names: Optional[list[str]] = None,
 ) -> go.Figure:
     """Draw a candlestick chart.
 
@@ -219,12 +220,16 @@ def visualise_ohlcv(
     :param relative_sizing:
         Sizing of subplots relative to the main price chart. 
         Price chart is regarded as 1.0, so subplots should be smaller than 1.0.
+    
+    :param subplot_names:
+        Names of subplots. Used as titles for subplots.
 
     :return:
         Plotly figure object
     """
 
-    assert num_detached_indicators == len(relative_sizing)
+    # sanity checks
+    assert num_detached_indicators == len(relative_sizing) == len(subplot_names)
     
     validate_ohclv_dataframe(candles)
 
@@ -267,7 +272,8 @@ def visualise_ohlcv(
         volume_axis_name, 
         num_detached_indicators,
         vertical_spacing,
-        relative_sizing
+        relative_sizing,
+        subplot_names,
     )
     
     # Set chart core options
@@ -289,10 +295,6 @@ def _set_chart_core_options(chart_name, y_axis_name, height, theme, fig):
         fig.update_layout(
             title=chart_name,
         )
-
-    #fig.update_yaxes(secondary_y=False, showgrid=True)
-    if y_axis_name:
-        fig.update_yaxes(title=y_axis_name)
 
     # Range slider is not very user friendly so just
     # disable it for now
@@ -316,7 +318,8 @@ def _get_volume_grid(
     volume_axis_name: str, 
     num_detached_indicators: int,
     vertical_spacing: float,
-    relative_sizing: list[float]
+    relative_sizing: list[float],
+    subplot_names: list[str]
 ) -> go.Figure:
     """Get subplot grid, with volume information, based on the volume bar mode"""
     
@@ -324,6 +327,9 @@ def _get_volume_grid(
     
     if not all(relative_sizing):
         relative_sizing = None
+    
+    # blank subplot name for the main price chart
+    subplot_names.insert(0, None)
 
     if volume_bar_mode == VolumeBarMode.separate:
         # If separate, we need to use detached subplots
@@ -369,6 +375,7 @@ def _get_volume_grid(
             shared_xaxes=True,
             row_heights=row_heights,
             vertical_spacing=vertical_spacing,
+            row_titles=subplot_names
         )
 
         if volume_bars is not None:
