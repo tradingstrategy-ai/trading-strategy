@@ -163,6 +163,7 @@ def visualise_ohlcv(
         volume_bar_mode = VolumeBarMode.overlay,
         labels: Optional[pd.Series] = None,
         num_detached_indicators: int = 0,
+        vertical_spacing: float = 0.05,
 ) -> go.Figure:
     """Draw a candlestick chart.
 
@@ -204,6 +205,12 @@ def visualise_ohlcv(
         Tooltip labels for candles.
 
         See :py:func:`make_candle_labels`
+    
+    :param num_detached_indicators:
+        Number of indicators that will be drawn as separate charts.
+    
+    :param vertical_spacing:
+        Vertical spacing between charts.
 
     :return:
         Plotly figure object
@@ -231,7 +238,6 @@ def visualise_ohlcv(
     )
 
     
-    
     if "volume" in candles.columns:
         volume_bars = go.Bar(
                 x=candles.index,
@@ -249,10 +255,11 @@ def visualise_ohlcv(
         volume_bars, 
         volume_bar_mode, 
         volume_axis_name, 
-        num_detached_indicators
+        num_detached_indicators,
+        vertical_spacing
     )
 
-    # Set overall chart layout
+    # Set chart core options
     _set_chart_core_options(chart_name, y_axis_name, height, theme, fig)
     
     # Add candlesticks last since we want them on top if overlayed
@@ -296,18 +303,18 @@ def _get_volume_grid(
     volume_bars, 
     volume_bar_mode: bool, 
     volume_axis_name: str, 
-    num_detached_indicators: int) -> go.Figure:
+    num_detached_indicators: int,
+    vertical_spacing: float
+) -> go.Figure:
     """Get subplot grid, with volume information, based on the volume bar mode"""
     
     is_secondary_y = _get_secondary_y(volume_bar_mode)
 
-    vertical_spacing = 0.05
-    
     if volume_bar_mode == VolumeBarMode.separate:
         # If separate, we need to use detached subplots
 
         row_heights = [0.2 for _ in range(num_detached_indicators+1)]
-        row_heights.insert(0, 0.7)
+        row_heights.insert(0, 1)
 
         # https://stackoverflow.com/a/65997291/315168
         # Add two rows for volume and price
@@ -316,7 +323,7 @@ def _get_volume_grid(
             cols=1,
             shared_xaxes=True,
             vertical_spacing=vertical_spacing,
-            row_heights=[0],
+            row_heights=row_heights,
         )
 
         if volume_bars is not None:
@@ -332,14 +339,14 @@ def _get_volume_grid(
         specs.insert(0, [{"secondary_y": is_secondary_y}])
 
         row_heights = [0.2 for _ in range(num_detached_indicators)]
-        row_heights.insert(0, 0.7)
+        row_heights.insert(0, 1)
         
         fig = make_subplots(
             rows = num_detached_indicators + 1,
             cols = 1,
             specs=specs,
             shared_xaxes=True,
-            row_heights=[0.9, 0.1, 0.1],
+            row_heights=row_heights,
             vertical_spacing=vertical_spacing,
         )
 
@@ -354,13 +361,14 @@ def _get_volume_grid(
         specs.insert(0, [{"secondary_y": is_secondary_y}])
         
         row_heights = [0.2 for _ in range(num_detached_indicators)]
-        row_heights.insert(0, 0.7)
+        row_heights.insert(0, 1)
 
         # No volume
         return make_subplots(
             specs=[[{"secondary_y": is_secondary_y}]],
             shared_xaxes=True,
             vertical_spacing=vertical_spacing,
+            row_heights=row_heights,
         )
 
     else:
