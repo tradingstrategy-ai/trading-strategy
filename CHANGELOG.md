@@ -1,3 +1,7 @@
+# 0.14
+
+- Add support for detached technical indicators
+
 # 0.13.8
 
 - Match dependencies and Python version pindowns with Web3.py 6.0
@@ -13,7 +17,7 @@
 - Add a new method `Client.fetch_all_lending_protocol_reserves()` for fetching data on
   supported decentralized lending protocols (only AAVE v3 at present).
 - Improve `validate_ohclv_dataframe()` to check for date/timestamp index as well as column
-gi
+
 # 0.13.5
 
 - Fixes for filtering by `chain_id` in `ExchangeUniverse`
