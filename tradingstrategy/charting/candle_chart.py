@@ -229,7 +229,8 @@ def visualise_ohlcv(
     """
 
     # sanity checks
-    assert num_detached_indicators == len(relative_sizing) == len(subplot_names)
+    if num_detached_indicators > 0:
+        assert num_detached_indicators == len(relative_sizing) == len(subplot_names)
     
     validate_ohclv_dataframe(candles)
 
