@@ -228,8 +228,11 @@ def visualise_ohlcv(
         Recommended is 1
     
     :param subplot_rel_size:
-        Relative size of subplots. Can be used instead of relative sizing to set the same
-        sizing for every subplot. Is also used for volume subplot if it is not overlayed.
+        Relative size of subplots. 
+        
+        If relative_sizing not provided, this will be used to set the same size for all subplots.
+        
+        If relative_sizing is provided, this will be used for volume subplot if it is not overlayed.
 
     :return:
         Plotly figure object
