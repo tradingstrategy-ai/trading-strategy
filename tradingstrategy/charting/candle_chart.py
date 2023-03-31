@@ -162,6 +162,12 @@ def visualise_ohlcv(
         volume_bar_colour: str = "rgba(128,128,128,0.5)",
         volume_bar_mode = VolumeBarMode.overlay,
         labels: Optional[pd.Series] = None,
+        num_detached_indicators: Optional[int] = 0,
+        vertical_spacing: Optional[float] = 0.05,
+        relative_sizing: Optional[list[float]]  = None,
+        subplot_names: Optional[list[str]] = None,
+        price_chart_rel_size: float = 1.0,
+        subplot_rel_size: float = 0.2,
 ) -> go.Figure:
     """Draw a candlestick chart.
 
@@ -203,11 +209,28 @@ def visualise_ohlcv(
         Tooltip labels for candles.
 
         See :py:func:`make_candle_labels`
+    
+    :param num_detached_indicators:
+        Number of indicators that will be drawn as separate charts.
+    
+    :param vertical_spacing:
+        Vertical spacing between charts.
+    
+    :param relative_sizing:
+        Sizing of subplots relative to the main price chart. 
+        Price chart is regarded as 1.0, so subplots should be smaller than 1.0.
+    
+    :param subplot_names:
+        Names of subplots. Used as titles for subplots.
 
     :return:
         Plotly figure object
     """
 
+    # sanity checks
+    if num_detached_indicators > 0:
+        assert num_detached_indicators == len(relative_sizing) == len(subplot_names)
+    
     validate_ohclv_dataframe(candles)
 
     if labels is not None:
@@ -229,30 +252,42 @@ def visualise_ohlcv(
         hoverinfo="text",
     )
 
-    volume_available = "volume" in candles.columns
-
-    if volume_bar_mode != VolumeBarMode.hidden:
-        # Synthetic data may not have volume available
-        if volume_bar_mode == VolumeBarMode.overlay:
-            should_create_volume_subplot = True
-        else:
-            should_create_volume_subplot = False
+    
+    if "volume" in candles.columns:
+        volume_bars = go.Bar(
+                x=candles.index,
+                y=candles['volume'],
+                showlegend=False,
+                marker={
+                    "color": volume_bar_colour,
+                }
+            )
     else:
-        should_create_volume_subplot = False
-
-    # We need to use sublot to make volume bar overlay
-    if volume_bar_mode == VolumeBarMode.separate:
-        # https://stackoverflow.com/a/65997291/315168
-        fig = make_subplots(
-            rows=2,
-            cols=1,
-            shared_xaxes=True,
-            vertical_spacing=0.1,
-            row_width=[0.2, 0.7])
-    else:
-        fig = make_subplots(specs=[[{"secondary_y": should_create_volume_subplot}]])
-
+        volume_bars = None
+    
+    # Add volume to plot
+    fig = _get_volume_grid(
+        volume_bars, 
+        volume_bar_mode, 
+        volume_axis_name, 
+        num_detached_indicators,
+        vertical_spacing,
+        relative_sizing,
+        subplot_names,
+        price_chart_rel_size,
+        subplot_rel_size
+    )
+    
     # Set chart core options
+    _set_chart_core_options(chart_name, y_axis_name, height, theme, fig)
+    
+    # Add candlesticks last since we want them on top if overlayed
+    fig.add_trace(candlesticks, secondary_y=False)
+
+    return fig
+
+def _set_chart_core_options(chart_name, y_axis_name, height, theme, fig):
+    """Update figure layout. Set chart core options."""
     fig.update_layout(
         height=height,
         template=theme,
@@ -263,44 +298,9 @@ def visualise_ohlcv(
             title=chart_name,
         )
 
-    fig.update_yaxes(secondary_y=False, showgrid=True)
-    if y_axis_name:
-        fig.update_yaxes(title=y_axis_name)
-
     # Range slider is not very user friendly so just
     # disable it for now
     fig.update_xaxes(rangeslider={"visible": False})
-
-    # Do we need volume overlay?
-    if volume_available:
-        volume_bars = go.Bar(
-            x=candles.index,
-            y=candles['volume'],
-            showlegend=False,
-            marker={
-                "color": volume_bar_colour,
-            }
-        )
-
-        if volume_bar_mode == VolumeBarMode.overlay:
-            fig.add_trace(volume_bars, secondary_y=True)
-            fig.update_yaxes(secondary_y=True, showgrid=False)
-
-            if volume_axis_name:
-                fig.update_yaxes(title=volume_axis_name, secondary_y=True, row=1)
-    else:
-        volume_bars = None
-
-    fig.add_trace(candlesticks, secondary_y=False)
-
-    # Add the separate volume chart below
-    if volume_available:
-        if volume_bar_mode == VolumeBarMode.separate:
-            # https://stackoverflow.com/a/65997291/315168
-            fig.add_trace(volume_bars, row=2, col=1)
-
-            if volume_axis_name:
-                fig.update_yaxes(title=volume_axis_name, row=2)
 
     # Move legend to the bottom so we have more space for
     # time axis in narrow notebook views
@@ -314,4 +314,125 @@ def visualise_ohlcv(
             "x": 1,
         })
 
-    return fig
+def _get_volume_grid(
+    volume_bars, 
+    volume_bar_mode: bool, 
+    volume_axis_name: str, 
+    num_detached_indicators: int,
+    vertical_spacing: float,
+    relative_sizing: list[float],
+    subplot_names: list[str],
+    price_chart_rel_size: float,
+    subplot_rel_size: float,
+) -> go.Figure:
+    """Get subplot grid, with volume information, based on the volume bar mode"""
+    
+    is_secondary_y = _get_secondary_y(volume_bar_mode)
+    
+    if relative_sizing and not all(relative_sizing):
+        relative_sizing = None
+    
+    # blank subplot name for the main price chart
+    if subplot_names:
+        subplot_names.insert(0, None)
+
+    if volume_bar_mode == VolumeBarMode.separate:
+        # If separate, we need to use detached subplots
+        
+        if relative_sizing:
+            row_heights = [price_chart_rel_size] + [subplot_rel_size] + relative_sizing
+        else:
+            row_heights = [subplot_rel_size for _ in range(num_detached_indicators+1)]
+            row_heights.insert(0, price_chart_rel_size)
+
+        # https://stackoverflow.com/a/65997291/315168
+        # Add two rows for volume and price
+        fig = make_subplots(
+            rows=num_detached_indicators + 2,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=vertical_spacing,
+            row_heights=row_heights,
+        )
+
+        if volume_bars is not None:
+            # https://stackoverflow.com/a/65997291/315168
+            _update_separate_volume(volume_bars, volume_axis_name, fig)
+
+        return fig
+
+    elif volume_bar_mode == VolumeBarMode.overlay:
+        # If overlayed (or hidden), we need to use secondary Y axis
+        # Add 1 row for price
+        specs = [[{}] for _ in range(num_detached_indicators)]
+        specs.insert(0, [{"secondary_y": is_secondary_y}])
+        
+        if relative_sizing:
+            row_heights = [price_chart_rel_size] + relative_sizing
+        else:
+            row_heights = [subplot_rel_size for _ in range(num_detached_indicators)]
+            row_heights.insert(0, price_chart_rel_size)
+        
+        fig = make_subplots(
+            rows = num_detached_indicators + 1,
+            cols = 1,
+            specs=specs,
+            shared_xaxes=True,
+            row_heights=row_heights,
+            vertical_spacing=vertical_spacing,
+            row_titles=subplot_names
+        )
+
+        if volume_bars is not None:
+            # If overlayed, we need to add volume first
+            _update_overlay_volume(volume_bars, volume_axis_name, fig)
+
+        return fig
+
+    elif volume_bar_mode == VolumeBarMode.hidden:
+        specs = [[{}] for _ in range(num_detached_indicators)]
+        specs.insert(0, [{"secondary_y": is_secondary_y}])
+        
+        if relative_sizing:
+            row_heights = [price_chart_rel_size] + relative_sizing
+        else:
+            row_heights = [subplot_rel_size for _ in range(num_detached_indicators)]
+            row_heights.insert(0, price_chart_rel_size)
+
+        # No volume
+        return make_subplots(
+            specs=[[{"secondary_y": is_secondary_y}]],
+            shared_xaxes=True,
+            vertical_spacing=vertical_spacing,
+            row_heights=row_heights,
+        )
+
+    else:
+        raise ValueError(f"Unknown volume bar mode: {volume_bar_mode}")
+
+def _update_overlay_volume(volume_bars, volume_axis_name, fig):
+    """Update overlay volume chart info"""
+    fig.add_trace(volume_bars, secondary_y=True)
+    fig.update_yaxes(secondary_y=True, showgrid=False)
+
+    if volume_axis_name:
+        fig.update_yaxes(title=volume_axis_name, secondary_y=True, row=1)
+
+def _update_separate_volume(volume_bars, volume_axis_name, fig):
+    """Update detached volume chart info"""
+    fig.add_trace(volume_bars, row=2, col=1)
+
+    if volume_axis_name:
+        fig.update_yaxes(title=volume_axis_name, row=2)
+
+def _get_secondary_y(volume_mode: VolumeBarMode) -> bool:
+    """Based on the volume bar mode, should we use secondary Y axis?
+    
+    Secondary data may not have volume available"""
+    if volume_mode == VolumeBarMode.overlay:
+        return True
+    elif volume_mode in [VolumeBarMode.hidden, VolumeBarMode.separate]:
+        return False
+    else:
+        raise ValueError(f"Unknown volume bar mode: {volume_mode}")
+            
