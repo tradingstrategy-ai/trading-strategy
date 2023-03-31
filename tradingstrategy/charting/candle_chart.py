@@ -22,9 +22,6 @@ from plotly.subplots import make_subplots
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_REL_SIZE = 0.2
-PRICE_CHART_REL_SIZE = 1
-
 class BadOHLCVData(Exception):
     """We could not figure out the data frame"""
 
@@ -169,6 +166,8 @@ def visualise_ohlcv(
         vertical_spacing: Optional[float] = 0.05,
         relative_sizing: Optional[list[float]]  = None,
         subplot_names: Optional[list[str]] = None,
+        price_chart_rel_size: float = 1.0,
+        subplot_rel_size: float = 0.2,
 ) -> go.Figure:
     """Draw a candlestick chart.
 
@@ -275,6 +274,8 @@ def visualise_ohlcv(
         vertical_spacing,
         relative_sizing,
         subplot_names,
+        price_chart_rel_size,
+        subplot_rel_size
     )
     
     # Set chart core options
@@ -320,7 +321,9 @@ def _get_volume_grid(
     num_detached_indicators: int,
     vertical_spacing: float,
     relative_sizing: list[float],
-    subplot_names: list[str]
+    subplot_names: list[str],
+    price_chart_rel_size: float,
+    subplot_rel_size: float,
 ) -> go.Figure:
     """Get subplot grid, with volume information, based on the volume bar mode"""
     
@@ -337,10 +340,10 @@ def _get_volume_grid(
         # If separate, we need to use detached subplots
         
         if relative_sizing:
-            row_heights = [PRICE_CHART_REL_SIZE] + [DEFAULT_REL_SIZE] + relative_sizing
+            row_heights = [price_chart_rel_size] + [subplot_rel_size] + relative_sizing
         else:
-            row_heights = [DEFAULT_REL_SIZE for _ in range(num_detached_indicators+1)]
-            row_heights.insert(0, PRICE_CHART_REL_SIZE)
+            row_heights = [subplot_rel_size for _ in range(num_detached_indicators+1)]
+            row_heights.insert(0, price_chart_rel_size)
 
         # https://stackoverflow.com/a/65997291/315168
         # Add two rows for volume and price
@@ -365,10 +368,10 @@ def _get_volume_grid(
         specs.insert(0, [{"secondary_y": is_secondary_y}])
         
         if relative_sizing:
-            row_heights = [PRICE_CHART_REL_SIZE] + relative_sizing
+            row_heights = [price_chart_rel_size] + relative_sizing
         else:
-            row_heights = [DEFAULT_REL_SIZE for _ in range(num_detached_indicators)]
-            row_heights.insert(0, PRICE_CHART_REL_SIZE)
+            row_heights = [subplot_rel_size for _ in range(num_detached_indicators)]
+            row_heights.insert(0, price_chart_rel_size)
         
         fig = make_subplots(
             rows = num_detached_indicators + 1,
@@ -391,10 +394,10 @@ def _get_volume_grid(
         specs.insert(0, [{"secondary_y": is_secondary_y}])
         
         if relative_sizing:
-            row_heights = [PRICE_CHART_REL_SIZE] + relative_sizing
+            row_heights = [price_chart_rel_size] + relative_sizing
         else:
-            row_heights = [DEFAULT_REL_SIZE for _ in range(num_detached_indicators)]
-            row_heights.insert(0, PRICE_CHART_REL_SIZE)
+            row_heights = [subplot_rel_size for _ in range(num_detached_indicators)]
+            row_heights.insert(0, price_chart_rel_size)
 
         # No volume
         return make_subplots(
