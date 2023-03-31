@@ -221,7 +221,18 @@ def visualise_ohlcv(
         Price chart is regarded as 1.0, so subplots should be smaller than 1.0.
     
     :param subplot_names:
-        Names of subplots. Used as titles for subplots.
+        Names of subplots. Used as titles for subplots
+        
+    :param price_chart_rel_size:
+        Relative size of the price chart. Used as benchmark for relative sizing of subplots.
+        Recommended is 1
+    
+    :param subplot_rel_size:
+        Relative size of subplots. 
+        
+        If relative_sizing not provided, this will be used to set the same size for all subplots.
+        
+        If relative_sizing is provided, this will be used for volume subplot if it is not overlayed.
 
     :return:
         Plotly figure object
