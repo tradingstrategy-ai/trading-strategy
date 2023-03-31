@@ -326,7 +326,7 @@ def _get_volume_grid(
     
     is_secondary_y = _get_secondary_y(volume_bar_mode)
     
-    if not all(relative_sizing):
+    if relative_sizing and not all(relative_sizing):
         relative_sizing = None
     
     # blank subplot name for the main price chart
