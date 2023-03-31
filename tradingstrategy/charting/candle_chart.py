@@ -330,7 +330,8 @@ def _get_volume_grid(
         relative_sizing = None
     
     # blank subplot name for the main price chart
-    subplot_names.insert(0, None)
+    if subplot_names:
+        subplot_names.insert(0, None)
 
     if volume_bar_mode == VolumeBarMode.separate:
         # If separate, we need to use detached subplots
