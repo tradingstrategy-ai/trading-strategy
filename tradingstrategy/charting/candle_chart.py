@@ -240,7 +240,10 @@ def visualise_ohlcv(
 
     # sanity checks
     if num_detached_indicators > 0:
-        assert num_detached_indicators == len(relative_sizing) == len(subplot_names)
+        if relative_sizing:
+            assert len(relative_sizing) == num_detached_indicators, "relative sizing list must be the same length as num_detached_indicators"
+        if subplot_names:
+            assert len(subplot_names) == num_detached_indicators, "subplot_names list must be the same length as num_detached_indicators"
     
     validate_ohclv_dataframe(candles)
 
