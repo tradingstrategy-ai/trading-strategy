@@ -1,3 +1,11 @@
+# Current
+
+- TODO
+
+# 0.13.9
+
+- Add `ChainId.anvil`
+
 # 0.13.8
 
 - Match dependencies and Python version pindowns with Web3.py 6.0

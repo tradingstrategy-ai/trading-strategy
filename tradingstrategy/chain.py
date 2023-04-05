@@ -133,13 +133,22 @@ class ChainId(enum.IntEnum):
     arbitrum = 42161
 
     #: Ethereum Classic chain id.
+    #:
     #: This is also the value used by EthereumTester in unit tests.
     #: https://github.com/ethereum/eth-tester
     ethereum_classic = 61
 
     #: Ganache test chain.
+    #:
     #: This is the chain id for Ganache local tester / mainnet forks.
     ganache = 1337
+
+    #: Anvil test chain.
+    #:
+    #: Standalone Anvil chain launch.
+    #:
+    #: `See Foundry commit <https://github.com/foundry-rs/foundry/commit/7d6fd0ebe4caf54f1b24d379d3df2205af04fe33>`__.
+    anvil = 31337
 
     #: Chain id not known
     unknown = 0
@@ -290,11 +299,22 @@ _CHAIN_DATA_OVERRIDES = {
     },
 
     #
-    # Ethreum tester
+    # Ethereum tester
     #
     ChainId.ethereum_tester.value: {
-        "name": "Unknown",
-        "slug": "unknown",
+        "name": "Ethereum tester",
+        "slug": "tester",
+        "svg_icon": None,
+        "active": False,
+        "dataless": True,
+    },
+
+    #
+    # Anvil tester
+    #
+    ChainId.anvil.value: {
+        "name": "Anvik",
+        "slug": "anvil",
         "svg_icon": None,
         "active": False,
         "dataless": True,
