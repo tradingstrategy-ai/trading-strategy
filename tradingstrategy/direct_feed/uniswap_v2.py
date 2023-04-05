@@ -148,7 +148,7 @@ class UniswapV2TradeFeed(TradeFeed):
         self.max_threads = threads
 
         # Get data from ABI
-        Pair = get_contract(self.web3, "UniswapV2Pair.json")
+        Pair = get_contract(self.web3, "sushi/UniswapV2Pair.json")
         self.events_to_read = [Pair.events.Swap, Pair.events.Sync]
 
     def get_pair_details(self, pair: str) -> PairDetails:

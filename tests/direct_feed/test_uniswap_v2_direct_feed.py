@@ -4,7 +4,10 @@ import logging
 import pytest
 from eth_typing import HexAddress
 from web3 import EthereumTesterProvider, Web3
+from web3.middleware import attrdict_middleware
+from web3.providers.eth_tester.middleware import default_transaction_fields_middleware, ethereum_tester_middleware
 
+from eth_defi.chain import install_chain_middleware
 from eth_defi.event_reader.fast_json_rpc import patch_web3
 from eth_defi.event_reader.web3factory import SimpleWeb3Factory
 from eth_defi.price_oracle.oracle import TrustedStablecoinOracle
@@ -26,7 +29,16 @@ from tradingstrategy.direct_feed.warn import disable_pandas_warnings
 @pytest.fixture
 def tester_provider():
     # https://web3py.readthedocs.io/en/stable/examples.html#contract-unit-tests-in-python
-    return EthereumTesterProvider()
+    provider = EthereumTesterProvider()
+
+    # Web3 6.0
+    # TypeError: 'AttributeDict' object does not support item assignment
+    provider.middlewares = (
+    #    attrdict_middleware,
+        default_transaction_fields_middleware,
+        ethereum_tester_middleware,
+    )
+    return provider
 
 
 @pytest.fixture
@@ -39,7 +51,9 @@ def eth_tester(tester_provider):
 def web3(tester_provider):
     """Set up a local unit testing blockchain."""
     # https://web3py.readthedocs.io/en/stable/examples.html#contract-unit-tests-in-python
-    return Web3(tester_provider)
+    web3 = Web3(tester_provider)
+    install_chain_middleware(web3)
+    return web3
 
 
 @pytest.fixture()
