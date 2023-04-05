@@ -6,6 +6,7 @@
 
 - Add `ChainId.anvil`
 - Add support for detached technical indicators
+- Web3 6.0 fixes
 
 # 0.13.8
 
