@@ -168,6 +168,7 @@ def visualise_ohlcv(
         subplot_names: Optional[list[str]] = None,
         price_chart_rel_size: float = 1.0,
         subplot_rel_size: float = 0.2,
+        subplot_font_size: int = 11,
 ) -> go.Figure:
     """Draw a candlestick chart.
 
@@ -297,6 +298,8 @@ def visualise_ohlcv(
     
     # Add candlesticks last since we want them on top if overlayed
     fig.add_trace(candlesticks, secondary_y=False)
+    
+    fig.update_annotations(font_size=subplot_font_size)
 
     return fig
 
@@ -367,6 +370,7 @@ def _get_volume_grid(
             shared_xaxes=True,
             vertical_spacing=vertical_spacing,
             row_heights=row_heights,
+            row_titles=subplot_names,
         )
 
         if volume_bars is not None:
@@ -394,7 +398,7 @@ def _get_volume_grid(
             shared_xaxes=True,
             row_heights=row_heights,
             vertical_spacing=vertical_spacing,
-            row_titles=subplot_names
+            row_titles=subplot_names,
         )
 
         if volume_bars is not None:
@@ -415,10 +419,13 @@ def _get_volume_grid(
 
         # No volume
         return make_subplots(
-            specs=[[{"secondary_y": is_secondary_y}]],
+            rows = num_detached_indicators + 1,
+            cols = 1,
+            specs=specs,
             shared_xaxes=True,
             vertical_spacing=vertical_spacing,
             row_heights=row_heights,
+            row_titles=subplot_names,
         )
 
     else:
@@ -436,8 +443,9 @@ def _update_separate_volume(volume_bars, volume_axis_name, fig):
     """Update detached volume chart info"""
     fig.add_trace(volume_bars, row=2, col=1)
 
-    if volume_axis_name:
-        fig.update_yaxes(title=volume_axis_name, row=2)
+    # volume axis name added to subplot title for now (right side instead of left)
+    # if volume_axis_name:
+    #    fig.update_yaxes(title=volume_axis_name, row=2)
 
 def _get_secondary_y(volume_mode: VolumeBarMode) -> bool:
     """Based on the volume bar mode, should we use secondary Y axis?

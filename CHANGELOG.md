@@ -1,6 +1,8 @@
-# Current
+# 0.13.10
 
-- TODO
+- Fix detached indicator charting bugs for different `volume_bar_modes`
+- Adds support for different subtitle font sizes
+- Adds tests to make to catch charting bugs earlier in the future
 
 # 0.13.9
 

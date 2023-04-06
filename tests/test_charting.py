@@ -1,19 +1,20 @@
 """Charting functionality tests."""
 
 import pandas as pd
+import pytest
 from IPython.core.display_functions import display
 from pandas.core.groupby import DataFrameGroupBy
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels
+from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels, VolumeBarMode
 from tradingstrategy.client import Client
-from tradingstrategy.pair import PandasPairUniverse
+from tradingstrategy.pair import PandasPairUniverse, DEXPair
 from tradingstrategy.timebucket import TimeBucket
 
 
-def test_candle_chart(persistent_test_client: Client):
-    """Draw a candle chart."""
-
+@pytest.fixture(scope="module")
+def candles_and_pair(persistent_test_client: Client) -> tuple[pd.DataFrame, DEXPair]:
+    """Get candles and pair for testing."""
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
     pairs_df = client.fetch_pair_universe().to_pandas()
@@ -35,43 +36,133 @@ def test_candle_chart(persistent_test_client: Client):
         TimeBucket.d1,
         progress_bar_description=f"Download data for {pair.get_ticker()}"
     )
+    
+    return candles, pair
 
-    figure = visualise_ohlcv(
+
+def test_candle_chart_volume_overlay(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
+    """Draw a candle chart."""
+    
+    candles, pair = candles_and_pair
+    
+    fig = visualise_ohlcv(
         candles,
+        height=800,
+        theme='plotly_white',
         chart_name=f"{pair.base_token_symbol} - {pair.quote_token_symbol} price chart",
         y_axis_name=f"$ {pair.base_token_symbol} price",
+        volume_axis_name='Volume USD',
+        volume_bar_mode=VolumeBarMode.overlay,
+        num_detached_indicators=2,
+        vertical_spacing=0.05,
+        relative_sizing=None,
+        subplot_names=['random 1', 'random 2<br> + random 3<br> + random 4'],
+        subplot_font_size=11,
     )
+    
+     # 3 distinct plot grids
+    assert len(fig._grid_ref) == 3
+    
+    # check the main title
+    assert fig.layout.title.text == 'WBNB - BUSD price chart'
+    
+    # check subplot titles
+    subplot_titles = [annotation['text'] for annotation in fig['layout']['annotations']]
+    assert subplot_titles[0] == "random 1"
+    assert subplot_titles[1] == "random 2<br> + random 3<br> + random 4"
+    
+    # List of candles, indicators, and markers
+    data = fig.to_dict()["data"]
+    assert len(data) == 2
+    assert data[0]["type"] == "bar"
+    assert data[1]["type"] == "candlestick"
 
     # TODO: How to disable stdout
     # Does not show actually in unit tests, but checks
     # we can render the figure
     # display(figure)
+    
+
+def test_candle_chart_volume_hidden(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
+    """Draw a candle chart."""
+    
+    candles, pair = candles_and_pair
+    
+    fig = visualise_ohlcv(
+        candles,
+        height=1000,
+        theme='plotly_white',
+        chart_name=f"{pair.base_token_symbol} - {pair.quote_token_symbol} price chart",
+        y_axis_name=f"$ {pair.base_token_symbol} price",
+        volume_axis_name='Volume USD',
+        volume_bar_mode=VolumeBarMode.hidden,
+        num_detached_indicators=3,
+        vertical_spacing=0.05,
+        relative_sizing=None,
+        subplot_names=['random 1', 'random 2', 'random 3'],
+        subplot_font_size=5,
+    )
+    
+     # 3 distinct plot grids
+    assert len(fig._grid_ref) == 4
+    
+    # check the main title
+    assert fig.layout.title.text == 'WBNB - BUSD price chart'
+    
+    # check subplot titles
+    subplot_titles = [annotation['text'] for annotation in fig['layout']['annotations']]
+    assert subplot_titles[0] == "random 1"
+    assert subplot_titles[1] == "random 2"
+    assert subplot_titles[2] == "random 3"
+    
+    
+    # List of candles, indicators, and markers
+    data = fig.to_dict()["data"]
+    assert len(data) == 1
+    assert data[0]["type"] == "candlestick"
+    
+    
+def test_candle_chart_volume_separate(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
+    """Draw a candle chart."""
+    
+    candles, pair = candles_and_pair
+    
+    fig = visualise_ohlcv(
+        candles,
+        height=800,
+        theme='plotly_white',
+        chart_name=f"{pair.base_token_symbol} - {pair.quote_token_symbol} price chart",
+        y_axis_name=f"$ {pair.base_token_symbol} price",
+        volume_axis_name='Volume',
+        volume_bar_mode=VolumeBarMode.separate,
+        num_detached_indicators=1,
+        vertical_spacing=0.05,
+        relative_sizing=None,
+        subplot_names=['random 1'],
+        subplot_font_size=15,
+    )
+    
+     # 3 distinct plot grids
+    assert len(fig._grid_ref) == 3
+    
+    # check the main title
+    assert fig.layout.title.text == 'WBNB - BUSD price chart'
+    
+    # check subplot titles
+    subplot_titles = [annotation['text'] for annotation in fig['layout']['annotations']]
+    assert subplot_titles[0] == "random 1"
+    
+    # List of candles, indicators, and markers
+    data = fig.to_dict()["data"]
+    assert len(data) == 2
+    assert data[0]["type"] == "bar"
+    assert data[1]["type"] == "candlestick"
 
 
-def test_candle_labels(persistent_test_client: Client):
+def test_candle_labels(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
     """Create labels for a candle chart."""
 
-    client = persistent_test_client
-    exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
-
-    # Create filtered exchange and pair data
-    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
-            pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
-        )
-
-    pair = pair_universe.get_single()
-
-    candles: pd.DataFrame = client.fetch_candles_by_pair_ids(
-        {pair.pair_id},
-        TimeBucket.d1,
-        progress_bar_description=f"Download data for {pair.get_ticker()}"
-    )
+    candles, pair = candles_and_pair
 
     assert "label" not in candles.columns
 
