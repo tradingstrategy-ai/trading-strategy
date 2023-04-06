@@ -6,7 +6,7 @@ from IPython.core.display_functions import display
 from pandas.core.groupby import DataFrameGroupBy
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels
+from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels, VolumeBarMode
 from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse, DEXPair
 from tradingstrategy.timebucket import TimeBucket
@@ -40,22 +40,123 @@ def candles_and_pair(persistent_test_client: Client) -> tuple[pd.DataFrame, DEXP
     return candles, pair
 
 
-def test_candle_chart(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
+def test_candle_chart_volume_overlay(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
     """Draw a candle chart."""
-
     
     candles, pair = candles_and_pair
     
-    figure = visualise_ohlcv(
+    fig = visualise_ohlcv(
         candles,
+        height=800,
+        theme='plotly_white',
         chart_name=f"{pair.base_token_symbol} - {pair.quote_token_symbol} price chart",
         y_axis_name=f"$ {pair.base_token_symbol} price",
+        volume_axis_name='Volume USD',
+        volume_bar_mode=VolumeBarMode.overlay,
+        num_detached_indicators=2,
+        vertical_spacing=0.05,
+        relative_sizing=None,
+        subplot_names=['random 1', 'random 2<br> + random 3<br> + random 4'],
+        subplot_font_size=11,
     )
+    
+     # 3 distinct plot grids
+    assert len(fig._grid_ref) == 3
+    
+    # check the main title
+    assert fig.layout.title.text == 'WBNB - BUSD price chart'
+    
+    # check subplot titles
+    subplot_titles = [annotation['text'] for annotation in fig['layout']['annotations']]
+    assert subplot_titles[0] == "random 1"
+    assert subplot_titles[1] == "random 2<br> + random 3<br> + random 4"
+    
+    # List of candles, indicators, and markers
+    data = fig.to_dict()["data"]
+    assert len(data) == 2
+    assert data[0]["type"] == "bar"
+    assert data[1]["type"] == "candlestick"
 
     # TODO: How to disable stdout
     # Does not show actually in unit tests, but checks
     # we can render the figure
     # display(figure)
+    
+
+def test_candle_chart_volume_hidden(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
+    """Draw a candle chart."""
+    
+    candles, pair = candles_and_pair
+    
+    fig = visualise_ohlcv(
+        candles,
+        height=1000,
+        theme='plotly_white',
+        chart_name=f"{pair.base_token_symbol} - {pair.quote_token_symbol} price chart",
+        y_axis_name=f"$ {pair.base_token_symbol} price",
+        volume_axis_name='Volume USD',
+        volume_bar_mode=VolumeBarMode.hidden,
+        num_detached_indicators=3,
+        vertical_spacing=0.05,
+        relative_sizing=None,
+        subplot_names=['random 1', 'random 2', 'random 3'],
+        subplot_font_size=5,
+    )
+    
+     # 3 distinct plot grids
+    assert len(fig._grid_ref) == 4
+    
+    # check the main title
+    assert fig.layout.title.text == 'WBNB - BUSD price chart'
+    
+    # check subplot titles
+    subplot_titles = [annotation['text'] for annotation in fig['layout']['annotations']]
+    assert subplot_titles[0] == "random 1"
+    assert subplot_titles[1] == "random 2"
+    assert subplot_titles[2] == "random 3"
+    
+    
+    # List of candles, indicators, and markers
+    data = fig.to_dict()["data"]
+    assert len(data) == 1
+    assert data[0]["type"] == "candlestick"
+    
+    
+def test_candle_chart_volume_separate(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
+    """Draw a candle chart."""
+    
+    candles, pair = candles_and_pair
+    
+    fig = visualise_ohlcv(
+        candles,
+        height=800,
+        theme='plotly_white',
+        chart_name=f"{pair.base_token_symbol} - {pair.quote_token_symbol} price chart",
+        y_axis_name=f"$ {pair.base_token_symbol} price",
+        volume_axis_name='Volume',
+        volume_bar_mode=VolumeBarMode.separate,
+        num_detached_indicators=1,
+        vertical_spacing=0.05,
+        relative_sizing=None,
+        subplot_names=['random 1'],
+        subplot_font_size=15,
+    )
+    
+     # 3 distinct plot grids
+    assert len(fig._grid_ref) == 3
+    
+    # check the main title
+    assert fig.layout.title.text == 'WBNB - BUSD price chart'
+    
+    # check subplot titles
+    subplot_titles = [annotation['text'] for annotation in fig['layout']['annotations']]
+    assert subplot_titles[0] == "random 1"
+    
+    # List of candles, indicators, and markers
+    data = fig.to_dict()["data"]
+    assert len(data) == 2
+    assert data[0]["type"] == "bar"
+    assert data[1]["type"] == "candlestick"
 
 
 def test_candle_labels(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
