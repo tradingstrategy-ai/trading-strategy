@@ -367,6 +367,8 @@ def _get_volume_grid(
             shared_xaxes=True,
             vertical_spacing=vertical_spacing,
             row_heights=row_heights,
+            row_titles=subplot_names,
+            subplot_titles_font=dict(size=9)
         )
 
         if volume_bars is not None:
@@ -394,7 +396,8 @@ def _get_volume_grid(
             shared_xaxes=True,
             row_heights=row_heights,
             vertical_spacing=vertical_spacing,
-            row_titles=subplot_names
+            row_titles=subplot_names,
+            subplot_titles_font=dict(size=9)
         )
 
         if volume_bars is not None:
@@ -421,6 +424,8 @@ def _get_volume_grid(
             shared_xaxes=True,
             vertical_spacing=vertical_spacing,
             row_heights=row_heights,
+            row_titles=subplot_names,
+            subplot_titles_font=dict(size=9)
         )
 
     else:
