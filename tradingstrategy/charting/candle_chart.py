@@ -415,7 +415,9 @@ def _get_volume_grid(
 
         # No volume
         return make_subplots(
-            specs=[[{"secondary_y": is_secondary_y}]],
+            rows = num_detached_indicators + 1,
+            cols = 1,
+            specs=specs,
             shared_xaxes=True,
             vertical_spacing=vertical_spacing,
             row_heights=row_heights,
