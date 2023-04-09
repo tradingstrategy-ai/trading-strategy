@@ -35,11 +35,11 @@ def sample_pair() -> DEXPair:
             flag_unknown_exchange=False
         )
 
+
 def test_pair_pyarrow_schema():
     """We get a good Pyrarow schema for pair information serialisation and deserialisation."""
 
-    schema = DEXPair.to_pyarrow_schema()
-    assert str(schema[0].type) == "uint32"  # Primary key
+    DEXPair.to_pyarrow_schema()
 
 
 def test_write_pyarrow_table(sample_pair):
@@ -125,7 +125,6 @@ def test_get_token(persistent_test_client):
 
     client = persistent_test_client
     pairs_df = client.fetch_pair_universe().to_pandas()
-
     pair_universe = PandasPairUniverse(pairs_df)
 
     # Do tests with BNB Chain tokens

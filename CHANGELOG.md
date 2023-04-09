@@ -1,3 +1,8 @@
+# Current
+
+- Adding `UniswapV2MockClient` implementation that mimics `Client`, but reads all data
+  from an EVM test backend. Makes live trading tests much easier.
+- 
 # 0.13.10
 
 - Fix detached indicator charting bugs for different `volume_bar_modes`
