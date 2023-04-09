@@ -371,7 +371,7 @@ class DEXPair:
 
         # Enums must be explicitly expressed
         hints = {
-            "chain_id": pa.uint16(),
+            "chain_id": pa.uint64(),
             "dex_type": pa.string(),
         }
 
@@ -1022,7 +1022,7 @@ class LegacyPairUniverse:
         if chain_id_filter:
             # https://stackoverflow.com/a/64579502/315168
             chain_id_index = table.column('chain_id')
-            row_mask = pc.equal(chain_id_index, pa.scalar(chain_id_filter.value, chain_id_index.type))
+            row_mask = pc.equal(chain_id_index, pa.scalar(chain_id_filter.value, chain_id_index.cause))
             selected_table = table.filter(row_mask)
 
         return LegacyPairUniverse.create_from_pyarrow_table(selected_table)

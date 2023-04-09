@@ -130,6 +130,22 @@ class Exchange:
     #: Denormalised exchange statistics
     sell_volume_30d: Optional[float] = None
 
+    #: The default router address
+    #:
+    #: If there is a well-known default router implementation like `UniswapV2Router` or `UniswapV3Router` then have its address here.
+    #: This cannot be automatically resolved, but the information must be manually managed for every DEX.
+    #:
+    #: Might not be set.
+    default_router_address: Optional[NonChecksummedAddress] = None
+
+    #: Uniswap v2 implementation specific init cod ehash.
+    #:
+    #: This might be needed in order to route trades.
+    #: 0x prefixed hex string of keccak hash.
+    #:
+    #: #: Might not be set.
+    init_code_hash: Optional[str] = None
+
     def __repr__(self):
         chain_name = self.chain_id.get_name()
         name = self.name or "<unknown>"
