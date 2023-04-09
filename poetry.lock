@@ -3366,14 +3366,14 @@ tester = ["eth-tester[py-evm] (==v0.8.0-b.3)", "py-geth (>=3.11.0)"]
 
 [[package]]
 name = "web3-ethereum-defi"
-version = "0.18"
+version = "0.18.1"
 description = "High level Python APIs for Ethereum-compatible smart contracts, blockchains and protocols like Uniswap, Aave, Enzyme"
 category = "main"
 optional = false
 python-versions = ">=3.10,<3.11"
 files = [
-    {file = "web3_ethereum_defi-0.18-py3-none-any.whl", hash = "sha256:f17fbd62b095b25a793f84dd5cf0322e98ce186f6430b9c15bf5ab0a60f00ccb"},
-    {file = "web3_ethereum_defi-0.18.tar.gz", hash = "sha256:b3cb6d200bc7d516f6ed659b634963c3be9f387de17a9aa1cb2e99fd1518ba3f"},
+    {file = "web3_ethereum_defi-0.18.1-py3-none-any.whl", hash = "sha256:2a575ab3190537e42a9f56b505657b748f9cf2b53e221076733925b7f41ecc98"},
+    {file = "web3_ethereum_defi-0.18.1.tar.gz", hash = "sha256:a1972a821c3a27411b7677c74e72fc6c2ab72046a0126149880efc709204bd87"},
 ]
 
 [package.dependencies]
@@ -3583,4 +3583,4 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.11"
-content-hash = "115d9e89e7f70a6a51d825745627e47aeea04c454b33105d7be1cfb4fc54d5ca"
+content-hash = "d8bb412bf858b8545f902ea476416f8fb320146005b598b19c88e0e3fcd872a2"
