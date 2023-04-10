@@ -16,12 +16,12 @@ from eth_typing import HexAddress, HexStr
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange, ExchangeType, ExchangeUniverse
-from tradingstrategy.pair import DEXPair
+from tradingstrategy.pair import DEXPair, PandasPairUniverse
 from tradingstrategy.stablecoin import is_stablecoin_like
-from tradingstrategy.testing.mock_client import BaseMockClient
+from tradingstrategy.testing.mock_client import MockClient
 
 
-class UniswapV2MockClient(BaseMockClient):
+class UniswapV2MockClient(MockClient):
     """A mock client that reads data from a single Uniswap v2 exchange directly from the chain.
 
     Designed to run tests against test EVM backends where we cannot generate
@@ -50,14 +50,33 @@ class UniswapV2MockClient(BaseMockClient):
                 factory_address: HexAddress | str,
                 router_address: HexAddress | str,
                 init_code_hash: HexStr | str | NoneType = None,
-
+                fee: float = 0.003,
                  ):
+
+        assert factory_address is not None, "factory_address not set"
+        assert router_address is not None, "router_address not set"
+        assert init_code_hash is not None, "init_code_hash not set"
+
         self.exchange_universe, self.pairs_table = UniswapV2MockClient.read_onchain_data(
             web3,
             factory_address,
             router_address,
             init_code_hash,
+            fee,
         )
+
+    def get_default_quote_token_address(self) -> str:
+        """Get the quote token address used in the generated pair map.
+
+        Helper method for setting up simple local dev routing.
+        """
+        quote_tokens = set()
+        pairs_df = self.fetch_pair_universe().to_pandas()
+        pair_universe = PandasPairUniverse(pairs_df)
+        for pair in pair_universe.iterate_pairs():
+            quote_tokens.add(pair.quote_token_address)
+        assert len(quote_tokens) == 1, f"Got {len(quote_tokens)} quote tokens"
+        return next(iter(quote_tokens))
 
     def fetch_exchange_universe(self) -> ExchangeUniverse:
         return self.exchange_universe
@@ -70,12 +89,19 @@ class UniswapV2MockClient(BaseMockClient):
                 web3: Web3,
                 factory_address: HexAddress | str,
                 router_address: HexAddress | str,
-                init_code_hash: HexStr | str | NoneType = None) -> Tuple[ExchangeUniverse, Table]:
+                init_code_hash: HexStr | str | NoneType = None,
+                fee: float = 0.0030,
+    ) -> Tuple[ExchangeUniverse, Table]:
         """Reads Uniswap v2 data from EVM backend and creates tables for it.
 
         - Read data from a single Uniswap v2 compatible deployment
 
         - Read all PairCreated events and constructed Pandas DataFrame out of them
+
+        :param fee:
+            Uniswap v2 do not have fee information available on-chain, so we need to pass it.
+
+            Default to 30 BPS.
         """
 
         chain_id = ChainId(web3.eth.chain_id)
@@ -157,7 +183,7 @@ class UniswapV2MockClient(BaseMockClient):
                     exchange_id=1,
                     exchange_slug="UniswapV2MockClient",
                     pair_slug=f"{base_token_details.symbol.lower()}-{quote_token_details.symbol.lower()}",
-                    address=pair_address,
+                    address=pair_address.lower(),
                     dex_type=ExchangeType.uniswap_v2,
                     base_token_symbol=base_token_details.symbol,
                     quote_token_symbol=quote_token_details.symbol,
@@ -165,8 +191,12 @@ class UniswapV2MockClient(BaseMockClient):
                     token1_decimals=token1_details.decimals,
                     token0_symbol=token0_details.symbol,
                     token1_symbol=token1_details.symbol,
-                    token0_address=token0,
-                    token1_address=token1,
+                    token0_address=token0.lower(),
+                    token1_address=token1.lower(),
+                    buy_tax=0,
+                    sell_tax=0,
+                    transfer_tax=0,
+                    fee=int(fee * 100),  #  Convert to BPS
                 )
             pairs.append(pair)
 

@@ -34,7 +34,7 @@ class Token:
         return int(self.address, 16)
 
     def __repr__(self):
-        return f"<Token {self.symbol} with {self.decimals} at {self.address} on {self.chain_id.name}>"
+        return f"<Token {self.symbol} at {self.address} on {self.chain_id.name} with {self.decimals} decimals>"
 
     def __post_init__(self):
         assert type(self.address) == str, f"Got address {self.address} as {type(self.address)}"

@@ -10,15 +10,15 @@ Used for unit testing
 
 from pyarrow import Table
 
+from tradingstrategy.client import BaseClient
 from tradingstrategy.timebucket import TimeBucket
-from web3 import Web3
 
 
 class MockClientNotImplemented(NotImplementedError):
     """Mark the exceptions so that the consumer can catch them and knows they are dealing with a mock client."""
 
 
-class BaseMockClient:
+class MockClient(BaseClient):
     """Have all methods marked as not implemented"""
 
     def fetch_exchange_universe(self):

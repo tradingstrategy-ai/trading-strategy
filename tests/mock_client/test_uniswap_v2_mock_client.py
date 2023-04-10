@@ -148,6 +148,7 @@ def aave_usdc_uniswap_trading_pair(web3, deployer, uniswap_v2, aave, usdc) -> He
 def test_uniswap_v2_mock_client(
     web3: Web3,
     uniswap_v2: UniswapV2Deployment,
+    usdc: Contract,
     weth_usdc_uniswap_pair: str,
     aave_usdc_uniswap_trading_pair: str,
 ):
@@ -178,3 +179,5 @@ def test_uniswap_v2_mock_client(
     aave_usdc = pair_universe.get_pair_by_id(2)
     assert aave_usdc.base_token_symbol == "AAVE"
     assert aave_usdc.quote_token_symbol == "USDC"
+
+    assert client.get_default_quote_token_address() == usdc.address.lower()

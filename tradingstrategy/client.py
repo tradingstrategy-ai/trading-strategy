@@ -105,7 +105,11 @@ def _retry_corrupted_parquet_fetch(method):
     return impl
 
 
-class Client:
+class BaseClient:
+    """Base class for all real and test mocks clients."""
+
+
+class Client(BaseClient):
     """An API client for querying the Trading Strategy datasets from a server.
 
     - The client will download datasets.
