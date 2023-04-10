@@ -50,7 +50,7 @@ class UniswapV2MockClient(MockClient):
                 factory_address: HexAddress | str,
                 router_address: HexAddress | str,
                 init_code_hash: HexStr | str | NoneType = None,
-                fee: float = 0.003,
+                fee: float = 0.0030,
                  ):
 
         assert factory_address is not None, "factory_address not set"
@@ -182,6 +182,7 @@ class UniswapV2MockClient(MockClient):
                     chain_id=chain_id,
                     exchange_id=1,
                     exchange_slug="UniswapV2MockClient",
+                    exchange_address=factory_address.lower(),
                     pair_slug=f"{base_token_details.symbol.lower()}-{quote_token_details.symbol.lower()}",
                     address=pair_address.lower(),
                     dex_type=ExchangeType.uniswap_v2,
@@ -196,7 +197,7 @@ class UniswapV2MockClient(MockClient):
                     buy_tax=0,
                     sell_tax=0,
                     transfer_tax=0,
-                    fee=int(fee * 100),  #  Convert to BPS
+                    fee=int(fee * 10_000),  #  Convert to BPS
                 )
             pairs.append(pair)
 
@@ -205,10 +206,10 @@ class UniswapV2MockClient(MockClient):
             chain_slug=chain_id.get_slug(),
             exchange_slug="UniswapV2MockClient",
             exchange_id=1,
-            address=factory_address,
+            address=factory_address.lower(),
             exchange_type=ExchangeType.uniswap_v2,
             pair_count=len(pairs),
-            default_router_address=router_address,
+            default_router_address=router_address.lower(),
             init_code_hash=init_code_hash,
         )
 

@@ -175,6 +175,7 @@ def test_uniswap_v2_mock_client(
     weth_usdc = pair_universe.get_pair_by_id(1)
     assert weth_usdc.base_token_symbol == "WETH"
     assert weth_usdc.quote_token_symbol == "USDC"
+    assert weth_usdc.fee == 30
 
     aave_usdc = pair_universe.get_pair_by_id(2)
     assert aave_usdc.base_token_symbol == "AAVE"
