@@ -111,8 +111,13 @@ def download_with_tqdm_progress_bar(
 
     r = session.get(url, stream=True, allow_redirects=True, params=params, timeout=timeout)
     if r.status_code != 200:
-        r.raise_for_status()  # Will only raise for 4xx codes, so...
-        raise RuntimeError(f"Request to {url} returned status code {r.status_code}")
+        try:
+            r.raise_for_status()  # Will only raise for 4xx codes, so...
+            raise RuntimeError(f"Request to {url} returned status code {r.status_code}")
+        except Exception as e:
+            # Add more context information
+            auth_key = session.headers.get("Authorization", "")[0:12]
+            raise RuntimeError(f"Failed to do an API call, using API key {auth_key}...") from e
 
     file_size = int(r.headers.get('Content-Length', 0))
 

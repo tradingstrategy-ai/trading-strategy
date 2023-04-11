@@ -1,5 +1,9 @@
 # Current
 
+- TODO
+
+# 0.13.11
+
 - We have now `tradingstrategey.client.BaseClient` as the base class for different client implementations
 - Adding `UniswapV2MockClient` implementation that mimics `Client`, but reads all data
   from an EVM test backend. Makes live trading tests much easier.
