@@ -236,29 +236,36 @@ def visualise_ohlcv(
     # sanity checks
     
     if num_detached_indicators > 0:
+        tail = "\nAlso remember to include element for main price chart"
+        
         if relative_sizing:
+            
+            error_message = "relative sizing list must be 1 greater than as num_detached_indicators."
+            
             
             # add helpful error messages
             if volume_bar_mode == VolumeBarMode.separate:
-                error_message = "relative sizing list must be the same length as num_detached_indicators. \nRemember to include volume subplot size since it is not overlayed."
+                error_message + "\nRemember to include volume subplot size since it is not overlayed." + tail
             elif volume_bar_mode in {VolumeBarMode.overlay, VolumeBarMode.hidden}: 
-                error_message = "relative sizing list must be the same length as num_detached_indicators. \nRemember to exclude volume subplot size since it is overlayed."
+                error_message + "\nRemember to exclude volume subplot size since it is overlayed." + tail
             else:
                 raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
             
-            assert len(relative_sizing) - 1 == num_detached_indicators, error_message
+            assert len(relative_sizing) == num_detached_indicators + 1, error_message
             
         if subplot_names:
             
+            error_message = "subplot_names list must be 1 greater than num_detached_indicators. 
+            
             # add helpful error messages
             if volume_bar_mode == VolumeBarMode.separate:
-                error_message = "subplot_names list must be the same length as num_detached_indicators. \nRemember to include volume subplot name since it is not overlayed."
+                error_message + "\nRemember to include volume subplot name since it is not overlayed." + tail
             elif volume_bar_mode in {VolumeBarMode.overlay, VolumeBarMode.hidden}:
-                error_message = "subplot_names list must be the same length as num_detached_indicators. \nRemember to exclude volume subplot name since it is overlayed."
+                error_message + "\nRemember to exclude volume subplot name since it is overlayed." + tail
             else:
                 raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
             
-            assert len(subplot_names) == num_detached_indicators, error_message
+            assert len(subplot_names) == num_detached_indicators + 1, error_message
     
     validate_ohclv_dataframe(candles)
 
