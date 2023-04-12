@@ -255,7 +255,7 @@ def visualise_ohlcv(
             
         if subplot_names:
             
-            error_message = "subplot_names list must be 1 greater than num_detached_indicators. 
+            error_message = "subplot_names list must be 1 greater than num_detached_indicators."
             
             # add helpful error messages
             if volume_bar_mode == VolumeBarMode.separate:
