@@ -5,6 +5,8 @@
   - refactor and clean code in `tradingstrategy/charting/candle_chart.py`
 
 
+- Fix SyntaxError caused by a typo
+
 # 0.13.11
 
 - We have now `tradingstrategey.client.BaseClient` as the base class for different client implementations

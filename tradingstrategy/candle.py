@@ -508,7 +508,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         merged = pd.concat(dfs)
         return GroupedCandleUniverse(merged)
 
-\
+
 class TradingPairDataAvailability(TypedDict):
     """Trading data avaioilability description for a single pair.
 
