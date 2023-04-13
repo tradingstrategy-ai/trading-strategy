@@ -362,14 +362,31 @@ def _set_chart_core_options(
     # Move legend to the bottom so we have more space for
     # time axis in narrow notebook views
     # https://plotly.com/python/legend/f
+    # fig.update_layout(
+    #     legend={
+    #         "orientation": "h",
+    #         "yanchor": "bottom",
+    #         "y": 1.02,
+    #         "xanchor": "right",
+    #         "x": 1,
+    #     })
+    
+    
+    # moves legend to the top right (below the title and above the plotting area)
+    # and makes it horizontal
     fig.update_layout(
-        legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
-            "xanchor": "right",
-            "x": 1,
-        })
+        title=dict(
+            y=0.95  # Position the title just below the top margin
+        ),
+        legend=dict(
+            x=1,
+            y=1.09,  # Position the legend just above the plot area
+            xanchor='right',
+            yanchor='top',
+            orientation='h'  # Display the legend items horizontally
+        ),
+        margin=dict(t=150)  # Add some extra space at the top for the title and legend
+    )
 
 def _get_volume_grid(
     volume_bars: go.Bar, 
