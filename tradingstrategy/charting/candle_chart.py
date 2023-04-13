@@ -293,10 +293,10 @@ def visualise_ohlcv(
     return fig
 
 def _validate_plot_info(
-    volume_bar_mode, 
-    num_detached_indicators, 
-    relative_sizing, 
-    subplot_names,
+    volume_bar_mode: VolumeBarMode, 
+    num_detached_indicators: int, 
+    relative_sizing: list[float], 
+    subplot_names: list[str],
 ) -> None | ValueError | AssertionError:
     """Validate plot info to ensure that it is valid for the given volume_bar_mode, num_detached_indicators, relative_sizing, and subplot_names"""
     
@@ -307,10 +307,10 @@ def _validate_plot_info(
     else:
         raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
     
-    tail = "\nAlso remember to include element for main price chart"
+    tail = "\nAlso remember to include element for main price chart."
     
     if relative_sizing:
-        _error_message = "relative sizing list must be 1 greater than num_detached_indicators."
+        _error_message = f"len(relative_sizing) ({len(relative_sizing)}) must be 1 greater than num_detached_indicators ({num_detached_indicators})"
         
         
         # add helpful error messages
@@ -321,10 +321,10 @@ def _validate_plot_info(
         else:
             raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
         
-        assert len(relative_sizing) == num_detached_indicators + 1, error_message + f"len(relative_sizing) ({len(relative_sizing)}), num_detached_indicators ({num_detached_indicators})" 
+        assert len(relative_sizing) == num_detached_indicators + 1, error_message
         
     if subplot_names:
-        _error_message = "subplot_names list must be 1 greater than num_detached_indicators."
+        _error_message = f"len(subplot_names) ({len(subplot_names)}) must be 1 greater than num_detached_indicators ({num_detached_indicators})"
         
         # add helpful error messages
         if volume_bar_mode == VolumeBarMode.separate:
@@ -334,10 +334,17 @@ def _validate_plot_info(
         else:
             raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
         
-        assert len(subplot_names) == num_detached_indicators + 1, error_message + f"subplot names length ({len(subplot_names)}), num_detached_indicators ({num_detached_indicators})"        
+        assert len(subplot_names) == num_detached_indicators + 1, error_message        
 
-def _set_chart_core_options(chart_name, y_axis_name, height, theme, fig):
+def _set_chart_core_options(
+    chart_name: str, 
+    y_axis_name: str, 
+    height: int, 
+    theme: str, 
+    fig: go.Figure,
+):
     """Update figure layout. Set chart core options."""
+    
     fig.update_layout(
         height=height,
         template=theme,
@@ -365,7 +372,7 @@ def _set_chart_core_options(chart_name, y_axis_name, height, theme, fig):
         })
 
 def _get_volume_grid(
-    volume_bars, 
+    volume_bars: go.Bar, 
     volume_bar_mode: bool, 
     volume_axis_name: str, 
     num_detached_indicators: int,
@@ -410,7 +417,13 @@ def _get_volume_grid(
     else:
         raise ValueError(f"Unknown volume bar mode: {volume_bar_mode}")
 
-def _get_grid_without_volume(num_detached_indicators, vertical_spacing, relative_sizing, subplot_names, is_secondary_y):
+def _get_grid_without_volume(
+    num_detached_indicators: int, 
+    vertical_spacing: float, 
+    relative_sizing: list[float],
+    subplot_names: list[str],
+    is_secondary_y: bool
+):
     specs = _get_specs(num_detached_indicators, is_secondary_y)
 
     row_heights = _get_row_heights(num_detached_indicators, relative_sizing)
@@ -427,16 +440,26 @@ def _get_grid_without_volume(num_detached_indicators, vertical_spacing, relative
     
     return fig
 
-def _get_specs(num_detached_indicators, is_secondary_y):
+def _get_specs(
+    num_detached_indicators: int,
+    is_secondary_y: bool
+):
     specs = [[{}] for _ in range(num_detached_indicators)]
     specs.insert(0, [{"secondary_y": is_secondary_y}])
     return specs
 
-def _get_row_heights(num_detached_indicators, relative_sizing) -> list[float]:
+def _get_row_heights(
+    num_detached_indicators: int, 
+    relative_sizing: list[float]
+) -> list[float]:
     """Get a list of heights for each row in the subplot grid, including main candle chart"""
     return relative_sizing or [1] + [0.2 for _ in range(num_detached_indicators)]
 
-def _update_overlay_volume(volume_bars, volume_axis_name, fig):
+def _update_overlay_volume(
+    volume_bars: go.Bar,
+    volume_axis_name: str,
+    fig: go.Figure
+):
     """Update overlay volume chart info"""
     fig.add_trace(volume_bars, secondary_y=True)
     fig.update_yaxes(secondary_y=True, showgrid=False)
@@ -444,7 +467,11 @@ def _update_overlay_volume(volume_bars, volume_axis_name, fig):
     if volume_axis_name:
         fig.update_yaxes(title=volume_axis_name, secondary_y=True, row=1)
 
-def _update_separate_volume(volume_bars, volume_axis_name, fig):
+def _update_separate_volume(
+    volume_bars: go.Bar, 
+    volume_axis_name: str,
+    fig: go.Figure
+):
     """Update detached volume chart info"""
     fig.add_trace(volume_bars, row=2, col=1)
 
