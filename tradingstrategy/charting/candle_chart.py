@@ -235,37 +235,7 @@ def visualise_ohlcv(
 
     # sanity checks
     
-    if num_detached_indicators > 0:
-        tail = "\nAlso remember to include element for main price chart"
-        
-        if relative_sizing:
-            
-            error_message = "relative sizing list must be 1 greater than as num_detached_indicators."
-            
-            
-            # add helpful error messages
-            if volume_bar_mode == VolumeBarMode.separate:
-                error_message + "\nRemember to include volume subplot size since it is not overlayed." + tail
-            elif volume_bar_mode in {VolumeBarMode.overlay, VolumeBarMode.hidden}: 
-                error_message + "\nRemember to exclude volume subplot size since it is overlayed." + tail
-            else:
-                raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
-            
-            assert len(relative_sizing) == num_detached_indicators + 1, error_message
-            
-        if subplot_names:
-            
-            error_message = "subplot_names list must be 1 greater than num_detached_indicators."
-            
-            # add helpful error messages
-            if volume_bar_mode == VolumeBarMode.separate:
-                error_message + "\nRemember to include volume subplot name since it is not overlayed." + tail
-            elif volume_bar_mode in {VolumeBarMode.overlay, VolumeBarMode.hidden}:
-                error_message + "\nRemember to exclude volume subplot name since it is overlayed." + tail
-            else:
-                raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
-            
-            assert len(subplot_names) == num_detached_indicators + 1, error_message
+    _validate_plot_info(volume_bar_mode, num_detached_indicators, relative_sizing, subplot_names)
     
     validate_ohclv_dataframe(candles)
 
@@ -321,6 +291,37 @@ def visualise_ohlcv(
     fig.update_annotations(font_size=subplot_font_size)
 
     return fig
+
+def _validate_plot_info(volume_bar_mode, num_detached_indicators, relative_sizing, subplot_names):
+    if num_detached_indicators > 0:
+        tail = "\nAlso remember to include element for main price chart"
+        
+        if relative_sizing:
+            error_message = "relative sizing list must be 1 greater than as num_detached_indicators."
+            
+            
+            # add helpful error messages
+            if volume_bar_mode == VolumeBarMode.separate:
+                error_message + "\nRemember to include volume subplot size since it is not overlayed." + tail
+            elif volume_bar_mode in {VolumeBarMode.overlay, VolumeBarMode.hidden}: 
+                error_message + "\nRemember to exclude volume subplot size since it is overlayed." + tail
+            else:
+                raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
+            
+            assert len(relative_sizing) == num_detached_indicators + 1, error_message
+            
+        if subplot_names:
+            error_message = "subplot_names list must be 1 greater than num_detached_indicators."
+            
+            # add helpful error messages
+            if volume_bar_mode == VolumeBarMode.separate:
+                error_message + "\nRemember to include volume subplot name since it is not overlayed." + tail
+            elif volume_bar_mode in {VolumeBarMode.overlay, VolumeBarMode.hidden}:
+                error_message + "\nRemember to exclude volume subplot name since it is overlayed." + tail
+            else:
+                raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
+            
+            assert len(subplot_names) == num_detached_indicators + 1, error_message
 
 def _set_chart_core_options(chart_name, y_axis_name, height, theme, fig):
     """Update figure layout. Set chart core options."""
