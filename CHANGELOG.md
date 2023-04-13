@@ -1,8 +1,11 @@
-# 0.13.12
+# 0.13.13
 
 - Chart visualization fixes
   - remove `price_chart_rel_size` and `subplot_rel_size` options (will all be specified in `relative_sizing`)
   - refactor and clean code in `tradingstrategy/charting/candle_chart.py`
+
+# 0.13.12
+
 - Fix SyntaxError caused by a typo
 
 # 0.13.11
