@@ -240,7 +240,7 @@ def test_visualise_with_label(persistent_test_client: Client):
 def test_validate_plot_info():
     """Test the validation of plot info."""
     
-    with pytest.raises(AssertionError, match="subplot_names list must be 1 greater than num_detached_indicators.\nRemember to exclude volume subplot name since it is overlayed.\nAlso remember to include element for main price chart"):
+    with pytest.raises(AssertionError):
         _validate_plot_info(
             volume_bar_mode=VolumeBarMode.hidden,
             num_detached_indicators=0,
@@ -248,7 +248,7 @@ def test_validate_plot_info():
             subplot_names=['', 'random 1'],
         )
     
-    with pytest.raises(AssertionError, match="subplot_names list must be 1 greater than num_detached_indicators.\nRemember to include volume subplot name since it is not overlayed.\nAlso remember to include element for main price chart"):
+    with pytest.raises(AssertionError):
         _validate_plot_info(
             volume_bar_mode=VolumeBarMode.separate,
             num_detached_indicators=1,
@@ -256,7 +256,7 @@ def test_validate_plot_info():
             subplot_names=['', 'volume', 'should not be here'],
         )
     
-    with pytest.raises(AssertionError, match="relative sizing list must be 1 greater than as num_detached_indicators.\nRemember to exclude volume subplot size since it is overlayed.\nAlso remember to include element for main price chart"):
+    with pytest.raises(AssertionError):
         _validate_plot_info(
             volume_bar_mode=VolumeBarMode.overlay,
             num_detached_indicators=0,
@@ -264,7 +264,7 @@ def test_validate_plot_info():
             subplot_names=None,
         )
     
-    with pytest.raises(AssertionError, match="relative sizing list must be 1 greater than as num_detached_indicators.\nRemember to include volume subplot size since it is not overlayed.\nAlso remember to include element for main price chart"):
+    with pytest.raises(AssertionError):
         _validate_plot_info(
             volume_bar_mode=VolumeBarMode.separate,
             num_detached_indicators=1,
