@@ -271,6 +271,15 @@ def test_validate_plot_info():
             relative_sizing=[1],
             subplot_names=None,
         )
+        
+    # provide bad volume_bar_mode
+    with pytest.raises(ValueError, match="Invalid volume_bar_mode"):
+        _validate_plot_info(
+            volume_bar_mode='bad',
+            num_detached_indicators=0,
+            relative_sizing=None,
+            subplot_names=None
+        )
     
     # check that we can pass validation without providing subplot_names or relative_sizing
     _validate_plot_info(
