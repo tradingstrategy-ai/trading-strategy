@@ -1,6 +1,6 @@
-# Current
+# 0.13.12
 
-- TODO
+- Fix SyntaxError caused by a typo
 
 # 0.13.11
 
