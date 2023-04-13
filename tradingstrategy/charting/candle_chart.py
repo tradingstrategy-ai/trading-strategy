@@ -310,31 +310,31 @@ def _validate_plot_info(
     tail = "\nAlso remember to include element for main price chart"
     
     if relative_sizing:
-        _error_message = "relative sizing list must be 1 greater than as num_detached_indicators."
+        _error_message = "relative sizing list must be 1 greater than num_detached_indicators."
         
         
         # add helpful error messages
         if volume_bar_mode == VolumeBarMode.separate:
-            error_message = _error_message + "\nRemember to include volume subplot size since it is not overlayed." + tail
+            error_message = _error_message + "\nRemember to include volume subplot size since it is separate." + tail
         elif volume_bar_mode in {VolumeBarMode.overlay, VolumeBarMode.hidden}: 
-            error_message = _error_message + "\nRemember to exclude volume subplot size since it is overlayed." + tail
+            error_message = _error_message + "\nRemember to exclude volume subplot size since it is not separate." + tail
         else:
             raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
         
-        assert len(relative_sizing) == num_detached_indicators + 1, error_message
+        assert len(relative_sizing) == num_detached_indicators + 1, error_message + f"len(relative_sizing) ({len(relative_sizing)}), num_detached_indicators ({num_detached_indicators})" 
         
     if subplot_names:
         _error_message = "subplot_names list must be 1 greater than num_detached_indicators."
         
         # add helpful error messages
         if volume_bar_mode == VolumeBarMode.separate:
-            error_message = _error_message + "\nRemember to include volume subplot name since it is not overlayed." + tail
+            error_message = _error_message + "\nRemember to include volume subplot name since it is separate." + tail
         elif volume_bar_mode in {VolumeBarMode.overlay, VolumeBarMode.hidden}:
-            error_message = _error_message + "\nRemember to exclude volume subplot name since it is overlayed." + tail
+            error_message = _error_message + "\nRemember to exclude volume subplot name since it is not separate." + tail
         else:
             raise ValueError(f"Invalid volume_bar_mode. Got {volume_bar_mode}")
         
-        assert len(subplot_names) == num_detached_indicators + 1, error_message        
+        assert len(subplot_names) == num_detached_indicators + 1, error_message + f"subplot names length ({len(subplot_names)}), num_detached_indicators ({num_detached_indicators})"        
 
 def _set_chart_core_options(chart_name, y_axis_name, height, theme, fig):
     """Update figure layout. Set chart core options."""
