@@ -6,7 +6,7 @@ from IPython.core.display_functions import display
 from pandas.core.groupby import DataFrameGroupBy
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels, VolumeBarMode, _validate_plot_info
+from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels, VolumeBarMode, validate_plot_info
 from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse, DEXPair
 from tradingstrategy.timebucket import TimeBucket
@@ -237,11 +237,11 @@ def test_visualise_with_label(persistent_test_client: Client):
         labels=labels
     )
 
-def test_validate_plot_info():
+def testvalidate_plot_info():
     """Test the validation of plot info."""
     
     with pytest.raises(AssertionError):
-        _validate_plot_info(
+        validate_plot_info(
             volume_bar_mode=VolumeBarMode.hidden,
             num_detached_indicators=0,
             relative_sizing=None,
@@ -249,7 +249,7 @@ def test_validate_plot_info():
         )
     
     with pytest.raises(AssertionError):
-        _validate_plot_info(
+        validate_plot_info(
             volume_bar_mode=VolumeBarMode.separate,
             num_detached_indicators=1,
             relative_sizing=None,
@@ -257,7 +257,7 @@ def test_validate_plot_info():
         )
     
     with pytest.raises(AssertionError):
-        _validate_plot_info(
+        validate_plot_info(
             volume_bar_mode=VolumeBarMode.overlay,
             num_detached_indicators=0,
             relative_sizing=[1, 0.2],
@@ -265,7 +265,7 @@ def test_validate_plot_info():
         )
     
     with pytest.raises(AssertionError):
-        _validate_plot_info(
+        validate_plot_info(
             volume_bar_mode=VolumeBarMode.separate,
             num_detached_indicators=1,
             relative_sizing=[1],
@@ -274,7 +274,7 @@ def test_validate_plot_info():
         
     # provide bad volume_bar_mode
     with pytest.raises(ValueError, match="Invalid volume_bar_mode"):
-        _validate_plot_info(
+        validate_plot_info(
             volume_bar_mode='bad',
             num_detached_indicators=0,
             relative_sizing=None,
@@ -282,7 +282,7 @@ def test_validate_plot_info():
         )
     
     # check that we can pass validation without providing subplot_names or relative_sizing
-    _validate_plot_info(
+    validate_plot_info(
         volume_bar_mode=VolumeBarMode.separate,
         num_detached_indicators=1,
         relative_sizing=None,

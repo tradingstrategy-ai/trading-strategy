@@ -235,7 +235,7 @@ def visualise_ohlcv(
 
     # sanity checks
     
-    _validate_plot_info(volume_bar_mode, num_detached_indicators, relative_sizing, subplot_names)
+    validate_plot_info(volume_bar_mode, num_detached_indicators, relative_sizing, subplot_names)
     
     validate_ohclv_dataframe(candles)
 
@@ -292,7 +292,7 @@ def visualise_ohlcv(
 
     return fig
 
-def _validate_plot_info(
+def validate_plot_info(
     volume_bar_mode: VolumeBarMode, 
     num_detached_indicators: int, 
     relative_sizing: list[float], 
