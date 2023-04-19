@@ -1,3 +1,7 @@
+# 0.13.15
+
+- Add `fee_tier` option to `get_one_pair_from_pandas_universe()` and `get_pair_by_human_description()`
+
 # 0.13.14
 
 - Bump max pairs to load over JSONL to 75

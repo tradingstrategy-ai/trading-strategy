@@ -27,7 +27,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
-from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey
+from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
@@ -47,6 +47,11 @@ class DuplicatePair(Exception):
 #: Data needed to identify a trading pair with human description.
 #:
 #: This is `(chain, exchange slug, base token, quote token)`.
+#:
+#: See also
+#:
+#: - :py:data:`HumanReadableTradingPairDescription`
+
 FeelessPair: TypeAlias = Tuple[ChainId, str, str, str]
 
 #: Data needed to identify a trading pair with human description.
@@ -56,7 +61,15 @@ FeelessPair: TypeAlias = Tuple[ChainId, str, str, str]
 #: supports the same pair with different pools having different fees.
 #:
 #: This is `(chain, exchange slug, base token, quote token, pool fee)`.
-FeePair: TypeAlias = Tuple[ChainId, str, str, str, float]
+#:
+#: Pool fee is expressed as
+#:
+#: See also
+#:
+#: - :py:data:`HumanReadableTradingPairDescription`
+#:
+#:
+FeePair: TypeAlias = Tuple[ChainId, str, str, str, Percent]
 
 
 #: Shorthand method to identify trading pairs when written down by a human.
@@ -67,6 +80,25 @@ FeePair: TypeAlias = Tuple[ChainId, str, str, str, float]
 #: Note that because there can be multipe tokens and fake tokens with the same name,
 #: we usually refer to the "best" token which is the highest liquidty/volume trading
 #: pair on the particular exchange.
+#:
+#:
+#: Example descriptions
+#:
+#: .. code-block:: python
+#:
+#:         (ChainId.arbitrum, "uniswap-v3", "ARB", "USDC", 0.0005),  # Arbitrum, 5 BPS fee
+#:         (ChainId.ethereum, "uniswap-v2", "WETH", "USDC"),  # ETH
+#:         (ChainId.ethereum, "uniswap-v3", "EUL", "WETH", 0.0100),  # Euler 100 bps fee
+#:         (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD"),  # BNB
+#:         (ChainId.arbitrum, "camelot", "ARB", "WETH"),  # ARB
+#:
+#: See also
+#:
+#: -:py:meth:`PandasPairUniverse.get_pair_by_human_description`
+#:
+#: - :py:data:`FeelessPair`
+#:
+#: - :py:data:`FeePair`
 #:
 HumanReadableTradingPairDescription: TypeAlias = FeePair | FeelessPair
 
@@ -683,7 +715,13 @@ class PandasPairUniverse:
                 return pair
         return None
 
-    def get_one_pair_from_pandas_universe(self, exchange_id: PrimaryKey, base_token: str, quote_token: str, pick_by_highest_vol=False) -> Optional[DEXPair]:
+    def get_one_pair_from_pandas_universe(
+            self,
+            exchange_id: PrimaryKey,
+            base_token: str,
+            quote_token: str,
+            fee_tier: Optional[Percent] = None,
+            pick_by_highest_vol=False) -> Optional[DEXPair]:
         """Get a trading pair by its ticker symbols.
 
         Note that this method works only very simple universes, as any given pair
@@ -710,19 +748,44 @@ class PandasPairUniverse:
             print("BUSD address is", wbnb_busd_pair.quote_token_address)
             print("WBNB-BUSD pair contract address is", wbnb_busd_pair.address)
 
-        :param pick_by_highest_vol: If multiple trading pairs with the same symbols are found, pick one with the highest volume. This is because often malicious trading pairs are create to attract novice users.
+        :param fee_tier:
+            Uniswap v3 and likes provide the same ticker  in multiple fee tiers.
+
+            You need to use `fee_tier` parameter to separate the Uniswap pools.
+            Fee tier is not needed for Uniswap v2 like exchanges as all of their trading pairs have the same fee structure.
+
+            The fee tier is 0...1 e.g. 0.0030 for 3 BPS or 0.3% fee tier.
+
+            If fee tier is not provided, then the lowest fee tier pair is returned.
+            However the lowest fee tier might not have the best liquidity or volume.
+
+        :param pick_by_highest_vol:
+            If multiple trading pairs with the same symbols are found, pick one with the highest volume. This is because often malicious trading pairs are create to attract novice users.
 
         :raise DuplicatePair: If the universe contains more than single entry for the pair.
 
         :return: None if there is no match
         """
 
+        if fee_tier is not None:
+            assert (fee_tier >= 0) and (fee_tier <= 1), f"Received bad fee tier: {base_token}-{quote_token}: {fee_tier}"
+
         df = self.df
 
-        pairs: pd.DataFrame= df.loc[
-            (df["exchange_id"] == exchange_id) &
-            (df["base_token_symbol"] == base_token) &
-            (df["quote_token_symbol"] == quote_token)]
+        if fee_tier is not None:
+            fee_bps = int(fee_tier * 10000)  # Convert to BPS
+            pairs: pd.DataFrame= df.loc[
+                (df["exchange_id"] == exchange_id) &
+                (df["base_token_symbol"] == base_token) &
+                (df["quote_token_symbol"] == quote_token) &
+                (df["fee"] == fee_bps)
+            ]
+
+        else:
+            pairs: pd.DataFrame= df.loc[
+                (df["exchange_id"] == exchange_id) &
+                (df["base_token_symbol"] == base_token) &
+                (df["quote_token_symbol"] == quote_token)]
 
         if len(pairs) > 1:
             if not pick_by_highest_vol:
@@ -731,7 +794,7 @@ class PandasPairUniverse:
                 raise DuplicatePair(f"Found {len(pairs)} trading pairs for {base_token}-{quote_token} when 1 was expected")
 
             # Sort by trade volume and pick the highest one
-            pairs = pairs.sort_values(by="buy_volume_all_time", ascending=False)
+            pairs = pairs.sort_values(by=["fee", "buy_volume_all_time"], ascending=[True, False])
             data = next(iter(pairs.to_dict("index").values()))
             return DEXPair.from_dict(data)
 
@@ -792,7 +855,7 @@ class PandasPairUniverse:
 
         Example:
 
-        .. code-block::
+        .. code-block:: python
 
             # Get BNB-BUSD pair on PancakeSwap v2
             desc = (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD")
@@ -800,6 +863,55 @@ class PandasPairUniverse:
             assert bnb_busd.base_token_symbol == "WBNB"
             assert bnb_busd.quote_token_symbol == "BUSD"
             assert bnb_busd.buy_volume_30d > 1_000_000
+
+        Another example:
+
+        .. code-block:: python
+
+            pair_human_descriptions = (
+                (ChainId.ethereum, "uniswap-v2", "WETH", "USDC"),  # ETH
+                (ChainId.ethereum, "uniswap-v2", "EUL", "WETH", 0.0030),  # Euler 30 bps fee
+                (ChainId.ethereum, "uniswap-v3", "EUL", "WETH", 0.0100),  # Euler 100 bps fee
+                (ChainId.ethereum, "uniswap-v2", "MKR", "WETH"),  # MakerDAO
+                (ChainId.ethereum, "uniswap-v2", "HEX", "WETH"),  # MakerDAO
+                (ChainId.ethereum, "uniswap-v2", "FNK", "USDT"),  # Finiko
+                (ChainId.ethereum, "sushi", "AAVE", "WETH"),  # AAVE
+                (ChainId.ethereum, "sushi", "COMP", "WETH"),  # Compound
+                (ChainId.ethereum, "sushi", "WETH", "WBTC"),  # BTC
+                (ChainId.ethereum, "sushi", "ILV", "WETH"),  # Illivium
+                (ChainId.ethereum, "sushi", "DELTA", "WETH"),  # Delta
+                (ChainId.ethereum, "sushi", "UWU", "WETH"),  # UwU lend
+                (ChainId.ethereum, "uniswap-v2", "UNI", "WETH"),  # UNI
+                (ChainId.ethereum, "uniswap-v2", "CRV", "WETH"),  # Curve
+                (ChainId.ethereum, "sushi", "SUSHI", "WETH"),  # Sushi
+                (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD"),  # BNB
+                (ChainId.bsc, "pancakeswap-v2", "Cake", "BUSD"),  # Cake
+                (ChainId.bsc, "pancakeswap-v2", "MBOX", "BUSD"),  # Mobox
+                (ChainId.bsc, "pancakeswap-v2", "RDNT", "WBNB"),  # Radiant
+                (ChainId.polygon, "quickswap", "WMATIC", "USDC"),  # Matic
+                (ChainId.polygon, "quickswap", "QI", "WMATIC"),  # QiDao
+                (ChainId.polygon, "sushi", "STG", "USDC"),  # Stargate
+                (ChainId.avalanche, "trader-joe", "WAVAX", "USDC"),  # Avax
+                (ChainId.avalanche, "trader-joe", "JOE", "WAVAX"),  # TraderJoe
+                (ChainId.avalanche, "trader-joe", "GMX", "WAVAX"),  # GMX
+                (ChainId.arbitrum, "camelot", "ARB", "WETH"),  # ARB
+                # (ChainId.arbitrum, "sushi", "MAGIC", "WETH"),  # Magic
+            )
+
+            client = persistent_test_client
+            exchange_universe = client.fetch_exchange_universe()
+            pairs_df = client.fetch_pair_universe().to_pandas()
+            pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+            pairs: List[DEXPair]
+            pairs = [pair_universe.get_pair_by_human_description(exchange_universe, d) for d in pair_human_descriptions]
+
+            assert len(pairs) == 26
+            assert pairs[0].exchange_slug == "uniswap-v2"
+            assert pairs[0].get_ticker() == "WETH-USDC"
+
+            assert pairs[1].exchange_slug == "uniswap-v2"
+            assert pairs[1].get_ticker() == "EUL-WETH"
 
         :param exchange_universe:
             The current database used to decode exchanges.
@@ -811,15 +923,21 @@ class PandasPairUniverse:
 
         :raise NoPairFound:
             In the case input data cannot be resolved.
-
         """
 
-        chain_id, exchange_slug, base_token, quote_token = desc
+        if len(desc) >= 5:
+            chain_id, exchange_slug, base_token, quote_token, fee_tier = desc
+        else:
+            chain_id, exchange_slug, base_token, quote_token = desc
+            fee_tier = None
 
         assert isinstance(chain_id, ChainId), f"Not ChainId: {chain_id}"
         assert type(exchange_slug) == str, f"Not exchange slug: {exchange_slug}"
         assert type(base_token) == str, f"Not base token string: {base_token}"
         assert type(quote_token) == str, f"Not quote token string: {quote_token}"
+
+        if fee_tier is not None:
+            assert (fee_tier >= 0) and (fee_tier <= 1), f"Received bad fee tier: {chain_id} {exchange_slug} {base_token} {quote_token}: {fee_tier}"
 
         exchange = exchange_universe.get_by_chain_and_slug(chain_id, exchange_slug)
         if exchange is None:
@@ -839,13 +957,15 @@ class PandasPairUniverse:
             exchange.exchange_id,
             base_token,
             quote_token,
+            fee_tier=fee_tier,
             pick_by_highest_vol=True,
         )
 
         if pair is None:
-            raise NoPairFound(f"Exchange {exchange_slug} does not have a pair {base_token}-{quote_token}.\n"
-                              f"This might be a problem in your data filtering.?"
-                              f"Did you construct the trading universe correctly?")
+            raise NoPairFound(f"Exchange {exchange_slug} does not have a pair {base_token}-{quote_token} with fee tier {fee_tier}.\n"
+                              f"This might be a problem in your data loadng and filtering.\n"
+                              f"Did you construct the trading universe correctly?\n"
+                              f"Did you set the fee tier correctly?")
 
         return pair
 

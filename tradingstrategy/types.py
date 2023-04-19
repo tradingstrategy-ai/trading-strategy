@@ -50,3 +50,16 @@ BasisPoint: TypeAlias = int
 #:
 #: See :py:class:`tradingstategy.chain.ChainId` for details
 RawChainId: TypeAlias = int
+
+
+#: Percent expressed as float 0...1
+#:
+#: 1 = 100%
+#:
+#: 0.00030 = 0.3% = 30 BPS
+#:
+#: See also
+#:
+#: - :py:data:`BasisPoint`
+#:
+Percent: TypeAlias = float
