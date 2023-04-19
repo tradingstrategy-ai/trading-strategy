@@ -185,7 +185,7 @@ def load_candles_jsonl(
     end_time: Optional[datetime.datetime] = None,
     max_bytes: Optional[int] = None,
     progress_bar_description: Optional[str] = None,
-    sanity_check_count=20,
+    sanity_check_count=75,
 ) -> pd.DataFrame:
     """Load candles using JSON API and produce a DataFrame.
 
@@ -199,6 +199,11 @@ def load_candles_jsonl(
 
     :param progress_bar_description:
         Progress bar label
+
+    :param sanity_check_count:
+        Don't accidentally try to load too many pairs.
+
+        Never exceed this value.
 
     :raise JSONLMaxResponseSizeExceeded:
         If the max_bytes limit is breached

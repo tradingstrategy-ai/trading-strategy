@@ -1,3 +1,7 @@
+# 0.13.14
+
+- Bump max pairs to load over JSONL to 75
+
 # 0.13.13
 
 - Chart visualization fixes
