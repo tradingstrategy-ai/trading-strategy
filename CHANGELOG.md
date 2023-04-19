@@ -1,3 +1,7 @@
+# 0.13.16
+
+- Fix JSON data loading for Uni v3 exchanges that lack trade count
+
 # 0.13.15
 
 - Add `fee_tier` option to `get_one_pair_from_pandas_universe()` and `get_pair_by_human_description()`

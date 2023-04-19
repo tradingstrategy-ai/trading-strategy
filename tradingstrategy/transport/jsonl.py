@@ -40,7 +40,7 @@ CANDLE_MAPPINGS = {
     "sv": "sell_volume",
     "sb": "start_block",
     "eb": "end_block",
-    "tc": "total_count",
+    "tc": None,  # Currently not available for Uni v3 exchanges
     "v": None,  # Deprecated
 }
 
@@ -160,6 +160,17 @@ def load_trading_strategy_like_jsonl_data(
                 progress_bar.update(current_ts - last_ts)
                 progress_bar.set_postfix({"Currently at": datetime.datetime.utcfromtimestamp(current_ts)})
             last_ts = current_ts
+
+    # Some data validation facilities
+    assumed_lenght = None
+    previous_key = None
+    for key, arr in candle_data.items():
+        current_array_len = len(arr)
+        if assumed_lenght is None:
+            assumed_lenght = current_array_len
+        elif assumed_lenght != current_array_len:
+            raise RuntimeError(f"Bad JSONL data. The length for {previous_key} was {assumed_lenght}, but the length for {key} is {current_array_len}")
+        previous_key = key
 
     if progress_bar:
         # https://stackoverflow.com/a/45808255/315168
