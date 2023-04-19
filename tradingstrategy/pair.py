@@ -837,7 +837,7 @@ class PandasPairUniverse:
 
         Example:
 
-        .. code-block::
+        .. code-block:: python
 
             # Get BNB-BUSD pair on PancakeSwap v2
             desc = (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD")
@@ -845,6 +845,55 @@ class PandasPairUniverse:
             assert bnb_busd.base_token_symbol == "WBNB"
             assert bnb_busd.quote_token_symbol == "BUSD"
             assert bnb_busd.buy_volume_30d > 1_000_000
+
+        Another example:
+
+        .. code-block:: python
+
+            pair_human_descriptions = (
+                (ChainId.ethereum, "uniswap-v2", "WETH", "USDC"),  # ETH
+                (ChainId.ethereum, "uniswap-v2", "EUL", "WETH", 0.0030),  # Euler 30 bps fee
+                (ChainId.ethereum, "uniswap-v3", "EUL", "WETH", 0.0100),  # Euler 100 bps fee
+                (ChainId.ethereum, "uniswap-v2", "MKR", "WETH"),  # MakerDAO
+                (ChainId.ethereum, "uniswap-v2", "HEX", "WETH"),  # MakerDAO
+                (ChainId.ethereum, "uniswap-v2", "FNK", "USDT"),  # Finiko
+                (ChainId.ethereum, "sushi", "AAVE", "WETH"),  # AAVE
+                (ChainId.ethereum, "sushi", "COMP", "WETH"),  # Compound
+                (ChainId.ethereum, "sushi", "WETH", "WBTC"),  # BTC
+                (ChainId.ethereum, "sushi", "ILV", "WETH"),  # Illivium
+                (ChainId.ethereum, "sushi", "DELTA", "WETH"),  # Delta
+                (ChainId.ethereum, "sushi", "UWU", "WETH"),  # UwU lend
+                (ChainId.ethereum, "uniswap-v2", "UNI", "WETH"),  # UNI
+                (ChainId.ethereum, "uniswap-v2", "CRV", "WETH"),  # Curve
+                (ChainId.ethereum, "sushi", "SUSHI", "WETH"),  # Sushi
+                (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD"),  # BNB
+                (ChainId.bsc, "pancakeswap-v2", "Cake", "BUSD"),  # Cake
+                (ChainId.bsc, "pancakeswap-v2", "MBOX", "BUSD"),  # Mobox
+                (ChainId.bsc, "pancakeswap-v2", "RDNT", "WBNB"),  # Radiant
+                (ChainId.polygon, "quickswap", "WMATIC", "USDC"),  # Matic
+                (ChainId.polygon, "quickswap", "QI", "WMATIC"),  # QiDao
+                (ChainId.polygon, "sushi", "STG", "USDC"),  # Stargate
+                (ChainId.avalanche, "trader-joe", "WAVAX", "USDC"),  # Avax
+                (ChainId.avalanche, "trader-joe", "JOE", "WAVAX"),  # TraderJoe
+                (ChainId.avalanche, "trader-joe", "GMX", "WAVAX"),  # GMX
+                (ChainId.arbitrum, "camelot", "ARB", "WETH"),  # ARB
+                # (ChainId.arbitrum, "sushi", "MAGIC", "WETH"),  # Magic
+            )
+
+            client = persistent_test_client
+            exchange_universe = client.fetch_exchange_universe()
+            pairs_df = client.fetch_pair_universe().to_pandas()
+            pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+            pairs: List[DEXPair]
+            pairs = [pair_universe.get_pair_by_human_description(exchange_universe, d) for d in pair_human_descriptions]
+
+            assert len(pairs) == 26
+            assert pairs[0].exchange_slug == "uniswap-v2"
+            assert pairs[0].get_ticker() == "WETH-USDC"
+
+            assert pairs[1].exchange_slug == "uniswap-v2"
+            assert pairs[1].get_ticker() == "EUL-WETH"
 
         :param exchange_universe:
             The current database used to decode exchanges.
@@ -856,7 +905,6 @@ class PandasPairUniverse:
 
         :raise NoPairFound:
             In the case input data cannot be resolved.
-
         """
 
         if len(desc) >= 5:
