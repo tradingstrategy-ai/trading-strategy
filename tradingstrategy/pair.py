@@ -47,6 +47,11 @@ class DuplicatePair(Exception):
 #: Data needed to identify a trading pair with human description.
 #:
 #: This is `(chain, exchange slug, base token, quote token)`.
+#:
+#: See also
+#:
+#: - :py:data:`HumanReadableTradingPairDescription`
+
 FeelessPair: TypeAlias = Tuple[ChainId, str, str, str]
 
 #: Data needed to identify a trading pair with human description.
@@ -58,6 +63,11 @@ FeelessPair: TypeAlias = Tuple[ChainId, str, str, str]
 #: This is `(chain, exchange slug, base token, quote token, pool fee)`.
 #:
 #: Pool fee is expressed as
+#:
+#: See also
+#:
+#: - :py:data:`HumanReadableTradingPairDescription`
+#:
 #:
 FeePair: TypeAlias = Tuple[ChainId, str, str, str, Percent]
 
@@ -74,13 +84,21 @@ FeePair: TypeAlias = Tuple[ChainId, str, str, str, Percent]
 #:
 #: Example descriptions
 #:
+#: .. code-block:: python
 #:
+#:         (ChainId.arbitrum, "uniswap-v3", "ARB", "USDC", 0.0005),  # Arbitrum, 5 BPS fee
+#:         (ChainId.ethereum, "uniswap-v2", "WETH", "USDC"),  # ETH
+#:         (ChainId.ethereum, "uniswap-v3", "EUL", "WETH", 0.0100),  # Euler 100 bps fee
+#:         (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD"),  # BNB
+#:         (ChainId.arbitrum, "camelot", "ARB", "WETH"),  # ARB
 #:
 #: See also
 #:
+#: -:py:meth:`PandasPairUniverse.get_pair_by_human_description`
+#:
 #: - :py:data:`FeelessPair`
 #:
-#:  - :py:data:`FeePair`
+#: - :py:data:`FeePair`
 #:
 HumanReadableTradingPairDescription: TypeAlias = FeePair | FeelessPair
 
