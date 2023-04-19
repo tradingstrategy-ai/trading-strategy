@@ -294,6 +294,7 @@ def test_multiple_get_pair_by_human_description(persistent_test_client):
         (ChainId.avalanche, "trader-joe", "JOE", "WAVAX"),  # TraderJoe
         (ChainId.avalanche, "trader-joe", "GMX", "WAVAX"),  # GMX
         (ChainId.arbitrum, "camelot", "ARB", "WETH"),  # ARB
+        (ChainId.arbitrum, "uniswap-v3", "ARB", "USDC", 0.0005),  # Arbitrum, 5 BPS fee
         # (ChainId.arbitrum, "sushi", "MAGIC", "WETH"),  # Magic
     )
 
@@ -305,7 +306,7 @@ def test_multiple_get_pair_by_human_description(persistent_test_client):
     pairs: List[DEXPair]
     pairs = [pair_universe.get_pair_by_human_description(exchange_universe, d) for d in pair_human_descriptions]
 
-    assert len(pairs) == 26
+    assert len(pairs) == 27
     assert pairs[0].exchange_slug == "uniswap-v2"
     assert pairs[0].get_ticker() == "WETH-USDC"
 
@@ -314,3 +315,6 @@ def test_multiple_get_pair_by_human_description(persistent_test_client):
 
     assert pairs[2].exchange_slug == "uniswap-v3"
     assert pairs[2].get_ticker() == "EUL-WETH"
+
+    assert pairs[-1].exchange_slug == "uniswap-v3"
+    assert pairs[-1].get_ticker() == "ARB-USDC"
