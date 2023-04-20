@@ -1,3 +1,7 @@
+# 0.13.17
+
+- Adds support for additional time buckets, specifically `10 min`, `30 min`, `2 hour`, `6 hour`, `8 hour`, `10 hour`, `12 hour`, `16 hour`
+
 # 0.13.16
 
 - Fix JSON data loading for Uni v3 exchanges that lack trade count
