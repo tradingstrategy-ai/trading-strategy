@@ -21,6 +21,25 @@ class TimeBucket(enum.Enum):
     Hourly time buckets have minute and hour set to zero, etc.
 
     Python labels are reserved from the actual values, because Python symbol cannot start with a number.
+
+    The list of time buckets supported by the backend is as follows
+
+    _DELTAS = {
+        TimeBucket.m1: datetime.timedelta(minutes=1),
+        TimeBucket.m5: datetime.timedelta(minutes=5),
+        TimeBucket.m15: datetime.timedelta(minutes=15),
+        TimeBucket.h1: datetime.timedelta(hours=1),
+        TimeBucket.h4: datetime.timedelta(hours=4),
+        TimeBucket.d1: datetime.timedelta(days=1),
+        TimeBucket.d7: datetime.timedelta(days=7),
+        TimeBucket.d30: datetime.timedelta(days=30),
+        TimeBucket.d360: datetime.timedelta(days=360),
+        TimeBucket.infinite: datetime.timedelta.max,
+        TimeBucket.not_applicable: datetime.timedelta(0),  # some sort of a NULL value
+    }
+
+    To use other time buckets, you need to resample the data yourself.
+    See documentation for more details.
     """
 
     #: One minute candles
@@ -29,14 +48,38 @@ class TimeBucket(enum.Enum):
     #: Five minute candles
     m5 = "5m"
 
+    #: Ten minute candles
+    m10 = "10m"
+
     #: Quarter candles
     m15 = "15m"
+
+    #: Thirty minute candles
+    m30 = "30m"
 
     #: Hourly candles
     h1 = "1h"
 
+    #: Two hour candles
+    h2 = "2h"
+
     #: Four hour candles
     h4 = "4h"
+
+    #: Six hour candles
+    h6 = "6h"
+
+    #: Eight hour candles
+    h8 = "8h"
+
+    #: Ten hour candles
+    h10 = "10h"
+
+    #: Twelve hour candles
+    h12 = "12h"
+
+    #: Sixteen hour candles
+    h16 = "16h"
 
     #: Daily candles
     d1 = "1d"
@@ -89,9 +132,17 @@ class TimeBucket(enum.Enum):
 _DELTAS = {
     TimeBucket.m1: datetime.timedelta(minutes=1),
     TimeBucket.m5: datetime.timedelta(minutes=5),
+    TimeBucket.m10: datetime.timedelta(minutes=10),
     TimeBucket.m15: datetime.timedelta(minutes=15),
+    TimeBucket.m30: datetime.timedelta(minutes=30),
     TimeBucket.h1: datetime.timedelta(hours=1),
+    TimeBucket.h2: datetime.timedelta(hours=2),
     TimeBucket.h4: datetime.timedelta(hours=4),
+    TimeBucket.h6: datetime.timedelta(hours=6),
+    TimeBucket.h8: datetime.timedelta(hours=8),
+    TimeBucket.h10: datetime.timedelta(hours=10),
+    TimeBucket.h12: datetime.timedelta(hours=12),
+    TimeBucket.h16: datetime.timedelta(hours=16),
     TimeBucket.d1: datetime.timedelta(days=1),
     TimeBucket.d7: datetime.timedelta(days=7),
     TimeBucket.d30: datetime.timedelta(days=30),
@@ -99,5 +150,4 @@ _DELTAS = {
     TimeBucket.infinite: datetime.timedelta.max,
     TimeBucket.not_applicable: datetime.timedelta(0),  # some sort of a NULL value
 }
-
 
