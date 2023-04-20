@@ -85,16 +85,19 @@ class Candle:
     low: USDollarAmount
 
     #: Number of buys happened during the candle period
-    buys: int
+    buys: int | None
 
     #: Number of sells happened during the candle period
-    sells: int
+    sells: int | None
 
     #: Volume data
-    buy_volume: USDollarAmount
+    volume: USDollarAmount
 
     #: Volume data
-    sell_volume: USDollarAmount
+    buy_volume: USDollarAmount | None
+
+    #: Volume data
+    sell_volume: USDollarAmount | None
 
     #: Average trade size
     avg: USDollarAmount
@@ -120,6 +123,7 @@ class Candle:
         ("low", "float"),
         ("buys", "float"),
         ("sells", "float"),
+        ("volume", "float"),
         ("buy_volume", "float"),
         ("sell_volume", "float"),
         ("avg", "float"),
@@ -135,15 +139,6 @@ class Candle:
     def trades(self) -> int:
         """Amount of all trades during the candle period."""
         return self.buys + self.sells
-
-    @property
-    def volume(self) -> USDollarAmount:
-        """Total volume during the candle period.
-
-        Unline in traditional CEX trading, we can separate buy volume and sell volume from each other,
-        becauase liquidity provider is a special role.
-        """
-        return self.buy_volume + self.sell_volume
 
     @classmethod
     def to_dataframe(cls) -> pd.DataFrame:
@@ -169,6 +164,7 @@ class Candle:
             ("Low", "float"),
             ("buys", "float"),
             ("sells", "float"),
+            ("volume", "float"),
             ("buy_volume", "float"),
             ("sell_volume", "float"),
             ("avg", "float"),
@@ -194,11 +190,13 @@ class Candle:
             ("low", pa.float32()),
             ("buys", pa.uint16() if small_candles else pa.uint32()),
             ("sells", pa.uint16() if small_candles else pa.uint32()),
+            ("volume", pa.float32()),
             ("buy_volume", pa.float32()),
             ("sell_volume", pa.float32()),
             ("avg", pa.float32()),
             ("start_block", pa.uint32()),   # Should we good for 4B blocks
             ("end_block", pa.uint32()),
+            
         ])
         return schema
 
@@ -229,11 +227,12 @@ class Candle:
             "exchange_rate": 1.0,
             "buys": 0,
             "sells": 0,
-            "buy_volume": 0,
-            "sell_volume": 0,
             "avg": 0,
             "start_block": 0,
             "end_block": 0,
+            "volume": 0,
+            "buy_volume": 0,
+            "sell_volume": 0,
         }
 
 
