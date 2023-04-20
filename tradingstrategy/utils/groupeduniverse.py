@@ -366,7 +366,7 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
     return our_pairs
 
 
-def resample_candles(df: pd.DataFrame, new_bucket: TimeBucket) -> pd.DataFrame:
+def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFrame:
     """Downsample OHLCV candles or liquidity samples to less granular time bucket.
 
     E.g. transform 1h candles to 24h candles.
@@ -381,9 +381,12 @@ def resample_candles(df: pd.DataFrame, new_bucket: TimeBucket) -> pd.DataFrame:
         assert len(monthly_candles) <= len(single_pair_candles) / 4
 
     """
-    pandas_time_delta = new_bucket.to_pandas_timedelta()
+    
+    assert isinstance(new_timedelta, pd.Timedelta), f"We got {new_timedelta}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
+    
+    #pandas_time_delta = new_bucket.to_pandas_timedelta()
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
-    candles = df.resample(pandas_time_delta).mean(numeric_only=True)
+    candles = df.resample(new_timedelta).mean(numeric_only=True)
 
     # TODO: Figure out right way to preserve timestamp column,
     # resample seems to destroy it

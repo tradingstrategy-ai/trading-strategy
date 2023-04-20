@@ -1,3 +1,7 @@
+# 0.13.17
+
+- change `resample_candles()` to use timedelta instead of timebucket
+
 # 0.13.16
 
 - Fix JSON data loading for Uni v3 exchanges that lack trade count
