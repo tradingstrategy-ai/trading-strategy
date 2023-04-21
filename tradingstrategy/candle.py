@@ -90,13 +90,17 @@ class Candle:
     #: Number of sells happened during the candle period
     sells: int | None
 
-    #: Volume data
+    #: Trade volume
     volume: USDollarAmount
 
-    #: Volume data
+    #: Buy side volume
+    #:
+    #: Swap quote token -> base token volume
     buy_volume: USDollarAmount | None
 
-    #: Volume data
+    #: Sell side volume
+    #:
+    #: Swap base token -> quote token volume
     sell_volume: USDollarAmount | None
 
     #: Average trade size
