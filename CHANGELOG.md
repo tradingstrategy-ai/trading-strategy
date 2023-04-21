@@ -1,3 +1,7 @@
+# 0.13.18
+
+- Have classical `Candle.volume` field as buy volume and sell volume cannot be separated for Uniswap v3
+
 # 0.13.17
 
 - change `resample_candles()` to use timedelta instead of timebucket
