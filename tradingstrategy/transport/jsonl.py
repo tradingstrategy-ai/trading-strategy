@@ -242,11 +242,11 @@ def load_candles_jsonl(
     # Not supported at the momemnt
     df.loc[:, "avg"] = NaN
 
-    df = df.astype(Candle.DATAFRAME_FIELDS)
+    if "volume" not in df.columns:
+        # Reconstruct normal volume column as expected for OHLCV data
+        df["volume"] = df["buy_volume"] + df["sell_volume"]
 
-    # Reconstruct normal volume column
-    # as expected for OHLCV data
-    df["volume"] = df["buy_volume"] + df["sell_volume"]
+    df = df.astype(Candle.DATAFRAME_FIELDS)
 
     # Convert JSONL unix timestamps to Pandas
     df["timestamp"] = pd.to_datetime(df['timestamp'], unit='s')
