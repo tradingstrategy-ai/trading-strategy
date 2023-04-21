@@ -84,10 +84,14 @@ class Candle:
     #: OHLC core data
     low: USDollarAmount
 
-    #: Number of buys happened during the candle period
+    #: Number of buys happened during the candle period.
+    #:
+    #: Only avaiable on DEXes where buys and sells can be separaed.
     buys: int | None
 
     #: Number of sells happened during the candle period
+    #:
+    #: Only avaiable on DEXes where buys and sells can be separaed.    
     sells: int | None
 
     #: Trade volume
