@@ -1,3 +1,7 @@
+# Current
+
+- Add a shortcut to generate `base_token_address` and `quote_token_address` columns
+
 # 0.13.18
 
 - Have classical `Candle.volume` field as buy volume and sell volume cannot be separated for Uniswap v3

@@ -5,7 +5,7 @@ import pytest
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
-from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, NoPairFound, DEXPair
+from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, NoPairFound, DEXPair, generate_address_columns
 
 
 @pytest.fixture
@@ -318,3 +318,31 @@ def test_multiple_get_pair_by_human_description(persistent_test_client):
 
     assert pairs[-1].exchange_slug == "uniswap-v3"
     assert pairs[-1].get_ticker() == "ARB-USDC"
+
+
+def test_generate_address_columns(persistent_test_client):
+    """Add base_token_address and quote_token_address columns
+    """
+
+    pair_human_description = (ChainId.ethereum, "uniswap-v3", "WETH", "USDC")  # ETH 1 bps fee
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    old_len = len(pairs_df)
+    pairs_df = generate_address_columns(pairs_df)
+    assert len(pairs_df) == old_len
+
+    assert "base_token_address" in pairs_df.columns
+    assert "quote_token_address" in pairs_df.columns
+
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    pair = pair_universe.get_pair_by_human_description(
+        exchange_universe,
+        pair_human_description
+    )
+
+    assert pair.base_token_address == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"  # WETH
+    assert pair.quote_token_address == "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"  # USDC

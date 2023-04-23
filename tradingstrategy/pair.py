@@ -60,7 +60,7 @@ FeelessPair: TypeAlias = Tuple[ChainId, str, str, str]
 #: This is all Uniswap v3 pairs, as a single exchange
 #: supports the same pair with different pools having different fees.
 #:
-#: This is `(chain, exchange slug, base token, quote token, pool fee)`.
+#: This is `(chain, exchange slug, base token, quote token, pool fee)`.c
 #:
 #: Pool fee is expressed as
 #:
@@ -311,10 +311,14 @@ class DEXPair:
         return hash(self.pair_id)
 
     @property
-    def base_token_address(self) -> str:
+    def base_token_address(self) -> NonChecksummedAddress:
         """Get smart contract address for the base token.
 
-        :return: Lowercase, non-checksummed.
+        This information is not part of the dataset, but can be derived after download.
+        See :py:func:`generate_address_columns` how to generate this for your raw :py:class:`pd.DataFrame`.
+
+        :return:
+            Lowercase, non-checksummed.
         """
         if self.token0_symbol == self.base_token_symbol:
             return self.token0_address
@@ -322,10 +326,14 @@ class DEXPair:
             return self.token1_address
 
     @property
-    def quote_token_address(self) -> str:
+    def quote_token_address(self) -> NonChecksummedAddress:
         """Get smart contract address for the quote token
 
-        :return: Token address in checksummed case
+        This information is not part of the dataset, but can be derived after download.
+        See :py:func:`generate_address_columns` how to generate this for your raw :py:class:`pd.DataFrame`.
+
+        :return:
+            Token address in checksummed case
         """
         if self.token0_symbol == self.quote_token_symbol:
             return self.token0_address
@@ -1407,3 +1415,34 @@ def resolve_pairs_based_on_ticker(
 
     result_df = df.loc[df["pair_id"].isin(result_pair_ids)]
     return result_df
+
+
+def generate_address_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Add base_token_address, quote_token_address columns.
+
+    These are not part of the dataset, as they can be derived from other colums.
+
+    :param df:
+        Dataframe from :py:meth:`tradingstrategy.client.Client.fetch_pair_universe`.
+
+    :return:
+        New DataFrame with `base_token_address` and `quote_token_address` columns.
+
+    """
+
+    def expander(row: pd.Series) -> dict:
+        quote_token_symbol = row["quote_token_symbol"]
+        if row["token0_symbol"] == quote_token_symbol:
+            return {
+                "quote_token_address": row["token0_address"],
+                "base_token_address": row["token1_address"],
+            }
+        else:
+            return {
+                "quote_token_address": row["token1_address"],
+                "base_token_address": row["token0_address"],
+            }
+
+    applied_df = df.apply(expander, axis='columns', result_type='expand')
+    df = pd.concat([df, applied_df], axis='columns')
+    return df
