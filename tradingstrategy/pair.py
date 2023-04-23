@@ -204,20 +204,6 @@ class DEXPair:
     #: so that the quote token is the more natural token of the pair (in the above case USD)
     quote_token_symbol: Optional[str] = None
 
-    #: Naturalised base and quote token addresses
-    #:
-    #: This information is not part of the dataset, but can be derived after download.
-    #: See :py:func:`generate_address_columns`.
-    #:
-    base_token_address: Optional[str] = None
-
-    #: Naturalised base and quote token addresses
-    #:
-    #: This information is not part of the dataset, but can be derived after download.
-    #: See :py:func:`generate_address_columns`.
-    #:
-    quote_token_address: Optional[str] = None
-
     #: Number of decimals to convert between human amount and Ethereum fixed int raw amount.
     #: Note - this information might be missing from ERC-20 smart contracts.
     #: If the information is missing the token is not tradeable in practice.
@@ -325,10 +311,14 @@ class DEXPair:
         return hash(self.pair_id)
 
     @property
-    def base_token_address(self) -> str:
+    def base_token_address(self) -> NonChecksummedAddress:
         """Get smart contract address for the base token.
 
-        :return: Lowercase, non-checksummed.
+        This information is not part of the dataset, but can be derived after download.
+        See :py:func:`generate_address_columns` how to generate this for your raw :py:class:`pd.DataFrame`.
+
+        :return:
+            Lowercase, non-checksummed.
         """
         if self.token0_symbol == self.base_token_symbol:
             return self.token0_address
@@ -336,10 +326,14 @@ class DEXPair:
             return self.token1_address
 
     @property
-    def quote_token_address(self) -> str:
+    def quote_token_address(self) -> NonChecksummedAddress:
         """Get smart contract address for the quote token
 
-        :return: Token address in checksummed case
+        This information is not part of the dataset, but can be derived after download.
+        See :py:func:`generate_address_columns` how to generate this for your raw :py:class:`pd.DataFrame`.
+
+        :return:
+            Token address in checksummed case
         """
         if self.token0_symbol == self.quote_token_symbol:
             return self.token0_address
