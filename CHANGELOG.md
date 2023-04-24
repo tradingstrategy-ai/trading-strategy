@@ -1,6 +1,7 @@
 # Current
 
 - Add a shortcut to generate `base_token_address` and `quote_token_address` columns
+- Add a shortcut `Universe.get_candles_by_human_description()`
 
 # 0.13.18
 

@@ -8,7 +8,7 @@ from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange, ExchangeUniverse
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, ResampledLiquidityUniverse
-from tradingstrategy.pair import PandasPairUniverse
+from tradingstrategy.pair import PandasPairUniverse, HumanReadableTradingPairDescription, DEXPair
 from tradingstrategy.timebucket import TimeBucket
 
 
@@ -106,3 +106,32 @@ class Universe:
                 return exc
         return None
 
+    def get_pair_by_human_description(self, desc: HumanReadableTradingPairDescription) -> DEXPair:
+        """Get pair by its human readable description.
+
+        See :py:meth:`tradingstrategy.pair.DEXPair.get_pair_by_human_description`
+        """
+        return self.pairs.get_pair_by_human_description(self.exchange_universe, desc)
+
+    def get_candles_by_human_description(self, desc: HumanReadableTradingPairDescription) -> pd.DataFrame:
+        """Return candles time series by its human description.
+
+        See :py:attr:`tradingstrategy.pair.HumanReadableTradingPairDescription`.
+
+        Example:
+
+        .. code-block:: python
+
+            # Get close prices of different assets
+            benchmarks = pd.DataFrame([
+                universe.get_pair_by_human_description((ChainId.polygon, "quickswap", "WMATIC", "USDC"))["close"],
+                universe.get_pair_by_human_description((ChainId.polygon, "quickswap", "WBTC", "USDC"))["close"],
+                universe.get_pair_by_human_description((ChainId.polygon, "quickswap", "WBTC", "USDC"))["close"],
+            ])
+
+        :return:
+            Pandas Series of candle data for a single pair
+
+        """
+        pair = self.get_pair_by_human_description(desc)
+        return self.candles.get_candles_by_pair(pair.pair_id)

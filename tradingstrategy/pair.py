@@ -939,6 +939,7 @@ class PandasPairUniverse:
             chain_id, exchange_slug, base_token, quote_token = desc
             fee_tier = None
 
+        assert isinstance(exchange_universe, ExchangeUniverse), f"Expected ExchangeUniverse, got {type(exchange_universe)}: {exchange_universe}"
         assert isinstance(chain_id, ChainId), f"Not ChainId: {chain_id}"
         assert type(exchange_slug) == str, f"Not exchange slug: {exchange_slug}"
         assert type(base_token) == str, f"Not base token string: {base_token}"
