@@ -2,7 +2,6 @@
 
 - Add a shortcut function `tradingstrategy.pair.generate_address_columns()` to generate `base_token_address` and `quote_token_address` columns
 - Update API: `resolve_pairs_based_on_ticker()` supports `HumanReadableTradingPairDescription`
-- Update API: `resolve_pairs_based_on_ticker()` supports `HumanReadableTradingPairDescription`
 - Fix: Some error message polish
 
 # 0.13.18

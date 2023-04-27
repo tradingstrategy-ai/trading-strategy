@@ -109,7 +109,12 @@ class CandleFeed:
             yield self.get_candles_by_pair(p)
 
 
-
-
-
-
+def prepare_raw_candle_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert all Python Decimal objects to easier to deal floats in DataFrame."""
+    return df.astype({
+        "open": "float32",
+        "close": "float32",
+        "high": "float32",
+        "low": "float32",
+        "volume": "float32",
+    })

@@ -4,6 +4,7 @@ import logging
 import warnings
 from typing import Optional, Tuple, Iterable
 
+import numpy as np
 import pandas as pd
 
 from tradingstrategy.pair import DEXPair
@@ -393,3 +394,49 @@ def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFr
     candles["timestamp"] = candles.index
 
     return candles
+
+
+def fix_bad_wicks(df: pd.DataFrame, threshold=0.5) -> pd.DataFrame:
+    """Correct out bad high/low values in OHLC data.
+
+    On :term:`Uniswap` v2 and compatibles, Bad wicks are caused by e.g. very large flash loan, oracle price manipulation attacks,
+    and misbheaving bots.
+
+    This function removes bad high/low values and sets them to open/close if they seem to be wildly out of sample.
+
+    :param threshold:
+        How many pct % wicks are allowed through.
+
+        Default to 50%. A high wick cannot be more than 50% of close.
+    """
+
+    # df_ = filter_bad_wicks(df, threshold)
+
+    mask = (df["high"] > df["close"] * (1+threshold)) | (df["low"] < df["close"] * threshold)
+
+    df.loc[mask, "high"] = df["close"]
+    df.loc[mask, "low"] = df["close"]
+    df.loc[mask, "wick_filtered"] = True
+    return df
+
+
+def filter_bad_wicks(df: pd.DataFrame, threshold=0.5) -> pd.DataFrame:
+    """Mark the bad wicks.
+
+    On :term:`Uniswap` v2 and compatibles, Bad wicks are caused by e.g. very large flash loan, oracle price manipulation attacks,
+    and misbheaving bots.
+
+    This function removes bad high/low values and sets them to open/close if they seem to be wildly out of sample.
+
+    :param threshold:
+        How many pct % wicks are allowed through.
+
+        Default to 50%. A high wick cannot be more than 50% of close.
+
+    """
+
+    df_matches = df.loc[
+        (df["high"] > df["close"] * (1+threshold)) | (df["low"] < df["close"] * threshold)
+    ]
+
+    return df_matches
