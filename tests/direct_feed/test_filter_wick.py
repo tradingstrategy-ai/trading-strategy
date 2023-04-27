@@ -25,6 +25,8 @@ def test_filter_wick():
         {"ETH-USD": TrustedStablecoinOracle()},
         mock_chain,
         timeframe=timeframe,
+        start_price_range=1000,
+        end_price_range=1000,
         min_amount=-50,
         max_amount=50,
         broken_wick_block_frequency=70,  # Each 70th block has a broken wick
@@ -58,12 +60,9 @@ def test_filter_wick():
     # [93 rows x 12 columns]
 
     wicked = filter_bad_wicks(candles)
-    assert len(wicked) == 93
+    assert len(wicked) == 59
 
     candles = fix_bad_wicks(candles)
     wicked = filter_bad_wicks(candles)
     assert len(wicked) == 0
     assert len(candles) == 201
-
-
-

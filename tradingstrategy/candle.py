@@ -116,6 +116,8 @@ class Candle:
     #: The last blockchain block that includes trades that went into this candle.
     end_block: BlockNumber
 
+    #: TODO: Currently disabled to optimise speed
+    #:
     #: This candle contained bad wicked :py:attr:`high` or :py:attr:`low` data and was filtered out.
     #:
     #: See :py:func:`tradingstrategy.utils.groupeduniverse.filter_bad_high_low`.
@@ -125,7 +127,7 @@ class Candle:
     #: data loading.
     #:
     #: Not set unless the filter has been run on the fetched data.
-    wick_filtered: Optional[bool] = None,
+    # wick_filtered: Optional[bool] = None,
 
     #: Schema definition for :py:class:`pd.DataFrame:
     #:
