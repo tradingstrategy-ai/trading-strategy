@@ -1,7 +1,7 @@
 # Current
 
-- Add multiple benchmark price indexes to `visualise_benchmark`
-- Add a shortcut to generate `base_token_address` and `quote_token_address` columns
+- Add a shortcut function `tradingstrategy.pair.generate_address_columns()` to generate `base_token_address` and `quote_token_address` columns
+- Some error message polish
 
 # 0.13.18
 
