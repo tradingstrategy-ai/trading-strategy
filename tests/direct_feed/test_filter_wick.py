@@ -63,5 +63,7 @@ def test_filter_wick():
     candles = fix_bad_wicks(candles)
     wicked = filter_bad_wicks(candles)
     assert len(wicked) == 0
+    assert len(candles) == 201
+
 
 

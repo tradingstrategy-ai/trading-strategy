@@ -38,7 +38,8 @@ class PairGroupedUniverse:
                  df: pd.DataFrame,
                  time_bucket=TimeBucket.d1,
                  timestamp_column="timestamp",
-                 index_automatically=True):
+                 index_automatically=True,
+                 fix_wick_threshold=0.5):
         """
         :param time_bucket:
             What bar size candles we are operating at. Default to daily.
@@ -49,9 +50,20 @@ class PairGroupedUniverse:
 
         :param index_automatically:
             Convert the index to use time series. You might avoid this with QSTrader kind of data.
+
+        :param fix_wick_threshold:
+            Apply abnormal high/low wick fix filter.
+
+            Percent value of maximum allowed high/low wick relative to close.
+
+            See :py:func:`tradingstrategy.utils.groupeduniverse.fix_bad_wicks` for more information.
         """
         self.index_automatically = index_automatically
         assert isinstance(df, pd.DataFrame)
+
+        if fix_wick_threshold:
+            df = fix_bad_wicks(df, fix_wick_threshold)
+
         if index_automatically:
             self.df = df \
                 .set_index(timestamp_column, drop=False)\
