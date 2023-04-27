@@ -1309,10 +1309,11 @@ def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -
 
 def resolve_pairs_based_on_ticker(
     df: pd.DataFrame,
-    chain_id: ChainId,
-    exchange_slug: str,
-    pair_tickers: set[tuple[str, str] | tuple[str, str, BasisPoint]],
-    sorting_criteria: str = "buy_volume_all_time",
+    chain_id: Optional[ChainId] = None,
+    exchange_slug: Optional[str] = None,
+    pairs: set[tuple[str, str] | tuple[str, str, BasisPoint]] | Collection[HumanReadableTradingPairDescription] = None,
+    sorting_criteria_by: Tuple = ("fee", "buy_volume_all_time"),
+    sorting_criteria_ascending: Tuple = (True, False),
 ) -> pd.DataFrame:
     """Resolve symbolic trading pairs to their internal integer primary key ids.
 
@@ -1331,6 +1332,25 @@ def resolve_pairs_based_on_ticker(
         Always resolve pair ids before a run.
 
     Example:
+
+    .. code-block: python
+
+        client = persistent_test_client
+        pairs_df = client.fetch_pair_universe().to_pandas()
+
+        pairs = {
+            (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005),
+            (ChainId.ethereum, "uniswap-v3", "DAI", "USDC"),
+        }
+
+        filtered_pairs_df = resolve_pairs_based_on_ticker(
+            pairs_df,
+            pairs=pairs,
+        )
+
+        assert len(filtered_pairs_df) == 2
+
+    Alternative Example:
 
     .. code-block: python
 
@@ -1360,30 +1380,69 @@ def resolve_pairs_based_on_ticker(
         DataFrame containing DEXPairs
 
     :param chain_id:
-        Blockchain the exchange is on
+        Blockchain the exchange is on.
+
+        Set `None` if given part of `HumanReadableTradingPairDescription`.
 
     :param exchange_slug:
         Symbolic exchange name
 
-    :param pair_tickers:
+        Set `None` if given part of `HumanReadableTradingPairDescription`.
+
+    :param pairs:
         List of trading pairs as (base token, quote token) tuples.
         Note that giving trading pair tokens in wrong order
         causes pairs not to be found.
         If any ticker does not match it is not included in the result set.
 
+        See :py:data:`tradingstrategy.pair.HumanReadableTradingPairDescription`.
+
+    :param sorting_criteria_by:
+        Resulting DataFrame sorting
+
+    :param sorting_criteria_ascending:
+        Resulting DataFrame sorting
+
     :return:
         DataFrame with filtered pairs.
     """
 
+    assert pairs, "No pair_tickers given"
+
     # Create list of conditions to filter out dataframe,
     # one condition per pair
     conditions = []
-    for base, quote, *fee in pair_tickers:
+    for pair_description in pairs:
+
+        if len(pair_description) in (4, 5):
+            # New API
+            pair_chain, pair_exchange, base, quote, *fee = pair_description
+
+            assert isinstance(pair_chain, ChainId)
+            assert type(pair_exchange) == str
+            assert type(base) == str
+            assert type(quote) == str
+
+            # Convert to BPS
+            if len(fee) > 0:
+                assert len(fee) == 1
+                fee_value = fee[0]
+                assert type(fee_value) == float, f"Expected fee 0...1: {type(fee_value)}: {fee_value}"
+                assert fee_value >= 0 and fee_value <= 1
+                fee = [int(fee_value * 10000)]
+
+        else:
+            pair_chain = chain_id
+            pair_exchange = exchange_slug
+            assert chain_id, "chain_id missing"
+            assert exchange_slug, "exchange_slug missing"
+            base, quote, *fee = pair_description
+
         condition = (
             (df["base_token_symbol"].str.lower() == base.lower())
             & (df["quote_token_symbol"].str.lower() == quote.lower())
-            & (df["exchange_slug"].str.lower() == exchange_slug.lower())
-            & (df["chain_id"] == chain_id.value)
+            & (df["exchange_slug"].str.lower() == pair_exchange.lower())
+            & (df["chain_id"] == pair_chain.value)
         )
 
         # also filter by pair fee if pair ticker specifies it
@@ -1398,22 +1457,30 @@ def resolve_pairs_based_on_ticker(
 
     # Sort by the buy volume as a preparation
     # for the scam filter
-    df_matches = df_matches.sort_values(by=sorting_criteria, ascending=False)
+    df_matches = df_matches.sort_values(by=list(sorting_criteria_by), ascending=list(sorting_criteria_ascending))
 
     result_pair_ids = set()
 
     # Scam filter.
     # Pick the tokens by the highest buy volume to the result map.
-    for base, quote, *_ in pair_tickers:
+    for pair_description in pairs:
+
+        if len(pair_description) > 3:
+            pair_chain, pair_exchange, base, quote, *fee = pair_description
+        else:
+            # Legacy
+            base, quote, *_ = pair_description
+
         for _, row in df_matches.iterrows():
             if (
-                row["base_token_symbol"] == base
-                and row["quote_token_symbol"] == quote
+                row["base_token_symbol"].lower() == base.lower()
+                and row["quote_token_symbol"].lower() == quote.lower()
             ):
                 result_pair_ids.add(row["pair_id"])
                 break
 
     result_df = df.loc[df["pair_id"].isin(result_pair_ids)]
+
     return result_df
 
 
