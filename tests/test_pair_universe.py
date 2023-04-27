@@ -121,6 +121,25 @@ def test_resolve_pairs_based_on_ticker_with_fee(persistent_test_client):
 
     assert len(filtered_pairs_df) == 2
 
+
+def test_resolve_pairs_based_on_ticker_with_description_and_fee(persistent_test_client):
+    """Check that we can find multiple pairs with specified fee using new API."""
+
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    pairs = {
+        (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005),
+        (ChainId.ethereum, "uniswap-v3", "DAI", "USDC"),
+    }
+
+    filtered_pairs_df = resolve_pairs_based_on_ticker(
+        pairs_df,
+        pairs=pairs,
+    )
+
+    assert len(filtered_pairs_df) == 2
+
 def test_get_token(persistent_test_client):
     """Check that we can decode token information fom pair data."""
 
