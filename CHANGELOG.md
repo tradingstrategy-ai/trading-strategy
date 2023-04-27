@@ -1,5 +1,6 @@
 # Current
 
+- Add multiple benchmark price indexes to `visualise_benchmark`
 - Add a shortcut to generate `base_token_address` and `quote_token_address` columns
 
 # 0.13.18

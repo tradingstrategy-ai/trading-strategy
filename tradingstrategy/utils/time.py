@@ -20,7 +20,8 @@ def assert_compatible_timestamp(ts: pd.Timestamp):
 
     :raise: AssertionError if the timestamp object is incompatible
     """
-    assert is_compatible_timestamp(ts), f"Received pandas.Timestamp in incompatible format: {ts}"
+    assert isinstance(ts, pd.Timestamp), f"not pd.Timestamp: {ts.__class__.__name__}={ts}"
+    assert is_compatible_timestamp(ts), f"Received pandas.Timestamp in incompatible format: {type(ts)}: {ts}"
 
 
 def to_int_unix_timestamp(dt: datetime.datetime) -> int:
