@@ -39,7 +39,7 @@ class PairGroupedUniverse:
                  time_bucket=TimeBucket.d1,
                  timestamp_column="timestamp",
                  index_automatically=True,
-                 fix_wick_threshold: tuple | None=(0.1, 1.9)):
+                 fix_wick_threshold: tuple | None = (0.1, 1.9)):
         """
         :param time_bucket:
             What bar size candles we are operating at. Default to daily.
@@ -55,6 +55,7 @@ class PairGroupedUniverse:
             Apply abnormal high/low wick fix filter.
 
             Percent value of maximum allowed high/low wick relative to close.
+            By default fix values where low is 90% lower than close and high is 90% higher than close.
 
             See :py:func:`tradingstrategy.utils.groupeduniverse.fix_bad_wicks` for more information.
         """
