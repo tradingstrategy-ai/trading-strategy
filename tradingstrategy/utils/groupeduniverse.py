@@ -1,9 +1,10 @@
 """Helpers to create Pandas dataframes for per-pair analytics."""
-
+import datetime
 import logging
 import warnings
 from typing import Optional, Tuple, Iterable
 
+import numpy as np
 import pandas as pd
 
 from tradingstrategy.pair import DEXPair
@@ -37,7 +38,8 @@ class PairGroupedUniverse:
                  df: pd.DataFrame,
                  time_bucket=TimeBucket.d1,
                  timestamp_column="timestamp",
-                 index_automatically=True):
+                 index_automatically=True,
+                 fix_wick_threshold: tuple | None = (0.1, 1.9)):
         """
         :param time_bucket:
             What bar size candles we are operating at. Default to daily.
@@ -48,9 +50,18 @@ class PairGroupedUniverse:
 
         :param index_automatically:
             Convert the index to use time series. You might avoid this with QSTrader kind of data.
+
+        :param fix_wick_threshold:
+            Apply abnormal high/low wick fix filter.
+
+            Percent value of maximum allowed high/low wick relative to close.
+            By default fix values where low is 90% lower than close and high is 90% higher than close.
+
+            See :py:func:`tradingstrategy.utils.groupeduniverse.fix_bad_wicks` for more information.
         """
         self.index_automatically = index_automatically
         assert isinstance(df, pd.DataFrame)
+
         if index_automatically:
             self.df = df \
                 .set_index(timestamp_column, drop=False)\
@@ -58,7 +69,12 @@ class PairGroupedUniverse:
             # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_index.html
         else:
             self.df = df
+
+        if fix_wick_threshold:
+            self.df = fix_bad_wicks(self.df, fix_wick_threshold)
+
         self.pairs: pd.GroupBy = self.df.groupby(["pair_id"])
+
         self.timestamp_column = timestamp_column
         self.time_bucket = time_bucket
 
@@ -393,3 +409,68 @@ def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFr
     candles["timestamp"] = candles.index
 
     return candles
+
+
+def fix_bad_wicks(
+        df: pd.DataFrame,
+        threshold=(0.1, 1.9),
+        too_slow_threshold=15,
+) -> pd.DataFrame:
+    """Correct out bad high/low values in OHLC data.
+
+    On :term:`Uniswap` v2 and compatibles, Bad wicks are caused by e.g. very large flash loan, oracle price manipulation attacks,
+    and misbheaving bots.
+
+    This function removes bad high/low values and sets them to open/close if they seem to be wildly out of sample.
+
+    :param threshold:
+        How many pct % wicks are allowed through.
+
+        Tuple (low threshold, high threshold) relative to close.
+
+        Default to 50%. A high wick cannot be more than 50% of close.
+
+    :param too_slow_threshold:
+        Complain if this takes too long
+    """
+
+    start = datetime.datetime.utcnow()
+
+    # Optimised with np.where()
+    # https://stackoverflow.com/a/65729035/315168
+    df["high"] = np.where(df["high"] > df["close"] * threshold[1], df["close"], df["high"])
+    df["low"] = np.where(df["low"] < df["close"] * threshold[0], df["close"], df["low"])
+
+    duration = datetime.datetime.utcnow() - start
+
+    if duration > datetime.timedelta(seconds=too_slow_threshold):
+        logger.warning("Very slow fix_bad_wicks(): %s", duration)
+
+    # The following code chokes
+    # mask = (df["high"] > df["close"] * (1+threshold)) | (df["low"] < df["close"] * threshold)
+    #df.loc[mask, "high"] = df["close"]
+    #df.loc[mask, "low"] = df["close"]
+    #df.loc[mask, "wick_filtered"] = True
+    return df
+
+
+def filter_bad_wicks(df: pd.DataFrame, threshold=(0.1, 1.9)) -> pd.DataFrame:
+    """Mark the bad wicks.
+
+    On :term:`Uniswap` v2 and compatibles, Bad wicks are caused by e.g. very large flash loan, oracle price manipulation attacks,
+    and misbheaving bots.
+
+    This function removes bad high/low values and sets them to open/close if they seem to be wildly out of sample.
+
+    :param threshold:
+        How many pct % wicks are allowed through.
+
+        Default to 50%. A high wick cannot be more than 50% of close.
+
+    """
+
+    df_matches = df.loc[
+        (df["high"] > df["close"] * threshold[1]) | (df["low"] < df["close"] * threshold[0])
+    ]
+
+    return df_matches

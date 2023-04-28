@@ -1,5 +1,6 @@
+"""Candle universe loading tests."""
+
 import datetime
-import resource
 
 import pandas
 import pandas as pd

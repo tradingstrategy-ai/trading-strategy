@@ -1,7 +1,9 @@
-# Current
+# 0.14
 
+- Add: `tradingstrategy.utils.groupeduniverse.fix_bad_wicks` to deal with candle data where high and low
+  values are abnormal due to various price manipulation issues. 
+- Update: Automatically filter bad wicks when creating a candle universe
 - Add a shortcut function `tradingstrategy.pair.generate_address_columns()` to generate `base_token_address` and `quote_token_address` columns
-- Update API: `resolve_pairs_based_on_ticker()` supports `HumanReadableTradingPairDescription`
 - Update API: `resolve_pairs_based_on_ticker()` supports `HumanReadableTradingPairDescription`
 - Fix: Some error message polish
 

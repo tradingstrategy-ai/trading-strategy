@@ -34,6 +34,7 @@ class SyntheticTradeFeed(TradeFeed):
                  price_movement_per_trade=2.5,
                  timeframe: Timeframe = Timeframe("1min"),
                  prices: Dict[PairId, float] = None,
+                 broken_wick_block_frequency=0,
                  ):
         super().__init__(
             pairs=pairs,
@@ -49,6 +50,7 @@ class SyntheticTradeFeed(TradeFeed):
         self.min_amount = min_amount
         self.max_amount = max_amount
         self.price_movement_per_trade = price_movement_per_trade
+        self.broken_wick_block_frequency = broken_wick_block_frequency
         self.random_gen = random.Random(random_seed)
 
         if not prices:
@@ -79,6 +81,16 @@ class SyntheticTradeFeed(TradeFeed):
                     self.prices[p] += self.random_gen.uniform(-self.price_movement_per_trade, self.price_movement_per_trade)
                     self.prices[p] = max(self.prices[p], 0.00001)  # Don't go to negative prices
                     price = self.prices[p]
+
+                    # Simulate broken data by inserting prices 1000x out of range
+                    # See test_filter_wick.py
+                    if self.broken_wick_block_frequency:
+                        if self.random_gen.randint(0, self.broken_wick_block_frequency) == 0:
+                            if self.random_gen.randint(0, 2) == 1:
+                                price *= 1000
+                            else:
+                                price /= 1000
+
                     amount = self.random_gen.uniform(self.min_amount, self.max_amount)
 
                     block: BlockHeader = block_data[block_num]
