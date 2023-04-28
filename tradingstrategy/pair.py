@@ -1311,7 +1311,9 @@ def resolve_pairs_based_on_ticker(
     df: pd.DataFrame,
     chain_id: Optional[ChainId] = None,
     exchange_slug: Optional[str] = None,
-    pairs: set[tuple[str, str] | tuple[str, str, BasisPoint]] | Collection[HumanReadableTradingPairDescription] = None,
+    pairs: set[tuple[ChainId, str, str, str] | \
+               tuple[ChainId, str, str, str, BasisPoint]] | \
+                Collection[HumanReadableTradingPairDescription] = None,
     sorting_criteria_by: Tuple = ("fee", "buy_volume_all_time"),
     sorting_criteria_ascending: Tuple = (True, False),
 ) -> pd.DataFrame:
