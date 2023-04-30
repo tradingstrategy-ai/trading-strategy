@@ -501,7 +501,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
     @staticmethod
     def create_empty() -> "GroupedCandleUniverse":
         """Return an empty GroupedCandleUniverse"""
-        return GroupedCandleUniverse(df=Candle.to_dataframe())
+        return GroupedCandleUniverse(df=Candle.to_dataframe(), fix_wick_threshold=None)
 
     @staticmethod
     def create_empty_qstrader() -> "GroupedCandleUniverse":
@@ -509,7 +509,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         TODO: Fix QSTrader to use "standard" column names.
         """
-        return GroupedCandleUniverse(df=Candle.to_qstrader_dataframe(), timestamp_column="Date")
+        return GroupedCandleUniverse(df=Candle.to_qstrader_dataframe(), timestamp_column="Date", fix_wick_threshold=None)
 
     @staticmethod
     def create_from_single_pair_dataframe(df: pd.DataFrame) -> "GroupedCandleUniverse":

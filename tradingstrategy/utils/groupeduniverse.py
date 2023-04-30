@@ -439,6 +439,9 @@ def fix_bad_wicks(
 
     start = datetime.datetime.utcnow()
 
+    if len(df) == 0:
+        return df
+
     # Optimised with np.where()
     # https://stackoverflow.com/a/65729035/315168
     df["high"] = np.where(df["high"] > df["close"] * threshold[1], df["close"], df["high"])

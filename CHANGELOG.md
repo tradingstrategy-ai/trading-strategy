@@ -2,6 +2,7 @@
 
 - Add caching to `get_candles_by_pair()` and `get_single()` methods.
 This can result in backtesting time being more than halved. 
+- Fix: Bad wick filtering code crashed on empty dataframes
 
 # 0.14
 
