@@ -1,3 +1,8 @@
+# 0.14.1
+
+- Add caching to `get_candles_by_pair()` and `get_single()` methods.
+This can result in backtesting time being more than halved. 
+
 # 0.14
 
 - Add: `tradingstrategy.utils.groupeduniverse.fix_bad_wicks` to deal with candle data where high and low
