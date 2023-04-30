@@ -329,8 +329,6 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
             - close
         """
-        if not hasattr(self, "candles_cache"):
-            self.candles_cache = {}
 
         if pair_id not in self.candles_cache:
             self.candles_cache[pair_id] = self.get_samples_by_pair(pair_id)
