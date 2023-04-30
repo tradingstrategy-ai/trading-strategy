@@ -1,3 +1,7 @@
+# 0.14.1
+
+- Fix: Bad wick filtering code crashed on empty dataframes
+
 # 0.14
 
 - Add: `tradingstrategy.utils.groupeduniverse.fix_bad_wicks` to deal with candle data where high and low
