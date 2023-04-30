@@ -123,6 +123,9 @@ class ChainId(enum.IntEnum):
     #: Binance Smarrt Chain mainnet chain id
     bsc = 56
 
+    #: Alias for Binance Smart Chain
+    binance = bsc
+
     #: Polygon chain id
     polygon = 137
 

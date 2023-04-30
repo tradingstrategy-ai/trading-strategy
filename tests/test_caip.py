@@ -32,6 +32,10 @@ def test_bsc():
     assert c.get_name() == "BNB Smart Chain"
     assert c.get_slug() == "binance"
 
+    d = ChainId.binance
+    assert d.get_name() == "BNB Smart Chain"
+    assert d.get_slug() == "binance"
+
 
 def test_avalanche():
     c = ChainId(43114)
