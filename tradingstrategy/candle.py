@@ -329,7 +329,11 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
             - close
         """
-        return self.get_samples_by_pair(pair_id)
+
+        if pair_id not in self.candles_cache:
+            self.candles_cache[pair_id] = self.get_samples_by_pair(pair_id)
+        
+        return self.candles_cache[pair_id]
 
     def get_closest_price(self,
                           pair_id: PrimaryKey,
