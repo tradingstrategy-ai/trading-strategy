@@ -711,6 +711,7 @@ class PandasPairUniverse:
         pair_count = len(self.pair_map)
         assert pair_count == 1, f"Not a single trading pair universe, we have {pair_count} pairs"
         self.single_pair_cache = DEXPair.from_dict(next(iter(self.pair_map.values())))
+        return self.single_pair_cache
 
 
     def get_by_symbols(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
