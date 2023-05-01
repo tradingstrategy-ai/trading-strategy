@@ -4,7 +4,7 @@
 #: Note that it is *not* safe to to check the token symbol to know if a token is a specific stablecoin,
 #: but you always need to check the contract address.
 #: Checking against this list only works
-STABLECOIN_LIKE = ("DAI", "USDC", "USDT", "DAI", "BUSD", "UST", "USDN")
+STABLECOIN_LIKE = ("DAI", "USDC", "USDT", "DAI", "BUSD", "UST", "USDN", "USDT.e", "USDC.e")
 
 
 #: Stablecoins plus their interest wrapped counterparts on Compound and Aave.

@@ -1,3 +1,7 @@
+# Current
+
+- Add `USDT.e` and `USDC.e` bridged stablecoins on Avalanche
+
 # 0.14.1
 
 - Add: caching to `get_candles_by_pair()` and `get_single()` methods.
