@@ -1,6 +1,7 @@
-# Current
+# 0.14.2
 
 - Add `USDT.e` and `USDC.e` bridged stablecoins on Avalanche
+- Add `ExchangeValidation` enum to allow for strategy parameter validation in trade-executor
 
 # 0.14.1
 
