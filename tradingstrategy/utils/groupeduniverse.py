@@ -78,6 +78,9 @@ class PairGroupedUniverse:
         self.timestamp_column = timestamp_column
         self.time_bucket = time_bucket
 
+        self.candles_cache: dict[int, pd.DataFrame] = {}
+
+
     def get_columns(self) -> pd.Index:
         """Get column names from the underlying pandas.GroupBy object"""
         return self.pairs.obj.columns
@@ -435,6 +438,9 @@ def fix_bad_wicks(
     """
 
     start = datetime.datetime.utcnow()
+
+    if len(df) == 0:
+        return df
 
     # Optimised with np.where()
     # https://stackoverflow.com/a/65729035/315168

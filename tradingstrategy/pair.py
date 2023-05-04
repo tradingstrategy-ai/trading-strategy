@@ -549,6 +549,8 @@ class PandasPairUniverse:
 
         self.exchange_universe = exchange_universe
 
+        self.single_pair_cache: DEXPair = None
+
     def iterate_pairs(self) -> Iterable[DEXPair]:
         """Iterate over all pairs in this universe."""
         for pair_id in self.pair_map.keys():
@@ -703,9 +705,14 @@ class PandasPairUniverse:
 
         :raise AssertionError: If our pair universe does not have an exact single pair
         """
+        if self.single_pair_cache:
+            return self.single_pair_cache 
+
         pair_count = len(self.pair_map)
         assert pair_count == 1, f"Not a single trading pair universe, we have {pair_count} pairs"
-        return DEXPair.from_dict(next(iter(self.pair_map.values())))
+        self.single_pair_cache = DEXPair.from_dict(next(iter(self.pair_map.values())))
+        return self.single_pair_cache
+
 
     def get_by_symbols(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
         """For strategies that trade only a few trading pairs, get the only pair in the universe.
