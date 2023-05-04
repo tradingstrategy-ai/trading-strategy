@@ -259,3 +259,41 @@ class ExchangeUniverse:
         assert self.get_exchange_count() == 1
         return next(iter(self.exchanges.values()))
 
+
+class ExchangeValidation(enum.Enum):
+
+    pancakeswap_v2 = {
+        "slug": "pancakeswap-v2",
+        "chain_id": ChainId.bsc,
+        "trade_routing": ["pancakeswap_usdc", "pancakeswap_busd", "pancakeswap_usdt"]
+    }
+    
+    trader_joe = {
+        "slug": "trader-joe",
+        "chain_id": ChainId.avalanche,
+        "trade_routing": ["trader_joe_usdt", "trader_joe_usdc"]
+    }
+
+    quickswap = {
+        "slug": "quickswap",
+        "chain_id": ChainId.polygon,
+        "trade_routing": ["quickswap_usdc", "quickswap_usdt", "quickswap_dai"]
+    }
+
+    uniswap_v2 = {
+        "slug": "uniswap-v2",
+        "chain_id": ChainId.ethereum,
+        "trade_routing": ["uniswap_v2_usdc", "uniswap_v2_usdt", "uniswap_v2_dai"]
+    }
+
+    uniswap_v3_ethereum = {
+        "slug": "uniswap-v3",
+        "chain_id": ChainId.ethereum,
+        "trade_routing": ["uniswap_v3_usdc", "uniswap_v3_busd", "uniswap_v3_dai", "uniswap_v3_usdt"]
+    }
+
+    uniswap_v3_polygon = {
+        "slug": "uniswap-v3",
+        "chain_id": ChainId.polygon,
+        "trade_routing": ["uniswap_v3_usdc_poly", "uniswap_v3_usdt_poly"]
+    }
