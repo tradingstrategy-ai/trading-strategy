@@ -1155,8 +1155,50 @@ class PandasPairUniverse:
     ) -> "PandasPairUniverse":
         """Create a PandasPairUniverse instance based on loaded raw pairs data.
 
-        A shortcut method to create a pair universe for a single or few trading pairs.
+        A shortcut method to create a pair universe for a single or few trading pairs,
+        from DataFrame of all possible trading pairs.
 
+        Example for a single pair:
+
+        .. code-block:: python
+
+            pairs_df = client.fetch_pair_universe().to_pandas()
+            pair_universe = PandasPairUniverse.create_pair_universe(
+                    pairs_df,
+                    [(ChainId.polygon, "uniswap-v3", "WMATIC", "USDC", 0.0005)],
+                )
+            assert pair_universe.get_count() == 1
+            pair = pair_universe.get_single()
+            assert pair.base_token_symbol == "WMATIC"
+            assert pair.quote_token_symbol == "USDC"
+            assert pair.fee_tier == 0.0005  # BPS
+
+        Example for multiple trading pairs.:
+
+        .. code-block:: python
+
+            pairs_df = client.fetch_pair_universe().to_pandas()
+
+            # Create a trading pair universe for a single trading pair
+            #
+            # WMATIC-USD on Uniswap v3 on Polygon, 5 BPS fee tier and 30 BPS fee tier
+            #
+            pair_universe = PandasPairUniverse.create_pair_universe(
+                    pairs_df,
+                    [
+                        (ChainId.polygon, "uniswap-v3", "WMATIC", "USDC", 0.0005),
+                        (ChainId.polygon, "uniswap-v3", "WMATIC", "USDC", 0.0030)
+                    ],
+                )
+            assert pair_universe.get_count() == 2
+
+        :param df:
+            Pandas DataFrame of all pair data.
+
+            See :py:meth:`tradingstrategy.client.Client.fetch_pair_universe` for more information.
+
+        :return:
+            A trading pair universe that contains only the listed trading pairs.
         """
         resolved_pairs_df = resolve_pairs_based_on_ticker(df, pairs=pairs)
         return PandasPairUniverse(resolved_pairs_df)
