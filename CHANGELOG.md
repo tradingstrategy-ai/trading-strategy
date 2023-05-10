@@ -1,5 +1,9 @@
 # Current
 
+- Add `DEXPair.fee_tier` to get the trading pair fee as 0..1 float
+- Add `PandasPairUniverse.create_pair_universe`
+- Deprecate `PandasPairUniverse.create_single_pair_universe`
+- Deprecate `PandasPairUniverse.create_limited_pair_universe`
 - Add `USDT.e` and `USDC.e` bridged stablecoins on Avalanche
 
 # 0.14.1
