@@ -4,6 +4,7 @@ from typing import Set, List, Tuple
 import pytest
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.client import Client
 from tradingstrategy.exchange import ExchangeType
 from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, NoPairFound, DEXPair, generate_address_columns
 
@@ -365,3 +366,44 @@ def test_generate_address_columns(persistent_test_client):
 
     assert pair.base_token_address == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"  # WETH
     assert pair.quote_token_address == "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"  # USDC
+
+
+def test_create_single_pair_universe_with_fee(persistent_test_client: Client):
+    """Test generic create_pair_universe()"""
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create a trading pair universe for a single trading pair
+    #
+    # WMATIC-USD on Uniswap v3 on Polygon, 5 BPS fee tier
+    #
+    pair_universe = PandasPairUniverse.create_pair_universe(
+            pairs_df,
+            [(ChainId.polygon, "uniswap-v3", "WMATIC", "USDC", 0.0005)],
+        )
+    assert pair_universe.get_count() == 1
+    pair = pair_universe.get_single()
+    assert pair.base_token_symbol == "WMATIC"
+    assert pair.quote_token_symbol == "USDC"
+    assert pair.fee_tier == 0.0005  # BPS
+
+
+def test_create_two_pair_universe_with_fee(persistent_test_client: Client):
+    """Test generic create_pair_universe()"""
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create a trading pair universe for a single trading pair
+    #
+    # WMATIC-USD on Uniswap v3 on Polygon, 5 BPS fee tier and 30 BPS fee tier
+    #
+    pair_universe = PandasPairUniverse.create_pair_universe(
+            pairs_df,
+            [
+                (ChainId.polygon, "uniswap-v3", "WMATIC", "USDC", 0.0005),
+                (ChainId.polygon, "uniswap-v3", "WMATIC", "USDC", 0.0030)
+            ],
+        )
+    assert pair_universe.get_count() == 2
+
+

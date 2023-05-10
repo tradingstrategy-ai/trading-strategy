@@ -1,7 +1,11 @@
 # Current
 
+- Add `PandasPairUniverse.create_pair_universe`
+- Add `DEXPair.fee_tier`
+- Deprecate `PandasPairUniverse.create_single_pair_universe`
+- Deprecate `PandasPairUniverse.create_limited_pair_universe`
 - Add `USDT.e` and `USDC.e` bridged stablecoins on Avalanche
-
+- 
 # 0.14.1
 
 - Add: caching to `get_candles_by_pair()` and `get_single()` methods.

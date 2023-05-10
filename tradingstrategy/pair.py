@@ -14,6 +14,7 @@ To download the pairs dataset see
 
 import logging
 import enum
+import warnings
 from dataclasses import dataclass
 from typing import Optional, List, Iterable, Dict, Union, Set, Tuple, TypeAlias, Collection
 
@@ -256,7 +257,9 @@ class DEXPair:
     #: TODO - inactive, remove.
     flag_unknown_exchange: Optional[bool] = None
 
-    #: Swap fee in basis points if known
+    #: Swap fee in basis points if known.
+    #:
+    #: Legacy. Do not use directly. Use :py:meth:`fee_tier` instead.
     fee: Optional[BasisPoint] = None
 
     #: Risk assessment summary data
@@ -309,6 +312,21 @@ class DEXPair:
     def __hash__(self):
         """set() and dict() compatibility"""
         return hash(self.pair_id)
+
+    @property
+    def fee_tier(self) -> float:
+        """Return fee as a floating point 0...1.
+
+        Common fees
+
+        - Uniswap v2 30 BPS = 0.0030
+
+        - Uniswap v3 5 BPS = 0.0005
+
+        :raise:
+            If the fee for the trading pair is missing.
+        """
+        return self.fee / 10_000
 
     @property
     def base_token_address(self) -> NonChecksummedAddress:
@@ -1012,8 +1030,14 @@ class PandasPairUniverse:
             exchange: Exchange,
             base_token_symbol: str,
             quote_token_symbol: str,
-            pick_by_highest_vol=True) -> "PandasPairUniverse":
+            pick_by_highest_vol=True,
+            fee_tier: Optional[float]=None,
+    ) -> "PandasPairUniverse":
         """Create a trading pair universe that contains only a single trading pair.
+
+        .. warning::
+
+            Deprecated
 
         This is useful for trading strategies that to technical analysis trading
         on a single trading pair like BTC-USD.
@@ -1035,9 +1059,20 @@ class PandasPairUniverse:
             or scam tokens,
             pick one with the highest trade volume
 
-        :raise DuplicatePair: Multiple pairs matching the criteria
-        :raise NoPairFound: No pairs matching the criteria
+        :param fee_tier:
+            Pick a pair for a specific fee tier.
+
+            Uniswap v3 has
+
+        :raise DuplicatePair:
+            Multiple pairs matching the criteria
+
+        :raise NoPairFound:
+            No pairs matching the criteria
         """
+
+        warnings.warn('This method is deprecated. Use PandasPairUniverse.create_pair_universe() instead', DeprecationWarning, stacklevel=2)
+
         return PandasPairUniverse.create_limited_pair_universe(
             df,
             exchange,
@@ -1052,6 +1087,10 @@ class PandasPairUniverse:
             pairs: List[Tuple[str, str]],
             pick_by_highest_vol=True) -> "PandasPairUniverse":
         """Create a trading pair universe that contains only few trading pairs.
+
+        .. warning::
+
+            Deprecated
 
         This is useful for trading strategies that to technical analysis trading
         on a few trading pairs, or single pair three-way trades like Cake-WBNB-BUSD.
@@ -1073,6 +1112,8 @@ class PandasPairUniverse:
         :raise DuplicatePair: Multiple pairs matching the criteria
         :raise NoPairFound: No pairs matching the criteria
         """
+
+        warnings.warn('This method is deprecated. Use PandasPairUniverse.create_pair_universe() instead', DeprecationWarning, stacklevel=2)
 
         assert exchange is not None, "Got None as Exchange - exchange not found?"
 
@@ -1106,6 +1147,19 @@ class PandasPairUniverse:
                 raise NoPairFound(f"No trading pair found. Exchange:{exchange} base:{base_token_symbol} quote:{quote_token_symbol}")
 
         return PandasPairUniverse(pd.concat(frames))
+
+    @staticmethod
+    def create_pair_universe(
+        df: pd.DataFrame,
+        pairs: Collection[HumanReadableTradingPairDescription],
+    ) -> "PandasPairUniverse":
+        """Create a PandasPairUniverse instance based on loaded raw pairs data.
+
+        A shortcut method to create a pair universe for a single or few trading pairs.
+
+        """
+        resolved_pairs_df = resolve_pairs_based_on_ticker(df, pairs=pairs)
+        return PandasPairUniverse(resolved_pairs_df)
 
 
 class LegacyPairUniverse:
@@ -1418,6 +1472,8 @@ def resolve_pairs_based_on_ticker(
 
     assert pairs, "No pair_tickers given"
 
+    match_fee = False
+
     # Create list of conditions to filter out dataframe,
     # one condition per pair
     conditions = []
@@ -1474,19 +1530,34 @@ def resolve_pairs_based_on_ticker(
     # Pick the tokens by the highest buy volume to the result map.
     for pair_description in pairs:
 
+        match_fee = None
         if len(pair_description) > 3:
             pair_chain, pair_exchange, base, quote, *fee = pair_description
+            if len(fee) >= 1:
+                match_fee = fee[0]
         else:
             # Legacy
             base, quote, *_ = pair_description
 
-        for _, row in df_matches.iterrows():
-            if (
-                row["base_token_symbol"].lower() == base.lower()
-                and row["quote_token_symbol"].lower() == quote.lower()
-            ):
-                result_pair_ids.add(row["pair_id"])
-                break
+        if match_fee:
+            for _, row in df_matches.iterrows():
+                if (
+                    row["base_token_symbol"].lower() == base.lower()
+                    and row["quote_token_symbol"].lower() == quote.lower()
+                    and row["fee"] == match_fee * 10000
+                ):
+                    result_pair_ids.add(row["pair_id"])
+                    break
+
+        else:
+
+            for _, row in df_matches.iterrows():
+                if (
+                    row["base_token_symbol"].lower() == base.lower()
+                    and row["quote_token_symbol"].lower() == quote.lower()
+                ):
+                    result_pair_ids.add(row["pair_id"])
+                    break
 
     result_df = df.loc[df["pair_id"].isin(result_pair_ids)]
 
