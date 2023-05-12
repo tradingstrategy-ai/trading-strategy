@@ -1,6 +1,6 @@
 # Current
 
-- TODO~~~~
+- Fix: Better error messages when `fetch_trading_data_availability()` cannot process input
 
 # 0.15
 
