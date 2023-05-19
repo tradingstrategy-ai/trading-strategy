@@ -1,5 +1,6 @@
 # Current
 
+- Add more stablecoins
 - Add `DEXPair.volume_30d` shortcut
 - Add `DEXPair.from_row` shortcut
 
