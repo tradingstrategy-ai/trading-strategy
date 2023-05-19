@@ -1,4 +1,4 @@
-# Current
+# 0.15.2
 
 - Add more stablecoins
 - Add `DEXPair.volume_30d` shortcut
