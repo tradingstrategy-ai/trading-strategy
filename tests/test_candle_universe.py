@@ -1,5 +1,6 @@
+"""Candle universe loading tests."""
+
 import datetime
-import resource
 
 import pandas
 import pandas as pd
@@ -295,7 +296,7 @@ def test_candle_upsample(persistent_test_client: Client):
     # Filter down candles to a single pair
     single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
     single_pair_candles = single_pair_candles.set_index("timestamp", drop=False)
-    monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
+    monthly_candles = resample_candles(single_pair_candles, pd.Timedelta(days=30))
     assert len(monthly_candles) <= len(single_pair_candles) / 4
 
 

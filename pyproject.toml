@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "trading-strategy"
-version = "0.13.12"
+version = "0.15.1"
 description = "DEX and cryptocurrency trading data for Python - OHCLV, Uniswap, others"
 authors = ["Mikko Ohtamaa <mikko@tradingstrategy.ai>"]
 homepage = "https://tradingstrategy.ai"
 repository = "https://github.com/tradingstrategy-ai/trading-strategy"
 license = "AGPL"
 readme = "README.md"
-keywords = ["algorithmic trading", "ethereum", "cryptocurrency", "uniswap", "quantitative finance", "binance", "blockchain", "pancakeswap", "polygon", "web3"]
+keywords = ["algorithmic trading", "ethereum", "polygon", "avalanche", "arbiotrum", "cryptocurrency", "uniswap", "quantitative finance", "binance", "blockchain", "pancakeswap", "polygon", "web3"]
 packages = [
     { include = "tradingstrategy" },
 ]

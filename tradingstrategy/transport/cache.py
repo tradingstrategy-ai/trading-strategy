@@ -434,12 +434,15 @@ class CachedHTTPTransport:
 
         # Make to typed and deseralise
         def _convert(p: dict) -> TradingPairDataAvailability:
-            return {
-                "chain_id": ChainId(p["chain_id"]),
-                "pair_id": p["pair_id"],
-                "pair_address": p["pair_address"],
-                "last_candle_at": datetime.datetime.fromisoformat(p["last_candle_at"]),
-                "last_trade_at": datetime.datetime.fromisoformat(p["last_trade_at"]),
-            }
+            try:
+                return {
+                    "chain_id": ChainId(p["chain_id"]),
+                    "pair_id": p["pair_id"],
+                    "pair_address": p["pair_address"],
+                    "last_candle_at": datetime.datetime.fromisoformat(p["last_candle_at"]),
+                    "last_trade_at": datetime.datetime.fromisoformat(p["last_trade_at"]),
+                }
+            except Exception as e:
+                raise RuntimeError(f"Failed to convert: {p}") from e
 
         return {p["pair_id"]: _convert(p) for p in array}

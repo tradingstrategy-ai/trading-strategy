@@ -1,3 +1,5 @@
+[![PyPI version](https://badge.fury.io/py/trading-strategy.svg)](https://badge.fury.io/py/trading-strategy)
+
 [![CI Status](https://github.com/tradingstrategy-ai/trading-strategy/actions/workflows/python-app.yml/badge.svg)](https://github.com/tradingstrategy-ai/trading-strategy/actions/workflows/python-app.yml)
 
 [![pip installation works](https://github.com/tradingstrategy-ai/trading-strategy/actions/workflows/pip-install.yml/badge.svg)](https://github.com/tradingstrategy-ai/trading-strategy/actions/workflows/pip-install.yml)

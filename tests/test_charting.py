@@ -6,7 +6,7 @@ from IPython.core.display_functions import display
 from pandas.core.groupby import DataFrameGroupBy
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels, VolumeBarMode
+from tradingstrategy.charting.candle_chart import visualise_ohlcv, make_candle_labels, VolumeBarMode, validate_plot_info
 from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse, DEXPair
 from tradingstrategy.timebucket import TimeBucket
@@ -56,7 +56,7 @@ def test_candle_chart_volume_overlay(candles_and_pair: tuple[pd.DataFrame, DEXPa
         num_detached_indicators=2,
         vertical_spacing=0.05,
         relative_sizing=None,
-        subplot_names=['random 1', 'random 2<br> + random 3<br> + random 4'],
+        subplot_names=['', 'random 1', 'random 2<br> + random 3<br> + random 4'],
         subplot_font_size=11,
     )
     
@@ -99,7 +99,7 @@ def test_candle_chart_volume_hidden(candles_and_pair: tuple[pd.DataFrame, DEXPai
         num_detached_indicators=3,
         vertical_spacing=0.05,
         relative_sizing=None,
-        subplot_names=['random 1', 'random 2', 'random 3'],
+        subplot_names=['', 'random 1', 'random 2', 'random 3'],
         subplot_font_size=5,
     )
     
@@ -135,10 +135,10 @@ def test_candle_chart_volume_separate(candles_and_pair: tuple[pd.DataFrame, DEXP
         y_axis_name=f"$ {pair.base_token_symbol} price",
         volume_axis_name='Volume',
         volume_bar_mode=VolumeBarMode.separate,
-        num_detached_indicators=1,
+        num_detached_indicators=2,
         vertical_spacing=0.05,
         relative_sizing=None,
-        subplot_names=['random 1'],
+        subplot_names=['', 'volume usd', 'random 1'],
         subplot_font_size=15,
     )
     
@@ -150,7 +150,8 @@ def test_candle_chart_volume_separate(candles_and_pair: tuple[pd.DataFrame, DEXP
     
     # check subplot titles
     subplot_titles = [annotation['text'] for annotation in fig['layout']['annotations']]
-    assert subplot_titles[0] == "random 1"
+    assert subplot_titles[0] == "volume usd"
+    assert subplot_titles[1] == "random 1"
     
     # List of candles, indicators, and markers
     data = fig.to_dict()["data"]
@@ -234,4 +235,56 @@ def test_visualise_with_label(persistent_test_client: Client):
     visualise_ohlcv(
         candles,
         labels=labels
+    )
+
+def testvalidate_plot_info():
+    """Test the validation of plot info."""
+    
+    with pytest.raises(AssertionError):
+        validate_plot_info(
+            volume_bar_mode=VolumeBarMode.hidden,
+            num_detached_indicators=0,
+            relative_sizing=None,
+            subplot_names=['', 'random 1'],
+        )
+    
+    with pytest.raises(AssertionError):
+        validate_plot_info(
+            volume_bar_mode=VolumeBarMode.separate,
+            num_detached_indicators=1,
+            relative_sizing=None,
+            subplot_names=['', 'volume', 'should not be here'],
+        )
+    
+    with pytest.raises(AssertionError):
+        validate_plot_info(
+            volume_bar_mode=VolumeBarMode.overlay,
+            num_detached_indicators=0,
+            relative_sizing=[1, 0.2],
+            subplot_names=None,
+        )
+    
+    with pytest.raises(AssertionError):
+        validate_plot_info(
+            volume_bar_mode=VolumeBarMode.separate,
+            num_detached_indicators=1,
+            relative_sizing=[1],
+            subplot_names=None,
+        )
+        
+    # provide bad volume_bar_mode
+    with pytest.raises(ValueError, match="Invalid volume_bar_mode"):
+        validate_plot_info(
+            volume_bar_mode='bad',
+            num_detached_indicators=0,
+            relative_sizing=None,
+            subplot_names=None
+        )
+    
+    # check that we can pass validation without providing subplot_names or relative_sizing
+    validate_plot_info(
+        volume_bar_mode=VolumeBarMode.separate,
+        num_detached_indicators=1,
+        relative_sizing=None,
+        subplot_names=None,
     )

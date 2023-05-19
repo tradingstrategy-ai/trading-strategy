@@ -1,10 +1,12 @@
 import datetime
+from typing import Set, List, Tuple
 
 import pytest
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.client import Client
 from tradingstrategy.exchange import ExchangeType
-from tradingstrategy.pair import DEXPair, PandasPairUniverse, resolve_pairs_based_on_ticker, NoPairFound
+from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, NoPairFound, DEXPair, generate_address_columns
 
 
 @pytest.fixture
@@ -120,6 +122,25 @@ def test_resolve_pairs_based_on_ticker_with_fee(persistent_test_client):
 
     assert len(filtered_pairs_df) == 2
 
+
+def test_resolve_pairs_based_on_ticker_with_description_and_fee(persistent_test_client):
+    """Check that we can find multiple pairs with specified fee using new API."""
+
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    pairs = {
+        (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005),
+        (ChainId.ethereum, "uniswap-v3", "DAI", "USDC"),
+    }
+
+    filtered_pairs_df = resolve_pairs_based_on_ticker(
+        pairs_df,
+        pairs=pairs,
+    )
+
+    assert len(filtered_pairs_df) == 2
+
 def test_get_token(persistent_test_client):
     """Check that we can decode token information fom pair data."""
 
@@ -179,3 +200,210 @@ def test_get_pair(persistent_test_client):
     assert bnb_busd.base_token_symbol == "WBNB"
     assert bnb_busd.quote_token_symbol == "BUSD"
     assert bnb_busd.buy_volume_30d > 1_000_000
+
+
+def test_fee_tier_uniswap_v2(persistent_test_client):
+    """Resolve Uniswap v2 pair using fee tier.
+    """
+
+    pair_human_description = (ChainId.ethereum, "uniswap-v2", "EUL", "WETH", 0.0030)  # Euler 30 bps fee
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    exchange = exchange_universe.get_by_chain_and_slug(pair_human_description[0], pair_human_description[1])
+    pair = pair_universe.get_one_pair_from_pandas_universe(
+        exchange.exchange_id,
+        pair_human_description[2],
+        pair_human_description[3],
+        fee_tier=pair_human_description[4],
+        pick_by_highest_vol=True,
+    )
+    assert pair.exchange_slug == "uniswap-v2"
+    assert pair.base_token_symbol == "EUL"
+    assert pair.quote_token_symbol == "WETH"
+    assert pair.fee == 30
+
+
+def test_fee_tier_uniswap_v3(persistent_test_client):
+    """Resolve Uniswap v3 pair using fee tier.
+    """
+
+    pair_human_description = (ChainId.ethereum, "uniswap-v3", "EUL", "WETH", 0.01)  # Euler 100 bps fee
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    exchange = exchange_universe.get_by_chain_and_slug(pair_human_description[0], pair_human_description[1])
+    pair = pair_universe.get_one_pair_from_pandas_universe(
+        exchange.exchange_id,
+        pair_human_description[2],
+        pair_human_description[3],
+        fee_tier=pair_human_description[4],
+        pick_by_highest_vol=True,
+    )
+    assert pair.exchange_slug == "uniswap-v3"
+    assert pair.base_token_symbol == "EUL"
+    assert pair.quote_token_symbol == "WETH"
+    assert pair.fee == 100
+
+
+def test_lower_fee_tier_uniswap_v3(persistent_test_client):
+    """Resolve Uniswap v3 pair using fee tier, automatically pick the lowest fee tier.
+    """
+
+    pair_human_description = (ChainId.ethereum, "uniswap-v3", "WETH", "USDC")  # ETH 1 bps fee
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    exchange = exchange_universe.get_by_chain_and_slug(pair_human_description[0], pair_human_description[1])
+    pair = pair_universe.get_one_pair_from_pandas_universe(
+        exchange.exchange_id,
+        pair_human_description[2],
+        pair_human_description[3],
+        fee_tier=None,
+        pick_by_highest_vol=True,
+    )
+    assert pair.exchange_slug == "uniswap-v3"
+    assert pair.base_token_symbol == "WETH"
+    assert pair.quote_token_symbol == "USDC"
+    assert pair.fee == 1
+
+
+def test_multiple_get_pair_by_human_description(persistent_test_client):
+    """Resolve all kind of pairs.
+
+    - Test multiple chains
+
+    - Test multiple exchanges
+
+    - Test multiple fee models
+    """
+
+    pair_human_descriptions = (
+        (ChainId.ethereum, "uniswap-v2", "WETH", "USDC"),  # ETH
+        (ChainId.ethereum, "uniswap-v2", "EUL", "WETH", 0.0030),  # Euler 30 bps fee
+        (ChainId.ethereum, "uniswap-v3", "EUL", "WETH", 0.0100),  # Euler 100 bps fee
+        (ChainId.ethereum, "uniswap-v2", "MKR", "WETH"),  # MakerDAO
+        (ChainId.ethereum, "uniswap-v2", "HEX", "WETH"),  # MakerDAO
+        (ChainId.ethereum, "uniswap-v2", "FNK", "USDT"),  # Finiko
+        (ChainId.ethereum, "sushi", "AAVE", "WETH"),  # AAVE
+        (ChainId.ethereum, "sushi", "COMP", "WETH"),  # Compound
+        (ChainId.ethereum, "sushi", "WETH", "WBTC"),  # BTC
+        (ChainId.ethereum, "sushi", "ILV", "WETH"),  # Illivium
+        (ChainId.ethereum, "sushi", "DELTA", "WETH"),  # Delta
+        (ChainId.ethereum, "sushi", "UWU", "WETH"),  # UwU lend
+        (ChainId.ethereum, "uniswap-v2", "UNI", "WETH"),  # UNI
+        (ChainId.ethereum, "uniswap-v2", "CRV", "WETH"),  # Curve
+        (ChainId.ethereum, "sushi", "SUSHI", "WETH"),  # Sushi
+        (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD"),  # BNB
+        (ChainId.bsc, "pancakeswap-v2", "Cake", "BUSD"),  # Cake
+        (ChainId.bsc, "pancakeswap-v2", "MBOX", "BUSD"),  # Mobox
+        (ChainId.bsc, "pancakeswap-v2", "RDNT", "WBNB"),  # Radiant
+        (ChainId.polygon, "quickswap", "WMATIC", "USDC"),  # Matic
+        (ChainId.polygon, "quickswap", "QI", "WMATIC"),  # QiDao
+        (ChainId.polygon, "sushi", "STG", "USDC"),  # Stargate
+        (ChainId.avalanche, "trader-joe", "WAVAX", "USDC"),  # Avax
+        (ChainId.avalanche, "trader-joe", "JOE", "WAVAX"),  # TraderJoe
+        (ChainId.avalanche, "trader-joe", "GMX", "WAVAX"),  # GMX
+        (ChainId.arbitrum, "camelot", "ARB", "WETH"),  # ARB
+        (ChainId.arbitrum, "uniswap-v3", "ARB", "USDC", 0.0005),  # Arbitrum, 5 BPS fee
+        # (ChainId.arbitrum, "sushi", "MAGIC", "WETH"),  # Magic
+    )
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    pairs: List[DEXPair]
+    pairs = [pair_universe.get_pair_by_human_description(exchange_universe, d) for d in pair_human_descriptions]
+
+    assert len(pairs) == 27
+    assert pairs[0].exchange_slug == "uniswap-v2"
+    assert pairs[0].get_ticker() == "WETH-USDC"
+
+    assert pairs[1].exchange_slug == "uniswap-v2"
+    assert pairs[1].get_ticker() == "EUL-WETH"
+
+    assert pairs[2].exchange_slug == "uniswap-v3"
+    assert pairs[2].get_ticker() == "EUL-WETH"
+
+    assert pairs[-1].exchange_slug == "uniswap-v3"
+    assert pairs[-1].get_ticker() == "ARB-USDC"
+
+
+def test_generate_address_columns(persistent_test_client):
+    """Add base_token_address and quote_token_address columns
+    """
+
+    pair_human_description = (ChainId.ethereum, "uniswap-v3", "WETH", "USDC")  # ETH 1 bps fee
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    old_len = len(pairs_df)
+    pairs_df = generate_address_columns(pairs_df)
+    assert len(pairs_df) == old_len
+
+    assert "base_token_address" in pairs_df.columns
+    assert "quote_token_address" in pairs_df.columns
+
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    pair = pair_universe.get_pair_by_human_description(
+        exchange_universe,
+        pair_human_description
+    )
+
+    assert pair.base_token_address == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"  # WETH
+    assert pair.quote_token_address == "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"  # USDC
+
+
+def test_create_single_pair_universe_with_fee(persistent_test_client: Client):
+    """Test generic create_pair_universe()"""
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create a trading pair universe for a single trading pair
+    #
+    # WMATIC-USD on Uniswap v3 on Polygon, 5 BPS fee tier
+    #
+    pair_universe = PandasPairUniverse.create_pair_universe(
+            pairs_df,
+            [(ChainId.polygon, "uniswap-v3", "WMATIC", "USDC", 0.0005)],
+        )
+    assert pair_universe.get_count() == 1
+    pair = pair_universe.get_single()
+    assert pair.base_token_symbol == "WMATIC"
+    assert pair.quote_token_symbol == "USDC"
+    assert pair.fee_tier == 0.0005  # BPS
+
+
+def test_create_two_pair_universe_with_fee(persistent_test_client: Client):
+    """Test generic create_pair_universe()"""
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create a trading pair universe for a single trading pair
+    #
+    # WMATIC-USD on Uniswap v3 on Polygon, 5 BPS fee tier and 30 BPS fee tier
+    #
+    pair_universe = PandasPairUniverse.create_pair_universe(
+            pairs_df,
+            [
+                (ChainId.polygon, "uniswap-v3", "WMATIC", "USDC", 0.0005),
+                (ChainId.polygon, "uniswap-v3", "WMATIC", "USDC", 0.0030)
+            ],
+        )
+    assert pair_universe.get_count() == 2
+
+

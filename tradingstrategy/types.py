@@ -21,7 +21,11 @@ PrimaryKey: TypeAlias = int
 
 #: Ethereum address that does *not* use EIP-55 checksumming.
 #:
-#:     EIP-55 https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md
+#  - String
+#:
+#  - Always starts 0x
+#:
+#: `See EIP-55 <https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md>`__.
 #
 NonChecksummedAddress: TypeAlias = str
 
@@ -50,3 +54,16 @@ BasisPoint: TypeAlias = int
 #:
 #: See :py:class:`tradingstategy.chain.ChainId` for details
 RawChainId: TypeAlias = int
+
+
+#: Percent expressed as float 0...1
+#:
+#: 1 = 100%
+#:
+#: 0.00030 = 0.3% = 30 BPS
+#:
+#: See also
+#:
+#: - :py:data:`BasisPoint`
+#:
+Percent: TypeAlias = float

@@ -40,7 +40,7 @@ CANDLE_MAPPINGS = {
     "sv": "sell_volume",
     "sb": "start_block",
     "eb": "end_block",
-    "tc": "total_count",
+    "tc": None,  # Currently not available for Uni v3 exchanges
     "v": None,  # Deprecated
 }
 
@@ -161,6 +161,17 @@ def load_trading_strategy_like_jsonl_data(
                 progress_bar.set_postfix({"Currently at": datetime.datetime.utcfromtimestamp(current_ts)})
             last_ts = current_ts
 
+    # Some data validation facilities
+    assumed_lenght = None
+    previous_key = None
+    for key, arr in candle_data.items():
+        current_array_len = len(arr)
+        if assumed_lenght is None:
+            assumed_lenght = current_array_len
+        elif assumed_lenght != current_array_len:
+            raise RuntimeError(f"Bad JSONL data. The length for {previous_key} was {assumed_lenght}, but the length for {key} is {current_array_len}")
+        previous_key = key
+
     if progress_bar:
         # https://stackoverflow.com/a/45808255/315168
         if current_ts and last_ts:
@@ -185,7 +196,7 @@ def load_candles_jsonl(
     end_time: Optional[datetime.datetime] = None,
     max_bytes: Optional[int] = None,
     progress_bar_description: Optional[str] = None,
-    sanity_check_count=20,
+    sanity_check_count=75,
 ) -> pd.DataFrame:
     """Load candles using JSON API and produce a DataFrame.
 
@@ -199,6 +210,11 @@ def load_candles_jsonl(
 
     :param progress_bar_description:
         Progress bar label
+
+    :param sanity_check_count:
+        Don't accidentally try to load too many pairs.
+
+        Never exceed this value.
 
     :raise JSONLMaxResponseSizeExceeded:
         If the max_bytes limit is breached
@@ -226,11 +242,11 @@ def load_candles_jsonl(
     # Not supported at the momemnt
     df.loc[:, "avg"] = NaN
 
-    df = df.astype(Candle.DATAFRAME_FIELDS)
+    if "volume" not in df.columns:
+        # Reconstruct normal volume column as expected for OHLCV data
+        df["volume"] = df["buy_volume"] + df["sell_volume"]
 
-    # Reconstruct normal volume column
-    # as expected for OHLCV data
-    df["volume"] = df["buy_volume"] + df["sell_volume"]
+    df = df.astype(Candle.DATAFRAME_FIELDS)
 
     # Convert JSONL unix timestamps to Pandas
     df["timestamp"] = pd.to_datetime(df['timestamp'], unit='s')

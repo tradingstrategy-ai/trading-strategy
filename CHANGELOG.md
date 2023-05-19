@@ -1,3 +1,60 @@
+# Current
+
+- TODO
+
+# 0.15.1
+
+- Fix: Better error messages when `fetch_trading_data_availability()` cannot process input
+
+# 0.15
+
+- Add `DEXPair.fee_tier` to get the trading pair fee as 0..1 float
+- Add `PandasPairUniverse.create_pair_universe`
+- Deprecate `PandasPairUniverse.create_single_pair_universe`
+- Deprecate `PandasPairUniverse.create_limited_pair_universe`
+- Add `USDT.e` and `USDC.e` bridged stablecoins on Avalanche
+
+# 0.14.1
+
+- Add: caching to `get_candles_by_pair()` and `get_single()` methods.
+This can result in backtesting time being more than halved. 
+- Fix: Bad wick filtering code crashed on empty dataframes
+
+# 0.14
+
+- Add: `tradingstrategy.utils.groupeduniverse.fix_bad_wicks` to deal with candle data where high and low
+  values are abnormal due to various price manipulation issues. 
+- Update: Automatically filter bad wicks when creating a candle universe
+- Add a shortcut function `tradingstrategy.pair.generate_address_columns()` to generate `base_token_address` and `quote_token_address` columns
+- Update API: `resolve_pairs_based_on_ticker()` supports `HumanReadableTradingPairDescription`
+- Fix: Some error message polish
+
+# 0.13.18
+
+- Have classical `Candle.volume` field as buy volume and sell volume cannot be separated for Uniswap v3
+
+# 0.13.17
+
+- change `resample_candles()` to use timedelta instead of timebucket
+
+# 0.13.16
+
+- Fix JSON data loading for Uni v3 exchanges that lack trade count
+
+# 0.13.15
+
+- Add `fee_tier` option to `get_one_pair_from_pandas_universe()` and `get_pair_by_human_description()`
+
+# 0.13.14
+
+- Bump max pairs to load over JSONL to 75
+
+# 0.13.13
+
+- Chart visualization fixes
+  - remove `price_chart_rel_size` and `subplot_rel_size` options (will all be specified in `relative_sizing`)
+  - refactor and clean code in `tradingstrategy/charting/candle_chart.py`
+
 # 0.13.12
 
 - Fix SyntaxError caused by a typo
