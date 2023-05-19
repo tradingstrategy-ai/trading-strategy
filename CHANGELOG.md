@@ -1,6 +1,7 @@
 # Current
 
-- TODO
+- Add `DEXPair.volume_30d` shortcut
+- Add `DEXPair.from_row` shortcut
 
 # 0.15.1
 

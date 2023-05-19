@@ -1,11 +1,11 @@
 """Client implementation that only uses Uniswap v2 on-chain data to generate datasets."""
+import logging
 from types import NoneType
-from typing import Tuple
-
+from typing import Tuple, cast
 
 from pyarrow import Table
 
-from web3 import Web3
+from web3 import Web3, HTTPProvider
 from eth_defi.abi import get_contract
 from eth_defi.event_reader.conversion import decode_data, convert_uint256_bytes_to_address, convert_int256_bytes_to_int, convert_uint256_hex_string_to_address
 from eth_defi.event_reader.filter import Filter
@@ -19,6 +19,9 @@ from tradingstrategy.exchange import Exchange, ExchangeType, ExchangeUniverse
 from tradingstrategy.pair import DEXPair, PandasPairUniverse
 from tradingstrategy.stablecoin import is_stablecoin_like
 from tradingstrategy.testing.mock_client import MockClient
+
+
+logger = logging.getLogger(__name__)
 
 
 class UniswapV2MockClient(MockClient):
@@ -64,6 +67,7 @@ class UniswapV2MockClient(MockClient):
             init_code_hash,
             fee,
         )
+        assert len(self.pairs_table) > 0, f"Could not read any pairs from on-chain data. Uniswap v2 factory: {factory_address}, router: {router_address}."
 
     def get_default_quote_token_address(self) -> str:
         """Get the quote token address used in the generated pair map.
@@ -73,9 +77,10 @@ class UniswapV2MockClient(MockClient):
         quote_tokens = set()
         pairs_df = self.fetch_pair_universe().to_pandas()
         pair_universe = PandasPairUniverse(pairs_df)
+        assert pair_universe.get_count() > 0, "Pair universe has no trading pairs"
         for pair in pair_universe.iterate_pairs():
             quote_tokens.add(pair.quote_token_address)
-        assert len(quote_tokens) == 1, f"Got {len(quote_tokens)} quote tokens"
+        assert len(quote_tokens) == 1, f"Got {len(quote_tokens)} quote tokens in the pair universe, the pair universe is total {pair_universe.get_count()} pairs"
         return next(iter(quote_tokens))
 
     def fetch_exchange_universe(self) -> ExchangeUniverse:
@@ -111,6 +116,16 @@ class UniswapV2MockClient(MockClient):
 
         start_block = 1
         end_block = web3.eth.block_number
+
+        provider = cast(HTTPProvider, web3.provider)
+
+        # Assume logging is safe, because this mock client is only to be used with testing backends
+        logger.info("Scanning PairCreated events, %d - %d, from %s, factory is %s",
+                    start_block,
+                    end_block,
+                    provider.endpoint_uri,
+                    factory_address
+                    )
 
         filter = Filter.create_filter(
             factory_address,

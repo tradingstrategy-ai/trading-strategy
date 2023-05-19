@@ -23,12 +23,14 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
 from dataclasses_json import dataclass_json
+from numpy import isnan
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
-from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent
+from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent, \
+    USDollarAmount
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
@@ -257,9 +259,7 @@ class DEXPair:
     #: TODO - inactive, remove.
     flag_unknown_exchange: Optional[bool] = None
 
-    #: Swap fee in basis points if known.
-    #:
-    #: Legacy. Do not use directly. Use :py:meth:`fee_tier` instead.
+    #: Swap fee in basis points if known
     fee: Optional[BasisPoint] = None
 
     #: Risk assessment summary data
@@ -314,29 +314,21 @@ class DEXPair:
         return hash(self.pair_id)
 
     @property
-    def fee_tier(self) -> float:
-        """Return fee as a floating point 0...1.
+    def volume_30d(self) -> USDollarAmount:
+        """Denormalise trading volume last 30 days."""
+        vol = 0
+        if not isnan(self.buy_volume_30d):
+            vol += self.buy_volume_30d
 
-        Common fees
-
-        - Uniswap v2 30 BPS = 0.0030
-
-        - Uniswap v3 5 BPS = 0.0005
-
-        :raise:
-            If the fee for the trading pair is missing.
-        """
-        return self.fee / 10_000
+        if not isnan(self.sell_volume_30d):
+            vol += self.sell_volume_30d
+        return vol
 
     @property
-    def base_token_address(self) -> NonChecksummedAddress:
+    def base_token_address(self) -> str:
         """Get smart contract address for the base token.
 
-        This information is not part of the dataset, but can be derived after download.
-        See :py:func:`generate_address_columns` how to generate this for your raw :py:class:`pd.DataFrame`.
-
-        :return:
-            Lowercase, non-checksummed.
+        :return: Lowercase, non-checksummed.
         """
         if self.token0_symbol == self.base_token_symbol:
             return self.token0_address
@@ -344,14 +336,10 @@ class DEXPair:
             return self.token1_address
 
     @property
-    def quote_token_address(self) -> NonChecksummedAddress:
+    def quote_token_address(self) -> str:
         """Get smart contract address for the quote token
 
-        This information is not part of the dataset, but can be derived after download.
-        See :py:func:`generate_address_columns` how to generate this for your raw :py:class:`pd.DataFrame`.
-
-        :return:
-            Token address in checksummed case
+        :return: Token address in checksummed case
         """
         if self.token0_symbol == self.quote_token_symbol:
             return self.token0_address
@@ -429,7 +417,7 @@ class DEXPair:
 
         # Enums must be explicitly expressed
         hints = {
-            "chain_id": pa.uint64(),
+            "chain_id": pa.uint16(),
             "dex_type": pa.string(),
         }
 
@@ -477,6 +465,17 @@ class DEXPair:
         # https://stackoverflow.com/questions/20638006/convert-list-of-dictionaries-to-a-pandas-dataframe
         dicts = [p.to_dict() for p in pairs]
         return pd.DataFrame.from_dict(dicts)
+
+    @classmethod
+    def create_from_row(cls, row: pd.Series) -> "DEXPair":
+        """Convert a DataFrame for to a DEXPair instance.
+
+        Allow using of helper methods on the pair data.
+        It is recommend you avoid this if you do not need row-like data.
+        """
+        items = {k: v for k,v in row.items()}
+        return DEXPair.from_dict(items)
+
 
 
 class PandasPairUniverse:
