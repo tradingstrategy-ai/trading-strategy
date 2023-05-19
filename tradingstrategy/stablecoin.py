@@ -31,4 +31,4 @@ def is_stablecoin_like(token_symbol: str, symbol_list=ALL_STABLECOIN_LIKE) -> bo
         Which filtering list we use.
     """
     assert isinstance(token_symbol, str), f"We got {token_symbol}"
-    return (token_symbol.upper() in symbol_list)
+    return (token_symbol in symbol_list)

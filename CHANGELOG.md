@@ -1,3 +1,7 @@
+# Current
+
+- Fix unnecessary upper() in `is_stablecoin_like`
+
 # 0.15.2
 
 - Add more stablecoins
