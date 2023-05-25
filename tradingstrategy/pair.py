@@ -314,12 +314,18 @@ class DEXPair:
         return hash(self.pair_id)
 
     @property
-    def fee_tier(self) -> Percent:
+    def fee_tier(self) -> Optional[Percent]:
         """Return the trading pair fee as 0...1.
 
         This is a synthetic properly based on :py:attr:`fee`
         data column.
+
+        :return:
+            None if the fee information is not availble.
+            (Should not happen on real data, but may happen in unit tests.)
         """
+        if self.fee is None:
+            return None
         return self.fee / 10_000
 
     @property
