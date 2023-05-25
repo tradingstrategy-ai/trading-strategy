@@ -372,7 +372,6 @@ class PairGroupedUniverse:
             else:
                 after = timestamp - pd.Timedelta(seconds=time_range_epsilon_seconds)
 
-            import ipdb ; ipdb.set_trace()
             df = df.truncate(after=after)
 
         # Do candle count clip
