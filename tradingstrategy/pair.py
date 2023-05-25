@@ -963,10 +963,12 @@ class PandasPairUniverse:
             chain_id, exchange_slug, base_token, quote_token = desc
             fee_tier = None
 
-        assert isinstance(chain_id, ChainId), f"Not ChainId: {chain_id}"
-        assert type(exchange_slug) == str, f"Not exchange slug: {exchange_slug}"
-        assert type(base_token) == str, f"Not base token string: {base_token}"
-        assert type(quote_token) == str, f"Not quote token string: {quote_token}"
+        common_explanation = "Use pair description format (chain, exchange, base, quote) or (chain, exchange, base, quote, fee)"
+
+        assert isinstance(chain_id, ChainId), f"Not ChainId: {chain_id}\n{common_explanation}"
+        assert type(exchange_slug) == str, f"Not exchange slug: {exchange_slug}\n{common_explanation}"
+        assert type(base_token) == str, f"Not base token string: {base_token}\n{common_explanation}"
+        assert type(quote_token) == str, f"Not quote token string: {quote_token}\n{common_explanation}"
 
         if fee_tier is not None:
             assert (fee_tier >= 0) and (fee_tier <= 1), f"Received bad fee tier: {chain_id} {exchange_slug} {base_token} {quote_token}: {fee_tier}"
