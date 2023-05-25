@@ -1,6 +1,9 @@
-# Current
+# 0.16
 
+- API change: Now `get_single_pair_data()` raises `NoDataAvailable` instead
+  of returning an empty data frame by default if there is not enough data at source 
 - Fix unnecessary upper() in `is_stablecoin_like`
+- Fix Anvil chain id not fitting to Parquet data frame (assumed 16 bit uint for chain id)
 
 # 0.15.2
 
