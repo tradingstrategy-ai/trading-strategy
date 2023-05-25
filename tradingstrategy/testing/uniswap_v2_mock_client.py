@@ -117,13 +117,16 @@ class UniswapV2MockClient(MockClient):
         start_block = 1
         end_block = web3.eth.block_number
 
-        provider = cast(HTTPProvider, web3.provider)
+        if isinstance(web3.provider, HTTPProvider):
+            endpoint_uri = web3.provider.endpoint_uri
+        else:
+            endpoint_uri = str(web3.provider)
 
         # Assume logging is safe, because this mock client is only to be used with testing backends
         logger.info("Scanning PairCreated events, %d - %d, from %s, factory is %s",
                     start_block,
                     end_block,
-                    provider.endpoint_uri,
+                    endpoint_uri,
                     factory_address
                     )
 

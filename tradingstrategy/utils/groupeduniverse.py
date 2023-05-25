@@ -317,12 +317,39 @@ class PairGroupedUniverse:
                              timestamp: Optional[pd.Timestamp] = None,
                              sample_count: Optional[int] = None,
                              allow_current=False,
-                             fail_on_empty=True,
+                             raise_on_not_enough_data=True,
+                             time_range_epsilon_seconds=0.5,
                              ) -> pd.DataFrame:
         """Get all candles/liquidity samples for the single alone pair in the universe by a certain timestamp.
 
         A shortcut method for trading strategies that trade only one pair.
         Designed to be backtesting and live trading friendly function to access candle data.
+
+        Example:
+
+        .. code-block: python
+
+
+                from tradingstrategy.utils.groupeduniverse import NoDataAvailable
+
+                try:
+                    candles: pd.DataFrame = universe.candles.get_single_pair_data(
+                        timestamp,
+                        sample_count=moving_average_long,
+                    )
+                except NoDataAvailable:
+                    # This can be raised if
+                    # - Data source has not yet data available in the timestamp
+                    # - You are asking `sample_count` worth of data and timestamp
+                    #   has not yet enough data in the backtest buffer
+                    pass
+
+        .. note ::
+
+            By default get_single_pair_da   ta() returns the candles prior to the `timestamp`,
+            the behavior can be changed with get_single_pair_data(allow_current=True).
+            At the start of the backtest, we do not have any previous candle available yet,
+            so this function may raise :py:class:`NoDataAvailable`.
 
         :param timestamp:
             Get the sample until this timestamp and all previous samples.
@@ -339,12 +366,26 @@ class PairGroupedUniverse:
             piling up on it).
 
         :param sample_count:
+            Minimum candle/liquidity sample count needed.
+
             Limit the returned number of candles N candles before the timestamp.
 
-        :param fail_on_empty:
+            If the data does not have enough samples before `timestamp`,
+            then raise :py:class:`NoDataAvailable`.
+
+        :param raise_on_not_enough_data:
             Raise an error if no data is available.
 
             This can be e.g. because the trading pair has
+
+        :param time_range_epsilon_seconds:
+            The time delta epsilon we use to determine between "current" and "previous" candle.
+
+        :raise NoDataAvailable:
+            Raised when there is no data available at the range.
+
+            Set `fail_on_empty=False` to return an empty `DataFrame` instead.
+
         """
 
         pair_count = self.get_pair_count()
@@ -354,21 +395,29 @@ class PairGroupedUniverse:
         # Get all df content before our timestamp
         if timestamp:
             if allow_current:
-                df = df.truncate(after=timestamp + pd.Timedelta(seconds=1))
+                after = timestamp + pd.Timedelta(seconds=time_range_epsilon_seconds)
             else:
-                df = df.truncate(after=timestamp - pd.Timedelta(seconds=1))
+                after = timestamp - pd.Timedelta(seconds=time_range_epsilon_seconds)
 
+            df = df.truncate(after=after)
+
+        # Do candle count clip
         if sample_count:
             df = df.iloc[-sample_count:]
         else:
             pass
 
-        if fail_on_empty:
-            if len(df) == 0:
-                raise NoDataAvailable(f"Tried to ask candle data for timestamp {timestamp}.\n"
-                                      f"The result was empty. The trading pair or the time period does not have any data.\n"
-                                      f"The total loaded candle data is {len(self.df)} candles.\n"
-                                      f"If you want to access empty data set fail_on_empty=False.")
+        # Be helpful with a possible error
+        if raise_on_not_enough_data:
+            if (sample_count is None and len(df) == 0) or (sample_count is not None and len(df) < sample_count):
+                start_at = self.df["timestamp"].min()
+                end_at = self.df["timestamp"].max()
+                raise NoDataAvailable(f"Tried to ask candle data for timestamp {timestamp}. Truncating data after {after}. Minimum sample count needed is set to {sample_count}.\n"
+                                      f"The result was {len(df)} candles. The trading pair or the time period does not have enough data.\n"
+                                      f"The total loaded candle data is {len(self.df)} candles at range {start_at} - {end_at}.\n"
+                                      f"Also you cannot ask data for the current candle (same as the timestamp) unless you set allow_current=True.\n"
+                                      f"The current timestamp is ignored byt default protect against accidental testing of future data.\n"
+                                      f"If you want to access empty or not enough data, set raise_on_not_enough_data=False.")
 
         return df
 

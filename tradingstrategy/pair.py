@@ -314,6 +314,21 @@ class DEXPair:
         return hash(self.pair_id)
 
     @property
+    def fee_tier(self) -> Optional[Percent]:
+        """Return the trading pair fee as 0...1.
+
+        This is a synthetic properly based on :py:attr:`fee`
+        data column.
+
+        :return:
+            None if the fee information is not availble.
+            (Should not happen on real data, but may happen in unit tests.)
+        """
+        if self.fee is None:
+            return None
+        return self.fee / 10_000
+
+    @property
     def volume_30d(self) -> USDollarAmount:
         """Denormalise trading volume last 30 days."""
         vol = 0
@@ -417,7 +432,7 @@ class DEXPair:
 
         # Enums must be explicitly expressed
         hints = {
-            "chain_id": pa.uint16(),
+            "chain_id": pa.uint64(),
             "dex_type": pa.string(),
         }
 
