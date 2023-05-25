@@ -314,6 +314,15 @@ class DEXPair:
         return hash(self.pair_id)
 
     @property
+    def fee_tier(self) -> Percent:
+        """Return the trading pair fee as 0...1.
+
+        This is a synthetic properly based on :py:attr:`fee`
+        data column.
+        """
+        return self.fee / 10_000
+
+    @property
     def volume_30d(self) -> USDollarAmount:
         """Denormalise trading volume last 30 days."""
         vol = 0
