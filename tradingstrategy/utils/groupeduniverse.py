@@ -16,6 +16,10 @@ from tradingstrategy.utils.time import assert_compatible_timestamp
 logger = logging.getLogger(__name__)
 
 
+class NoDataAvailable(Exception):
+    """Raises when the user is asking data that is empty."""
+
+
 class PairGroupedUniverse:
     """A base class for manipulating columnar sample data by a pair.
 
@@ -313,6 +317,7 @@ class PairGroupedUniverse:
                              timestamp: Optional[pd.Timestamp] = None,
                              sample_count: Optional[int] = None,
                              allow_current=False,
+                             fail_on_empty=True,
                              ) -> pd.DataFrame:
         """Get all candles/liquidity samples for the single alone pair in the universe by a certain timestamp.
 
@@ -335,6 +340,11 @@ class PairGroupedUniverse:
 
         :param sample_count:
             Limit the returned number of candles N candles before the timestamp.
+
+        :param fail_on_empty:
+            Raise an error if no data is available.
+
+            This can be e.g. because the trading pair has
         """
 
         pair_count = self.get_pair_count()
@@ -349,9 +359,18 @@ class PairGroupedUniverse:
                 df = df.truncate(after=timestamp - pd.Timedelta(seconds=1))
 
         if sample_count:
-            return df.iloc[-sample_count:]
+            df = df.iloc[-sample_count:]
         else:
-            return df
+            pass
+
+        if fail_on_empty:
+            if len(df) == 0:
+                raise NoDataAvailable(f"Tried to ask candle data for timestamp {timestamp}.\n"
+                                      f"The result was empty. The trading pair or the time period does not have any data.\n"
+                                      f"The total loaded candle data is {len(self.df)} candles.\n"
+                                      f"If you want to access empty data set fail_on_empty=False.")
+
+        return df
 
 
 def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:
