@@ -318,6 +318,7 @@ class PairGroupedUniverse:
                              sample_count: Optional[int] = None,
                              allow_current=False,
                              fail_on_empty=True,
+                             time_range_epsilon_seconds=0.5,
                              ) -> pd.DataFrame:
         """Get all candles/liquidity samples for the single alone pair in the universe by a certain timestamp.
 
@@ -354,9 +355,11 @@ class PairGroupedUniverse:
         # Get all df content before our timestamp
         if timestamp:
             if allow_current:
-                df = df.truncate(after=timestamp + pd.Timedelta(seconds=1))
+                after = timestamp - pd.Timedelta(seconds=time_range_epsilon_seconds)
             else:
-                df = df.truncate(after=timestamp - pd.Timedelta(seconds=1))
+                after = timestamp + pd.Timedelta(seconds=time_range_epsilon_seconds)
+
+            df = df.truncate(after=after)
 
         if sample_count:
             df = df.iloc[-sample_count:]
@@ -365,9 +368,11 @@ class PairGroupedUniverse:
 
         if fail_on_empty:
             if len(df) == 0:
-                raise NoDataAvailable(f"Tried to ask candle data for timestamp {timestamp}.\n"
+                start_at = self.df["timestamp"].min()
+                end_at = self.df["timestamp"].max()
+                raise NoDataAvailable(f"Tried to ask candle data for timestamp {timestamp}. Truncating data after {after}.\n"
                                       f"The result was empty. The trading pair or the time period does not have any data.\n"
-                                      f"The total loaded candle data is {len(self.df)} candles.\n"
+                                      f"The total loaded candle data is {len(self.df)} candles at range {start_at} - {end_at}.\n"
                                       f"If you want to access empty data set fail_on_empty=False.")
 
         return df
