@@ -335,7 +335,7 @@ class PairGroupedUniverse:
                 try:
                     candles: pd.DataFrame = universe.candles.get_single_pair_data(
                         timestamp,
-                        sample_count=ma_long
+                        sample_count=moving_average_long,
                     )
                 except NoDataAvailable:
                     # This can be raised if
