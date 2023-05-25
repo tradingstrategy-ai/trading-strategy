@@ -354,6 +354,9 @@ class PairGroupedUniverse:
 
             This can be e.g. because the trading pair has
 
+        :param time_range_epsilon_seconds:
+            The time delta epsilon we use to determine between "current" and "previous" candle.
+
         :raise NoDataAvailable:
             Raised when there is no data available at the range.
 
