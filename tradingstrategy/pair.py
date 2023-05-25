@@ -432,7 +432,7 @@ class DEXPair:
 
         # Enums must be explicitly expressed
         hints = {
-            "chain_id": pa.uint16(),
+            "chain_id": pa.uint64(),
             "dex_type": pa.string(),
         }
 
