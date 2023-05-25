@@ -366,7 +366,12 @@ class PairGroupedUniverse:
             piling up on it).
 
         :param sample_count:
+            Minimum candle/liquidity sample count needed.
+
             Limit the returned number of candles N candles before the timestamp.
+
+            If the data does not have enough samples before `timestamp`,
+            then raise :py:class:`NoDataAvailable`.
 
         :param raise_on_not_enough_data:
             Raise an error if no data is available.
