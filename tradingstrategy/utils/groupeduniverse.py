@@ -338,6 +338,10 @@ class PairGroupedUniverse:
                         sample_count=ma_long
                     )
                 except NoDataAvailable:
+                    # This can be raised if
+                    # - Data source has not yet data available in the timestamp
+                    # - You are asking `sample_count` worth of data and timestamp
+                    #   has not yet enough data in the backtest buffer
                     pass
 
         .. note ::
