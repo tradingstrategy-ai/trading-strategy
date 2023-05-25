@@ -346,7 +346,7 @@ class PairGroupedUniverse:
 
         .. note ::
 
-            By default get_single_pair_data() returns the candles prior to the `timestamp`,
+            By default get_single_pair_da   ta() returns the candles prior to the `timestamp`,
             the behavior can be changed with get_single_pair_data(allow_current=True).
             At the start of the backtest, we do not have any previous candle available yet,
             so this function may raise :py:class:`NoDataAvailable`.
@@ -384,7 +384,7 @@ class PairGroupedUniverse:
         :raise NoDataAvailable:
             Raised when there is no data available at the range.
 
-            Set `fail_on_empty=False` to avoid.
+            Set `fail_on_empty=False` to return an empty `DataFrame` instead.
 
         """
 
