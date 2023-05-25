@@ -325,6 +325,13 @@ class PairGroupedUniverse:
         A shortcut method for trading strategies that trade only one pair.
         Designed to be backtesting and live trading friendly function to access candle data.
 
+        .. note ::
+
+            By default get_single_pair_data() returns the candles prior to the `timestamp`,
+            the behavior can be changed with get_single_pair_data(allow_current=True).
+            At the start of the backtest, we do not have any previous candle available yet,
+            so this function may raise :py:class:`NoDataAvailable`.
+
         :param timestamp:
             Get the sample until this timestamp and all previous samples.
 
@@ -346,6 +353,12 @@ class PairGroupedUniverse:
             Raise an error if no data is available.
 
             This can be e.g. because the trading pair has
+
+        :raise NoDataAvailable:
+            Raised when there is no data available at the range.
+
+            Set `fail_on_empty=False` to avoid.
+
         """
 
         pair_count = self.get_pair_count()
@@ -355,17 +368,20 @@ class PairGroupedUniverse:
         # Get all df content before our timestamp
         if timestamp:
             if allow_current:
-                after = timestamp - pd.Timedelta(seconds=time_range_epsilon_seconds)
-            else:
                 after = timestamp + pd.Timedelta(seconds=time_range_epsilon_seconds)
+            else:
+                after = timestamp - pd.Timedelta(seconds=time_range_epsilon_seconds)
 
+            import ipdb ; ipdb.set_trace()
             df = df.truncate(after=after)
 
+        # Do candle count clip
         if sample_count:
             df = df.iloc[-sample_count:]
         else:
             pass
 
+        # Be helpful with a possible error
         if fail_on_empty:
             if len(df) == 0:
                 start_at = self.df["timestamp"].min()
@@ -373,6 +389,8 @@ class PairGroupedUniverse:
                 raise NoDataAvailable(f"Tried to ask candle data for timestamp {timestamp}. Truncating data after {after}.\n"
                                       f"The result was empty. The trading pair or the time period does not have any data.\n"
                                       f"The total loaded candle data is {len(self.df)} candles at range {start_at} - {end_at}.\n"
+                                      f"Also you cannot ask data for the current candle (same as the timestap) unless you set allow_current=True.\n"
+                                      f"allow_current protect against testing against future data.\n"
                                       f"If you want to access empty data set fail_on_empty=False.")
 
         return df
