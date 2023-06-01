@@ -473,8 +473,9 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             pass
 
         #
-        # No direct hit.
-        # Lookup just got complicated.
+        # No direct hit. Either sparse data or data not available before this.
+        # Lookup just got complicated,
+        # like our relationship on Facebook.
         #
 
         # Look up all the candles before the cut off timestamp.
@@ -512,8 +513,12 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
             f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
             f"\n"
-            f"This is usually due to sparse candle data - trades have not been made or the blockchain was halted during the price look-up period.\n"
-            f"Try to increase look back perid in your code."
+            f"Data unavailability might be due to several reasons:"
+            f"\n"
+            f"- You are handling sparse data - trades have not been made or the blockchain was halted during the price look-up period.\n"
+            f"  Try to increase look back period in your code."
+            f"- You are asking historical data when the trading pair was not yet live"
+            f"- Your backtest is using indicators that need more lookback buffer than you are giving to them"
             )
 
     @staticmethod
