@@ -1,4 +1,4 @@
-# Current
+# 0.16.1
 
 - Optimisation: `get_price_with_tolerance()`: 
   candle price lookup is 40x faster for exact timestamp matches
