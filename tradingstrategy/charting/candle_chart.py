@@ -67,6 +67,7 @@ def make_candle_labels(
         base_token_name: Optional[str]=None,
         quote_token_name: Optional[str]=None,
         line_separator="<br>",
+        candle_decimals: int=4,
 ) -> pd.Series:
     """Generate individual labels for OHLCV chart candles.
 
@@ -120,15 +121,15 @@ def make_candle_labels(
         text = [
             f"{timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}",
             "",
-            f"Open: {row.open} {price_text}",
-            f"High: {row.high} {price_text}",
-            f"Low: {row.low} {price_text}",
-            f"Close: {row.close} {price_text}",
+            f"Open: {round(row.open, candle_decimals)} {price_text}",
+            f"High: {round(row.high, candle_decimals)} {price_text}",
+            f"Low: {round(row.low, candle_decimals)} {price_text}",
+            f"Close: {round(row.close, candle_decimals)} {price_text}",
         ]
 
         if "volume" in row.index:
             text += [
-                f"Volume: {row.volume} {volume_text}",
+                f"Volume: {round(row.volume, candle_decimals)} {volume_text}",
             ]
 
         text += [
