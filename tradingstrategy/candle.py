@@ -163,7 +163,7 @@ class Candle:
 
     @classmethod
     def to_dataframe(cls) -> pd.DataFrame:
-        """Return emptry Pandas dataframe presenting candle data."""
+        """Return empty Pandas dataframe presenting candle data."""
 
         df = pd.DataFrame(columns=Candle.DATAFRAME_FIELDS.keys())
         return df.astype(Candle.DATAFRAME_FIELDS)
@@ -341,7 +341,10 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                           kind="close", look_back_time_frames=5) -> USDollarAmount:
         """Get the available liquidity for a trading pair at a specific timepoint or some candles before the timepoint.
 
-        The liquidity is defined as one-sided as in :term:`XY liquidity model`.
+        .. warning ::
+
+            This is a slow lookup method. You might want to use :py:meth:`get_price_with_tolerance`
+            instead.
 
         :param pair_id:
             Trading pair id
@@ -403,9 +406,13 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                           when: pd.Timestamp,
                           tolerance: pd.Timedelta,
                           kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
-        """Get the available liquidity for a trading pair at a specific timepoint or some candles before the timepoint.
+        """Get the price for a trading pair at a specific time point or some candles before the time point.
 
-        The liquidity is defined as one-sided as in :term:`XY liquidity model`.
+        The data may be sparse data. There might not be sample available in the same time point or
+        immediate previous time point.
+
+        This method should be relative fast if there is data directly available at `when`
+        timestamp.
 
         Example:
 
@@ -458,6 +465,19 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         samples_per_kind = candles_per_pair[kind]
 
+        # Fast path
+        try:
+            sample = samples_per_kind[when]
+            return sample, pd.Timedelta(seconds=0)
+        except KeyError:
+            pass
+
+        #
+        # No direct hit. Either sparse data or data not available before this.
+        # Lookup just got complicated,
+        # like our relationship on Facebook.
+        #
+
         # Look up all the candles before the cut off timestamp.
         # Assumes data is sorted by timestamp column,
         # so our "closest time" candles should be the last of this lookup.
@@ -493,10 +513,13 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
             f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
             f"\n"
-            f"This is usually due to sparse candle data - trades have not been made or the blockchain was halted during the price look-up period.\n"
-            f"Try to increase look back perid in your code."
+            f"Data unavailability might be due to several reasons:"
+            f"\n"
+            f"- You are handling sparse data - trades have not been made or the blockchain was halted during the price look-up period.\n"
+            f"  Try to increase look back period in your code."
+            f"- You are asking historical data when the trading pair was not yet live"
+            f"- Your backtest is using indicators that need more lookback buffer than you are giving to them"
             )
-
 
     @staticmethod
     def create_empty() -> "GroupedCandleUniverse":

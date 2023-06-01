@@ -1,3 +1,8 @@
+# Current
+
+- Optimisation: `get_price_with_tolerance()`: 
+  candle price lookup is 40x faster for exact timestamp matches
+
 # 0.16
 
 - API change: Now `get_single_pair_data()` raises `NoDataAvailable` instead
