@@ -1,3 +1,7 @@
+# 0.16.1
+
+- Add `candle_decimals` parameter `make_candle_labels()` that defaults to showing 4 decimal places on candlestick charts
+
 # 0.16
 
 - API change: Now `get_single_pair_data()` raises `NoDataAvailable` instead
