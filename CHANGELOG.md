@@ -1,3 +1,10 @@
+# 0.17
+
+- Optimisation: `get_price_with_tolerance()`: 
+  candle price lookup is much faster with sparse data match
+- Added `trading_strategy.utils.forward_fill` module for 
+  dealing with sparse data
+
 # 0.16.1
 
 - Optimisation: `get_price_with_tolerance()`: 
