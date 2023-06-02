@@ -428,21 +428,47 @@ class PairGroupedUniverse:
 
         return df
 
-    def forward_fill(self):
-        """Forward-fill missing data.
+    def forward_fill(
+        self,
+        columns: Tuple[str] = ("open", "close"),
+        drop_other_columns=True,
+    ):
+        """Forward-fill sparse OHLCV candle data.
 
-        Forward fills the pair-grouped data.
+        Forward fills the missing candle values for non-existing candles.
+        Trading Strategy data does not have candles unless there was actual trades
+        happening at the markets.
 
         See :py:mod:`tradingstrategy.utils.forward_fill` for details.
 
         .. note ::
 
             Does not touch the original `self.df` DataFrame any way.
+            Only `self.pairs` is modified with forward-filled data.
+
+        :param columns:
+            Columns to fill.
+
+            To save memory and speed, only fill the columns you need.
+            Usually `open` and `close` are enough and also filled
+            by default.
+
+        :param drop_other_columns:
+            Remove other columns before forward-fill to save memory.
+
+            The resulting DataFrame will only have columns listed in `columns`
+            parameter.
+
+            The removed columns include ones like `high` and `low`, but also Trading Strategy specific
+            columns like `start_block` and `end_block`. It's unlikely we are going to need
+            forward-filled data in these columns.
         """
 
         self.pairs = forward_fill(
             self.pairs,
             self.time_bucket.to_frequency(),
+            columns=columns,
+            drop_other_columns=drop_other_columns,
         )
 
         # Clear candle cache

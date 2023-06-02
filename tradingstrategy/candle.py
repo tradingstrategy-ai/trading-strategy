@@ -409,7 +409,8 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """Get the price for a trading pair at a specific time point, or before within a time range tolerance.
 
         The data may be sparse data. There might not be sample available in the same time point or
-        immediate previous time point.
+        immediate previous time point. In this case the method looks back for the previous
+        data point within `tolerance` time range.
 
         This method should be relative fast and optimised for any price, volume and liquidity queries.
 
