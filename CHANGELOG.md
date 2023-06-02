@@ -1,6 +1,7 @@
 # 0.16.1
 
-- Add `candle_decimals` parameter `make_candle_labels()` that defaults to showing 4 decimal places on candlestick charts
+- Optimisation: `get_price_with_tolerance()`: 
+  candle price lookup is 40x faster for exact timestamp matches
 
 # 0.16
 
