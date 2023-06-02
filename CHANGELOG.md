@@ -1,3 +1,7 @@
+# 0.16.2
+
+- Add `candle_decimals` parameter `make_candle_labels()` that defaults to showing 4 decimal places on candlestick charts
+
 # 0.16.1
 
 - Optimisation: `get_price_with_tolerance()`: 
