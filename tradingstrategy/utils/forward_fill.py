@@ -36,6 +36,11 @@ def forward_fill(
     only for the min(pair_timestamp), max(timestamp) - not for the
     range of the all data.
 
+    .. note ::
+
+        `timestamp` and `pair_id` columns will be deleted in this process
+         - do not use these columns, but corresponding indexes instead.
+
     :param df:
         Candle data for single or multiple trading pairs
 
@@ -90,9 +95,10 @@ def forward_fill(
 
             match column:
                 case "close":
+                    # Sparse close is the previous close
                     df["close"] = df["close"].fillna(method="ffill")
                 case "open" | "high" | "low":
-                    # Fill open, high, low, close from previous close
+                    # Fill open, high, low from the ffill'ed close.
                     df[column] = df[column].fillna(df["close"])
 
     if columns:
