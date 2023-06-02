@@ -499,6 +499,15 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         ffill_indexer = timestamp_index.get_indexer([when], method="ffill")
 
         before_match_iloc = ffill_indexer[0]
+
+        if before_match_iloc < 0:
+            # We get -1 if there are no timestamps where the forward fill could start
+            first_sample_timestamp = timestamp_index[0]
+            raise CandleSampleUnavailable(
+                f"Could not find any candles for pair {pair_id}, value kind '{kind}' at or before {when}\n"
+                f"- Pair has {len(samples_per_kind)} samples\n"
+                f"- First sample is at {first_sample_timestamp}\n"
+            )
         before_match = timestamp_index[before_match_iloc]
 
         latest_or_equal_sample = candles_per_pair.iloc[before_match_iloc]
@@ -513,29 +522,21 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             # Return the chosen price column of the sample
             return latest_or_equal_sample[kind], distance
 
-        # Try to be helpful with the errors here,
-        # so one does not need to open ipdb to inspect faulty data
-        try:
-            first_sample = candles_per_pair.iloc[0]
-            second_sample = candles_per_pair.iloc[1]
-            last_sample = candles_per_pair.iloc[-1]
-        except KeyError:
-            raise CandleSampleUnavailable(
-                f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
-                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
-            )
+        first_sample_timestamp = timestamp_index[0]
+        last_sample_timestamp = timestamp_index[-1]
 
         raise CandleSampleUnavailable(
             f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
-            f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
-            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
             f"\n"
-            f"Data unavailability might be due to several reasons:"
+            f"- Data lag tolerance is set to {tolerance}\n"
+            f"- The pair has {len(samples_per_kind)} candles between {first_sample_timestamp} - {last_sample_timestamp}\n"
+            f"\n"
+            f"Data unavailability might be due to several reasons:\n"
             f"\n"
             f"- You are handling sparse data - trades have not been made or the blockchain was halted during the price look-up period.\n"
-            f"  Try to increase look back period in your code."
-            f"- You are asking historical data when the trading pair was not yet live"
-            f"- Your backtest is using indicators that need more lookback buffer than you are giving to them"
+            f"  Try to increase look back period in your code.\n"
+            f"- You are asking historical data when the trading pair was not yet live\n"
+            f"- Your backtest is using indicators that need more lookback buffer than you are giving to them\n"
             )
 
     @staticmethod

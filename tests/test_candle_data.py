@@ -93,7 +93,7 @@ def test_get_single_pair_data_allow_current(synthetic_candles):
     assert candles.iloc[-1]["timestamp"] == pd.Timestamp("2020-09-01")
 
 
-def test_forward_fill_multiple_pars():
+def test_forward_fill_multiple_pairs():
     """Forward fill data missing timestamps for a multipair universe."""
 
     data = [
@@ -159,3 +159,41 @@ def test_forward_fill_single_pair():
     candles = forward_fill(df, TimeBucket.d1.to_frequency())
 
     assert len(candles) == 9  # 2020-01-01 - 2020-01-09
+
+
+def test_forward_fill_too_early_multiple_pairs():
+    """What happens if we ask for too early data."""
+
+    data = [
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-01"), 100.10),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-02"), 100.50),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-03"), 101.10),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-09"), 101.80),
+
+        Candle.generate_synthetic_sample(2, pd.Timestamp("2020-01-01"), 2.5),
+        Candle.generate_synthetic_sample(2, pd.Timestamp("2020-01-03"), 2.2),
+        Candle.generate_synthetic_sample(2, pd.Timestamp("2020-01-05"), 2.1),
+        Candle.generate_synthetic_sample(2, pd.Timestamp("2020-01-18"), 3.8),
+
+    ]
+
+    df = pd.DataFrame(data, columns=Candle.DATAFRAME_FIELDS)
+
+    # First get data on a sparse universe
+    universe = GroupedCandleUniverse(df)
+
+    with pytest.raises(CandleSampleUnavailable):
+        universe.get_price_with_tolerance(
+            pair_id=1,
+            when=pd.Timestamp("2019-12-31"),
+            tolerance=pd.Timedelta(7, "d"))
+
+    # Then forward-fill missing data,
+    # now every time slot should have a sample
+    universe.forward_fill()
+
+    with pytest.raises(CandleSampleUnavailable):
+        price, difference = universe.get_price_with_tolerance(
+            pair_id=1,
+            when=pd.Timestamp("2019-12-31"),
+            tolerance=pd.Timedelta(7, "d"))
