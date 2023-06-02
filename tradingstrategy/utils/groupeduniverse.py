@@ -10,6 +10,7 @@ import pandas as pd
 from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
+from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.time import assert_compatible_timestamp
 
 
@@ -83,7 +84,6 @@ class PairGroupedUniverse:
         self.time_bucket = time_bucket
 
         self.candles_cache: dict[int, pd.DataFrame] = {}
-
 
     def get_columns(self) -> pd.Index:
         """Get column names from the underlying pandas.GroupBy object"""
@@ -413,14 +413,26 @@ class PairGroupedUniverse:
                 start_at = self.df["timestamp"].min()
                 end_at = self.df["timestamp"].max()
                 raise NoDataAvailable(f"Tried to ask candle data for timestamp {timestamp}. Truncating data after {after}. Minimum sample count needed is set to {sample_count}.\n"
+                                      f"\n"
                                       f"The result was {len(df)} candles. The trading pair or the time period does not have enough data.\n"
                                       f"The total loaded candle data is {len(self.df)} candles at range {start_at} - {end_at}.\n"
-                                      f"Also you cannot ask data for the current candle (same as the timestamp) unless you set allow_current=True.\n"
+                                      f"\n"
+                                      f"You cannot ask data for the current candle (same as the timestamp) unless you set allow_current=True.\n"
+                                      f"\n"
                                       f"The current timestamp is ignored byt default protect against accidental testing of future data.\n"
                                       f"If you want to access empty or not enough data, set raise_on_not_enough_data=False.")
 
         return df
 
+    def forward_fill(self):
+        """Forward-fill missing data.
+
+        See :py:mod:`tradingstrategy.utils.forward_fill` for details.
+        """
+        self.df = forward_fill(
+            self.df,
+            self.time_bucket.to_frequency(),
+        )
 
 def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs from a certain exchange.

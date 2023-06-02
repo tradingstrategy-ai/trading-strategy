@@ -89,3 +89,45 @@ def test_get_single_pair_data_allow_current(synthetic_candles):
 
     candles = universe.get_single_pair_data(timestamp=pd.Timestamp("2020-09-01"), allow_current=True)
     assert candles.iloc[-1]["timestamp"] == pd.Timestamp("2020-09-01")
+
+
+def test_forward_fill():
+    """Forward fill data missing data."""
+
+    data = [
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-01"), 100.10),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-02"), 100.50),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-03"), 101.10),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-09"), 101.80),
+    ]
+
+    df = pd.DataFrame(data, columns=Candle.DATAFRAME_FIELDS)
+
+    # First get data on a sparse universe
+    universe = GroupedCandleUniverse(df)
+
+    candles = universe.get_single_pair_data()
+    assert len(candles) == 4
+
+    price, difference = universe.get_price_with_tolerance(
+        pair_id=1,
+        when=pd.Timestamp("2020-01-04"),
+        tolerance=pd.Timedelta(7, "d"))
+
+    assert price == 101.10
+    assert difference == pd.Timedelta("1d")
+
+    # Then forward-fill missing data,
+    # now every time slot should have a sample
+    universe.forward_fill()
+
+    candles = universe.get_single_pair_data()
+    assert len(candles) == 9  # 2020-01-01 - 2020-01-09
+
+    price, difference = universe.get_price_with_tolerance(
+        pair_id=1,
+        when=pd.Timestamp("2020-01-04"),
+        tolerance=pd.Timedelta(7, "d"))
+
+    assert price == 100.10
+    assert difference == 0
