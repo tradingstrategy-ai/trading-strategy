@@ -411,8 +411,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         The data may be sparse data. There might not be sample available in the same time point or
         immediate previous time point.
 
-        This method should be relative fast if there is data directly available at `when`
-        timestamp.
+        This method should be relative fast and optimised for any price, volume and liquidity queries.
 
         Example:
 
@@ -478,12 +477,6 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         # like our relationship on Facebook.
         #
 
-        # Look up all the candles before the cut off timestamp.
-        # Assumes data is sorted by timestamp column,
-        # so our "closest time" candles should be the last of this lookup.
-        # TODO: self.timestamp_column is no longer needed after we drop QSTrader support,
-        # it is legacy. In the future use hardcoded "timestamp" column name.
-
         # The indexes we can have are
         # - MultiIndex (pair id, timestamp) - if multiple trading pairs present
         # - DatetimeIndex - if single trading pair present
@@ -515,18 +508,24 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         # Check if the last sample before the cut off is within time range our tolerance
         candle_timestamp = before_match
 
+        # Internal sanity check
         distance = when - candle_timestamp
         assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a candle timestamp {candle_timestamp} that is newer than asked {when}"
 
         if candle_timestamp >= last_allowed_timestamp:
-            # Return the chosen price column of the sample
+            # Return the chosen price column of the sample,
+            # because we are within the tolerance
             return latest_or_equal_sample[kind], distance
 
+        # We have data, but we are out of tolerance
         first_sample_timestamp = timestamp_index[0]
         last_sample_timestamp = timestamp_index[-1]
 
         raise CandleSampleUnavailable(
-            f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
+            f"Could not find candle data for pair {pair_id}\n"
+            f"- Column '{kind}'\n"
+            f"- At {when}\n"
+            f"- Lower bound of time range tolerance {last_allowed_timestamp}\n"
             f"\n"
             f"- Data lag tolerance is set to {tolerance}\n"
             f"- The pair has {len(samples_per_kind)} candles between {first_sample_timestamp} - {last_sample_timestamp}\n"
@@ -534,9 +533,10 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"Data unavailability might be due to several reasons:\n"
             f"\n"
             f"- You are handling sparse data - trades have not been made or the blockchain was halted during the price look-up period.\n"
-            f"  Try to increase look back period in your code.\n"
-            f"- You are asking historical data when the trading pair was not yet live\n"
-            f"- Your backtest is using indicators that need more lookback buffer than you are giving to them\n"
+            f"  Try to increase 'tolerance' argument time window.\n"
+            f"- You are asking historical data when the trading pair was not yet live.\n"
+            f"- Your backtest is using indicators that need more lookback buffer than you are giving to them.\n"
+            f"  Try set your data load range earlier or your backtesting starting later.\n"
             )
 
     @staticmethod
