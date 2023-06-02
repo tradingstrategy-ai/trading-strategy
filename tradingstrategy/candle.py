@@ -15,7 +15,7 @@ For more information about candles see :term:`candle` in glossary.
 
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, TypedDict, Collection, Iterable
+from typing import List, Optional, Tuple, TypedDict, Collection, Iterable, cast
 
 import pandas as pd
 import pyarrow as pa
@@ -406,7 +406,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                           when: pd.Timestamp,
                           tolerance: pd.Timedelta,
                           kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
-        """Get the price for a trading pair at a specific time point or some candles before the time point.
+        """Get the price for a trading pair at a specific time point, or before within a time range tolerance.
 
         The data may be sparse data. There might not be sample available in the same time point or
         immediate previous time point.
@@ -483,11 +483,28 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         # so our "closest time" candles should be the last of this lookup.
         # TODO: self.timestamp_column is no longer needed after we drop QSTrader support,
         # it is legacy. In the future use hardcoded "timestamp" column name.
-        timestamp_column = candles_per_pair[self.timestamp_column]
-        latest_or_equal_sample = candles_per_pair.loc[timestamp_column <= when].iloc[-1]
+
+        # The indexes we can have are
+        # - MultiIndex (pair id, timestamp) - if multiple trading pairs present
+        # - DatetimeIndex - if single trading pair present
+
+        if isinstance(candles_per_pair.index, pd.MultiIndex):
+            timestamp_index = cast(pd.DatetimeIndex, candles_per_pair.index.get_level_values(1))
+        elif isinstance(candles_per_pair.index, pd.DatetimeIndex):
+            timestamp_index = candles_per_pair.index
+        else:
+            raise NotImplementedError(f"Does not know how to handle index {candles_per_pair.index}")
+
+        # TODO: Do we need to cache the indexer... does it has its own storage?
+        ffill_indexer = timestamp_index.get_indexer([when], method="ffill")
+
+        before_match_iloc = ffill_indexer[0]
+        before_match = timestamp_index[before_match_iloc]
+
+        latest_or_equal_sample = candles_per_pair.iloc[before_match_iloc]
 
         # Check if the last sample before the cut off is within time range our tolerance
-        candle_timestamp = latest_or_equal_sample[self.timestamp_column]
+        candle_timestamp = before_match
 
         distance = when - candle_timestamp
         assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a candle timestamp {candle_timestamp} that is newer than asked {when}"

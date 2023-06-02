@@ -85,6 +85,10 @@ class PairGroupedUniverse:
 
         self.candles_cache: dict[int, pd.DataFrame] = {}
 
+    def clear_cache(self):
+        """Clear candles cached by pair."""
+        self.candles_cache = {}
+
     def get_columns(self) -> pd.Index:
         """Get column names from the underlying pandas.GroupBy object"""
         return self.pairs.obj.columns
@@ -427,12 +431,23 @@ class PairGroupedUniverse:
     def forward_fill(self):
         """Forward-fill missing data.
 
+        Forward fills the pair-grouped data.
+
         See :py:mod:`tradingstrategy.utils.forward_fill` for details.
+
+        .. note ::
+
+            Does not touch the original `self.df` DataFrame any way.
         """
-        self.df = forward_fill(
-            self.df,
+
+        self.pairs = forward_fill(
+            self.pairs,
             self.time_bucket.to_frequency(),
         )
+
+        # Clear candle cache
+        self.clear_cache()
+
 
 def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs from a certain exchange.

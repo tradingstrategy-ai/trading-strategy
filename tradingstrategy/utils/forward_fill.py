@@ -19,19 +19,30 @@
 from typing import Tuple
 
 import pandas as pd
+from pandas.core.groupby import DataFrameGroupBy
 
 
 def forward_fill(
-        df: pd.DataFrame,
+        df: pd.DataFrame | DataFrameGroupBy,
         freq: pd.DateOffset,
         columns: Tuple[str] = ("open", "close"),
+        drop_other_columns=True,
 ):
-    """Forward-fill data in a multiple trading by GroupBy DataFrame.
+    """Forward-fill OHLCV data for multiple trading pairs.
 
     :py:term:`Forward fill` certain candle columns.
 
+    If multiple pairs are given as a `GroupBy`, then the data is filled
+    only for the min(pair_timestamp), max(timestamp) - not for the
+    range of the all data.
+
     :param df:
-        GroupBy DataFrame containing candle data for multiple trading pairs
+        Candle data for single or multiple trading pairs
+
+        - GroupBy DataFrame containing candle data for multiple trading pairs
+          (grouped by column `pair_id`).
+
+        - Normal DataFrame containing candle data for a single pair
 
     :param freq:
         The target frequency for the DataFrame.
@@ -40,23 +51,56 @@ def forward_fill(
         Columns to fill.
 
         To save memory and speed, only fill the columns you need.
-        Usually "open" and "close" are enough.
+        Usually `open` and `close` are enough and also filled
+        by default.
+
+    :param drop_other_columns:
+        Remove other columns before forward-fill to save memory.
+
+        The resulting DataFrame will only have columns listed in `columns`
+        parameter.
+
+        The removed columns include ones like `high` and `low`, but also Trading Strategy specific
+        columns like `start_block` and `end_block`. It's unlikely we are going to need
+        forward-filled data in these columns.
 
     :return:
         DataFrame where each timestamp has a value set for columns.
     """
 
-    assert isinstance(df, pd.DataFrame)
+    assert isinstance(df, (pd.DataFrame, DataFrameGroupBy))
     assert isinstance(freq, pd.DateOffset)
 
-    df = df.resample(freq)
+    grouped = isinstance(df, DataFrameGroupBy)
 
-    for column in columns:
-        match column:
-            case "open":
-                df['open'] = df["close"].fillna(method='ffill')
-            case "close":
-                df['close'] = df["close"].fillna(method='ffill')
-                pass
-            case _:
-                raise NotImplementedError(f"Forward-fill for {column} not yet implemented")
+    # https://www.statology.org/pandas-drop-all-columns-except/
+    if drop_other_columns:
+        df = df[list(columns)]
+
+    # Fill missing timestamps with NaN
+    # https://stackoverflow.com/a/45620300/315168
+    df = df.resample(freq).mean()
+
+    columns = set(columns)
+
+    # We always need to ffill close first
+    for column in ("close", "open", "high", "low"):
+        if column in columns:
+            columns.remove(column)
+
+            match column:
+                case "close":
+                    df["close"] = df["close"].fillna(method="ffill")
+                case "open" | "high" | "low":
+                    # Fill open, high, low, close from previous close
+                    df[column] = df[column].fillna(df["close"])
+
+    if columns:
+        # Unprocessable columns left
+        raise NotImplementedError(f"Does not know how to forward fill: {columns}")
+
+    # Regroup by pair, as this was the original data format
+    if grouped:
+        df = df.groupby("pair_id")
+
+    return df
