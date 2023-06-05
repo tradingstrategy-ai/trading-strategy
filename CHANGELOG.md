@@ -1,6 +1,6 @@
-# Current
+# 0.17.1
 
-- TODO
+- Add `candle_decimals` parameter `make_candle_labels()` that defaults to showing 4 decimal places on candlestick charts
 
 # 0.17
 
