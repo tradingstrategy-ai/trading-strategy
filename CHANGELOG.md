@@ -1,6 +1,13 @@
-# 0.16.2
+# Current
 
-- Add `candle_decimals` parameter `make_candle_labels()` that defaults to showing 4 decimal places on candlestick charts
+- TODO
+
+# 0.17
+
+- Optimisation: `get_price_with_tolerance()`: 
+  candle price lookup is much faster with sparse data match
+- Added `trading_strategy.utils.forward_fill` module for 
+  dealing with sparse data
 
 # 0.16.1
 

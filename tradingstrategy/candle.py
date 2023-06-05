@@ -15,7 +15,7 @@ For more information about candles see :term:`candle` in glossary.
 
 import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, TypedDict, Collection, Iterable
+from typing import List, Optional, Tuple, TypedDict, Collection, Iterable, cast
 
 import pandas as pd
 import pyarrow as pa
@@ -406,13 +406,13 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                           when: pd.Timestamp,
                           tolerance: pd.Timedelta,
                           kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
-        """Get the price for a trading pair at a specific time point or some candles before the time point.
+        """Get the price for a trading pair at a specific time point, or before within a time range tolerance.
 
         The data may be sparse data. There might not be sample available in the same time point or
-        immediate previous time point.
+        immediate previous time point. In this case the method looks back for the previous
+        data point within `tolerance` time range.
 
-        This method should be relative fast if there is data directly available at `when`
-        timestamp.
+        This method should be relative fast and optimised for any price, volume and liquidity queries.
 
         Example:
 
@@ -478,47 +478,66 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         # like our relationship on Facebook.
         #
 
-        # Look up all the candles before the cut off timestamp.
-        # Assumes data is sorted by timestamp column,
-        # so our "closest time" candles should be the last of this lookup.
-        # TODO: self.timestamp_column is no longer needed after we drop QSTrader support,
-        # it is legacy. In the future use hardcoded "timestamp" column name.
-        timestamp_column = candles_per_pair[self.timestamp_column]
-        latest_or_equal_sample = candles_per_pair.loc[timestamp_column <= when].iloc[-1]
+        # The indexes we can have are
+        # - MultiIndex (pair id, timestamp) - if multiple trading pairs present
+        # - DatetimeIndex - if single trading pair present
+
+        if isinstance(candles_per_pair.index, pd.MultiIndex):
+            timestamp_index = cast(pd.DatetimeIndex, candles_per_pair.index.get_level_values(1))
+        elif isinstance(candles_per_pair.index, pd.DatetimeIndex):
+            timestamp_index = candles_per_pair.index
+        else:
+            raise NotImplementedError(f"Does not know how to handle index {candles_per_pair.index}")
+
+        # TODO: Do we need to cache the indexer... does it has its own storage?
+        ffill_indexer = timestamp_index.get_indexer([when], method="ffill")
+
+        before_match_iloc = ffill_indexer[0]
+
+        if before_match_iloc < 0:
+            # We get -1 if there are no timestamps where the forward fill could start
+            first_sample_timestamp = timestamp_index[0]
+            raise CandleSampleUnavailable(
+                f"Could not find any candles for pair {pair_id}, value kind '{kind}' at or before {when}\n"
+                f"- Pair has {len(samples_per_kind)} samples\n"
+                f"- First sample is at {first_sample_timestamp}\n"
+            )
+        before_match = timestamp_index[before_match_iloc]
+
+        latest_or_equal_sample = candles_per_pair.iloc[before_match_iloc]
 
         # Check if the last sample before the cut off is within time range our tolerance
-        candle_timestamp = latest_or_equal_sample[self.timestamp_column]
+        candle_timestamp = before_match
 
+        # Internal sanity check
         distance = when - candle_timestamp
         assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a candle timestamp {candle_timestamp} that is newer than asked {when}"
 
         if candle_timestamp >= last_allowed_timestamp:
-            # Return the chosen price column of the sample
+            # Return the chosen price column of the sample,
+            # because we are within the tolerance
             return latest_or_equal_sample[kind], distance
 
-        # Try to be helpful with the errors here,
-        # so one does not need to open ipdb to inspect faulty data
-        try:
-            first_sample = candles_per_pair.iloc[0]
-            second_sample = candles_per_pair.iloc[1]
-            last_sample = candles_per_pair.iloc[-1]
-        except KeyError:
-            raise CandleSampleUnavailable(
-                f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
-                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
-            )
+        # We have data, but we are out of tolerance
+        first_sample_timestamp = timestamp_index[0]
+        last_sample_timestamp = timestamp_index[-1]
 
         raise CandleSampleUnavailable(
-            f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {last_allowed_timestamp}\n"
-            f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
-            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
+            f"Could not find candle data for pair {pair_id}\n"
+            f"- Column '{kind}'\n"
+            f"- At {when}\n"
+            f"- Lower bound of time range tolerance {last_allowed_timestamp}\n"
             f"\n"
-            f"Data unavailability might be due to several reasons:"
+            f"- Data lag tolerance is set to {tolerance}\n"
+            f"- The pair has {len(samples_per_kind)} candles between {first_sample_timestamp} - {last_sample_timestamp}\n"
+            f"\n"
+            f"Data unavailability might be due to several reasons:\n"
             f"\n"
             f"- You are handling sparse data - trades have not been made or the blockchain was halted during the price look-up period.\n"
-            f"  Try to increase look back period in your code."
-            f"- You are asking historical data when the trading pair was not yet live"
-            f"- Your backtest is using indicators that need more lookback buffer than you are giving to them"
+            f"  Try to increase 'tolerance' argument time window.\n"
+            f"- You are asking historical data when the trading pair was not yet live.\n"
+            f"- Your backtest is using indicators that need more lookback buffer than you are giving to them.\n"
+            f"  Try set your data load range earlier or your backtesting starting later.\n"
             )
 
     @staticmethod

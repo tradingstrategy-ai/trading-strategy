@@ -117,7 +117,7 @@ def make_candle_labels(
 
         timestamp = row["timestamp"]
 
-        percentage_change = (row.close - row.open) / row.open
+        percentage_change = (row.close - row.open) / row.open * 100
         text = [
             f"{timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}",
             "",

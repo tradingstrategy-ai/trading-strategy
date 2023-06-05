@@ -10,6 +10,7 @@ import pandas as pd
 from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
+from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.time import assert_compatible_timestamp
 
 
@@ -84,6 +85,9 @@ class PairGroupedUniverse:
 
         self.candles_cache: dict[int, pd.DataFrame] = {}
 
+    def clear_cache(self):
+        """Clear candles cached by pair."""
+        self.candles_cache = {}
 
     def get_columns(self) -> pd.Index:
         """Get column names from the underlying pandas.GroupBy object"""
@@ -413,13 +417,62 @@ class PairGroupedUniverse:
                 start_at = self.df["timestamp"].min()
                 end_at = self.df["timestamp"].max()
                 raise NoDataAvailable(f"Tried to ask candle data for timestamp {timestamp}. Truncating data after {after}. Minimum sample count needed is set to {sample_count}.\n"
+                                      f"\n"
                                       f"The result was {len(df)} candles. The trading pair or the time period does not have enough data.\n"
                                       f"The total loaded candle data is {len(self.df)} candles at range {start_at} - {end_at}.\n"
-                                      f"Also you cannot ask data for the current candle (same as the timestamp) unless you set allow_current=True.\n"
+                                      f"\n"
+                                      f"You cannot ask data for the current candle (same as the timestamp) unless you set allow_current=True.\n"
+                                      f"\n"
                                       f"The current timestamp is ignored byt default protect against accidental testing of future data.\n"
                                       f"If you want to access empty or not enough data, set raise_on_not_enough_data=False.")
 
         return df
+
+    def forward_fill(
+        self,
+        columns: Tuple[str] = ("open", "close"),
+        drop_other_columns=True,
+    ):
+        """Forward-fill sparse OHLCV candle data.
+
+        Forward fills the missing candle values for non-existing candles.
+        Trading Strategy data does not have candles unless there was actual trades
+        happening at the markets.
+
+        See :py:mod:`tradingstrategy.utils.forward_fill` for details.
+
+        .. note ::
+
+            Does not touch the original `self.df` DataFrame any way.
+            Only `self.pairs` is modified with forward-filled data.
+
+        :param columns:
+            Columns to fill.
+
+            To save memory and speed, only fill the columns you need.
+            Usually `open` and `close` are enough and also filled
+            by default.
+
+        :param drop_other_columns:
+            Remove other columns before forward-fill to save memory.
+
+            The resulting DataFrame will only have columns listed in `columns`
+            parameter.
+
+            The removed columns include ones like `high` and `low`, but also Trading Strategy specific
+            columns like `start_block` and `end_block`. It's unlikely we are going to need
+            forward-filled data in these columns.
+        """
+
+        self.pairs = forward_fill(
+            self.pairs,
+            self.time_bucket.to_frequency(),
+            columns=columns,
+            drop_other_columns=drop_other_columns,
+        )
+
+        # Clear candle cache
+        self.clear_cache()
 
 
 def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:
