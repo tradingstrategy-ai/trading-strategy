@@ -5,7 +5,7 @@ import pytest
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.exchange import ExchangeType
+from tradingstrategy.exchange import ExchangeType, ExchangeNotFoundError
 from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, PairNotFoundError, DEXPair, generate_address_columns
 
 
@@ -227,6 +227,11 @@ def test_fee_tier_uniswap_v2(persistent_test_client):
     assert pair.base_token_symbol == "EUL"
     assert pair.quote_token_symbol == "WETH"
     assert pair.fee == 30
+
+    with pytest.raises(ExchangeNotFoundError) as excinfo:
+        exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "alex-v2")
+
+    assert excinfo.value.args[0] == 'The trading universe does not contain data on chain ethereum for exchange_slug alex-v2. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore DEXs.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    For any further questions join our Discord: https://discord.com/invite/en8tW6MDtw'
 
 
 def test_fee_tier_uniswap_v3(persistent_test_client):
