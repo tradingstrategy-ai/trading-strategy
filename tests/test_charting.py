@@ -2,6 +2,7 @@
 
 import pandas as pd
 import pytest
+import datetime
 from IPython.core.display_functions import display
 from pandas.core.groupby import DataFrameGroupBy
 
@@ -31,10 +32,13 @@ def candles_and_pair(persistent_test_client: Client) -> tuple[pd.DataFrame, DEXP
 
     pair = pair_universe.get_single()
 
+    # to make it deterministic
     candles: pd.DataFrame = client.fetch_candles_by_pair_ids(
         {pair.pair_id},
         TimeBucket.d1,
-        progress_bar_description=f"Download data for {pair.get_ticker()}"
+        progress_bar_description=f"Download data for {pair.get_ticker()}",
+        start_time=datetime.datetime(2023, 1, 1),
+        end_time=datetime.datetime(2023, 1, 31),
     )
     
     return candles, pair
@@ -176,21 +180,27 @@ def test_candle_labels(candles_and_pair: tuple[pd.DataFrame, DEXPair]):
 
     first_label = labels.iloc[0]
 
+    # Check keys and also 4 decimal places
     assert type(first_label) == str
-    assert "Open:" in first_label
-    assert "Volume:" in first_label
-    assert "Change:" in first_label
+    assert "Open: 246.4422 USD" in first_label
+    assert "Volume: 4770016.1561 USD" in first_label
+    assert "Change: -0.96 %" in first_label
 
     # Try with cryptocurrency based labelling
     labels = make_candle_labels(
         candles,
         dollar_prices=False,
         base_token_name="BNB",
-        quote_token_name="BUSD")
+        quote_token_name="BUSD",
+        candle_decimals=8,
+    )
 
+    # check currencies correct and also 8 decimal places 
     first_label = labels.iloc[0]
     assert "BUSD" in first_label
     assert "BNB" in first_label
+    assert "Open: 246.44223377 BNB / BUSD" in first_label
+    assert "Close: 244.08475377 BNB / BUSD" in first_label
 
 
 def test_visualise_with_label(persistent_test_client: Client):
