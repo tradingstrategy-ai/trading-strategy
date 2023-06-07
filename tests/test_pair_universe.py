@@ -6,7 +6,7 @@ import pytest
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.exchange import ExchangeType
-from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, NoPairFound, DEXPair, generate_address_columns
+from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, PairNotFoundError, DEXPair, generate_address_columns
 
 
 @pytest.fixture
@@ -179,7 +179,7 @@ def test_resolve_based_on_human_description(persistent_test_client):
     assert bnb_busd.buy_volume_30d > 1_000_000
 
     desc = (ChainId.bsc, "pancakeswap-v2", "MIKKO", "BUSD")
-    with pytest.raises(NoPairFound):
+    with pytest.raises(PairNotFoundError):
         pair_universe.get_pair_by_human_description(exchange_universe, desc)
 
 
