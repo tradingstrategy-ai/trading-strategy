@@ -19,6 +19,38 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.types import NonChecksummedAddress, UNIXTimestamp, PrimaryKey
 
 
+class ExchangeNotFoundError(Exception):
+    """Raised when no exchange found for the given address"""
+
+    template = f"""This might be a problem in your data loading and filtering. 
+                
+    Use tradingstrategy.ai website to explore DEXs.
+    
+    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges
+    
+    For any further questions join our Discord: https://discord.com/invite/en8tW6MDtw"""
+
+    def __init__(self, chain_id_name: str, exchange_slug: str | None = None, exchange_name: str | None = None, factory_address: str | None = None, optional_extra_message: str | None = None):
+        
+        assert exchange_slug or exchange_name or factory_address, "At least one of the parameters must be provided"
+
+        message = f"The trading universe does not contain data on chain {chain_id_name} for"
+
+        if exchange_slug:
+            message = message + f" exchange_slug {exchange_slug}"
+
+        if exchange_name:
+            message = message + f" exchange_name {exchange_name}"
+
+        if factory_address:
+            message = message + f" factory_address {factory_address}"
+
+        super().__init__(
+            f"{message}. {self.template}"
+            + (f"\n\n{optional_extra_message}" if optional_extra_message else "")
+        )
+
+
 class ExchangeType(str, enum.Enum):
     """What kind of an decentralised exchange, AMM or other the pair is trading on.
 
@@ -218,7 +250,8 @@ class ExchangeUniverse:
         for xchg in self.exchanges.values():
             if xchg.name.lower() == name.lower() and xchg.chain_id == chain_id:
                 return xchg
-        return None
+            
+        raise ExchangeNotFoundError(chain_id.name, exchange_name=name)
 
     def get_by_chain_and_slug(self, chain_id: ChainId, slug: str) -> Optional[Exchange]:
         """Get the exchange implementation on a specific chain.
@@ -231,7 +264,8 @@ class ExchangeUniverse:
         for xchg in self.exchanges.values():
             if xchg.exchange_slug == slug and xchg.chain_id == chain_id:
                 return xchg
-        return None
+        
+        raise ExchangeNotFoundError(chain_id.name, exchange_slug=slug)
 
     def get_by_chain_and_factory(self, chain_id: ChainId, factory_address: str) -> Optional[Exchange]:
         """Get the exchange implementation on a specific chain.
@@ -245,7 +279,8 @@ class ExchangeUniverse:
         for xchg in self.exchanges.values():
             if xchg.address.lower() == factory_address and xchg.chain_id == chain_id:
                 return xchg
-        return None
+            
+        return ExchangeNotFoundError(chain_id.name, factory_address=factory_address)
 
     def get_single(self) -> Exchange:
         """Get the one and the only exchange in this universe.
