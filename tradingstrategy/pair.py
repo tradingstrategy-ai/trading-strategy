@@ -34,12 +34,13 @@ from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimest
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
+from tradingstrategy.exceptions import DataNotFoundError
 
 
 logger = logging.getLogger(__name__)
 
 
-class PairNotFoundError(Exception):
+class PairNotFoundError(DataNotFoundError):
     """No trading pair found matching the given criteria."""
 
     advanced_search_url = "https://tradingstrategy.ai/search?q=&sortBy=liquidity%3Adesc&filters=%7B%22pool_swap_fee%22%3A%5B%5D%2C%22price_change_24h%22%3A%5B%5D%2C%22liquidity%22%3A%5B%5D%2C%22volume_24h%22%3A%5B%5D%2C%22type%22%3A%5B%5D%2C%22blockchain%22%3A%5B%5D%2C%22exchange%22%3A%5B%5D%7D"

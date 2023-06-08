@@ -17,9 +17,10 @@ from dataclasses_json import dataclass_json
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.types import NonChecksummedAddress, UNIXTimestamp, PrimaryKey
+from tradingstrategy.exceptions import DataNotFoundError
 
 
-class ExchangeNotFoundError(Exception):
+class ExchangeNotFoundError(DataNotFoundError):
     """Raised when no exchange found for the given address"""
 
     template = f"""This might be a problem in your data loading and filtering. 
