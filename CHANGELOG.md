@@ -1,4 +1,4 @@
-# Current
+# 0.17.2
 
 - Fix test warnings by changing function calls from `create_single_pair_universe()` to `create_pair_universe()`
 
