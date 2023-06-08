@@ -182,7 +182,7 @@ def test_resolve_based_on_human_description(persistent_test_client):
     with pytest.raises(PairNotFoundError) as excinfo:
         pair_universe.get_pair_by_human_description(exchange_universe, desc)
     
-    assert excinfo.value.args[0] == 'Exchange pancakeswap-v2 does not have a pair MIKKO-BUSD with fee tier None. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore pairs. Once on a pair page, click on the `Copy Python identifier` button to get the correct pair information to use in your strategy.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    Here is advanced search: https://tradingstrategy.ai/search?q=&sortBy=liquidity%3Adesc&filters=%7B%22pool_swap_fee%22%3A%5B%5D%2C%22price_change_24h%22%3A%5B%5D%2C%22liquidity%22%3A%5B%5D%2C%22volume_24h%22%3A%5B%5D%2C%22type%22%3A%5B%5D%2C%22blockchain%22%3A%5B%5D%2C%22exchange%22%3A%5B%5D%7D\n    \n    For any further questions join our Discord: https://discord.com/invite/en8tW6MDtw'
+    assert excinfo.value.args[0] == 'Exchange pancakeswap-v2 does not have a pair MIKKO-BUSD with fee tier None. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore pairs. Once on a pair page, click on the `Copy Python identifier` button to get the correct pair information to use in your strategy.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    Here is advanced search: https://tradingstrategy.ai/search?q=&sortBy=liquidity%3Adesc&filters=%7B%22pool_swap_fee%22%3A%5B%5D%2C%22price_change_24h%22%3A%5B%5D%2C%22liquidity%22%3A%5B%5D%2C%22volume_24h%22%3A%5B%5D%2C%22type%22%3A%5B%5D%2C%22blockchain%22%3A%5B%5D%2C%22exchange%22%3A%5B%5D%7D\n    \n    For any further questions join our Discord: https://tradingstrategy.ai/community'
 
 
 def test_get_pair(persistent_test_client):
@@ -231,7 +231,7 @@ def test_fee_tier_uniswap_v2(persistent_test_client):
     with pytest.raises(ExchangeNotFoundError) as excinfo:
         exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "alex-v2")
 
-    assert excinfo.value.args[0] == 'The trading universe does not contain data on chain ethereum for exchange_slug alex-v2. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore DEXs.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    For any further questions join our Discord: https://discord.com/invite/en8tW6MDtw'
+    assert excinfo.value.args[0] == 'The trading universe does not contain data on chain ethereum for exchange_slug alex-v2. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore DEXs.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    For any further questions join our Discord: https://tradingstrategy.ai/community'
 
 
 def test_fee_tier_uniswap_v3(persistent_test_client):

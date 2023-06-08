@@ -28,7 +28,7 @@ class ExchangeNotFoundError(Exception):
     
     Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges
     
-    For any further questions join our Discord: https://discord.com/invite/en8tW6MDtw"""
+    For any further questions join our Discord: https://tradingstrategy.ai/community"""
 
     def __init__(self, chain_id_name: str = None, exchange_slug: str | None = None, exchange_name: str | None = None, factory_address: str | None = None, exchange_id: int = None, optional_extra_message: str | None = None):
         

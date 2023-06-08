@@ -52,7 +52,7 @@ class PairNotFoundError(Exception):
     
     Here is advanced search: {advanced_search_url}
     
-    For any further questions join our Discord: https://discord.com/invite/en8tW6MDtw"""
+    For any further questions join our Discord: https://tradingstrategy.ai/community"""
 
     def __init__(self, base_token: str, quote_token: str, fee_tier: Optional[Percent] = None, exchange_slug: Optional[str] = None):
 

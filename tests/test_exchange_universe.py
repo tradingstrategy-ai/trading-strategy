@@ -31,7 +31,7 @@ def test_look_up_by_chain_and_name(persistent_test_client: Client):
         nonexist = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "Quickswap")
         assert nonexist is None
     
-    assert excinfo.value.args[0] == 'The trading universe does not contain data on chain ethereum for exchange_name quickswap. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore DEXs.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    For any further questions join our Discord: https://discord.com/invite/en8tW6MDtw'
+    assert excinfo.value.args[0] == 'The trading universe does not contain data on chain ethereum for exchange_name quickswap. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore DEXs.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    For any further questions join our Discord: https://tradingstrategy.ai/community'
 
 
 
@@ -51,4 +51,4 @@ def test_look_up_by_chain_and_slug(persistent_test_client: Client):
         nonexist = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "quickswap")
         assert nonexist is None
     
-    assert excinfo.value.args[0] == 'The trading universe does not contain data on chain ethereum for exchange_slug quickswap. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore DEXs.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    For any further questions join our Discord: https://discord.com/invite/en8tW6MDtw'
+    assert excinfo.value.args[0] == 'The trading universe does not contain data on chain ethereum for exchange_slug quickswap. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore DEXs.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    For any further questions join our Discord: https://tradingstrategy.ai/community'
