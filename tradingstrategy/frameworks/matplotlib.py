@@ -1,6 +1,6 @@
 import tempfile
 
-from IPython.core.display import Image
+from IPython.display import Image
 from matplotlib.figure import Figure
 
 
