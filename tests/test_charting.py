@@ -209,11 +209,9 @@ def test_visualise_with_label(persistent_test_client: Client):
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
-    pair_universe = PandasPairUniverse.create_limited_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            [("WBNB", "BUSD"), ("Cake", "BUSD"),],
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD"), (exchange.chain_id, exchange.exchange_slug, "Cake", "BUSD")]
         )
 
     # Create a set of pairs

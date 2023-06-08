@@ -194,11 +194,9 @@ def test_data_for_two_pairs(persistent_test_client: Client):
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
 
-    pair_universe = PandasPairUniverse.create_limited_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            [("WBNB", "BUSD"), ("Cake", "WBNB")],
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD"), (exchange.chain_id, exchange.exchange_slug, "Cake", "WBNB")]
         )
 
     assert pair_universe.get_count() == 2
