@@ -30,11 +30,14 @@ class ExchangeNotFoundError(Exception):
     
     For any further questions join our Discord: https://discord.com/invite/en8tW6MDtw"""
 
-    def __init__(self, chain_id_name: str, exchange_slug: str | None = None, exchange_name: str | None = None, factory_address: str | None = None, optional_extra_message: str | None = None):
+    def __init__(self, chain_id_name: str = None, exchange_slug: str | None = None, exchange_name: str | None = None, factory_address: str | None = None, exchange_id: int = None, optional_extra_message: str | None = None):
         
         assert exchange_slug or exchange_name or factory_address, "At least one of the parameters must be provided"
 
-        message = f"The trading universe does not contain data on chain {chain_id_name} for"
+        if chain_id_name:
+            message = f"The trading universe does not contain data on chain {chain_id_name} for"
+        else:
+            message = f"The trading universe does not contain data for"
 
         if exchange_slug:
             message = message + f" exchange_slug {exchange_slug}"
@@ -44,6 +47,9 @@ class ExchangeNotFoundError(Exception):
 
         if factory_address:
             message = message + f" factory_address {factory_address}"
+        
+        if exchange_id:
+            message = message + f" exchange_id {exchange_id}"
 
         super().__init__(
             f"{message}. {self.template}"
