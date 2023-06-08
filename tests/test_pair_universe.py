@@ -368,7 +368,7 @@ def test_generate_address_columns(persistent_test_client):
     assert pair.quote_token_address == "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"  # USDC
 
 
-def test_create_single_pair_universe_with_fee(persistent_test_client: Client):
+def test_create_pair_universe_with_fee(persistent_test_client: Client):
     """Test generic create_pair_universe()"""
     client = persistent_test_client
     pairs_df = client.fetch_pair_universe().to_pandas()
