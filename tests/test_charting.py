@@ -24,7 +24,7 @@ def candles_and_pair(persistent_test_client: Client) -> tuple[pd.DataFrame, DEXP
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
     pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            [(exchange.chain_id, exchange.slug, "WBNB", "BUSD")]
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")]
         )
 
     pair = pair_universe.get_single()

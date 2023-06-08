@@ -418,7 +418,7 @@ def test_load_candles_using_jsonl_max_bytes(persistent_test_client: Client):
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
     pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            [(exchange.chain_id, exchange.slug, "WBNB", "BUSD")],
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")],
         )
 
     pair = pair_universe.get_single()
@@ -441,7 +441,7 @@ def test_load_candles_using_json_historical(persistent_test_client: Client):
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
     pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            [(exchange.chain_id, exchange.slug, "WBNB", "BUSD")],
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")],
         )
 
     pair = pair_universe.get_single()
