@@ -6,7 +6,7 @@ import pandas as pd
 
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
-from tradingstrategy.exchange import Exchange, ExchangeUniverse
+from tradingstrategy.exchange import Exchange, ExchangeUniverse, ExchangeNotFoundError
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, ResampledLiquidityUniverse
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -100,9 +100,14 @@ class Universe:
         """Get exchange by its id.
 
         TODO: Replace exchange set with a proper exchange universe.
+
+        :raise: ExchangeNotFoundError if exchange not found
+
+        :return: Exchange instance
         """
         for exc in self.exchanges:
             if exc.exchange_id == id:
                 return exc
-        return None
+        
+        raise ExchangeNotFoundError(exchange_id=id) 
 
