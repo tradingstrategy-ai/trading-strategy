@@ -161,12 +161,9 @@ def test_data_for_single_pair(persistent_test_client: Client):
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
 
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")]
         )
 
     pair = pair_universe.get_single()
@@ -224,12 +221,9 @@ def test_candle_colour(persistent_test_client: Client):
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
 
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")]
         )
 
     pair = pair_universe.get_single()
@@ -279,12 +273,9 @@ def test_candle_upsample(persistent_test_client: Client):
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
 
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")]
         )
 
     pair = pair_universe.get_single()
@@ -311,12 +302,9 @@ def test_candle_get_last_entries(persistent_test_client: Client):
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
 
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")]
         )
 
     pair = pair_universe.get_single()
@@ -362,12 +350,9 @@ def test_filter_pyarrow(persistent_test_client: Client):
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")]
         )
 
     method = "filtered_parquet"
@@ -402,12 +387,9 @@ def test_load_candles_using_jsonl(persistent_test_client: Client):
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")]
         )
 
     pair = pair_universe.get_single()
@@ -434,12 +416,9 @@ def test_load_candles_using_jsonl_max_bytes(persistent_test_client: Client):
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.slug, "WBNB", "BUSD")],
         )
 
     pair = pair_universe.get_single()
@@ -460,12 +439,9 @@ def test_load_candles_using_json_historical(persistent_test_client: Client):
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.slug, "WBNB", "BUSD")],
         )
 
     pair = pair_universe.get_single()
