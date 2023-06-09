@@ -2,6 +2,10 @@
 
 - Fix test warnings by changing function calls from `create_single_pair_universe()` to `create_pair_universe()`
 
+# Current
+
+- Add `PairNotFoundError` and `ExchangeNotFoundError` for more helpful error messages
+
 # 0.17.1
 
 - Add `candle_decimals` parameter `make_candle_labels()` that defaults to showing 4 decimal places on candlestick charts
