@@ -1,3 +1,9 @@
+""""Qstrader integration (legacy).
+
+.. warning::
+
+    Deprecated. Do not use anymore. Use `trade-executor` framework instead.
+"""
 import logging
 import functools
 from typing import List, Dict
