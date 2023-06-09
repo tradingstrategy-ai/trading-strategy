@@ -1057,6 +1057,9 @@ class PandasPairUniverse:
             pick_by_highest_vol=True,
         )
 
+        # this check techinically unnecessary 
+        # since get_one_pair_from_pandas_universe will raise
+        # but just to be sure
         if pair is None:
             raise PairNotFoundError(base_token=base_token, quote_token=quote_token, fee_tier=fee_tier, exchange_slug=exchange_slug)
 
