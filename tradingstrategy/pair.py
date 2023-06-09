@@ -761,6 +761,22 @@ class PandasPairUniverse:
             if pair.base_token_symbol == base_token_symbol and pair.quote_token_symbol == quote_token_symbol:
                 return pair
         return None
+    
+    def get_by_symbols_safe(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
+        """For strategies that trade only a few trading pairs, get the only pair in the universe.
+
+        .. warning ::
+
+            Currently, this method is only safe for prefiltered universe. There are no safety checks if
+            the returned trading pair is legit. In the case of multiple matching pairs,
+            a random pair is returned.g
+
+        """
+        for pair_id in self.pair_map.keys():
+            pair = self.get_pair_by_id(pair_id)
+            if pair.base_token_symbol == base_token_symbol and pair.quote_token_symbol == quote_token_symbol:
+                return pair
+        return None
 
     def get_one_pair_from_pandas_universe(
             self,
