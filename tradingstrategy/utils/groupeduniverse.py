@@ -1,4 +1,19 @@
-"""Helpers to create Pandas dataframes for per-pair analytics."""
+"""Creation of per-trading pair Pandas dataframes.
+
+- Base classes for handling OHLCV data for price and liquidity
+
+- Group raw multipair :py:class:`pandas.DataFrame` to grouped format,
+  so that reading and indexing individual trading pair data is easy
+  in multipair trading universe
+
+See also
+
+- :py:mod:`tradingstrategy.candle`
+
+- :py:mod:`tradingstrategy.liquidity`
+
+"""
+
 import datetime
 import logging
 import warnings
@@ -22,9 +37,9 @@ class NoDataAvailable(Exception):
 
 
 class PairGroupedUniverse:
-    """A base class for manipulating columnar sample data by a pair.
+    """A base class for manipulating columnar price/liquidity data by a pair.
 
-    The server dumps all pairs in a single continuous data frame.
+    The server streams the data for all pairs in a single continuous time-indexed format.
     For most the use cases, we want to look up and manipulate data by pairs.
     To achieve this, we use Pandas :py:class:`pd.GroupBy` and
     recompile the data on the client side.
@@ -37,6 +52,12 @@ class PairGroupedUniverse:
 
     The input :py:class:`pd.DataFrame` is sorted by default using `timestamp`
     column and then made this column as an index. This is not optimised (not inplace).
+
+    See also
+
+    - :py:mod:`tradingstrategy.candle`
+
+    - :py:mod:`tradingstrategy.liquidity`
     """
 
     def __init__(self,
