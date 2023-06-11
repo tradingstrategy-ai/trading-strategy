@@ -311,7 +311,52 @@ class Client(BaseClient):
         """
         path = self.transport.fetch_candles_all_time(bucket)
         return path
+    
+    def fetch_lending_candles_by_reserve_ids(
+        self,
+        reserve_ids: Collection[PrimaryKey],
+        bucket: TimeBucket,
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+        max_bytes: Optional[int] = None,
+        progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Fetch lending candles for particular reserves.
 
+        :param reserve_ids:
+            Reserves' internal ids we query data for.
+            Get internal ids from pair dataset.
+
+        :param time_bucket:
+            Candle time frame
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param max_bytes:
+            Limit the streaming response size
+
+        :param progress_bar_description:
+            Display on download progress bar.
+
+        :return:
+            Reserve candles dataframe
+
+        :raise tradingstrategy.transport.jsonl.JSONLMaxResponseSizeExceeded:
+                If the max_bytes limit is breached
+        """
+        return self.transport.fetch_lending_candles_by_reserve_ids(
+            reserve_ids,
+            bucket,
+            start_time,
+            end_time,
+            max_bytes=max_bytes,
+            progress_bar_description=progress_bar_description,
+        )
 
     @_retry_corrupted_parquet_fetch
     def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:

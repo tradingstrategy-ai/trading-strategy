@@ -274,6 +274,17 @@ class CachedHTTPTransport:
         path = self.get_cached_file_path(fname)
         self.save_response(path, "exchange-universe", human_readable_hint="Downloading exchange dataset")
         return self.get_cached_item(fname)
+    
+    def fetch_lending_reserve_universe(self) -> pathlib.Path:
+        fname = "lending-reserve-universe.parquet"
+        cached = self.get_cached_item(fname)
+        if cached:
+            return cached
+
+        # Download save the file
+        path = self.get_cached_file_path(fname)
+        self.save_response(path, "lending-reserve-universe", human_readable_hint="Downloading lending reserve dataset")
+        return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         assert isinstance(bucket, TimeBucket)
