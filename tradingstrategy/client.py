@@ -312,6 +312,7 @@ class Client(BaseClient):
         path = self.transport.fetch_candles_all_time(bucket)
         return path
 
+
     @_retry_corrupted_parquet_fetch
     def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:
         """Get cached blob of liquidity events of a certain time window.
@@ -329,7 +330,7 @@ class Client(BaseClient):
         return read_parquet(path)
 
     @_retry_corrupted_parquet_fetch
-    def fetch_all_lending_protocol_reserves(self) -> Table:
+    def fetch_all_lending_reserves(self) -> Table:
         """Get a cached blob of lending protocol reserve events and precomupted stats.
 
         The returned data can be between several hundreds of megabytes to several
@@ -342,7 +343,7 @@ class Client(BaseClient):
 
         If the download seems to be corrupted, it will be attempted 3 times.
         """
-        path = self.transport.fetch_reserves_data_all_time()
+        path = self.transport.fetch_lending_reserves_all_time()
         return read_parquet(path)
 
     def fetch_chain_status(self, chain_id: ChainId) -> dict:

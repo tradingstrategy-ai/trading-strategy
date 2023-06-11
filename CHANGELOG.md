@@ -1,6 +1,7 @@
 # current
 
 - Delete summarydataframe.py and its dependents. This includes backtrader.py and the TradeSummary.to_dataframe method
+- Rename `fetch_all_lending_protocol_reserves()` to `fetch_all_lending_reserves()`
 
 
 # 0.17.6
