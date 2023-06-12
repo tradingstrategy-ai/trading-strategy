@@ -816,6 +816,8 @@ class PandasPairUniverse:
 
         :raise DuplicatePair: If multiple pairs are found for the given symbols
 
+        :raise PairNotFoundError: If we do not have a pair with the given symbols
+
         :return DEXPair: The trading pair
         """
         pair_placeholder = []
@@ -830,7 +832,7 @@ class PandasPairUniverse:
         if len(pair_placeholder) == 1:
             return pair_placeholder[0]
         
-        return None
+        raise PairNotFoundError(base_token=base_token_symbol, quote_token=quote_token_symbol)
 
     def get_one_pair_from_pandas_universe(
             self,
