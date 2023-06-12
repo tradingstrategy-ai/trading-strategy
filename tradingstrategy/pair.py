@@ -55,14 +55,39 @@ class PairNotFoundError(DataNotFoundError):
     
     For any further questions join our Discord: https://tradingstrategy.ai/community"""
 
-    def __init__(self, base_token: str, quote_token: str, fee_tier: Optional[Percent] = None, exchange_slug: Optional[str] = None):
+    def __init__(
+        self, 
+        *, 
+        base_token: Optional[str]=None, 
+        quote_token: Optional[str]=None, 
+        fee_tier: Optional[Percent] = None, 
+        pair_id: Optional[int]=None,
+        exchange_slug: Optional[str] = None, 
+        exchange_id: Optional[int] = None,
+    ):
+
+        if base_token:
+            assert quote_token, "If base token is specified, quote token must be specified too."
+        if quote_token:
+            assert base_token, "If quote token is specified, base token must be specified too."
+
+        if base_token and quote_token:
+            message = f"No pair with base_token {base_token}, quote_token {quote_token}, fee tier {fee_tier}"
+        else:
+            assert exchange_slug or pair_id, "Either exchange_slug or pair_id must be specified if base_token and quote_token are not specified"
+            message = "No pair with "
 
         if exchange_slug:
-            message = f"Exchange {exchange_slug} does not have a pair {base_token}-{quote_token} with fee tier {fee_tier}. {self.template}"
-        else:
-            message = f"No pair {base_token}-{quote_token} with fee tier {fee_tier} found. {self.template}"
+            message = message + f" exchange_slug {exchange_slug}"
 
-        super().__init__(message)
+        if exchange_id:
+            message = message + f" exchange_id {exchange_id}"
+
+        if pair_id:
+            message = message + f" pair_id {pair_id}"
+
+
+        super().__init__(message + " found." + self.template)
 
 
 class DuplicatePair(Exception):
@@ -651,11 +676,10 @@ class PandasPairUniverse:
         objects is a bit slow, so this is a preferred method
         if you need to access multiple pairs in a hot loop.
 
+        :raise PairNotFoundError: If pair is not found
+
         :return:
             Nicely presented :py:class:`DEXPair`.
-
-            If we do not have an entry for `pair_id`,
-            return None.
         """
 
         # First try the cached paths
@@ -689,7 +713,7 @@ class PandasPairUniverse:
             data = next(iter(pairs.to_dict("index").values()))
             return DEXPair.from_dict(data)
 
-        return None
+        raise PairNotFoundError(pair_id=pair_id)
 
     def get_pair_by_smart_contract(self, address: str) -> Optional[DEXPair]:
         """Resolve a trading pair by its pool smart contract address.
@@ -777,12 +801,15 @@ class PandasPairUniverse:
             the returned trading pair is legit. In the case of multiple matching pairs,
             a random pair is returned.g
 
+        :raise PairNotFoundError: If we do not have a pair with the given symbols
+
         """
         for pair_id in self.pair_map.keys():
             pair = self.get_pair_by_id(pair_id)
             if pair.base_token_symbol == base_token_symbol and pair.quote_token_symbol == quote_token_symbol:
                 return pair
-        return None
+        
+        raise PairNotFoundError(base_token=base_token_symbol, quote_token=quote_token_symbol)
     
     def get_by_symbols_safe(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
         """Get a trading pair by its ticker symbols. In the case of multiple matching pairs, an exception is raised.
@@ -853,8 +880,9 @@ class PandasPairUniverse:
             If multiple trading pairs with the same symbols are found, pick one with the highest volume. This is because often malicious trading pairs are create to attract novice users.
 
         :raise DuplicatePair: If the universe contains more than single entry for the pair.
+        :raise PairNotFoundError: If the pair is not found in the universe.
 
-        :return: None if there is no match
+        :return: DEXPairs with the given symbols
         """
 
         if fee_tier is not None:
@@ -892,7 +920,7 @@ class PandasPairUniverse:
             data = next(iter(pairs.to_dict("index").values()))
             return DEXPair.from_dict(data)
 
-        return None
+        raise PairNotFoundError(base_token=base_token, quote_token=quote_token, fee_tier=fee_tier, exchange_id=exchange_id)
 
     def get_pair(self,
                  chain_id: ChainId,
@@ -1040,7 +1068,7 @@ class PandasPairUniverse:
             else:
                 exchange_message = ""
 
-            raise ExchangeNotFoundError(chain_id.name, exchange_slug=exchange_slug, optional_extra_message=exchange_message)
+            raise ExchangeNotFoundError(chain_id_name=chain_id.name, exchange_slug=exchange_slug, optional_extra_message=exchange_message)
 
         pair = self.get_one_pair_from_pandas_universe(
             exchange.exchange_id,
@@ -1050,8 +1078,11 @@ class PandasPairUniverse:
             pick_by_highest_vol=True,
         )
 
+        # this check techinically unnecessary 
+        # since get_one_pair_from_pandas_universe will raise
+        # but just to be sure
         if pair is None:
-            raise PairNotFoundError(base_token, quote_token, fee_tier, exchange_slug)
+            raise PairNotFoundError(base_token=base_token, quote_token=quote_token, fee_tier=fee_tier, exchange_slug=exchange_slug)
 
         return pair
 
@@ -1197,7 +1228,7 @@ class PandasPairUniverse:
                 frames.append(filtered_df)
 
             else:
-                raise PairNotFoundError(base_token_symbol, quote_token_symbol, exchange_slug=exchange.exchange_slug)
+                raise PairNotFoundError(base_token=base_token_symbol, quote_token=quote_token_symbol, exchange_slug=exchange.exchange_slug)
 
         return PandasPairUniverse(pd.concat(frames))
 
@@ -1325,6 +1356,7 @@ class LegacyPairUniverse:
         is poised to have multiple tokens and multiple trading pairs on different exchanges.
 
         :raise DuplicatePair: If the universe contains more than single entry for the pair.
+        :raise PairNotFoundError: If the pair is not found.
 
         :return: None if there is no match
         """
@@ -1336,7 +1368,7 @@ class LegacyPairUniverse:
         if pairs:
             return pairs[0]
 
-        raise PairNotFoundError(base_token, quote_token)
+        raise PairNotFoundError(base_token=base_token, quote_token=quote_token)
 
     def get_pair_by_ticker_by_exchange(self, exchange_id: int, base_token: str, quote_token: str) -> Optional[DEXPair]:
         """Get a trading pair by its ticker symbols.
@@ -1367,7 +1399,7 @@ class LegacyPairUniverse:
         if pairs:
             return pairs[0]
 
-        return None
+        raise PairNotFoundError(base_token=base_token, quote_token=quote_token)
 
     def get_all_pairs_on_exchange(self, exchange_id: int) -> Iterable[DEXPair]:
         """Get all trading pair on a decentralsied exchange.
