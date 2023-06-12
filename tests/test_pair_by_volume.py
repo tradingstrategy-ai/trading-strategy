@@ -48,14 +48,17 @@ def test_dataset_create_pair_universe_conflict(logger, persistent_test_client: C
     columnar_pair_table = client.fetch_pair_universe()
     pairs_df = columnar_pair_table.to_pandas()
 
-    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v3")
 
     # 100k duplicates...
     with pytest.raises(DuplicatePair):
-        PandasPairUniverse.create_pair_universe(
+        duplicate_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")]
+            [(ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005), (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.003)],
         )
+
+        duplicate_universe.get_by_symbols_safe("WETH", "USDC")
+
 
 
 def test_dataset_create_pair_universe_resolve_by_volume(logger, persistent_test_client: Client):
