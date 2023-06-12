@@ -1,3 +1,7 @@
+# 0.17.2
+
+- Bump [web3-ethereum-defi](https://web3-ethereum-defi.readthedocs.io/) to version 0.21
+
 # 0.17.1
 
 - Add `candle_decimals` parameter `make_candle_labels()` that defaults to showing 4 decimal places on candlestick charts
