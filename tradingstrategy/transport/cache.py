@@ -430,6 +430,7 @@ class CachedHTTPTransport:
             "pair_ids": list(pair_ids),
             "time_bucket":  time_bucket.value,
         }
+
         array = self.get_json_response("trading-pair-data-availability", params=params)
 
         # Make to typed and deseralise

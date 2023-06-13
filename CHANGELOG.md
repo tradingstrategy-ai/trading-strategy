@@ -1,3 +1,7 @@
+# 0.17.3
+
+- `get_one_pair_from_pandas_universe(exchage)` support
+
 # 0.17.2
 
 - Bump [web3-ethereum-defi](https://web3-ethereum-defi.readthedocs.io/) to version 0.21
