@@ -426,8 +426,9 @@ class CachedHTTPTransport:
             Map of pairs -> their trading data availability
 
         """
+
         params = {
-            "pair_ids": list(pair_ids),
+            "pair_ids": ",".join([str(i) for i in pair_ids]),  # OpenAPI comma delimited array
             "time_bucket":  time_bucket.value,
         }
 
