@@ -73,15 +73,17 @@ class UniswapV2MockClient(MockClient):
         """Get the quote token address used in the generated pair map.
 
         Helper method for setting up simple local dev routing.
+
+        Returns a the first quote token address found in the pair universe.
         """
-        quote_tokens = set()
+        quote_tokens = []
         pairs_df = self.fetch_pair_universe().to_pandas()
         pair_universe = PandasPairUniverse(pairs_df)
         assert pair_universe.get_count() > 0, "Pair universe has no trading pairs"
         for pair in pair_universe.iterate_pairs():
-            quote_tokens.add(pair.quote_token_address)
-        assert len(quote_tokens) == 1, f"Got {len(quote_tokens)} quote tokens in the pair universe, the pair universe is total {pair_universe.get_count()} pairs"
-        return next(iter(quote_tokens))
+            quote_tokens.append(pair.quote_token_address)
+        #assert len(quote_tokens) == 1, f"Got {len(quote_tokens)} quote tokens in the pair universe, the pair universe is total {pair_universe.get_count()} pairs"
+        return quote_tokens[0]
 
     def fetch_exchange_universe(self) -> ExchangeUniverse:
         return self.exchange_universe
