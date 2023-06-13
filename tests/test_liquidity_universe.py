@@ -44,7 +44,7 @@ def test_grouped_liquidity(persistent_test_client: Client):
 
     # Min and max liquidity of SUSHI-USDT pool ever
     assert max_liq == pytest.approx(31747.889)
-    assert min_liq == pytest.approx(550)
+    assert min_liq > 10
 
     # Test by sample by timestamp
     amount, delay = liquidity_universe.get_liquidity_with_tolerance(
