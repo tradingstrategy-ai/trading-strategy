@@ -1,6 +1,14 @@
+# Current
+
+- TODO
+
+# 0.17.4
+
+- Fix `fetch_trading_data_availability()` using wrong format for pair id array
+
 # 0.17.3
 
-- `get_one_pair_from_pandas_universe(exchage)` support
+- `get_one_pair_from_pandas_universe(exchange)` support
 
 # 0.17.2
 
