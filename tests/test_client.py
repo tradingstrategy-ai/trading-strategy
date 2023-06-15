@@ -116,6 +116,15 @@ def test_client_download_all_lending_reserves(client: Client, cache_path: str):
     assert len(df) > 100
 
 
+def test_client_download_lending_reserve_universe(client: Client, cache_path: str):
+    universe = client.fetch_lending_reserve_universe()
+    # Check we cached the file correctly
+    assert Path(f"{cache_path}/lending-reserve-universe.json").exists()
+    print(cache_path)
+    print(universe)
+    # assert len(df) > 100
+
+
 def test_client_convert_all_pairs_to_pandas(client: Client, cache_path: str):
     """We can convert the columnar Pyarrow data to Pandas format.
 

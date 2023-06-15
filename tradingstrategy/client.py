@@ -28,6 +28,7 @@ from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.jupyter import is_pyodide
+from tradingstrategy.lending import LendingReserveUniverse
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -373,6 +374,27 @@ class Client(BaseClient):
         """
         path = self.transport.fetch_liquidity_all_time(bucket)
         return read_parquet(path)
+
+    @_retry_corrupted_parquet_fetch
+    def fetch_lending_reserve_universe(self) -> Table:
+        """Get a cached blob of lending protocol reserve events and precomupted stats.
+
+        The returned data can be between several hundreds of megabytes to several
+        gigabytes in size, and is cached locally.
+
+        Note that at present the only available data is for the AAVE v3 lending
+        protocol.
+
+        The returned data is saved in a PyArrow Parquet format.
+
+        If the download seems to be corrupted, it will be attempted 3 times.
+        """
+        path = self.transport.fetch_lending_reserve_universe()
+
+        try:
+            return LendingReserveUniverse.from_json(path.read_text())
+        except JSONDecodeError as e:
+            raise RuntimeError(f"Could not read JSON file {path}") from e
 
     @_retry_corrupted_parquet_fetch
     def fetch_all_lending_reserves(self) -> Table:

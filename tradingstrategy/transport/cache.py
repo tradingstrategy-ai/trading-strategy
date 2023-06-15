@@ -6,6 +6,7 @@ import os
 import pathlib
 import platform
 import re
+import json
 from importlib.metadata import version
 from typing import Optional, Callable, Set, Union, Collection, Dict
 import shutil
@@ -276,14 +277,24 @@ class CachedHTTPTransport:
         return self.get_cached_item(fname)
     
     def fetch_lending_reserve_universe(self) -> pathlib.Path:
-        fname = "lending-reserve-universe.parquet"
+        fname = "lending-reserve-universe.json"
         cached = self.get_cached_item(fname)
         if cached:
             return cached
 
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "lending-reserve-universe", human_readable_hint="Downloading lending reserve dataset")
+        
+        resp = self.get_json_response("reserves", {
+            "protocol_slug": "aave_v3",
+            "page_size": 1000,  # TODO: we might need to expand this later
+        })
+
+        assert resp["pages"] == 1, resp["pages"]
+
+        # save only the results to file
+        pathlib.Path(path).write_text(json.dumps(resp["results"]))
+
         return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
@@ -308,7 +319,7 @@ class CachedHTTPTransport:
         return self.get_cached_item(path)
 
     def fetch_lending_reserves_all_time(self) -> pathlib.Path:
-        fname = "lending-reserves-all.parquet"
+        fname = "lending-reserves-all.json"
         cached = self.get_cached_item(fname)
         if cached:
             return cached
