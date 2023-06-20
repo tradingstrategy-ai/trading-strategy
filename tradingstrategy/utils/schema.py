@@ -1,5 +1,11 @@
 """Schema manipulation utitilies.
 
+Constructing PyArrow schemas.
+
+.. note ::
+
+    Legacy. This module is likely to be removed.
+
 For more information about Pyarrow Schemas, see https://arrow.apache.org/docs/python/api/datatypes.html
 """
 

@@ -1,7 +1,18 @@
 # Current
 
-- Fix test warnings by changing function calls from `create_single_pair_universe()` to `create_pair_universe()`
-- Add `PairNotFoundError` and `ExchangeNotFoundError` for more helpful error messages
+- TODO
+
+# 0.17.4
+
+- Fix `fetch_trading_data_availability()` using wrong format for pair id array
+
+# 0.17.3
+
+- `get_one_pair_from_pandas_universe(exchange)` support
+
+# 0.17.2
+
+- Bump [web3-ethereum-defi](https://web3-ethereum-defi.readthedocs.io/) to version 0.21
 
 # 0.17.1
 

@@ -1,3 +1,5 @@
+"""Value formatting utilities."""
+
 import datetime
 
 

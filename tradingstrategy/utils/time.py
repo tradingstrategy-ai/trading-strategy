@@ -1,4 +1,8 @@
-"""Helpers to ensure timestamp data stays clean."""
+"""Helpers to timestamp format and value conformity.
+
+- We are operating on naive Python datetimes, all in UTC timezone
+
+"""
 import calendar
 import datetime
 

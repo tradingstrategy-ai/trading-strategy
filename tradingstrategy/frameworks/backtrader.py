@@ -1,8 +1,8 @@
-"""Old Backtrader integration.
+"""Backtrader integration (legacy).
 
 .. warning::
 
-    Deprecased. Do not use anymore. Use `trade-executor` framewor instead.
+    Deprecated. Do not use anymore. Use `trade-executor` framework instead.
 """
 
 import logging

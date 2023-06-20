@@ -952,9 +952,6 @@ class PandasPairUniverse:
         assert type(base_token) == str
         assert type(quote_token) == str
 
-        if fee_tier is not None:
-            assert type(quote_token) == float
-
         assert self.exchange_universe is not None, "You need to set exchange_universe argument in the construction to use this method"
 
         if fee_tier:
@@ -1232,7 +1229,12 @@ class PandasPairUniverse:
             else:
                 raise PairNotFoundError(base_token=base_token_symbol, quote_token=quote_token_symbol, exchange_slug=exchange.exchange_slug)
 
-        return PandasPairUniverse(pd.concat(frames))
+        if exchange:
+            exchange_universe = ExchangeUniverse.from_collection([exchange])
+        else:
+            exchange_universe = None
+
+        return PandasPairUniverse(pd.concat(frames), exchange_universe=exchange_universe)
 
     @staticmethod
     def create_pair_universe(

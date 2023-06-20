@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trading-strategy"
-version = "0.17.1"
+version = "0.17.4"
 description = "Algorithmic trading, token and cryptocurrency DEX trading data, for Uniswap, Aave, PancakeSwap, Sushi, Trader Joe, others"
 authors = ["Mikko Ohtamaa <mikko@tradingstrategy.ai>"]
 homepage = "https://tradingstrategy.ai"
@@ -27,7 +27,7 @@ tqdm-loggable = "^0.1.2"
 
 # Needed for direct data feeds
 typer = {version = "^0.7.0", optional = true}
-web3-ethereum-defi = "0.18.1"
+web3-ethereum-defi = "0.21"
 dash = {version = "^2.7.1", optional = true}
 
 # Legacy strategy and trading engines
