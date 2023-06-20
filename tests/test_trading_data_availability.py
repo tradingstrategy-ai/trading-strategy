@@ -16,12 +16,9 @@ def test_trading_data_availability(persistent_test_client: Client):
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
-    pair_universe = PandasPairUniverse.create_single_pair_universe(
+    pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            exchange,
-            "WBNB",
-            "BUSD",
-            pick_by_highest_vol=True,
+            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")],
         )
 
     pair = pair_universe.get_single()

@@ -17,6 +17,54 @@ from dataclasses_json import dataclass_json
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.types import NonChecksummedAddress, UNIXTimestamp, PrimaryKey
+from tradingstrategy.exceptions import DataNotFoundError
+
+
+class ExchangeNotFoundError(DataNotFoundError):
+    """Raised when no exchange found for the given address"""
+
+    template = f"""This might be a problem in your data loading and filtering. 
+                
+    Use tradingstrategy.ai website to explore DEXs.
+    
+    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges
+    
+    For any further questions join our Discord: https://tradingstrategy.ai/community"""
+
+    def __init__(
+            self,
+            *, 
+            chain_id_name: str = None, 
+            exchange_slug: str | None = None, 
+            exchange_name: str | None = None, 
+            factory_address: str | None = None, 
+            exchange_id: int = None, 
+            optional_extra_message: str | None = None
+        ):
+        
+        assert exchange_slug or exchange_name or factory_address or exchange_id, "At least one exchange_id, exchange_slug, exchange_name or factory_address must be provided."
+
+        if chain_id_name:
+            message = f"The trading universe does not contain data on chain {chain_id_name} for"
+        else:
+            message = f"The trading universe does not contain data for"
+
+        if exchange_slug:
+            message = message + f" exchange_slug {exchange_slug}"
+
+        if exchange_name:
+            message = message + f" exchange_name {exchange_name}"
+
+        if factory_address:
+            message = message + f" factory_address {factory_address}"
+        
+        if exchange_id:
+            message = message + f" exchange_id {exchange_id}"
+
+        super().__init__(
+            f"{message}. {self.template}"
+            + (f"\n\n{optional_extra_message}" if optional_extra_message else "")
+        )
 
 
 class ExchangeType(str, enum.Enum):
@@ -212,13 +260,16 @@ class ExchangeUniverse:
         :param chain_id: Blockchain this exchange is on
 
         :param name: Like `sushi` or `uniswap v2`. Case insensitive.
+
+        :raises ExchangeNotFoundError: If exchange is not found
         """
         name = name.lower()
         assert isinstance(chain_id, ChainId)
         for xchg in self.exchanges.values():
             if xchg.name.lower() == name.lower() and xchg.chain_id == chain_id:
                 return xchg
-        return None
+            
+        raise ExchangeNotFoundError(chain_id_name=chain_id.name, exchange_name=name)
 
     def get_by_chain_and_slug(self, chain_id: ChainId, slug: str) -> Optional[Exchange]:
         """Get the exchange implementation on a specific chain.
@@ -226,12 +277,15 @@ class ExchangeUniverse:
         :param chain_id: Blockchain this exchange is on
 
         :param slug: Machine readable exchange name. Like `uniswap-v2`. Case sensitive.
+
+        :raises ExchangeNotFoundError: If exchange is not found
         """
         assert isinstance(chain_id, ChainId)
         for xchg in self.exchanges.values():
             if xchg.exchange_slug == slug and xchg.chain_id == chain_id:
                 return xchg
-        return None
+        
+        raise ExchangeNotFoundError(chain_id_name=chain_id.name, exchange_slug=slug)
 
     def get_by_chain_and_factory(self, chain_id: ChainId, factory_address: str) -> Optional[Exchange]:
         """Get the exchange implementation on a specific chain.
@@ -245,7 +299,8 @@ class ExchangeUniverse:
         for xchg in self.exchanges.values():
             if xchg.address.lower() == factory_address and xchg.chain_id == chain_id:
                 return xchg
-        return None
+            
+        return ExchangeNotFoundError(chain_id_name=chain_id.name, factory_address=factory_address)
 
     def get_single(self) -> Exchange:
         """Get the one and the only exchange in this universe.

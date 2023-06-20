@@ -1,6 +1,7 @@
 # Current
 
-- TODO
+- Fix test warnings by changing function calls from `create_single_pair_universe()` to `create_pair_universe()`
+- Add `PairNotFoundError` and `ExchangeNotFoundError` for more helpful error messages
 
 # 0.17.4
 
