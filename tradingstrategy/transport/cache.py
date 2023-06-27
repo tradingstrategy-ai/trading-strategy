@@ -441,8 +441,9 @@ class CachedHTTPTransport:
                     "chain_id": ChainId(p["chain_id"]),
                     "pair_id": p["pair_id"],
                     "pair_address": p["pair_address"],
-                    "last_candle_at": datetime.datetime.fromisoformat(p["last_candle_at"]),
                     "last_trade_at": datetime.datetime.fromisoformat(p["last_trade_at"]),
+                    "last_candle_at": datetime.datetime.fromisoformat(p["last_candle_at"]),
+                    "last_supposed_candle_at": datetime.datetime.fromisoformat(p["last_supposed_candle_at"]),
                 }
             except Exception as e:
                 raise RuntimeError(f"Failed to convert: {p}") from e

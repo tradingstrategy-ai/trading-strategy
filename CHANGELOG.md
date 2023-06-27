@@ -2,6 +2,7 @@
 
 - Fix test warnings by changing function calls from `create_single_pair_universe()` to `create_pair_universe()`
 - Add `PairNotFoundError` and `ExchangeNotFoundError` for more helpful error messages
+- Add `last_supposed_candle_at` data to `fetch_trading_data_availability()`
 
 # 0.17.4
 
