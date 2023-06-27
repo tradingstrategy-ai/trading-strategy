@@ -576,7 +576,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
 
 class TradingPairDataAvailability(TypedDict):
-    """Trading data avaioilability description for a single pair.
+    """Trading data availability description for a single pair.
 
     - Trading Strategy oracle uses sparse data format where candles
       with zero trades are not generated. This is better suited
@@ -600,13 +600,19 @@ class TradingPairDataAvailability(TypedDict):
     #: Internal id of the pair
     pair_id: PrimaryKey
 
-    #: What is the last full available candle for this trading pair
-    last_candle_at: datetime.datetime
-
     #: What is the last trade oracle has seen for this trading pair.
     #:
     #: This trade might not be rolled up to a candle yet.
     last_trade_at: datetime.datetime
+
+    #: What is the last full available candle for this trading pair
+    last_candle_at: datetime.datetime
+
+    #: What might be the last available candle for this trading pair
+    #: 
+    #: In Uniswap v3, there might not be a candle available due to low liquidity,
+    #: in that case we can use this timestamp to mark the data is fine up to this point.
+    last_supposed_candle_at: datetime.datetime
 
 
 def is_candle_green(candle: pd.Series) -> bool:
