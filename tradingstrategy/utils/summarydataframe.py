@@ -77,6 +77,9 @@ def format_value(v_instance: Value) -> str:
     else:
         # missing values
         return FORMATTERS[Format.missing].format(v=v_instance.v)
+    
+def format_values(values: list[Value]) -> list[str]:
+    return [format_value(v) for v in values]
 
 
 def create_summary_table(data: dict) -> pd.DataFrame:
@@ -88,7 +91,23 @@ def create_summary_table(data: dict) -> pd.DataFrame:
 
     TODO: We get column header "zero" that needs to be hidden.
     """
-    formatted_data = {k: format_value(v) for k, v in data.items()}
+
+    formatted_data = {}
+    counter = 0
+    list_length = 0
+    for k, v in data.items():
+        if isinstance(v, Value):
+            formatted_data[k] = format_value(v)
+        elif isinstance(v, list):
+            if counter == 0:
+                list_length = len(v)
+            else:
+                assert len(v) == list_length, f"If one value in the dict is a list, all values must be lists of the same length. Expected list of length {list_length}, got {v}"
+            
+            formatted_data[k] = format_values(v)
+
+        counter += 1
+
     df = pd.DataFrame.from_dict(formatted_data, orient="index")
     # https://pandas.pydata.org/docs/dev/reference/api/pandas.io.formats.style.Styler.hide.html
     df.style.hide(axis="index", names=True)
