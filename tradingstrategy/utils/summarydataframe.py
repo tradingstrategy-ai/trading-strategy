@@ -66,6 +66,12 @@ def as_missing() -> Value:
     return Value(None, Format.missing)
 
 def format_value(v_instance: Value) -> str:
+    """Format a single value
+    
+    :param v_instance: A :py:class:`Value` instance
+    
+    :return: A formatted string
+    """
     assert isinstance(v_instance, Value), f"Expected Value instance, got {v_instance}"
     formatter = FORMATTERS[v_instance.format]
     if v_instance.v is not None:
@@ -79,17 +85,31 @@ def format_value(v_instance: Value) -> str:
         return FORMATTERS[Format.missing].format(v=v_instance.v)
     
 def format_values(values: list[Value]) -> list[str]:
+    """Format a list of values
+    
+    :param values: A list of :py:class:`Value` instances
+
+    :return: A list of formatted strings
+    """
     return [format_value(v) for v in values]
 
 
-def create_summary_table(data: dict) -> pd.DataFrame:
+def create_summary_table(data: dict, column_names: list[str] | str | None = None, index_name: str | None = None) -> pd.DataFrame:
     """Create a summary table from a human readable data.
 
     * Keys are human readable labels
 
     * Values are instances of :py:class:`Value`
 
-    TODO: We get column header "zero" that needs to be hidden.
+    TODO: If column_names is not provided, we get column header "zero" that needs to be hidden.
+
+    :param data: Human readable data in the form of a dict
+
+    :param column_names: Column names for the dataframe. If None, no column names are used.
+
+    :param index_name: Name of the index column. If None, no index name is used.
+
+    :return: A styled pandas dataframe
     """
 
     formatted_data = {}
@@ -109,6 +129,13 @@ def create_summary_table(data: dict) -> pd.DataFrame:
         counter += 1
 
     df = pd.DataFrame.from_dict(formatted_data, orient="index")
+    if column_names is not None:
+        if isinstance(column_names, str):
+            column_names = [column_names]
+        df.columns = column_names
+    if index_name is not None:
+        df.index.name = index_name
+
     # https://pandas.pydata.org/docs/dev/reference/api/pandas.io.formats.style.Styler.hide.html
     df.style.hide(axis="index", names=True)
     df.style.hide(axis="columns", names=False)
