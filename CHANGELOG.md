@@ -1,3 +1,8 @@
+# 0.17.6
+
+- Allows summary table from `create_summmary_table()` to have multiple columns
+- Split duration into days_hours for positions that are longer than 1 day, and hours_minutes for durations that are shorter than a day
+
 # 0.17.5
 
 - Fix test warnings by changing function calls from `create_single_pair_universe()` to `create_pair_universe()`
