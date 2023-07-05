@@ -23,9 +23,8 @@ def test_create_summary_table_single_column():
 
     data = ["10.00%", "30.00%", "$320.00", "5 days 2 hours"]
     index = ["Annualised return %", "Lifetime return %", "Realised PnL", "Trade period"]
-    manual_df = pd.DataFrame(data, index=index)
+    manual_df = pd.DataFrame(data, index=index, columns=[""])
     manual_df.index.name="Returns"
-    manual_df.columns = [""]
     assert df.equals(manual_df)
 
 
