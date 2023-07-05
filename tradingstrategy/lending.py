@@ -3,6 +3,8 @@ import enum
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 
+import pandas as pd
+
 from tradingstrategy.chain import ChainId
 from tradingstrategy.types import (
     NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, 
@@ -20,32 +22,50 @@ class LendingProtocolType(str, enum.Enum):
 class LendingReserve:
     #: Primary key to identity the lending reserve
     #: Use lending reserve universe to map this to chain id and a smart contract address
+    reserve_id: PrimaryKey
     reserve_slug: str
 
-    #: The chain id on which chain this pair is trading. 1 for Ethereum.
-    chain_slug: str
+    protocol_slug: str
 
+    #: The chain id on which chain this pair is trading. 1 for Ethereum.
+    chain_id: int
+    chain_slug: str
 
     #: Smart contract address for the pair.
     #: In the case of Uniswap this is the pair (pool) address.
-    address: NonChecksummedAddress
+    # address: NonChecksummedAddress
 
-    #: Token0 as in raw Uniswap data.
+    asset_id: int
+    asset_name: str
+
     #: ERC-20 contracts are not guaranteed to have this data.
     asset_symbol: str
 
-    #: Token pair contract address on-chain.
-    #: Lowercase, non-checksummed.
-    # asset_address: str
+    # atoken_id: int
+    # atoken_address: NonChecksummedAddress
+    # stable_debt_token_id: int
+    # stable_debt_token_address: NonChecksummedAddress
+    # variable_debt_token_id: int
+    # variable_debt_token_address: NonChecksummedAddress
+    # interest_rate_strategy_address: NonChecksummedAddress
 
-    #: What kind of exchange this pair is on
-    # lending_protocol: LendingProtocolType | None = None
 
 
 @dataclass_json
 @dataclass
 class LendingReserveUniverse:
-    reserves = dict[str, LendingReserve]
+    #: Reserve ID -> Reserve data mapping
+    reserves: dict[PrimaryKey, LendingReserve]
+
+    def get_reserve_by_id(self, reserve_id: PrimaryKey) -> LendingReserve | None:
+        return self.reserves[reserve_id]
+
+
+class LendingCandleTypes(str, enum.Enum):
+    """The supported properties the reserves can be sorted by."""
+    stable_borrow_apr = enum.auto()
+    variable_borrow_apr = enum.auto()
+    supply_apr = enum.auto()
 
 
 

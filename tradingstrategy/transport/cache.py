@@ -284,17 +284,11 @@ class CachedHTTPTransport:
 
         # Download save the file
         path = self.get_cached_file_path(fname)
-        
-        resp = self.get_json_response("reserves", {
-            "protocol_slug": "aave_v3",
-            "page_size": 1000,  # TODO: we might need to expand this later
-        })
-
-        assert resp["pages"] == 1, resp["pages"]
-
-        # save only the results to file
-        pathlib.Path(path).write_text(json.dumps(resp["results"]))
-
+        self.save_response(
+            path,
+            "lending-reserve-universe",
+            human_readable_hint="Downloading lending reserve dataset"
+        )
         return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
@@ -333,6 +327,123 @@ class CachedHTTPTransport:
             human_readable_hint="Downloading Aave v3 reserve dataset",
         )
         return self.get_cached_item(path)
+    
+    def fetch_lending_candles_by_reserve_id(
+        self,
+        reserve_id: int,
+        time_bucket: TimeBucket,
+        candle_type: str = "variable_borrow_apr",
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+        max_bytes: Optional[int] = None,
+        progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Load particular set of the candles and cache the result.
+
+        If there is no cached result, load using JSONL.
+
+        More information in :py:mod:`tradingstrategy.transport.jsonl`.
+
+        For the candles format see :py:mod:`tradingstrategy.candle`.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+        :param time_bucket:
+            Candle time frame
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param max_bytes:
+            Limit the streaming response size
+
+        :param progress_bar_description:
+            Display on downlood progress bar
+
+        :return:
+            Candles dataframe
+        """
+        cache_fname = self._generate_cache_name(
+            reserve_id, time_bucket, start_time, end_time, max_bytes
+        )
+        cached = self.get_cached_item(cache_fname)
+
+        if cached:
+            full_fname = self.get_cached_file_path(cache_fname)
+            logger.debug("Using cached JSONL data file %s", full_fname)
+            return pandas.read_parquet(cached)
+        
+        api_url = f"{self.endpoint}/lending-reserve/candles"
+
+        # reserve_id to other params
+        params = {
+            "reserve_id": reserve_id,
+            "time_bucket": time_bucket.value,
+            "candle_types": candle_type,
+        }
+
+        if start_time:
+            params["start"] = start_time.isoformat()
+
+        if end_time:
+            params["end"] = end_time.isoformat()
+
+        if max_bytes:
+            params["max_bytes"] = max_bytes
+
+        resp = self.requests.get(api_url, params=params, stream=True)
+
+        # # Set progress bar start to the first timestamp
+        # if not progress_bar_start and progress_bar_description:
+        #     progress_bar_start = current_ts
+        #     logger.debug("First candle timestamp at %s", current_ts)
+        #     total = progress_bar_end - progress_bar_start
+        #     assert progress_bar_start <= progress_bar_end, f"Mad progress bar {progress_bar_start} - {progress_bar_end}"
+        #     progress_bar = tqdm(desc=progress_bar_description, total=total)
+
+        df = pd.DataFrame.from_dict(resp.json())
+
+        # Translate the raw compressed keys to our internal
+        # Pandas keys
+        # for key, value in item.items():
+        #     translated_key = mappings[key]
+        #     if translated_key is None:
+        #         # Deprecated/discarded keys
+        #         continue
+
+        #     candle_data[translated_key].append(value)
+
+        # if idx % refresh_rate == 0:
+        #     if last_ts and progress_bar:
+        #         progress_bar.update(current_ts - last_ts)
+        #         progress_bar.set_postfix({"Currently at": datetime.datetime.utcfromtimestamp(current_ts)})
+        #     last_ts = current_ts
+
+        # df: pd.DataFrame = load_candles_jsonl(
+        #     self.requests,
+        #     self.endpoint,
+        #     reserve_ids,
+        #     time_bucket,
+        #     start_time,
+        #     end_time,
+        #     max_bytes=max_bytes,
+        #     progress_bar_description=progress_bar_description,
+        # )
+
+        # Update cache
+        # path = self.get_cached_file_path(cache_fname)
+        # df.to_parquet(path)
+
+        # size = pathlib.Path(path).stat().st_size
+        # logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+        return df
 
     def ping(self) -> dict:
         reply = self.get_json_response("ping")

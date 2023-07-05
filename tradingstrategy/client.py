@@ -313,10 +313,11 @@ class Client(BaseClient):
         path = self.transport.fetch_candles_all_time(bucket)
         return path
     
-    def fetch_lending_candles_by_reserve_ids(
+    def fetch_lending_candles_by_reserve_id(
         self,
-        reserve_ids: Collection[PrimaryKey],
+        reserve_id: PrimaryKey,
         bucket: TimeBucket,
+        candle_type: str = "variable_borrow_apr",
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
         max_bytes: Optional[int] = None,
@@ -350,9 +351,10 @@ class Client(BaseClient):
         :raise tradingstrategy.transport.jsonl.JSONLMaxResponseSizeExceeded:
                 If the max_bytes limit is breached
         """
-        return self.transport.fetch_lending_candles_by_reserve_ids(
-            reserve_ids,
+        return self.transport.fetch_lending_candles_by_reserve_id(
+            reserve_id,
             bucket,
+            candle_type,
             start_time,
             end_time,
             max_bytes=max_bytes,
