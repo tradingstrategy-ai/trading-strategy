@@ -14,6 +14,7 @@ To download the pairs dataset see
 
 import logging
 import enum
+import pprint
 import warnings
 from dataclasses import dataclass
 from typing import Optional, List, Iterable, Dict, Union, Set, Tuple, TypeAlias, Collection
@@ -92,6 +93,10 @@ class PairNotFoundError(DataNotFoundError):
 
 class DuplicatePair(Exception):
     """Found multiple trading pairs for the same naive lookup."""
+
+
+class DataDecodeFailed(Exception):
+    """The parquet file has damaged data for this trading pair."""
 
 
 #: Data needed to identify a trading pair with human description.
@@ -693,10 +698,16 @@ class PandasPairUniverse:
                 # We do not initially construct these objects,
                 # as we do not know what pairs a strategy might access.
                 data = self.pair_map.get(pair_id)
+                data = _preprocess_loaded_pair_data(data)
 
-            # Convert
-            obj = DEXPair.from_dict(data)
-            self.pair_map[pair_id] = obj
+                # Convert from dict to object
+                try:
+                    obj = DEXPair.from_dict(data)
+                except Exception as e:
+                    pretty = pprint.pformat(data)
+                    raise DataDecodeFailed(f"Could not decode trading pair data:\n{pretty}") from e
+
+                self.dex_pair_obj_cache[pair_id] = obj
             return obj
 
         # We did not build this universe with pair index
@@ -711,7 +722,12 @@ class PandasPairUniverse:
 
         if len(pairs) == 1:
             data = next(iter(pairs.to_dict("index").values()))
-            return DEXPair.from_dict(data)
+            data = _preprocess_loaded_pair_data(data)
+            try:
+                return DEXPair.from_dict(data)
+            except Exception as e:
+                pretty = pprint.pformat(data)
+                raise DataDecodeFailed(f"Could not decode trading pair data:\n{pretty}") from e
 
         raise PairNotFoundError(pair_id=pair_id)
 
@@ -781,16 +797,26 @@ class PandasPairUniverse:
     def get_single(self) -> DEXPair:
         """For strategies that trade only a single trading pair, get the only pair in the universe.
 
-        :raise AssertionError: If our pair universe does not have an exact single pair
+        :raise AssertionError:
+            If our pair universe does not have an exact single pair.
+
+            If the target pair could not be decoded.
         """
         if self.single_pair_cache:
             return self.single_pair_cache 
 
         pair_count = len(self.pair_map)
         assert pair_count == 1, f"Not a single trading pair universe, we have {pair_count} pairs"
-        self.single_pair_cache = DEXPair.from_dict(next(iter(self.pair_map.values())))
-        return self.single_pair_cache
+        data = next(iter(self.pair_map.values()))
 
+        # See https://github.com/tradingstrategy-ai/trading-strategy/issues/104
+        data = _preprocess_loaded_pair_data(data)
+        try:
+            self.single_pair_cache = DEXPair.from_dict(data)
+        except Exception as e:
+            pretty = pprint.pformat(data)
+            raise DataDecodeFailed(f"Could not decode trading pair data:\n {pretty}") from e
+        return self.single_pair_cache
 
     def get_by_symbols(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
         """For strategies that trade only a few trading pairs, get the only pair in the universe.
@@ -1724,3 +1750,26 @@ def generate_address_columns(df: pd.DataFrame) -> pd.DataFrame:
     applied_df = df.apply(expander, axis='columns', result_type='expand')
     df = pd.concat([df, applied_df], axis='columns')
     return df
+
+
+def _preprocess_loaded_pair_data(data: dict) -> dict:
+    """Fix any data loading and transfomration issues we might have with the data.
+
+    Hot fix for https://github.com/tradingstrategy-ai/trading-strategy/issues/104
+    """
+
+    assert isinstance(data, dict)
+
+    def _fix_val(v):
+        try:
+            if isnan(v):
+                return None
+        except:
+            pass
+        return v
+
+    result = {}
+    for k, v in data.items():
+        result[k] = _fix_val(v)
+
+    return result
