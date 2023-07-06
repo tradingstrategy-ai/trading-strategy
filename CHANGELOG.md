@@ -1,3 +1,9 @@
+# 0.17.6
+
+- [Add loaded trading pair data preprocesing and working around Parquet data problems](https://github.com/tradingstrategy-ai/trading-strategy/issues/104)
+- Add `DataDecodeFailed(Exception)` that gives more context information if there is something wrong
+  with the trading pair
+
 # 0.17.5
 
 - Fix test warnings by changing function calls from `create_single_pair_universe()` to `create_pair_universe()`
