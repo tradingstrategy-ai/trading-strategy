@@ -1,3 +1,8 @@
+# current
+
+- Delete summarydataframe.py and its dependents. This includes backtrader.py and the TradeSummary.to_dataframe method
+
+
 # 0.17.6
 
 - [Add loaded trading pair data preprocesing and working around Parquet data problems](https://github.com/tradingstrategy-ai/trading-strategy/issues/104)

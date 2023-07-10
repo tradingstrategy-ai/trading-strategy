@@ -313,29 +313,6 @@ class TradeSummary:
     initial_cash: USDollarAmount | None
     extra_return: USDollarAmount | None
 
-    def to_dataframe(self) -> pd.DataFrame:
-        """Creates a human-readable Pandas dataframe table from the object."""
-        total_trades = self.won + self.lost
-        human_data = {
-            "Return %": as_percent(self.realised_profit / self.initial_cash),
-            "Cash at start": as_dollar(self.initial_cash),
-            "Value at end": as_dollar(self.open_value + self.uninvested_cash),
-            "Trade win percent": as_percent(self.won / total_trades) if total_trades else as_missing(),
-            "Total trades done": as_integer(self.won + self.lost + self.zero_loss),
-            "Won trades": as_integer(self.won),
-            "Lost trades": as_integer(self.lost),
-            "Stop losses triggered": as_integer(self.stop_losses),
-            "Stop loss % of all": as_percent(self.stop_losses / total_trades) if total_trades else as_missing(),
-            "Stop loss % of lost": as_percent(self.stop_losses / self.lost) if self.lost else as_missing(),
-            "Zero profit trades": as_integer(self.zero_loss),
-            "Positions open at the end": as_integer(self.undecided),
-            "Realised profit and loss": as_dollar(self.realised_profit),
-            "Portfolio unrealised value": as_dollar(self.open_value),
-            "Extra returns on lending pool interest": as_dollar(self.extra_return),
-            "Cash left at the end": as_dollar(self.uninvested_cash),
-        }
-        return create_summary_table(human_data)
-
 
 @dataclass
 class TradeAnalyzer:
