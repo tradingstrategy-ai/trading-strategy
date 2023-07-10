@@ -310,8 +310,8 @@ class TradeSummary:
     realised_profit: USDollarAmount
     open_value: USDollarAmount
     uninvested_cash: USDollarAmount
-    initial_cash: USDollarAmount
-    extra_return: USDollarAmount
+    initial_cash: USDollarAmount | None
+    extra_return: USDollarAmount | None
 
     def to_dataframe(self) -> pd.DataFrame:
         """Creates a human-readable Pandas dataframe table from the object."""
