@@ -246,7 +246,7 @@ def visualise_ohlcv(
         # TODO: Legacy - deprecate
         # Add change percentages on candle mouse hover
         percentage_changes = ((candles['close'] - candles['open'])/candles['open']) * 100
-        text = ["Change: " + f"{percentage_changes[i]:.2f}%" for i in range(len(percentage_changes))]
+        text = ["Change: " + f"{percentage_changes.iloc[i]:.2f}%" for i in range(len(percentage_changes))]
 
     candlesticks = go.Candlestick(
         x=candles.index,
