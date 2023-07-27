@@ -59,6 +59,18 @@ class LendingReserveUniverse:
 
     def get_reserve_by_id(self, reserve_id: PrimaryKey) -> LendingReserve | None:
         return self.reserves[reserve_id]
+    
+    def get_reserve_by_symbol_and_chain(
+        self,
+        token_symbol: str,
+        chain_id: int,
+    ) -> LendingReserve | None:
+        """TODO: this is the slow method to deal with this, improve later
+        """
+        for reserve in self.reserves.values():
+            if reserve.asset_symbol == token_symbol and reserve.chain_id == chain_id:
+                return reserve
+        return None
 
 
 class LendingCandleTypes(str, enum.Enum):
