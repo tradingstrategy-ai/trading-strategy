@@ -399,7 +399,7 @@ class Client(BaseClient):
             raise RuntimeError(f"Could not read JSON file {path}") from e
 
     @_retry_corrupted_parquet_fetch
-    def fetch_all_lending_reserves(self) -> Table:
+    def fetch_lending_reserves_all_time(self) -> Table:
         """Get a cached blob of lending protocol reserve events and precomupted stats.
 
         The returned data can be between several hundreds of megabytes to several
