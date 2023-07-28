@@ -23,6 +23,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey
+from tradingstrategy.lending import LendingCandle
 from urllib3 import Retry
 
 
@@ -408,6 +409,14 @@ class CachedHTTPTransport:
         #     progress_bar = tqdm(desc=progress_bar_description, total=total)
 
         df = pd.DataFrame.from_dict(resp.json())
+
+        df = df.astype(LendingCandle.DATAFRAME_FIELDS)
+
+        # Convert JSONL unix timestamps to Pandas
+        df["timestamp"] = pd.to_datetime(df['timestamp'], unit='s')
+
+        # Assume candles are always indexed by their timestamp
+        df.set_index("timestamp", inplace=True, drop=False)
 
         # Translate the raw compressed keys to our internal
         # Pandas keys
