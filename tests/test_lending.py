@@ -29,5 +29,5 @@ def test_client_download_lending_reserve_universe(client: Client, cache_path: st
 
 def test_client_fetch_lending_candles(client: Client):
     df = client.fetch_lending_candles_by_reserve_id(1, TimeBucket.h1)
-    print(df)
+    assert len(df) > 50
 

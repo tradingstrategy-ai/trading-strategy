@@ -408,15 +408,23 @@ class CachedHTTPTransport:
         #     assert progress_bar_start <= progress_bar_end, f"Mad progress bar {progress_bar_start} - {progress_bar_end}"
         #     progress_bar = tqdm(desc=progress_bar_description, total=total)
 
-        df = pd.DataFrame.from_dict(resp.json())
+        candles = resp.json()[candle_type]
 
+        df = pd.DataFrame(candles)
+        df = df.rename(columns={
+            "ts": "timestamp",
+            "o": "open",
+            "h": "high",
+            "l": "low",
+            "c": "close",
+        })
         df = df.astype(LendingCandle.DATAFRAME_FIELDS)
 
-        # Convert JSONL unix timestamps to Pandas
-        df["timestamp"] = pd.to_datetime(df['timestamp'], unit='s')
+        # Convert unix timestamps to Pandas
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
 
         # Assume candles are always indexed by their timestamp
-        df.set_index("timestamp", inplace=True, drop=False)
+        df.set_index("timestamp", inplace=True, drop=True)
 
         # Translate the raw compressed keys to our internal
         # Pandas keys
@@ -433,17 +441,6 @@ class CachedHTTPTransport:
         #         progress_bar.update(current_ts - last_ts)
         #         progress_bar.set_postfix({"Currently at": datetime.datetime.utcfromtimestamp(current_ts)})
         #     last_ts = current_ts
-
-        # df: pd.DataFrame = load_candles_jsonl(
-        #     self.requests,
-        #     self.endpoint,
-        #     reserve_ids,
-        #     time_bucket,
-        #     start_time,
-        #     end_time,
-        #     max_bytes=max_bytes,
-        #     progress_bar_description=progress_bar_description,
-        # )
 
         # Update cache
         # path = self.get_cached_file_path(cache_fname)
