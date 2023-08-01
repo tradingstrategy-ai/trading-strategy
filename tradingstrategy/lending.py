@@ -1,4 +1,4 @@
-import enum
+from enum import Enum
 from datetime import datetime
 
 from dataclasses import dataclass
@@ -6,16 +6,17 @@ from dataclasses_json import dataclass_json
 
 import pandas as pd
 
-from tradingstrategy.chain import ChainId
-from tradingstrategy.types import (
-    NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, 
-    Percent, USDollarAmount,
-)
+from tradingstrategy.types import UNIXTimestamp, PrimaryKey
 
 
-class LendingProtocolType(str, enum.Enum):
+class LendingProtocolType(str, Enum):
     aave_v3 = "aave_v3"
-    
+
+
+class LendingCandleType(str, Enum):
+    stable_borrow_apr = "stable_borrow_apr"
+    variable_borrow_apr = "variable_borrow_apr"
+    supply_apr = "supply_apr"
 
 
 @dataclass_json
@@ -24,32 +25,26 @@ class LendingReserve:
     #: Primary key to identity the lending reserve
     #: Use lending reserve universe to map this to chain id and a smart contract address
     reserve_id: PrimaryKey
+
+    #: The slug of this lending reserve
     reserve_slug: str
 
-    protocol_slug: str
+    protocol_slug: LendingProtocolType
 
-    #: The chain id on which chain this pair is trading. 1 for Ethereum.
+    #: The id on which chain this lending reserve is deployed
     chain_id: int
+
+    #: The slug on which chain this lending reserve is deployed
     chain_slug: str
 
-    #: Smart contract address for the pair.
-    #: In the case of Uniswap this is the pair (pool) address.
-    # address: NonChecksummedAddress
-
+    #: The asset ID of this lending reserve
     asset_id: int
+
+    #: The asset name of this lending reserve
     asset_name: str
 
-    #: ERC-20 contracts are not guaranteed to have this data.
+    #: The asset symbol of this lending reserve
     asset_symbol: str
-
-    # atoken_id: int
-    # atoken_address: NonChecksummedAddress
-    # stable_debt_token_id: int
-    # stable_debt_token_address: NonChecksummedAddress
-    # variable_debt_token_id: int
-    # variable_debt_token_address: NonChecksummedAddress
-    # interest_rate_strategy_address: NonChecksummedAddress
-
 
 
 @dataclass_json
@@ -59,7 +54,7 @@ class LendingReserveUniverse:
     reserves: dict[PrimaryKey, LendingReserve]
 
     def get_reserve_by_id(self, reserve_id: PrimaryKey) -> LendingReserve | None:
-        return self.reserves[reserve_id]
+        return self.reserves.get(reserve_id)
     
     def get_reserve_by_symbol_and_chain(
         self,
@@ -74,26 +69,18 @@ class LendingReserveUniverse:
         return None
 
 
-class LendingCandleTypes(str, enum.Enum):
-    """The supported properties the reserves can be sorted by."""
-    stable_borrow_apr = enum.auto()
-    variable_borrow_apr = enum.auto()
-    supply_apr = enum.auto()
-
-
-
 @dataclass_json
 @dataclass
 class LendingCandle:
     """Data structure presenting one OHLC lending candle"""
 
     #: Primary key to identity the trading pair
-    #: Use pair universe to map this to chain id and a smart contract address
+    #: Use lending reserve universe to map this to chain id and token symbol
     reserve_id: PrimaryKey
 
     #: Open timestamp for this candle.
     #: Note that the close timestamp you need to supply yourself based on the context.
-    timestamp: UNIXTimestamp  # UNIX timestamp as seconds
+    timestamp: UNIXTimestamp
 
     #: OHLC core data
     open: float
@@ -124,10 +111,25 @@ class LendingCandle:
     def __repr__(self):
         human_timestamp = datetime.utcfromtimestamp(self.timestamp)
         return f"@{human_timestamp} O:{self.open} H:{self.high} L:{self.low} C:{self.close}"
-
+    
     @classmethod
-    def to_dataframe(cls) -> pd.DataFrame:
-        """Return emptry Pandas dataframe presenting candle data."""
+    def convert_web_candles_to_dataframe(cls, web_candles: list[dict]) -> pd.DataFrame:
+        """Return Pandas dataframe presenting candle data."""
 
-        df = pd.DataFrame(columns=cls.DATAFRAME_FIELDS.keys())
-        return df.astype(cls.DATAFRAME_FIELDS)
+        df = pd.DataFrame(web_candles)
+        df = df.rename(columns={
+            "ts": "timestamp",
+            "o": "open",
+            "h": "high",
+            "l": "low",
+            "c": "close",
+        })
+        df = df.astype(cls.DATAFRAME_FIELDS)
+
+        # Convert unix timestamps to Pandas
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+        # Assume candles are always indexed by their timestamp
+        df.set_index("timestamp", inplace=True, drop=True)
+
+        return df

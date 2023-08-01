@@ -28,7 +28,7 @@ from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.jupyter import is_pyodide
-from tradingstrategy.lending import LendingReserveUniverse
+from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -317,20 +317,21 @@ class Client(BaseClient):
         self,
         reserve_id: PrimaryKey,
         bucket: TimeBucket,
-        candle_type: str = "variable_borrow_apr",
+        candle_type: LendingCandleType = LendingCandleType.variable_borrow_apr,
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
-        max_bytes: Optional[int] = None,
-        progress_bar_description: Optional[str] = None,
     ) -> pd.DataFrame:
-        """Fetch lending candles for particular reserves.
+        """Fetch lending candles for a particular reserve.
 
-        :param reserve_ids:
-            Reserves' internal ids we query data for.
-            Get internal ids from pair dataset.
+        :param reserve_id:
+            Lending reserve's internal id we query data for.
+            Get internal id from lending reserve universe dataset.
 
-        :param time_bucket:
-            Candle time frame
+        :param bucket:
+            Candle time frame.
+
+        :param candle_type:
+            Lending candle type.
 
         :param start_time:
             All candles after this.
@@ -339,17 +340,8 @@ class Client(BaseClient):
         :param end_time:
             All candles before this
 
-        :param max_bytes:
-            Limit the streaming response size
-
-        :param progress_bar_description:
-            Display on download progress bar.
-
         :return:
-            Reserve candles dataframe
-
-        :raise tradingstrategy.transport.jsonl.JSONLMaxResponseSizeExceeded:
-                If the max_bytes limit is breached
+            Lending candles dataframe
         """
         return self.transport.fetch_lending_candles_by_reserve_id(
             reserve_id,
@@ -357,8 +349,6 @@ class Client(BaseClient):
             candle_type,
             start_time,
             end_time,
-            max_bytes=max_bytes,
-            progress_bar_description=progress_bar_description,
         )
 
     @_retry_corrupted_parquet_fetch
