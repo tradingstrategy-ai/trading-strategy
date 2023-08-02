@@ -71,7 +71,6 @@ pip install "trading-strategy[direct-feed]"
 # Documentation
 
 - [Read Trading Strategy documentation](https://tradingstrategy.ai/docs/).
-- [Documentation Github repository](https://github.com/tradingstrategy-ai/docs).
 
 Community
 ---------
