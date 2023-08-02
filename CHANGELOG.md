@@ -1,9 +1,9 @@
-# current
+# 0.18
 
-- Delete summarydataframe.py and its dependents. This includes backtrader.py and the TradeSummary.to_dataframe method
-- Rename `fetch_all_lending_protocol_reserves()` to `fetch_all_lending_reserves()`
 - Add support for fetching lending candle data with `fetch_lending_candles_by_reserve_id()`
-
+- Rename `fetch_all_lending_protocol_reserves()` to `fetch_all_lending_reserves()`
+- Delete `summarydataframe.py` and its dependents. This includes `backtrader.py` and the `TradeSummary.to_dataframe` method.
+  Backtrader has been unmaintained for a while.
 
 # 0.17.6
 
