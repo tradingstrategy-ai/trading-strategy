@@ -6,8 +6,9 @@ import os
 import pathlib
 import platform
 import re
+import json
 from importlib.metadata import version
-from typing import Optional, Callable, Set, Union, Collection, Dict
+from typing import Optional, Callable, Set, Union, Collection, Dict, Literal
 import shutil
 import logging
 
@@ -22,6 +23,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey
+from tradingstrategy.lending import LendingCandle
 from urllib3 import Retry
 
 
@@ -169,6 +171,7 @@ class CachedHTTPTransport:
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
         max_bytes: Optional[int] = None,
+        candle_type: Literal["candle", "lending_candle"] = "candle",
     ) -> str:
         """Generate the name of the file for holding cached candle data for ``pair_ids``.
         """
@@ -197,6 +200,9 @@ class CachedHTTPTransport:
 
         end_part = end_time.strftime("%Y-%m-%d_%H-%M-%S") if end_time else "any"
 
+        if candle_type == "lending_candle":
+            return f"lending-candles-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.parquet"
+            
         return f"candles-jsonl-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.parquet"
 
     def purge_cache(self, filename: Optional[Union[str, pathlib.Path]] = None):
@@ -274,6 +280,21 @@ class CachedHTTPTransport:
         path = self.get_cached_file_path(fname)
         self.save_response(path, "exchange-universe", human_readable_hint="Downloading exchange dataset")
         return self.get_cached_item(fname)
+    
+    def fetch_lending_reserve_universe(self) -> pathlib.Path:
+        fname = "lending-reserve-universe.json"
+        cached = self.get_cached_item(fname)
+        if cached:
+            return cached
+
+        # Download save the file
+        path = self.get_cached_file_path(fname)
+        self.save_response(
+            path,
+            "lending-reserve-universe",
+            human_readable_hint="Downloading lending reserve dataset"
+        )
+        return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         assert isinstance(bucket, TimeBucket)
@@ -296,19 +317,97 @@ class CachedHTTPTransport:
         self.save_response(path, "liquidity-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading liquidity data for {bucket.value} time bucket")
         return self.get_cached_item(path)
 
-    def fetch_reserves_data_all_time(self) -> pathlib.Path:
-        fname = f"reserves-all.parquet"
+    def fetch_lending_reserves_all_time(self) -> pathlib.Path:
+        fname = "lending-reserves-all.parquet"
         cached = self.get_cached_item(fname)
         if cached:
             return cached
         # Download save the file
         path = self.get_cached_file_path(fname)
 
-        # We only have AAVE v3 data for now...
+        # We only have Aave v3 data for now...
         self.save_response(
-            path, "aave-v3-all", human_readable_hint=f"Downloading AAVE v3 reserve data"
+            path,
+            "aave-v3-all",
+            human_readable_hint="Downloading Aave v3 reserve dataset",
         )
         return self.get_cached_item(path)
+    
+    def fetch_lending_candles_by_reserve_id(
+        self,
+        reserve_id: int,
+        time_bucket: TimeBucket,
+        candle_type: str = "variable_borrow_apr",
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+    ) -> pd.DataFrame:
+        """Load particular set of the lending candles and cache the result.
+
+        For the candles format see :py:mod:`tradingstrategy.lending`.
+
+        :param reserve_id:
+            Lending reserve's internal id we query data for.
+            Get internal id from lending reserve universe dataset.
+
+        :param time_bucket:
+            Candle time frame.
+
+        :param candle_type:
+            Lending candle type.
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :return:
+            Lending candles dataframe
+        """
+        cache_fname = self._generate_cache_name(
+            reserve_id,
+            time_bucket,
+            start_time,
+            end_time,
+            candle_type="lending_candle",
+        )
+        cached = self.get_cached_item(cache_fname)
+
+        if cached:
+            full_fname = self.get_cached_file_path(cache_fname)
+            logger.debug("Using cached data file %s", full_fname)
+            return pandas.read_parquet(cached)
+        
+        api_url = f"{self.endpoint}/lending-reserve/candles"
+
+        params = {
+            "reserve_id": reserve_id,
+            "time_bucket": time_bucket.value,
+            "candle_types": candle_type,
+        }
+
+        if start_time:
+            params["start"] = start_time.isoformat()
+
+        if end_time:
+            params["end"] = end_time.isoformat()
+
+        resp = self.requests.get(api_url, params=params, stream=True)
+
+        # TODO: handle error
+        candles = resp.json()[candle_type]
+
+        df = LendingCandle.convert_web_candles_to_dataframe(candles)
+
+        # Update cache
+        path = self.get_cached_file_path(cache_fname)
+        df.to_parquet(path)
+
+        size = pathlib.Path(path).stat().st_size
+        logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+        return df
 
     def ping(self) -> dict:
         reply = self.get_json_response("ping")

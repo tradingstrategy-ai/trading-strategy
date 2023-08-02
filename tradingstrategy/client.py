@@ -28,6 +28,7 @@ from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.jupyter import is_pyodide
+from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -311,6 +312,44 @@ class Client(BaseClient):
         """
         path = self.transport.fetch_candles_all_time(bucket)
         return path
+    
+    def fetch_lending_candles_by_reserve_id(
+        self,
+        reserve_id: PrimaryKey,
+        bucket: TimeBucket,
+        candle_type: LendingCandleType = LendingCandleType.variable_borrow_apr,
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+    ) -> pd.DataFrame:
+        """Fetch lending candles for a particular reserve.
+
+        :param reserve_id:
+            Lending reserve's internal id we query data for.
+            Get internal id from lending reserve universe dataset.
+
+        :param bucket:
+            Candle time frame.
+
+        :param candle_type:
+            Lending candle type.
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :return:
+            Lending candles dataframe
+        """
+        return self.transport.fetch_lending_candles_by_reserve_id(
+            reserve_id,
+            bucket,
+            candle_type,
+            start_time,
+            end_time,
+        )
 
     @_retry_corrupted_parquet_fetch
     def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:
@@ -329,7 +368,7 @@ class Client(BaseClient):
         return read_parquet(path)
 
     @_retry_corrupted_parquet_fetch
-    def fetch_all_lending_protocol_reserves(self) -> Table:
+    def fetch_lending_reserve_universe(self) -> Table:
         """Get a cached blob of lending protocol reserve events and precomupted stats.
 
         The returned data can be between several hundreds of megabytes to several
@@ -342,7 +381,28 @@ class Client(BaseClient):
 
         If the download seems to be corrupted, it will be attempted 3 times.
         """
-        path = self.transport.fetch_reserves_data_all_time()
+        path = self.transport.fetch_lending_reserve_universe()
+
+        try:
+            return LendingReserveUniverse.from_json(path.read_text())
+        except JSONDecodeError as e:
+            raise RuntimeError(f"Could not read JSON file {path}") from e
+
+    @_retry_corrupted_parquet_fetch
+    def fetch_lending_reserves_all_time(self) -> Table:
+        """Get a cached blob of lending protocol reserve events and precomupted stats.
+
+        The returned data can be between several hundreds of megabytes to several
+        gigabytes in size, and is cached locally.
+
+        Note that at present the only available data is for the AAVE v3 lending
+        protocol.
+
+        The returned data is saved in a PyArrow Parquet format.
+
+        If the download seems to be corrupted, it will be attempted 3 times.
+        """
+        path = self.transport.fetch_lending_reserves_all_time()
         return read_parquet(path)
 
     def fetch_chain_status(self, chain_id: ChainId) -> dict:
