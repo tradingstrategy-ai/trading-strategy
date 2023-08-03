@@ -1,3 +1,7 @@
+# 0.18.1
+
+- Add `exchange_universe` argument to `get_pair()`
+
 # 0.18
 
 - Add support for fetching lending candle data with `fetch_lending_candles_by_reserve_id()`
