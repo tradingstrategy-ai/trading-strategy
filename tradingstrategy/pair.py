@@ -968,12 +968,14 @@ class PandasPairUniverse:
 
         assert self.exchange_universe is not None or exchange_universe is not None, "You need to provide exchange_universe argument to use this method"
 
+        eu = exchange_universe or self.exchange_universe
+
         if fee_tier:
             desc = (chain_id, exchange_slug, base_token, quote_token, fee_tier)
         else:
             desc = (chain_id, exchange_slug, base_token, quote_token,)
 
-        return self.get_pair_by_human_description(self.exchange_universe, desc)
+        return self.get_pair_by_human_description(eu, desc)
 
     def get_pair_by_human_description(self,
                                       exchange_universe: ExchangeUniverse,
