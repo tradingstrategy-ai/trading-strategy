@@ -1,3 +1,7 @@
+# 0.18.2
+
+- Add `exchange_universe` argument to `get_pair()`
+
 # 0.18.1
 
 - `GroupedCandleUniverse.create_from_single_pair_dataframe(time_bucket)` parameter added
