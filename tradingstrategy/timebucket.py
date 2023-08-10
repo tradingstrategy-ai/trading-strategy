@@ -6,6 +6,10 @@ import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
 
+class NoMatchingBucket(Exception):
+    """Cannot map timestamp to any available bucket."""
+
+
 class TimeBucket(enum.Enum):
     """Supported time windows for :term:`candle` and :term:`liquidity` data.
 
@@ -83,6 +87,20 @@ class TimeBucket(enum.Enum):
 
         delta = self.to_timedelta()
         return to_offset(delta)
+
+    @staticmethod
+    def from_pandas_timedelta(td: pd.Timedelta) -> "TimeBucket":
+        """Map Pandas timedelta to a well-known time bucket enum.
+
+        :raise NoMatchingBucket:
+            Could not map to any well known time bucket.
+        """
+        assert isinstance(td, pd.Timedelta)
+        python_dt = td.to_pytimedelta()
+        for k, v in _DELTAS.items():
+            if python_dt == v:
+                return k
+        raise NoMatchingBucket(f"Could not map: {td}")
 
 
 # datetime.timedelta equivalents of different time buckets

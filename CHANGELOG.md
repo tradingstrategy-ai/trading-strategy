@@ -1,3 +1,8 @@
+# 0.18.1
+
+- `GroupedCandleUniverse.create_from_single_pair_dataframe(time_bucket)` parameter added
+- `TimeBucket.from_pandas_timedelta()` added
+
 # 0.18
 
 - Add support for fetching lending candle data with `fetch_lending_candles_by_reserve_id()`

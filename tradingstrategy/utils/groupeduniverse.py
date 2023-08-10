@@ -286,18 +286,26 @@ class PairGroupedUniverse:
     def get_timestamp_range(self, use_timezone=False) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
         """Return the time range of data we have for.
 
+        .. note ::
+
+            Because we assume multipair data, the data is grouped by and not indexed as time series.
+            Thus, this function can be a slow operation.
+
         :param use_timezone:
             The resulting timestamps will have their timezone set to UTC.
             If not set then naive timestamps are generated.
 
+            Legacy option. Do not use.
+
         :return:
             (start timestamp, end timestamp) tuple, UTC-timezone aware
+
             If the data frame is empty, return `None, None`.
         """
 
         if len(self.df) == 0:
             return None, None
-        
+
         if(self.index_automatically == True):
             if use_timezone:
                 start = (self.df[self.timestamp_column].iat[0]).tz_localize(tz='UTC')
