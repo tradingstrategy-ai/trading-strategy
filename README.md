@@ -39,14 +39,16 @@ from [Trading Strategy Protocol](https://tradingstrategy.ai/).
 # Getting started 
 
 See [the Getting Started tutorial](https://tradingstrategy.ai/docs/programming/code-examples/getting-started.html) and the rest of the [Trading Strategy documentation](https://tradingstrategy.ai/docs/).
+The easiest way to get started is ready [Dev Container for Visual Studio Code](https://tradingstrategy.ai/docs/programming/setting-up-development-environment/dev-container/visual-studio-code-docker-dev-container-for-jupyter-notebooks.html).
 
 # Prerequisites
 
 * Python 3.10
 
-# Installing the package
+* [Understanding Python package management and installation](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/)
+  (unless using Dev Container from teh above)
 
-**Note**: Unless you are an experienced Python developer, [try the Binder cloud hosted Jupyter notebook examples first](https://tradingstrategy.ai/docs/programming/code-examples/index.html).
+# Installing the package
 
 You can install this package with 
 
@@ -67,6 +69,10 @@ Pip:
 ```shell
 pip install "trading-strategy[direct-feed]" 
 ```
+
+**Note**: `trading-strategy` package provides trading data
+download and management functionality only. If you want to [developed
+automated trading strategies you need to install trade-executor package as well](https://github.com/tradingstrategy-ai/trade-executor/).
 
 # Documentation
 
