@@ -544,7 +544,6 @@ class DEXPair:
         return DEXPair.from_dict(items)
 
 
-
 class PandasPairUniverse:
     """A pair universe implementation that is created from Pandas dataset.
 
@@ -989,7 +988,7 @@ class PandasPairUniverse:
 
         .. note ::
 
-            API signature change and reverse of parameters in TS 0.19
+            API signature change and the order of parameters reversed in TS version 0.19
 
         Example:
 
@@ -997,7 +996,7 @@ class PandasPairUniverse:
 
             # Get BNB-BUSD pair on PancakeSwap v2
             desc = (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD")
-            bnb_busd = pair_universe.get_pair_by_human_description(desc, exchange_universe)
+            bnb_busd = pair_universe.get_pair_by_human_description(desc)
             assert bnb_busd.base_token_symbol == "WBNB"
             assert bnb_busd.quote_token_symbol == "BUSD"
             assert bnb_busd.buy_volume_30d > 1_000_000
