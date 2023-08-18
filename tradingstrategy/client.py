@@ -203,8 +203,8 @@ class Client(BaseClient):
     def fetch_candles_by_pair_ids(self,
           pair_ids: Collection[PrimaryKey],
           bucket: TimeBucket,
-          start_time: Optional[datetime.datetime] = None,
-          end_time: Optional[datetime.datetime] = None,
+          start_time: Optional[datetime.datetime | pd.Timestamp] = None,
+          end_time: Optional[datetime.datetime | pd.Timestamp] = None,
           max_bytes: Optional[int] = None,
           progress_bar_description: Optional[str] = None,
         ) -> pd.DataFrame:
@@ -244,6 +244,13 @@ class Client(BaseClient):
         :raise tradingstrategy.transport.jsonl.JSONLMaxResponseSizeExceeded:
                 If the max_bytes limit is breached
         """
+
+        if isinstance(start_time, pd.Timestamp):
+            start_time = start_time.to_pydatetime()
+
+        if isinstance(end_time, pd.Timestamp):
+            end_time = end_time.to_pydatetime()
+
         return self.transport.fetch_candles_by_pair_ids(
             pair_ids,
             bucket,

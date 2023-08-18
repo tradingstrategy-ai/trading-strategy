@@ -978,13 +978,18 @@ class PandasPairUniverse:
         return self.get_pair_by_human_description(eu, desc)
 
     def get_pair_by_human_description(self,
-                                      exchange_universe: ExchangeUniverse,
-                                      desc: HumanReadableTradingPairDescription) -> DEXPair:
+                                      desc: HumanReadableTradingPairDescription | ExchangeUniverse,
+                                      exchange_universe: ExchangeUniverse | HumanReadableTradingPairDescription = None,
+                                      ) -> DEXPair:
         """Get pair by its human readable description.
 
         Look up a trading pair by chain, exchange, base, quote token tuple.
 
         See :py:data:`HumanReadableTradingPairDescription` for more information.
+
+        .. note ::
+
+            API signature change and reverse of parameters in TS 0.19
 
         Example:
 
@@ -992,7 +997,7 @@ class PandasPairUniverse:
 
             # Get BNB-BUSD pair on PancakeSwap v2
             desc = (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD")
-            bnb_busd = pair_universe.get_pair_by_human_description(exchange_universe, desc)
+            bnb_busd = pair_universe.get_pair_by_human_description(desc, exchange_universe)
             assert bnb_busd.base_token_symbol == "WBNB"
             assert bnb_busd.quote_token_symbol == "BUSD"
             assert bnb_busd.buy_volume_30d > 1_000_000
@@ -1046,8 +1051,14 @@ class PandasPairUniverse:
             assert pairs[1].exchange_slug == "uniswap-v2"
             assert pairs[1].get_ticker() == "EUL-WETH"
 
+        :param desc:
+            Trading pair description as tuple (blockchain, dex, base, quote fee)
+
         :param exchange_universe:
             The current database used to decode exchanges.
+
+            If not given use the `exchange_universe` given in the constructor.
+            Either argument here or argument in the constructor must be given.
 
         :return:
             The trading pair on the exchange.
@@ -1057,6 +1068,15 @@ class PandasPairUniverse:
         :raise PairNotFoundError:
             In the case input data cannot be resolved.
         """
+
+        # Check legacy parameter order
+        if isinstance(desc, ExchangeUniverse):
+            desc, exchange_universe = exchange_universe, desc
+
+        if exchange_universe is None:
+            exchange_universe = self.exchange_universe
+
+        assert exchange_universe is not None, "get_pair_by_human_description() needs exchange_universe passed as constructor or function argument in order to do pair lookups"
 
         if len(desc) >= 5:
             chain_id, exchange_slug, base_token, quote_token, fee_tier = desc

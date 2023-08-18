@@ -1,3 +1,8 @@
+# 0.19
+
+- Change `PandasPairUniverse.get_pair_by_human_description()` signature
+  to be easier to use
+
 # 0.18.2
 
 - Add `exchange_universe` argument to `get_pair()`
