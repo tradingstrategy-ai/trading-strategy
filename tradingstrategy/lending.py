@@ -2,11 +2,14 @@ from enum import Enum
 from datetime import datetime
 
 from dataclasses import dataclass
+from typing import TypeAlias, Tuple
+
 from dataclasses_json import dataclass_json
 
 import pandas as pd
 
-from tradingstrategy.types import UNIXTimestamp, PrimaryKey
+from tradingstrategy.chain import ChainId
+from tradingstrategy.types import UNIXTimestamp, PrimaryKey, TokenSymbol, Slug, NonChecksummedAddress
 
 
 class LendingProtocolType(str, Enum):
@@ -133,3 +136,25 @@ class LendingCandle:
         df.set_index("timestamp", inplace=True, drop=True)
 
         return df
+
+
+#: How to symbolically identify a lending reserve.
+#:
+#: Used in human written code instead of unreadable smart contract addresses.
+#:
+#: - Chain id
+#: - Lending protocol slug
+#: - Reserve token symbol
+#: - (Optional) smart contract address
+#:
+#: Example: `(ChainId.polygon, "aave-v3", "USDC")`
+#:
+#: If there are multiple reserves with the same token, the fourth
+#: parameter is a smart contract address that distinguishes these.
+#: It is currently not used.
+#:
+#: Note that the underlying LendingReserve internal ids may change and slugs,
+#: only smart contract addresses stay stable.
+#:
+LendingReserveDescription: TypeAlias = Tuple[ChainId, Slug, TokenSymbol] | \
+                                       Tuple[ChainId, Slug, TokenSymbol, NonChecksummedAddress]

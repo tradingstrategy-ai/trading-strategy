@@ -25,6 +25,8 @@ PrimaryKey: TypeAlias = int
 #:
 #  - Always starts 0x
 #:
+#: - Lowercased
+#:
 #: `See EIP-55 <https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md>`__.
 #
 NonChecksummedAddress: TypeAlias = str
@@ -67,3 +69,18 @@ RawChainId: TypeAlias = int
 #: - :py:data:`BasisPoint`
 #:
 Percent: TypeAlias = float
+
+#: Slug is a machine friendly and URL friendly id generated from a name.
+#:
+#: E.g. `Aave v3` -> `aave-v3`
+#:
+Slug: TypeAlias = str
+
+
+#: Token symbol is a the ERC-20 symbol() output.
+#:
+#: Capped to 256 chars.
+#:
+#: E.g. `USDC`
+#:
+TokenSymbol: TypeAlias = str
