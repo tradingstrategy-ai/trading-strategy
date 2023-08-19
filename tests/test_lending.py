@@ -32,20 +32,22 @@ def test_fetch_lending_reserve_info(client: Client):
 
     reserve = universe.get_reserve_by_id(2)
     assert reserve.reserve_id
+    assert reserve.chain_id == 137
     assert reserve.asset_symbol == "LINK"
     assert reserve.asset_address == "0x53e0bca35ec356bd5dddfebbd1fc0fd03fabad39"
     assert reserve.asset_decimals == 18
-    assert reserve.atoken_symbol == "aEthLINK"
+    assert reserve.atoken_symbol == "aPolLINK"
     assert reserve.atoken_address == "0x191c10aa4af7c30e871e70c95db0e4eb77237530"
     assert reserve.atoken_decimals == 18
 
-    reserve = universe.get_reserve_by_symbol_and_chain("USDC", ChainId.polygon)
+    reserve = universe.get_reserve_by_symbol_and_chain("USDC", ChainId.ethereum)
     assert reserve.reserve_id
+    assert reserve.chain_id == 1
     assert reserve.asset_symbol == "USDC"
-    assert reserve.asset_address == "0x2791bca1f2de4661ed88a30c99a7a9449aa84174"
+    assert reserve.asset_address == "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
     assert reserve.asset_decimals == 6
-    assert reserve.atoken_symbol == "aPolUSDC"
-    assert reserve.atoken_address == "0x625e7708f30ca75bfd92586e17077590c60eb4cd"
+    assert reserve.atoken_symbol == "aEthUSDC"
+    assert reserve.atoken_address == "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c"
     assert reserve.atoken_decimals == 6
 
 def test_client_fetch_lending_candles(client: Client, cache_path: str):
