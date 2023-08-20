@@ -16,7 +16,7 @@ import warnings
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Final, Optional, Set, Union, Collection, Dict
+from typing import Final, Optional, Set, Union, Collection, Dict, Tuple
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 import pandas as pd
@@ -357,6 +357,69 @@ class Client(BaseClient):
             start_time,
             end_time,
         )
+
+    def fetch_lending_candles_for_universe(
+        self,
+        lending_reserve_universe: LendingReserveUniverse,
+        bucket: TimeBucket,
+        candle_types: Tuple[LendingCandleType] = (LendingCandleType.variable_borrow_apr, LendingCandleType.supply_apr),
+        start_time: datetime.datetime | pd.Timestamp = None,
+        end_time: datetime.datetime | pd.Timestamp = None,
+        construct_timestamp_column=True,
+    ) -> Dict[LendingCandleType, pd.DataFrame]:
+        """Load lending reservers for several assets as once.
+
+        For usage examples see :py:class:`tradingstrategy.lending.LendingCandleUniverse`.
+
+        :param candle_types:
+            Data for candle types to load
+
+        :param construct_timestamp_column:
+            After loading data, create "timestamp" series based on the index.
+
+            We need to convert index to column if we are going to have
+            several reserves in :py:class:`tradingstrategy.lending.LendingCandleUniverse`.
+
+        :return:
+            All reserves concatenated in a single dataframe, a dataframes for each candle type.
+        """
+
+        assert isinstance(lending_reserve_universe, LendingReserveUniverse)
+        assert isinstance(bucket, TimeBucket)
+        assert type(candle_types) in (list, tuple,)
+
+        result = {}
+
+        if lending_reserve_universe.get_size() > 6:
+            logger.warning("This method is not designed to load data for long list of reserves.\n"
+                           "Currently loading data for %s reverses.",
+                           lending_reserve_universe.get_size()
+                           )
+
+        # Perform data load by issung several HTTP requests,
+        # one for each reserve and candle type
+        for candle_type in candle_types:
+            data = None
+            for reserve in lending_reserve_universe.iter_reserves():
+                chunk = self.fetch_lending_candles_by_reserve_id(
+                    reserve.reserve_id,
+                    bucket,
+                    candle_type,
+                    start_time,
+                    end_time,
+                )
+
+                if data is None:
+                    data = chunk
+                else:
+                    data = data.append(chunk)
+
+            if construct_timestamp_column:
+                data["timestamp"] = data.index.to_series()
+
+            result[candle_type] = data
+
+        return result
 
     @_retry_corrupted_parquet_fetch
     def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:
