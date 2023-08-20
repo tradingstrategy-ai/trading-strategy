@@ -7,6 +7,7 @@ import pandas as pd
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange, ExchangeUniverse, ExchangeNotFoundError
+from tradingstrategy.lending import LendingReserveUniverse
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, ResampledLiquidityUniverse
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -26,11 +27,15 @@ class Universe:
 
     - exchanges
 
-    - trading pairs
+    - Trading pairs
+
+    - Lending reserves
 
     - OHLCV data
 
     - Liquidity data
+
+    - Lending data
 
     - Data timeframes (see :py:attr:`time_bucket`)
     """
@@ -42,8 +47,6 @@ class Universe:
     chains: Set[ChainId]
 
     #: List of exchanges the strategy trades on.
-    #:
-    #: TODO: Currently not suitable for large number of exchanges in the same strategy.
     #:
     #: TODO: Do not use this - will be be deprecated in the favour of :py:attr:`exchange_universe`
     exchanges: Set[Exchange]
@@ -78,6 +81,10 @@ class Universe:
     #:
     #: TODO: This is a new attribute - not available through all code paths yet.
     exchange_universe: Optional[ExchangeUniverse] = None
+
+    #: Available assets to lend and borrow
+    #:
+    lending_reserves: Optional[LendingReserveUniverse] = None
 
     def get_candle_availability(self) -> Tuple[pd.Timestamp, pd.Timestamp]:
         """Get the time range for which we have candle data.

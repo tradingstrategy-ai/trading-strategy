@@ -375,18 +375,8 @@ class Client(BaseClient):
         return read_parquet(path)
 
     @_retry_corrupted_parquet_fetch
-    def fetch_lending_reserve_universe(self) -> Table:
-        """Get a cached blob of lending protocol reserve events and precomupted stats.
-
-        The returned data can be between several hundreds of megabytes to several
-        gigabytes in size, and is cached locally.
-
-        Note that at present the only available data is for the AAVE v3 lending
-        protocol.
-
-        The returned data is saved in a PyArrow Parquet format.
-
-        If the download seems to be corrupted, it will be attempted 3 times.
+    def fetch_lending_reserve_universe(self) -> LendingReserveUniverse:
+        """Load a cache the lending reserve universe.
         """
         path = self.transport.fetch_lending_reserve_universe()
 
