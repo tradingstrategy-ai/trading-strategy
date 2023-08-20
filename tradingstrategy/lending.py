@@ -399,6 +399,13 @@ class LendingCandleUniverse:
     supply_apr: LendingMetricUniverse | None = None
 
     def __init__(self, candle_type_dfs: Dict[LendingCandleType, pd.DataFrame]):
+        """Create the lending candles universe.
+
+        :param candle_type_dfs:
+            Different lending metrics.
+
+            Result from :py:meth:`tradingstrategy.client.Client.fetch_lending_candles_for_universe`.
+        """
 
         if LendingCandleType.stable_borrow_apr in candle_type_dfs:
             self.stable_borrow_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.stable_borrow_apr])
