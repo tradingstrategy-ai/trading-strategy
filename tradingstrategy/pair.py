@@ -543,6 +543,10 @@ class DEXPair:
         items = {k: v for k,v in row.items()}
         return DEXPair.from_dict(items)
 
+    def to_human_description(self) -> HumanReadableTradingPairDescription:
+        """Get human description for this pair."""
+        return (self.chain_id, self.exchange_slug, self.base_token_symbol, self.quote_token_symbol, self.fee)
+
 
 class PandasPairUniverse:
     """A pair universe implementation that is created from Pandas dataset.
@@ -1649,7 +1653,7 @@ def resolve_pairs_based_on_ticker(
             # New API
             pair_chain, pair_exchange, base, quote, *fee = pair_description
 
-            assert isinstance(pair_chain, ChainId)
+            assert isinstance(pair_chain, ChainId), f"Expected ChainId, got {pair_chain}. Description is {pair_description}."
             assert type(pair_exchange) == str
             assert type(base) == str
             assert type(quote) == str

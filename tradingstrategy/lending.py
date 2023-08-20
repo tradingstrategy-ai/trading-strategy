@@ -9,6 +9,7 @@ from dataclasses_json import dataclass_json
 import pandas as pd
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.token import Token
 from tradingstrategy.types import UNIXTimestamp, PrimaryKey, TokenSymbol, Slug, NonChecksummedAddress
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
@@ -107,6 +108,23 @@ class LendingReserve:
     def __repr__(self):
         return f"<LendingReserve {self.chain_id.name} {self.protocol_slug.name} {self.asset_symbol}>"
 
+    def get_asset(self) -> Token:
+        """Return description for the underlying asset."""
+        return Token(
+            self.chain_id,
+            self.asset_symbol,
+            self.asset_address,
+            self.asset_decimals,
+        )
+
+    def get_atoken(self) -> Token:
+        """Return description for atoken."""
+        return Token(
+            self.chain_id,
+            self.atoken_symbol,
+            self.atoken_address,
+            self.atoken_decimals,
+        )
 
 #: How to symbolically identify a lending reserve.
 #:
@@ -163,14 +181,28 @@ class LendingReserveUniverse:
             token_symbol: TokenSymbol,
             chain_id: ChainId,
     ) -> LendingReserve | None:
-        """TODO: this is the slow method to deal with this, improve later
-        """
         for reserve in self.reserves.values():
             if reserve.asset_symbol == token_symbol and reserve.chain_id == chain_id:
                 return reserve
         return None
 
-    def limit(self, reserve_decriptions: Collection[LendingReserveDescription]) -> "LendingReserveUniverse":
+    def get_by_chain_and_address(
+            self,
+            chain_id: ChainId,
+            asset_address: NonChecksummedAddress,
+    ) -> LendingReserve:
+        """Get a lending reserve by persistent data.
+
+        :raise UnknownLendingReserve:
+            If we do not have data available.
+        """
+        for reserve in self.reserves.values():
+            if reserve.asset_address == asset_address and reserve.chain_id == chain_id:
+                return reserve
+
+        raise UnknownLendingReserve(f"Could not find lending reserve {chain_id}: {asset_address}. We have {len(self.reserves)} reserves loaded.")
+
+    def limit(self, reserve_descriptions: Collection[LendingReserveDescription]) -> "LendingReserveUniverse":
         """Remove all lending reverses that are not on the whitelist.
 
         Used to reduce the lending reserve universe to wanted tradeable assets
@@ -178,7 +210,7 @@ class LendingReserveUniverse:
         """
         new_reserves = {}
 
-        for d in reserve_decriptions:
+        for d in reserve_descriptions:
             r = self.resolve_lending_reserve(d)
             new_reserves[r.reserve_id] = r
 
@@ -323,7 +355,16 @@ class LendingMetricUniverse(PairGroupedUniverse):
         No forward will enabled yet similar to :py:class:`tradingstrategy.candle.CandleUniverse`.
 
     """
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, df: pd.DataFrame, reserves: LendingReserveUniverse):
+        """
+        :param df:
+            Output from client lending reserve dat aload
+
+        :param reserves:
+            Map of reserve metadata that helps us to resolve symbolic information.
+
+        """
+        self.reserves = reserves
         # Create a GroupBy universe from raw loaded lending reserve data
         # We do not need fix any wicks, because lending rates are not subject
         # to similar manipulation as DEX prices
@@ -332,6 +373,22 @@ class LendingMetricUniverse(PairGroupedUniverse):
             primary_key_column="reserve_id",
             fix_wick_threshold=None,
         )
+
+    def get_rates_by_reserve(self, reserve_description: LendingReserveDescription) -> pd.DataFrame:
+        """Get all historical rates for a single pair.
+
+        Example:
+
+        .. code-block:: python
+
+            rates = dataset.lending_candles.supply_apr.get_rates_by_reserve(
+                (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+            )
+            assert rates["open"][pd.Timestamp("2023-01-01")] == pytest.approx(1.836242)
+            assert rates["close"][pd.Timestamp("2023-01-01")] == pytest.approx(1.780513)
+        """
+        reserve = self.reserves.resolve_lending_reserve(reserve_description)
+        return self.get_samples_by_pair(reserve.reserve_id)
 
 
 @dataclass
@@ -398,7 +455,7 @@ class LendingCandleUniverse:
     variable_borrow_apr: LendingMetricUniverse | None = None
     supply_apr: LendingMetricUniverse | None = None
 
-    def __init__(self, candle_type_dfs: Dict[LendingCandleType, pd.DataFrame]):
+    def __init__(self, candle_type_dfs: Dict[LendingCandleType, pd.DataFrame], lending_reserve_universe: LendingReserveUniverse):
         """Create the lending candles universe.
 
         :param candle_type_dfs:
@@ -408,10 +465,22 @@ class LendingCandleUniverse:
         """
 
         if LendingCandleType.stable_borrow_apr in candle_type_dfs:
-            self.stable_borrow_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.stable_borrow_apr])
+            self.stable_borrow_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.stable_borrow_apr], lending_reserve_universe)
 
         if LendingCandleType.variable_borrow_apr in candle_type_dfs:
-            self.variable_borrow_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.variable_borrow_apr])
+            self.variable_borrow_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.variable_borrow_apr], lending_reserve_universe)
 
         if LendingCandleType.supply_apr in candle_type_dfs:
-            self.supply_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.supply_apr])
+            self.supply_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.supply_apr], lending_reserve_universe)
+
+    @property
+    def lending_reserves(self) -> LendingReserveUniverse:
+        """Get the lending reserve universe.
+
+        It is paired with each metric.
+        """
+        for metric in (self.stable_borrow_apr, self.variable_borrow_apr, self.supply_apr):
+            if metric:
+                return metric.reserves
+
+        raise AssertionError("Empty LendingCandlesUniverse")

@@ -362,7 +362,7 @@ class Client(BaseClient):
         self,
         lending_reserve_universe: LendingReserveUniverse,
         bucket: TimeBucket,
-        candle_types: Tuple[LendingCandleType] = (LendingCandleType.variable_borrow_apr, LendingCandleType.supply_apr),
+        candle_types: Collection[LendingCandleType] = (LendingCandleType.variable_borrow_apr, LendingCandleType.supply_apr),
         start_time: datetime.datetime | pd.Timestamp = None,
         end_time: datetime.datetime | pd.Timestamp = None,
         construct_timestamp_column=True,

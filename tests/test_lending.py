@@ -162,7 +162,7 @@ def test_client_fetch_lending_candles_for_lending_universe(persistent_test_clien
         end_time=pd.Timestamp("2023-02-01"),
     )
 
-    universe = LendingCandleUniverse(lending_candle_type_map)
+    universe = LendingCandleUniverse(lending_candle_type_map, universe)
 
     # Read all data for a single reserve
     usdc_variable_borrow = universe.variable_borrow_apr.get_samples_by_pair(usdc_reserve.reserve_id)
@@ -192,6 +192,32 @@ def test_client_fetch_lending_candles_for_lending_universe(persistent_test_clien
             assert supply_apr["close"][pd.Timestamp("2023-01-06")] == pytest.approx(2.866523)
 
 
+def test_get_rates_by_reserve(persistent_test_client: Client):
+    """Get all rates for a single reserve by description."""
+
+    client= persistent_test_client
+    universe = client.fetch_lending_reserve_universe()
+
+    usdt_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDT")
+    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+
+    limited_universe = universe.limit([usdt_desc, usdc_desc])
+
+    lending_candle_type_map = client.fetch_lending_candles_for_universe(
+        limited_universe,
+        TimeBucket.d1,
+        start_time=pd.Timestamp("2023-01-01"),
+        end_time=pd.Timestamp("2023-02-01"),
+    )
+
+    universe = LendingCandleUniverse(lending_candle_type_map, universe)
+    usdc_variable_borrow = universe.variable_borrow_apr.get_rates_by_reserve(
+        (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+    )
+
+    # See above
+    assert usdc_variable_borrow["open"][pd.Timestamp("2023-01-01")] == pytest.approx(1.836242)
+    assert usdc_variable_borrow["close"][pd.Timestamp("2023-01-01")] == pytest.approx(1.780513)
 
 
 
