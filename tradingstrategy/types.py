@@ -79,7 +79,6 @@ Slug: TypeAlias = str
 
 #: Token symbol is a the ERC-20 symbol() output.
 #:
-#: Capped to 256 chars.
 #:
 #: E.g. `USDC`
 #:

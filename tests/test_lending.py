@@ -4,10 +4,12 @@
 import logging
 from pathlib import Path
 
+import pytest
+
 from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
-from tradingstrategy.lending import LendingCandleType
+from tradingstrategy.lending import LendingCandleType, LendingReserveUniverse, LendingProtocolType, UnknownLendingReserve, LendingReserve
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,7 @@ def test_fetch_lending_reserve_info(client: Client):
     assert reserve.atoken_address == "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c"
     assert reserve.atoken_decimals == 6
 
+
 def test_client_fetch_lending_candles(client: Client, cache_path: str):
     df = client.fetch_lending_candles_by_reserve_id(1, TimeBucket.h1)
     assert len(df) > 50
@@ -58,3 +61,32 @@ def test_client_fetch_lending_candles(client: Client, cache_path: str):
     df = client.fetch_lending_candles_by_reserve_id(3, TimeBucket.d1, candle_type=LendingCandleType.supply_apr)
     assert len(df) > 50
     assert len(list(Path(cache_path).glob("lending-candles-1d-between-any-and-any-*.parquet"))) == 1
+
+
+def test_resolve_lending_reserve(persistent_test_client):
+    """Look up lending reserve by a human description"""
+    client = persistent_test_client
+    universe = client.fetch_lending_reserve_universe()
+
+    usdt_reserve = universe.resolve_lending_reserve(
+        (ChainId.polygon,
+        LendingProtocolType.aave_v3,
+        "USDT")
+    )
+    assert isinstance(usdt_reserve, LendingReserve)
+    assert usdt_reserve.asset_address == '0xc2132d05d31c914a87c6611c10748aeb04b58e8f'
+    assert usdt_reserve.asset_symbol == "USDT"
+    assert usdt_reserve.asset_name == '(PoS) Tether USD'
+    assert usdt_reserve.asset_decimals == 6
+    assert usdt_reserve.atoken_symbol == "aPolUSDT"
+    assert usdt_reserve.atoken_decimals == 6
+
+
+def test_resolve_lending_reserve_unknown(persistent_test_client):
+    """Look up lending reserve by a human description, but typo it out"""
+    client = persistent_test_client
+    universe = client.fetch_lending_reserve_universe()
+
+    with pytest.raises(UnknownLendingReserve):
+        universe.resolve_lending_reserve((ChainId.polygon, LendingProtocolType.aave_v3, "XXX"))
+
