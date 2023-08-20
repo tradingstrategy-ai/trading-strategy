@@ -1,7 +1,13 @@
+# 0.20.1
+
+- Fix: Lending rates cache bug - different datasets were using
+  the same cache filename
+
 # 0.20
 
 - Add lending reserves and candles universe.
-  Now you can easily download and explore Aave v3 lending rates.
+  Now you can easily download and explore Aave v3 lending rates 
+  with functions available in `tradingstrategy.lending` module
 
 # 0.19
 

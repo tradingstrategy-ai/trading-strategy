@@ -370,7 +370,7 @@ class CachedHTTPTransport:
             time_bucket,
             start_time,
             end_time,
-            candle_type="lending_candle",
+            candle_type=candle_type,
         )
         cached = self.get_cached_item(cache_fname)
 
