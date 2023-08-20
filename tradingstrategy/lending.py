@@ -31,13 +31,28 @@ class UnknownLendingReserve(Exception):
 @dataclass_json
 @dataclass
 class LendingReserve:
+    """Describe data for one lending reserve.
+
+    - This is mostly modelled by how lending on Aave works
+
+    - When you lend and asset you will receive a correcting ponding amount of
+      aToken in return
+
+    - aToken ERC-20 contract has dynamic balanceOf() function that tells
+      you how much principal + interest you have gained
+    """
+
     #: Primary key to identity the lending reserve
     #: Use lending reserve universe to map this to chain id and a smart contract address
     reserve_id: PrimaryKey
 
     #: The slug of this lending reserve
+    #:
+    #: E.g. `aave-v3`.
+    #:
     reserve_slug: Slug
 
+    #: Which lending protocol this asset is for
     protocol_slug: LendingProtocolType
 
     #: The id on which chain this lending reserve is deployed
@@ -46,6 +61,8 @@ class LendingReserve:
     #: The slug on which chain this lending reserve is deployed.
     #:
     #: Needed for website URL linking.
+    #:
+    #: E.g. `polygon`.
     #:
     chain_slug: Slug
 
@@ -73,7 +90,10 @@ class LendingReserve:
     #: The ERC-20 address of the aToken
     atoken_address: NonChecksummedAddress
 
-    #: The ERC-20 address of the aToken
+    #: The ERC-20 address of the aToken.
+    #:
+    #: Should be always the same as :py:attr:`asset_decimals`
+    #:
     atoken_decimals: int
 
     def __repr__(self):
@@ -106,6 +126,14 @@ LendingReserveDescription: TypeAlias = Tuple[ChainId, LendingProtocolType, Token
 @dataclass_json
 @dataclass
 class LendingReserveUniverse:
+    """Lending reserve universe contains metadata of all lending pools you can access.
+
+    You can use reserve universe as a map to resolve symbolic information
+    to the data primary keys.
+
+    For the usage see :py:meth:`resolve_lending_reserve`.
+    """
+
     #: Reserve ID -> Reserve data mapping
     reserves: dict[PrimaryKey, LendingReserve]
 
@@ -114,8 +142,8 @@ class LendingReserveUniverse:
 
     def get_reserve_by_symbol_and_chain(
             self,
-            token_symbol: str,
-            chain_id: int,
+            token_symbol: TokenSymbol,
+            chain_id: ChainId,
     ) -> LendingReserve | None:
         """TODO: this is the slow method to deal with this, improve later
         """
@@ -127,8 +155,28 @@ class LendingReserveUniverse:
     def resolve_lending_reserve(self, reserve_decription: LendingReserveDescription) -> LendingReserve:
         """Looks up a lending reserve by a data match.
 
+        Example:
+
+        .. code-block:: python
+
+            usdt_reserve = universe.resolve_lending_reserve(
+                (ChainId.polygon,
+                LendingProtocolType.aave_v3,
+                "USDT")
+            )
+            assert isinstance(usdt_reserve, LendingReserve)
+            assert usdt_reserve.asset_address == '0xc2132d05d31c914a87c6611c10748aeb04b58e8f'
+            assert usdt_reserve.asset_symbol == "USDT"
+            assert usdt_reserve.asset_name == '(PoS) Tether USD'
+            assert usdt_reserve.asset_decimals == 6
+            assert usdt_reserve.atoken_symbol == "aPolUSDT"
+            assert usdt_reserve.atoken_decimals == 6
+
         :param reserve_decription:
             Human-readable tuple to resolve the lending reserve.
+
+        :return:
+            Metadata for this lending reserve
 
         :raise UnknownLendingReserve:
             If the loaded data does not contain the reserve
@@ -140,6 +188,8 @@ class LendingReserveUniverse:
         # Validate hard-coded inputs
         assert isinstance(chain_id, ChainId), f"Got {chain_id}"
         assert isinstance(slug, LendingProtocolType), f"Got {slug}"
+
+        assert not optional, "Unsupported"
 
         for reserve in self.reserves.values():
             if reserve.chain_id == chain_id and \
@@ -156,7 +206,10 @@ class LendingCandle:
     """Data structure presenting one OHLC lending candle"""
 
     #: Primary key to identity the trading pair
-    #: Use lending reserve universe to map this to chain id and token symbol
+    #: Use lending reserve universe to map this to chain id and token symbol.
+    #:
+    #: See :py:class:`LendingReserveUniverse` how to look up this value.
+    #:
     reserve_id: PrimaryKey
 
     #: Open timestamp for this candle.
