@@ -1,3 +1,8 @@
+# 0.20
+
+- Add lending reserves and candles universe.
+  Now you can easily download and explore Aave v3 lending rates.
+
 # 0.19
 
 - Change `PandasPairUniverse.get_pair_by_human_description()` signature
