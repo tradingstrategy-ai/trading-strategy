@@ -83,7 +83,7 @@ def test_resolve_lending_reserve(persistent_test_client):
 
 
 def test_resolve_lending_reserve_unknown(persistent_test_client):
-    """Look up lending reserve by a human description"""
+    """Look up lending reserve by a human description, but typo it out"""
     client = persistent_test_client
     universe = client.fetch_lending_reserve_universe()
 
