@@ -65,7 +65,9 @@ class PairGroupedUniverse:
                  time_bucket=TimeBucket.d1,
                  timestamp_column="timestamp",
                  index_automatically=True,
-                 fix_wick_threshold: tuple | None = (0.1, 1.9)):
+                 fix_wick_threshold: tuple | None = (0.1, 1.9),
+                 primary_key_column="pair_id",
+                 ):
         """
         :param time_bucket:
             What bar size candles we are operating at. Default to daily.
@@ -84,9 +86,14 @@ class PairGroupedUniverse:
             By default fix values where low is 90% lower than close and high is 90% higher than close.
 
             See :py:func:`tradingstrategy.utils.groupeduniverse.fix_bad_wicks` for more information.
+
+        :param primary_key_column:
+            The pair/reserve id column name in the dataframe.
         """
         self.index_automatically = index_automatically
         assert isinstance(df, pd.DataFrame)
+
+        self.primary_key_column = primary_key_column
 
         if index_automatically:
             self.df = df \
@@ -99,7 +106,7 @@ class PairGroupedUniverse:
         if fix_wick_threshold:
             self.df = fix_bad_wicks(self.df, fix_wick_threshold)
 
-        self.pairs: pd.GroupBy = self.df.groupby(["pair_id"])
+        self.pairs: pd.GroupBy = self.df.groupby([self.primary_key_column])
 
         self.timestamp_column = timestamp_column
         self.time_bucket = time_bucket
@@ -281,7 +288,7 @@ class PairGroupedUniverse:
         :return: `DataFrame.groupby` result
         """
         samples = self.get_all_samples_by_range(start, end)
-        return samples.groupby("pair_id")
+        return samples.groupby(self.primary_key_column)
 
     def get_timestamp_range(self, use_timezone=False) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
         """Return the time range of data we have for.

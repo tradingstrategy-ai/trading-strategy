@@ -2,7 +2,7 @@ from enum import Enum
 from datetime import datetime
 
 from dataclasses import dataclass
-from typing import TypeAlias, Tuple
+from typing import TypeAlias, Tuple, Collection, Iterator, Dict
 
 from dataclasses_json import dataclass_json
 
@@ -10,6 +10,7 @@ import pandas as pd
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.types import UNIXTimestamp, PrimaryKey, TokenSymbol, Slug, NonChecksummedAddress
+from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
 
 class LendingProtocolType(str, Enum):
@@ -96,6 +97,13 @@ class LendingReserve:
     #:
     atoken_decimals: int
 
+    def __eq__(self, other: "LendingReserve") -> bool:
+        assert isinstance(other, LendingReserve)
+        return self.chain_id == other.chain_id and self.protocol_slug == other.protocol_slug and self.asset_address == other.asset_address
+
+    def __hash__(self):
+        return hash((self.chain_id, self.protocol_slug, self.asset_address))
+
     def __repr__(self):
         return f"<LendingReserve {self.chain_id.name} {self.protocol_slug.name} {self.asset_symbol}>"
 
@@ -137,6 +145,16 @@ class LendingReserveUniverse:
     #: Reserve ID -> Reserve data mapping
     reserves: dict[PrimaryKey, LendingReserve]
 
+    def __repr__(self):
+        return f"<LendingReserveUniverse with {len(self.reserves)} reserves>"
+
+    def get_size(self) -> int:
+        """How many reserves we have."""
+        return len(self.reserves)
+
+    def iter_reserves(self) -> Iterator[LendingReserve]:
+        return self.reserves.values()
+
     def get_reserve_by_id(self, reserve_id: PrimaryKey) -> LendingReserve | None:
         return self.reserves.get(reserve_id)
 
@@ -151,6 +169,20 @@ class LendingReserveUniverse:
             if reserve.asset_symbol == token_symbol and reserve.chain_id == chain_id:
                 return reserve
         return None
+
+    def limit(self, reserve_decriptions: Collection[LendingReserveDescription]) -> "LendingReserveUniverse":
+        """Remove all lending reverses that are not on the whitelist.
+
+        Used to reduce the lending reserve universe to wanted tradeable assets
+        after loading is done.
+        """
+        new_reserves = {}
+
+        for d in reserve_decriptions:
+            r = self.resolve_lending_reserve(d)
+            new_reserves[r.reserve_id] = r
+
+        return LendingReserveUniverse(new_reserves)
 
     def resolve_lending_reserve(self, reserve_decription: LendingReserveDescription) -> LendingReserve:
         """Looks up a lending reserve by a data match.
@@ -267,3 +299,62 @@ class LendingCandle:
         df.set_index("timestamp", inplace=True, drop=True)
 
         return df
+
+
+class LendingMetricUniverse(PairGroupedUniverse):
+    """Single metric for multiple lending reserves.
+
+    E.g. supply APR for both USDC and USDT.
+    Internally handled as GroupBy :py:class:`pd.DataFrame`.
+
+    This is designed so that you can easily develop strategies
+    that access lending rates of multiple reserves.
+
+    See also :py:class:`LendingCandleUniverse`.
+
+    To access the data see
+
+    - :py:meth:`tradingstrategy.utils.groupeduniverse.PairGroupedUniverse.get_single_pair_data`
+
+    - :py:meth:`tradingstrategy.utils.groupeduniverse.PairGroupedUniverse.get_samples_by_pair`
+
+    .. note ::
+
+        No forward will enabled yet similar to :py:class:`tradingstrategy.candle.CandleUniverse`.
+
+    """
+    def __init__(self, df: pd.DataFrame):
+        # Create a GroupBy universe from raw loaded lending reserve data
+        # We do not need fix any wicks, because lending rates are not subject
+        # to similar manipulation as DEX prices
+        return super().__init__(
+            df,
+            primary_key_column="reserve_id",
+            fix_wick_threshold=None,
+        )
+
+
+@dataclass
+class LendingCandleUniverse:
+    """Multiple metrics for all lending reserves.
+
+    Track both lending and borrow rates, so it is
+    easy to do credit supply, shorting and longing in the same trading strategy.
+
+    See also :py:class:`LendingMetricUniverse`.
+    """
+
+    stable_borrow_apr: LendingMetricUniverse | None = None
+    variable_borrow_apr: LendingMetricUniverse | None = None
+    supply_apr: LendingMetricUniverse | None = None
+
+    def __init__(self, candle_type_dfs: Dict[LendingCandleType, pd.DataFrame]):
+
+        if LendingCandleType.stable_borrow_apr in candle_type_dfs:
+            self.stable_borrow_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.stable_borrow_apr])
+
+        if LendingCandleType.variable_borrow_apr in candle_type_dfs:
+            self.variable_borrow_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.variable_borrow_apr])
+
+        if LendingCandleType.supply_apr in candle_type_dfs:
+            self.supply_apr = LendingMetricUniverse(candle_type_dfs[LendingCandleType.supply_apr])

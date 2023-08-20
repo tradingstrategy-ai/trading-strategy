@@ -358,6 +358,55 @@ class Client(BaseClient):
             end_time,
         )
 
+    def fetch_lending_candles_for_universe(
+        self,
+        lending_reserve_universe: LendingReserveUniverse,
+        bucket: TimeBucket,
+        candle_types: LendingCandleType = (LendingCandleType.variable_borrow_apr, LendingCandleType.supply_apr),
+        start_time: datetime.datetime | pd.Timestamp = None,
+        end_time: datetime.datetime | pd.Timestamp = None,
+        construct_timestamp_column=True,
+    ) -> Dict[LendingCandleType, pd.DataFrame]:
+        """Load lending reservers for several assets as once.
+
+        :param candle_types:
+            Data for candle types to load
+
+        :param construct_timestamp_column:
+            After loading data, create "timestamp" series based on the index.
+
+            We need to convert index to column if we are going to have
+            several reserves in :py:class:`tradingstrategy.lending.LendingCandleUniverse`.
+
+        :return:
+            All reserves concatenated in a single dataframe, a dataframes for each candle type.
+        """
+
+        result = {}
+
+        for candle_type in candle_types:
+            data = None
+            for reserve in lending_reserve_universe.iter_reserves():
+                chunk = self.fetch_lending_candles_by_reserve_id(
+                    reserve.reserve_id,
+                    bucket,
+                    candle_type,
+                    start_time,
+                    end_time,
+                )
+
+                if data is None:
+                    data = chunk
+                else:
+                    data = data.append(chunk)
+
+            if construct_timestamp_column:
+                data["timestamp"] = data.index.to_series()
+
+            result[candle_type] = data
+
+        return result
+
     @_retry_corrupted_parquet_fetch
     def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:
         """Get cached blob of liquidity events of a certain time window.
