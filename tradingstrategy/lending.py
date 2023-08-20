@@ -390,6 +390,10 @@ class LendingMetricUniverse(PairGroupedUniverse):
         reserve = self.reserves.resolve_lending_reserve(reserve_description)
         return self.get_samples_by_pair(reserve.reserve_id)
 
+    def get_rates_by_id(self, reserve_id: PrimaryKey) -> pd.DataFrame:
+        """Return lending rates for for a particular reserve."""
+        return self.get_samples_by_pair(reserve_id)
+
 
 @dataclass
 class LendingCandleUniverse:
