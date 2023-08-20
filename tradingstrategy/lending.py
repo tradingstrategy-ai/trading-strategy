@@ -40,7 +40,7 @@ class LendingReserve:
     #: The slug on which chain this lending reserve is deployed
     chain_slug: str
 
-    #: The asset ID of this lending reserve
+    #: The internal ID of this asset, this might be changed
     asset_id: int
 
     #: The asset name of this lending reserve
@@ -48,6 +48,24 @@ class LendingReserve:
 
     #: The asset symbol of this lending reserve
     asset_symbol: str
+
+    #: The ERC-20 address of the underlying asset
+    asset_address: NonChecksummedAddress
+
+    #: Number of decimals
+    asset_decimals: int
+
+    #: The internal ID of this the aToken, this might be changed
+    atoken_id: int
+
+    #: The aToken symbol of this lending reserve
+    atoken_symbol: str
+
+    #: The ERC-20 address of the aToken
+    atoken_address: NonChecksummedAddress
+
+    #: The ERC-20 address of the aToken
+    atoken_decimals: int
 
 
 @dataclass_json
