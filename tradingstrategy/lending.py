@@ -202,7 +202,7 @@ class LendingReserveUniverse:
 
         raise UnknownLendingReserve(f"Could not find lending reserve {chain_id}: {asset_address}. We have {len(self.reserves)} reserves loaded.")
 
-    def limit(self, reserve_decriptions: Collection[LendingReserveDescription]) -> "LendingReserveUniverse":
+    def limit(self, reserve_descriptions: Collection[LendingReserveDescription]) -> "LendingReserveUniverse":
         """Remove all lending reverses that are not on the whitelist.
 
         Used to reduce the lending reserve universe to wanted tradeable assets
@@ -210,7 +210,7 @@ class LendingReserveUniverse:
         """
         new_reserves = {}
 
-        for d in reserve_decriptions:
+        for d in reserve_descriptions:
             r = self.resolve_lending_reserve(d)
             new_reserves[r.reserve_id] = r
 
