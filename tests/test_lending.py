@@ -57,11 +57,11 @@ def test_fetch_lending_reserve_info(client: Client):
 def test_client_fetch_lending_candles(client: Client, cache_path: str):
     df = client.fetch_lending_candles_by_reserve_id(1, TimeBucket.h1)
     assert len(df) > 50
-    assert len(list(Path(cache_path).glob("lending-candles-1h-between-any-and-any-*.parquet"))) == 1
+    assert len(list(Path(cache_path).glob("variable-borrow-apr-jsonl-1h-between-any-and-any-*.parquet"))) == 1
 
     df = client.fetch_lending_candles_by_reserve_id(3, TimeBucket.d1, candle_type=LendingCandleType.supply_apr)
     assert len(df) > 50
-    assert len(list(Path(cache_path).glob("lending-candles-1d-between-any-and-any-*.parquet"))) == 1
+    assert len(list(Path(cache_path).glob("supply-apr-jsonl-1d-between-any-and-any-*.parquet"))) == 1
 
 
 def test_resolve_lending_reserve(persistent_test_client):
@@ -171,7 +171,7 @@ def test_client_fetch_lending_candles_for_lending_universe(persistent_test_clien
     # timestamp
     # 2023-01-01           3  1.836242  1.839224  1.780513  1.780513 2023-01-01
 
-    assert usdc_variable_borrow["open"][pd.Timestamp("2023-01-01")] == pytest.approx(1.836242)
+    assert usdc_variable_borrow["open"][pd.Timestamp("2023-01-01")] == pytest.approx(1.8362419852748817)
     assert usdc_variable_borrow["close"][pd.Timestamp("2023-01-01")] == pytest.approx(1.780513)
 
     # Read data for multiple reserves for a time range
@@ -188,8 +188,8 @@ def test_client_fetch_lending_candles_for_lending_universe(persistent_test_clien
         # Read supply apr only for USDT
         if reserve_id == usdt_reserve.reserve_id:
             assert len(supply_apr) == 2  # 2 days
-            assert supply_apr["open"][pd.Timestamp("2023-01-05")] == pytest.approx(2.814886)
-            assert supply_apr["close"][pd.Timestamp("2023-01-06")] == pytest.approx(2.866523)
+            assert supply_apr["open"][pd.Timestamp("2023-01-05")] == pytest.approx(2.060042143388868)
+            assert supply_apr["close"][pd.Timestamp("2023-01-06")] == pytest.approx(2.1192639317338413)
 
 
 def test_get_rates_by_reserve(persistent_test_client: Client):

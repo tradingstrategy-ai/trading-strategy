@@ -23,7 +23,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey
-from tradingstrategy.lending import LendingCandle
+from tradingstrategy.lending import LendingCandle, LendingCandleType
 from urllib3 import Retry
 
 
@@ -171,7 +171,7 @@ class CachedHTTPTransport:
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
         max_bytes: Optional[int] = None,
-        candle_type: Literal["candle", "lending_candle"] = "candle",
+        candle_type: str = "candle",
     ) -> str:
         """Generate the name of the file for holding cached candle data for ``pair_ids``.
         """
@@ -200,10 +200,7 @@ class CachedHTTPTransport:
 
         end_part = end_time.strftime("%Y-%m-%d_%H-%M-%S") if end_time else "any"
 
-        if candle_type == "lending_candle":
-            return f"lending-candles-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.parquet"
-            
-        return f"candles-jsonl-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.parquet"
+        return f"{candle_type.replace('_', '-')}-jsonl-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.parquet"
 
     def purge_cache(self, filename: Optional[Union[str, pathlib.Path]] = None):
         """Delete all cached files on the filesystem.
@@ -337,7 +334,7 @@ class CachedHTTPTransport:
         self,
         reserve_id: int,
         time_bucket: TimeBucket,
-        candle_type: str = "variable_borrow_apr",
+        candle_type: LendingCandleType = LendingCandleType.variable_borrow_apr,
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
     ) -> pd.DataFrame:
@@ -365,12 +362,16 @@ class CachedHTTPTransport:
         :return:
             Lending candles dataframe
         """
+
+        assert  isinstance(time_bucket, TimeBucket)
+        assert isinstance(candle_type, LendingCandleType)
+
         cache_fname = self._generate_cache_name(
             reserve_id,
             time_bucket,
             start_time,
             end_time,
-            candle_type=candle_type,
+            candle_type=candle_type.name,
         )
         cached = self.get_cached_item(cache_fname)
 
