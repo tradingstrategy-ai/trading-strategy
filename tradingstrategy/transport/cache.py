@@ -171,7 +171,7 @@ class CachedHTTPTransport:
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
         max_bytes: Optional[int] = None,
-        candle_type: str = "candle",
+        candle_type: str = "candles",
     ) -> str:
         """Generate the name of the file for holding cached candle data for ``pair_ids``.
         """
