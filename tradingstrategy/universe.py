@@ -7,7 +7,7 @@ import pandas as pd
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange, ExchangeUniverse, ExchangeNotFoundError
-from tradingstrategy.lending import LendingReserveUniverse
+from tradingstrategy.lending import LendingReserveUniverse, LendingCandleUniverse
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, ResampledLiquidityUniverse
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -82,9 +82,14 @@ class Universe:
     #: TODO: This is a new attribute - not available through all code paths yet.
     exchange_universe: Optional[ExchangeUniverse] = None
 
-    #: Available assets to lend and borrow
+    #: Lending rates
     #:
-    lending_reserves: Optional[LendingReserveUniverse] = None
+    lending_candles: Optional[LendingCandleUniverse] = None
+
+    @property
+    def lending_reserves(self) -> LendingReserveUniverse:
+        """Each lending metric is paired with a copy of the universe"""
+        return self.lending_candles.lending_reserves
 
     def get_candle_availability(self) -> Tuple[pd.Timestamp, pd.Timestamp]:
         """Get the time range for which we have candle data.
