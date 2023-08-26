@@ -1,10 +1,10 @@
 from enum import Enum
 from datetime import datetime
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TypeAlias, Tuple, Collection, Iterator, Dict
 
-from dataclasses_json import dataclass_json
+from dataclasses_json import dataclass_json, config
 
 import pandas as pd
 
@@ -28,6 +28,19 @@ class LendingCandleType(str, Enum):
 
 class UnknownLendingReserve(Exception):
     """Does not know about this lending reserve."""
+
+
+
+@dataclass_json
+@dataclass
+class LendingReserveAdditionalDetails:
+    """Additional details for a lending reserve."""
+
+    #: Latest Loan-To-Value ratio
+    ltv: float | None = None
+
+    #: Latest liquidation threshold
+    liquidation_threshold: float | None = None
 
 
 @dataclass_json
@@ -92,11 +105,26 @@ class LendingReserve:
     #: The ERC-20 address of the aToken
     atoken_address: NonChecksummedAddress
 
-    #: The ERC-20 address of the aToken.
+    #: The decimals of the aToken .
     #:
     #: Should be always the same as :py:attr:`asset_decimals`
     #:
     atoken_decimals: int
+
+    #: The internal ID of this the vToken, this might be changed
+    vtoken_id: PrimaryKey = field(metadata=config(field_name="variable_debt_token_id"))
+
+    #: The vToken symbol of this lending reserve
+    vtoken_symbol: TokenSymbol = field(metadata=config(field_name="variable_debt_token_symbol"))
+
+    #: The ERC-20 address of the vToken
+    vtoken_address: NonChecksummedAddress = field(metadata=config(field_name="variable_debt_token_address"))
+
+    #: The decimals of the aToken .
+    vtoken_decimals: int = field(metadata=config(field_name="variable_debt_token_decimals"))
+
+    #: Other details like latest LTV ratio or liquidation threshold
+    additional_details: LendingReserveAdditionalDetails
 
     def __eq__(self, other: "LendingReserve") -> bool:
         assert isinstance(other, LendingReserve)
@@ -107,7 +135,7 @@ class LendingReserve:
 
     def __repr__(self):
         return f"<LendingReserve {self.chain_id.name} {self.protocol_slug.name} {self.asset_symbol}>"
-
+    
     def get_asset(self) -> Token:
         """Return description for the underlying asset."""
         return Token(
@@ -118,12 +146,21 @@ class LendingReserve:
         )
 
     def get_atoken(self) -> Token:
-        """Return description for atoken."""
+        """Return description for aToken."""
         return Token(
             self.chain_id,
             self.atoken_symbol,
             self.atoken_address,
             self.atoken_decimals,
+        )
+    
+    def get_vtoken(self) -> Token:
+        """Return description for vToken (variable debt token)."""
+        return Token(
+            self.chain_id,
+            self.vtoken_symbol,
+            self.vtoken_address,
+            self.vtoken_decimals,
         )
 
 #: How to symbolically identify a lending reserve.
