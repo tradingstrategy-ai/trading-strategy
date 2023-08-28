@@ -1,3 +1,9 @@
+# 0.20.2
+
+- Add vToken details to Aave lending reserves
+- Add liquidation threshold and such denormalised information
+  to Aave lending reserves
+
 # 0.20.1
 
 - Fix: Lending rates cache bug - different datasets were using
