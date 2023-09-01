@@ -412,7 +412,7 @@ class Client(BaseClient):
                 if data is None:
                     data = chunk
                 else:
-                    data = data.append(chunk)
+                    data = data.concat(chunk)
 
             if construct_timestamp_column:
                 data["timestamp"] = data.index.to_series()
