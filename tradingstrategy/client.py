@@ -399,20 +399,16 @@ class Client(BaseClient):
         # Perform data load by issung several HTTP requests,
         # one for each reserve and candle type
         for candle_type in candle_types:
-            data = None
-            for reserve in lending_reserve_universe.iter_reserves():
-                chunk = self.fetch_lending_candles_by_reserve_id(
+            data = pd.concat([
+                self.fetch_lending_candles_by_reserve_id(
                     reserve.reserve_id,
                     bucket,
                     candle_type,
                     start_time,
                     end_time,
                 )
-
-                if data is None:
-                    data = chunk
-                else:
-                    data = data.concat(chunk)
+                for reserve in lending_reserve_universe.iter_reserves()    
+            ])
 
             if construct_timestamp_column:
                 data["timestamp"] = data.index.to_series()
