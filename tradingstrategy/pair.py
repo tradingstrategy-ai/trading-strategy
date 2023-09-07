@@ -2,13 +2,59 @@
 
 The core classes to understand the data are
 
-- :py:class:`DEXPair`
+- :py:class:`DEXPair`: describe one trading pair on different DEXes on different blockchains
 
-- :py:class:`PandasPairUniverse`
+- :py:class:`PandasPairUniverse`: all available trading pairs across all blockchains
+  and functions to look them up.
 
-To download the pairs dataset see
+- :py:data:`HumanReadableTradingPairDescription`: define the format for symbolic look iup
+  for trading pairs
 
-- :py:meth:`tradingstrategy.client.Client.fetch_pair_universe`
+Trading pairs are **not fungible** across DEXes and blockchains.
+
+- The same token might have different address on a different blockchains
+
+- The same trading pair may be on multiple DEXes, or even
+  on the same DEX with different fee tiers e.g. Uniswap v3
+  gives WETH-USDC at 0.05%, 0.30% and 1% fee tiers,
+  most real trading happening on 0.05% tier
+
+Here is an example how to look up a particular trading pair::
+
+.. code-block:: python
+
+    from pyarrow import Table
+    from tradingstrategy.chain import ChainId
+    from tradingstrategy.exchange import ExchangeUniverse
+    from tradingstrategy.pair import PandasPairUniverse
+    from tradingstrategy.pair import HumanReadableTradingPairDescription
+
+    # Exchange map data is so small it does not need any decompression
+    exchange_universe: ExchangeUniverse = client.fetch_exchange_universe()
+
+    # Decompress the pair dataset to Python map
+    # This is raw PyArrow data
+    columnar_pair_table: Table = client.fetch_pair_universe()
+    print(f"Total pairs {len(columnar_pair_table)}, total exchanges {len(exchange_universe.exchanges)}")
+
+    # Wrap the data in a helper class with indexes for easier access
+    pair_universe = PandasPairUniverse(columnar_pair_table.to_pandas(), exchange_universe=exchange_universe)
+
+    # Get BNB-BUSD pair on PancakeSwap v2
+    #
+    # There are no fee tiers, so we
+    #
+    desc: HumanReadableTradingPairDescription = (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD")
+    bnb_busd = pair_universe.get_pair_by_human_description(desc)
+    print(f"We have pair {bnb_busd} with 30d volume of USD {bnb_busd.volume_30d}")
+
+See :ref:`tutorial` section for Pairs tutorial for more information.
+
+For exploring the trading pairs through web you can use
+
+- `Trading Strategy trading pair search <https://tradingstrategy.ai/search>`__
+
+- `Trading Strategy trading pair listings (by blockchain, by DEX, etc. by trading fee) <https://tradingstrategy.ai/trading-view>`__
 
 """
 
