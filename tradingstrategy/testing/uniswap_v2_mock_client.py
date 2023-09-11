@@ -69,28 +69,6 @@ class UniswapV2MockClient(MockClient):
         )
         assert len(self.pairs_table) > 0, f"Could not read any pairs from on-chain data. Uniswap v2 factory: {factory_address}, router: {router_address}."
 
-    def get_default_quote_token_address(self) -> str:
-        """Get the quote token address used in the generated pair map.
-
-        Helper method for setting up simple local dev routing.
-
-        Returns a the first quote token address found in the pair universe.
-        """
-        quote_tokens = []
-        pairs_df = self.fetch_pair_universe().to_pandas()
-        pair_universe = PandasPairUniverse(pairs_df)
-        assert pair_universe.get_count() > 0, "Pair universe has no trading pairs"
-        for pair in pair_universe.iterate_pairs():
-            quote_tokens.append(pair.quote_token_address)
-        #assert len(quote_tokens) == 1, f"Got {len(quote_tokens)} quote tokens in the pair universe, the pair universe is total {pair_universe.get_count()} pairs"
-        return quote_tokens[0]
-
-    def fetch_exchange_universe(self) -> ExchangeUniverse:
-        return self.exchange_universe
-
-    def fetch_pair_universe(self) -> Table:
-        return self.pairs_table
-
     @staticmethod
     def read_onchain_data(
                 web3: Web3,
