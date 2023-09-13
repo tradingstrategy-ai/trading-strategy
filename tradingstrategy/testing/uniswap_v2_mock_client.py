@@ -59,15 +59,22 @@ class UniswapV2MockClient(MockClient):
         assert factory_address is not None, "factory_address not set"
         assert router_address is not None, "router_address not set"
         assert init_code_hash is not None, "init_code_hash not set"
-
+        
+        self.web3 = web3
+        self.factory_address = factory_address
+        self.router_address = router_address
+        self.init_code_hash = init_code_hash
+        self.fee = fee
+        
+    def set_exchange_universe_and_pairs_table(self):
         self.exchange_universe, self.pairs_table = UniswapV2MockClient.read_onchain_data(
-            web3,
-            factory_address,
-            router_address,
-            init_code_hash,
-            fee,
+            self.web3,
+            self.factory_address,
+            self.router_address,
+            self.init_code_hash,
+            self.fee,
         )
-        assert len(self.pairs_table) > 0, f"Could not read any pairs from on-chain data. Uniswap v2 factory: {factory_address}, router: {router_address}."
+        assert len(self.pairs_table) > 0, f"Could not read any pairs from on-chain data. Uniswap v2 factory: {self.factory_address}, router: {self.router_address}."
 
     @staticmethod
     def read_onchain_data(
