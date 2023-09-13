@@ -55,8 +55,8 @@ def test_fetch_lending_reserve_info(client: Client):
     assert reserve.atoken_symbol == "aEthUSDC"
     assert reserve.atoken_address == "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c"
     assert reserve.atoken_decimals == 6
-    assert reserve.additional_details.ltv > 50
-    assert reserve.additional_details.liquidation_threshold > 50
+    assert 0 < reserve.additional_details.ltv < 1
+    assert 0 < reserve.additional_details.liquidation_threshold < 1
 
 
 def test_client_fetch_lending_candles(client: Client, cache_path: str):
@@ -88,8 +88,8 @@ def test_resolve_lending_reserve(persistent_test_client):
     assert usdt_reserve.atoken_decimals == 6
     assert usdt_reserve.vtoken_symbol == "variableDebtPolUSDT"
     assert usdt_reserve.vtoken_decimals == 6
-    assert usdt_reserve.additional_details.ltv > 50
-    assert usdt_reserve.additional_details.liquidation_threshold > 50
+    assert 0 < usdt_reserve.additional_details.ltv < 1
+    assert 0 < usdt_reserve.additional_details.liquidation_threshold < 1
 
 
 def test_lending_reserve_equal(persistent_test_client):
