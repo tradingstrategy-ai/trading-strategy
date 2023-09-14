@@ -66,7 +66,8 @@ class UniswapV2MockClient(MockClient):
         self.init_code_hash = init_code_hash
         self.fee = fee
         
-    def fetch_exchange_universe_and_pairs_table(self):
+    def initialise_mock_data(self):
+        """Set up mock data."""
         self.exchange_universe, self.pairs_table = UniswapV2MockClient.read_onchain_data(
             self.web3,
             self.factory_address,

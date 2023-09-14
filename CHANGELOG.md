@@ -1,3 +1,7 @@
+# 0.20.4
+
+- Rename `UniswapV2MockClient.initialise_mock_data` to be more descriptive
+
 # 0.20.3
 
 - Refactor some common code from GenericMockClient and UniswapV2MockClient into MockClient. Note: GenericMockClient resides in tradeexecutor due to its reliance on certain imports

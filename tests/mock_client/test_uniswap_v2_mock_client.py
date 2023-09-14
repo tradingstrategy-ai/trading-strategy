@@ -160,7 +160,7 @@ def test_uniswap_v2_mock_client(
         uniswap_v2.router.address,
         uniswap_v2.init_code_hash,
     )
-    client.fetch_exchange_universe_and_pairs_table()
+    client.initialise_mock_data()
 
     exchange_universe = client.fetch_exchange_universe()
     assert len(exchange_universe.exchanges) == 1
