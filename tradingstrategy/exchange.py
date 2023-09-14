@@ -229,6 +229,10 @@ class ExchangeUniverse:
     #: Exchange id -> Exchange data mapping
     exchanges: Dict[PrimaryKey, Exchange]
 
+    def __post_init__(self):
+        for exchange_id, exchange in self.exchanges.items():
+            assert exchange_id == exchange.exchange_id, "Exchange id mismatch"
+
     @staticmethod
     def from_collection(exchanges: Collection[Exchange]) -> "ExchangeUniverse":
         """Create exchange universe from a collection of exchanges."""

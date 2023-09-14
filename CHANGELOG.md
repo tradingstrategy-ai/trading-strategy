@@ -1,3 +1,7 @@
+# 0.20.3
+
+- Refactor some common code from GenericMockClient and UniswapV2MockClient into MockClient. Note: GenericMockClient resides in tradeexecutor due to its reliance on certain imports
+
 # 0.20.2
 
 - Add vToken details to Aave lending reserves
