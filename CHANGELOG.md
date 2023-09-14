@@ -1,6 +1,7 @@
 # 0.20.3
 
 - Refactor some common code from GenericMockClient and UniswapV2MockClient into MockClient. Note: GenericMockClient resides in tradeexecutor due to its reliance on certain imports
+- More lending data points
 
 # 0.20.2
 
