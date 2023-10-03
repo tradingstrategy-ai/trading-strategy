@@ -633,6 +633,9 @@ def wait_other_writers(path: Path | str, timeout=120):
     assert path.is_absolute(), f"Did not get an absolute path: {path}\n" \
                                f"Please use absolute paths for lock files to prevent polluting the local working directory."
 
+    # If we are writing to a new temp folder, create any parent paths
+    os.makedirs(path.parent, exist_ok=True)
+
     # https://stackoverflow.com/a/60281933/315168
     lock_file = path.parent / (path.name + '.lock')
 
