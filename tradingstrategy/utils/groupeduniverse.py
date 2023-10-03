@@ -626,9 +626,13 @@ def filter_bad_wicks(df: pd.DataFrame, threshold=(0.1, 1.9)) -> pd.DataFrame:
     This function removes bad high/low values and sets them to open/close if they seem to be wildly out of sample.
 
     :param threshold:
-        How many pct % wicks are allowed through.
+        How many pct % wicks are allowed through as (low, high) tuple.
 
-        Default to 50%. A high wick cannot be more than 50% of close.
+        This is a tuple (low threshold, high threshold).
+
+        If low < close * threshold[0] ignore the value.
+
+        If high > close * threshold[0] ignore the value.
 
     """
 
