@@ -6,15 +6,17 @@ import os
 import pathlib
 import platform
 import re
-import json
+from contextlib import contextmanager
 from importlib.metadata import version
 from typing import Optional, Callable, Set, Union, Collection, Dict, Literal
 import shutil
 import logging
+from pathlib import Path
 
 import pandas
 import pandas as pd
 import requests
+from filelock import FileLock
 from requests import Response
 from requests.adapters import HTTPAdapter
 
@@ -259,76 +261,99 @@ class CachedHTTPTransport:
     def fetch_pair_universe(self) -> pathlib.Path:
         fname = "pair-universe.parquet"
         cached = self.get_cached_item(fname)
-        if cached:
-            return cached
 
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "pair-universe", human_readable_hint="Downloading trading pair dataset")
-        return self.get_cached_item(fname)
+
+        with wait_other_writers(path):
+
+            if cached:
+                return cached
+
+            self.save_response(path, "pair-universe", human_readable_hint="Downloading trading pair dataset")
+            return self.get_cached_item(fname)
 
     def fetch_exchange_universe(self) -> pathlib.Path:
         fname = "exchange-universe.json"
-        cached = self.get_cached_item(fname)
-        if cached:
-            return cached
 
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "exchange-universe", human_readable_hint="Downloading exchange dataset")
-        return self.get_cached_item(fname)
+
+        with wait_other_writers(path):
+
+            cached = self.get_cached_item(fname)
+            if cached:
+                return cached
+
+            self.save_response(path, "exchange-universe", human_readable_hint="Downloading exchange dataset")
+            return self.get_cached_item(fname)
     
     def fetch_lending_reserve_universe(self) -> pathlib.Path:
         fname = "lending-reserve-universe.json"
         cached = self.get_cached_item(fname)
-        if cached:
-            return cached
 
         # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(
-            path,
-            "lending-reserve-universe",
-            human_readable_hint="Downloading lending reserve dataset"
-        )
-        return self.get_cached_item(fname)
+
+        with wait_other_writers(path):
+
+            if cached:
+                return cached
+
+            self.save_response(
+                path,
+                "lending-reserve-universe",
+                human_readable_hint="Downloading lending reserve dataset"
+            )
+            return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         assert isinstance(bucket, TimeBucket)
         fname = f"candles-{bucket.value}.parquet"
-        cached = self.get_cached_item(fname)
-        if cached:
-            return cached
-        # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "candles-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading OHLCV data for {bucket.value} time bucket")
-        return self.get_cached_item(path)
+
+        with wait_other_writers(path):
+
+            cached = self.get_cached_item(fname)
+            if cached:
+                return cached
+
+            # Download save the file
+            self.save_response(path, "candles-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading OHLCV data for {bucket.value} time bucket")
+            return self.get_cached_item(path)
 
     def fetch_liquidity_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         fname = f"liquidity-samples-{bucket.value}.parquet"
-        cached = self.get_cached_item(fname)
-        if cached:
-            return cached
-        # Download save the file
         path = self.get_cached_file_path(fname)
-        self.save_response(path, "liquidity-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading liquidity data for {bucket.value} time bucket")
-        return self.get_cached_item(path)
+
+        with wait_other_writers(path):
+
+            cached = self.get_cached_item(fname)
+            if cached:
+                return cached
+            # Download save the file
+            self.save_response(path, "liquidity-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading liquidity data for {bucket.value} time bucket")
+            return self.get_cached_item(path)
 
     def fetch_lending_reserves_all_time(self) -> pathlib.Path:
         fname = "lending-reserves-all.parquet"
-        cached = self.get_cached_item(fname)
-        if cached:
-            return cached
+
         # Download save the file
         path = self.get_cached_file_path(fname)
 
-        # We only have Aave v3 data for now...
-        self.save_response(
-            path,
-            "aave-v3-all",
-            human_readable_hint="Downloading Aave v3 reserve dataset",
-        )
-        return self.get_cached_item(path)
+        with wait_other_writers(path):
+
+            cached = self.get_cached_item(fname)
+            if cached:
+                return cached
+
+            # We only have Aave v3 data for now...
+            self.save_response(
+                path,
+                "aave-v3-all",
+                human_readable_hint="Downloading Aave v3 reserve dataset",
+            )
+            return self.get_cached_item(path)
     
     def fetch_lending_candles_by_reserve_id(
         self,
@@ -373,42 +398,46 @@ class CachedHTTPTransport:
             end_time,
             candle_type=candle_type.name,
         )
-        cached = self.get_cached_item(cache_fname)
 
-        if cached:
-            full_fname = self.get_cached_file_path(cache_fname)
-            logger.debug("Using cached data file %s", full_fname)
-            return pandas.read_parquet(cached)
-        
-        api_url = f"{self.endpoint}/lending-reserve/candles"
+        full_fname = self.get_cached_file_path(cache_fname)
 
-        params = {
-            "reserve_id": reserve_id,
-            "time_bucket": time_bucket.value,
-            "candle_types": candle_type,
-        }
+        with wait_other_writers(full_fname):
 
-        if start_time:
-            params["start"] = start_time.isoformat()
+            cached = self.get_cached_item(cache_fname)
 
-        if end_time:
-            params["end"] = end_time.isoformat()
+            if cached:
+                logger.debug("Using cached data file %s", full_fname)
+                return pandas.read_parquet(cached)
 
-        resp = self.requests.get(api_url, params=params, stream=True)
+            api_url = f"{self.endpoint}/lending-reserve/candles"
 
-        # TODO: handle error
-        candles = resp.json()[candle_type]
+            params = {
+                "reserve_id": reserve_id,
+                "time_bucket": time_bucket.value,
+                "candle_types": candle_type,
+            }
 
-        df = LendingCandle.convert_web_candles_to_dataframe(candles)
+            if start_time:
+                params["start"] = start_time.isoformat()
 
-        # Update cache
-        path = self.get_cached_file_path(cache_fname)
-        df.to_parquet(path)
+            if end_time:
+                params["end"] = end_time.isoformat()
 
-        size = pathlib.Path(path).stat().st_size
-        logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+            resp = self.requests.get(api_url, params=params, stream=True)
 
-        return df
+            # TODO: handle error
+            candles = resp.json()[candle_type]
+
+            df = LendingCandle.convert_web_candles_to_dataframe(candles)
+
+            # Update cache
+            path = self.get_cached_file_path(cache_fname)
+            df.to_parquet(path)
+
+            size = pathlib.Path(path).stat().st_size
+            logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+            return df
 
     def ping(self) -> dict:
         reply = self.get_json_response("ping")
@@ -470,32 +499,36 @@ class CachedHTTPTransport:
         cache_fname = self._generate_cache_name(
             pair_ids, time_bucket, start_time, end_time, max_bytes
         )
-        cached = self.get_cached_item(cache_fname)
 
-        if cached:
-            full_fname = self.get_cached_file_path(cache_fname)
-            logger.debug("Using cached JSONL data file %s", full_fname)
-            return pandas.read_parquet(cached)
+        full_fname = self.get_cached_file_path(cache_fname)
 
-        df: pd.DataFrame = load_candles_jsonl(
-            self.requests,
-            self.endpoint,
-            pair_ids,
-            time_bucket,
-            start_time,
-            end_time,
-            max_bytes=max_bytes,
-            progress_bar_description=progress_bar_description,
-        )
+        with wait_other_writers(full_fname):
 
-        # Update cache
-        path = self.get_cached_file_path(cache_fname)
-        df.to_parquet(path)
+            cached = self.get_cached_item(cache_fname)
 
-        size = pathlib.Path(path).stat().st_size
-        logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+            if cached:
+                logger.debug("Using cached JSONL data file %s", full_fname)
+                return pandas.read_parquet(cached)
 
-        return df
+            df: pd.DataFrame = load_candles_jsonl(
+                self.requests,
+                self.endpoint,
+                pair_ids,
+                time_bucket,
+                start_time,
+                end_time,
+                max_bytes=max_bytes,
+                progress_bar_description=progress_bar_description,
+            )
+
+            # Update cache
+            path = self.get_cached_file_path(cache_fname)
+            df.to_parquet(path)
+
+            size = pathlib.Path(path).stat().st_size
+            logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+            return df
 
     def fetch_trading_data_availability(self,
           pair_ids: Collection[PrimaryKey],
@@ -549,3 +582,63 @@ class CachedHTTPTransport:
                 raise RuntimeError(f"Failed to convert: {p}") from e
 
         return {p["pair_id"]: _convert(p) for p in array}
+
+
+@contextmanager
+def wait_other_writers(path: Path | str, timeout=120):
+    """Wait other potential writers writing the same file.
+
+    - Work around issues when parallel unit tests and such
+      try to write the same file
+
+    Example:
+
+    .. code-block:: python
+
+        import urllib
+        import tempfile
+
+        import pytest
+        import pandas as pd
+
+        @pytest.fixture()
+        def my_cached_test_data_frame() -> pd.DataFrame:
+
+            # Al tests use a cached dataset stored in the /tmp directory
+            path = os.path.join(tempfile.gettempdir(), "my_shared_data.parquet")
+
+            with wait_other_writers(path):
+
+                # Read result from the previous writer
+                if not path.exists(path):
+                    # Download and write to cache
+                    urllib.request.urlretrieve("https://example.com", path)
+
+                return pd.read_parquet(path)
+
+    :param path:
+        File that is being written
+
+    :param timeout:
+        How many seconds wait to acquire the lock file.
+
+        Default 2 minutes.
+    """
+
+    if type(path) == str:
+        path = Path(path)
+
+    assert isinstance(path, Path), f"Not Path object: {path}"
+
+    assert path.is_absolute(), f"Did not get an absolute path: {path}\n" \
+                               f"Please use absolute paths for lock files to prevent polluting the local working directory."
+
+    # If we are writing to a new temp folder, create any parent paths
+    os.makedirs(path.parent, exist_ok=True)
+
+    # https://stackoverflow.com/a/60281933/315168
+    lock_file = path.parent / (path.name + '.lock')
+
+    lock = FileLock(lock_file, timeout=timeout)
+    with lock:
+        yield

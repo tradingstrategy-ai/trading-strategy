@@ -1,3 +1,9 @@
+# 0.20.5
+
+- Add concurrent write control to `CachedHTTPTransport` to allow
+  multiple processes to write the same cached download file on the same system
+- Enable parallel tests
+
 # 0.20.4
 
 - Rename `UniswapV2MockClient.initialise_mock_data` to be more descriptive
