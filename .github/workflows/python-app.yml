@@ -39,6 +39,6 @@ jobs:
         poetry install --all-extras --no-interaction
     - name: Run test scripts
       run: |
-        poetry run pytest --tb=native -n auto
+        poetry run pytest --tb=native -n 6
       env:
         TRADING_STRATEGY_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}

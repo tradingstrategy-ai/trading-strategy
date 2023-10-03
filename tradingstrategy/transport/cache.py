@@ -399,12 +399,13 @@ class CachedHTTPTransport:
             candle_type=candle_type.name,
         )
 
-        with wait_other_writers(cache_fname):
+        full_fname = self.get_cached_file_path(cache_fname)
+
+        with wait_other_writers(full_fname):
 
             cached = self.get_cached_item(cache_fname)
 
             if cached:
-                full_fname = self.get_cached_file_path(cache_fname)
                 logger.debug("Using cached data file %s", full_fname)
                 return pandas.read_parquet(cached)
 
@@ -499,12 +500,13 @@ class CachedHTTPTransport:
             pair_ids, time_bucket, start_time, end_time, max_bytes
         )
 
-        with wait_other_writers(cache_fname):
+        full_fname = self.get_cached_file_path(cache_fname)
+
+        with wait_other_writers(full_fname):
 
             cached = self.get_cached_item(cache_fname)
 
             if cached:
-                full_fname = self.get_cached_file_path(cache_fname)
                 logger.debug("Using cached JSONL data file %s", full_fname)
                 return pandas.read_parquet(cached)
 
@@ -589,25 +591,47 @@ def wait_other_writers(path: Path | str, timeout=120):
     - Work around issues when parallel unit tests and such
       try to write the same file
 
+    Example:
+
+    .. code-block:: python
+
+        import urllib
+
+        import pytest
+        import pandas as pd
+
+        @pytest.fixture()
+        def my_cached_test_data_frame() -> pd.DataFrame:
+            path = Path("/tmp/shared_test_data.parquet")
+            with wait_other_writers(path):
+
+                # Read result from the previous writer
+                if not path.exists(path):
+                    # Download and write to cache
+                    urllib.request.urlretrieve("https://example.com", path)
+
+                return pd.read_parquet(path)
+
     :param path:
         File that is being written
 
     :param timeout:
         How many seconds wait to acquire the lock file.
 
-        Default 2 minute.
-
+        Default 2 minutes.
     """
 
     if type(path) == str:
         path = Path(path)
 
-    assert isinstance(path, Path), f"Not Path object {path}"
+    assert isinstance(path, Path), f"Not Path object: {path}"
+
+    assert path.is_absolute(), f"Did not get an absolute path: {path}\n" \
+                               f"Please give absolute paths to prevent populating the working directory."
 
     # https://stackoverflow.com/a/60281933/315168
     lock_file = path.parent / (path.name + '.lock')
 
     lock = FileLock(lock_file, timeout=timeout)
     with lock:
-
         yield
