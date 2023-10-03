@@ -596,13 +596,17 @@ def wait_other_writers(path: Path | str, timeout=120):
     .. code-block:: python
 
         import urllib
+        import tempfile
 
         import pytest
         import pandas as pd
 
         @pytest.fixture()
         def my_cached_test_data_frame() -> pd.DataFrame:
-            path = Path("/tmp/shared_test_data.parquet")
+
+            # Al tests use a cached dataset stored in the /tmp directory
+            path = os.path.join(tempfile.gettempdir(), "my_shared_data.parquet")
+
             with wait_other_writers(path):
 
                 # Read result from the previous writer
@@ -627,7 +631,7 @@ def wait_other_writers(path: Path | str, timeout=120):
     assert isinstance(path, Path), f"Not Path object: {path}"
 
     assert path.is_absolute(), f"Did not get an absolute path: {path}\n" \
-                               f"Please give absolute paths to prevent populating the working directory."
+                               f"Please use absolute paths for lock files to prevent polluting the local working directory."
 
     # https://stackoverflow.com/a/60281933/315168
     lock_file = path.parent / (path.name + '.lock')
