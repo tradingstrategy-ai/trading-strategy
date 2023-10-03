@@ -35,8 +35,10 @@ jobs:
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction -E qstrader -E direct-feed
+      run: |
+        poetry install --all-extras --no-interaction
     - name: Run test scripts
-      run: poetry run pytest --tb=native
+      run: |
+        poetry run pytest --tb=native -n auto
       env:
         TRADING_STRATEGY_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}
