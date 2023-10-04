@@ -1,6 +1,10 @@
-# 0.20.6
+# Current
 
+- Lending universe construction examples
+- Add: `filter_for_base_tokens()`
+- Add: `filter_for_chain()`
 - Add: `DEXPair.get_base_token()` and `DEXPair.get_quote_token()`
+- Add: `LendingReserveUniverse.can_leverage(token)`
 
 # 0.20.5
 

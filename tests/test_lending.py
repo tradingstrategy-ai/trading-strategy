@@ -254,9 +254,9 @@ def test_lending_universe_construction(persistent_test_client: Client):
     # - Available assets in the lending protocols
     # - Asset we can trade
     lending_reserves = client.fetch_lending_reserve_universe()
-    pairs_df = filter_for_base_tokens(pairs_df, lending_reserves.get_asset_addresses())
+    lending_only_pairs_df = filter_for_base_tokens(pairs_df, lending_reserves.get_asset_addresses())
 
-    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+    pair_universe = PandasPairUniverse(lending_only_pairs_df, exchange_universe=exchange_universe)
 
     # Lending reserves have around ~320 individual trading pairs on Polygon across different DEXes
     assert 1 < pair_universe.get_count() < 1_000
@@ -265,7 +265,8 @@ def test_lending_universe_construction(persistent_test_client: Client):
     matic_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "WMATIC", "USDC"))
 
     # Random token not in the Aave v3 supported reserves
-    bob_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "BOB", "USDC"))
+    full_pair_universe =  PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+    bob_usdc = full_pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "BOB", "USDC"))
 
     assert lending_reserves.can_leverage(eth_usdc.get_base_token())
     assert lending_reserves.can_leverage(matic_usdc.get_base_token())
