@@ -2,7 +2,7 @@ from enum import Enum
 from datetime import datetime
 
 from dataclasses import dataclass, field
-from typing import TypeAlias, Tuple, Collection, Iterator, Dict
+from typing import TypeAlias, Tuple, Collection, Iterator, Dict, Set
 
 from dataclasses_json import dataclass_json, config
 
@@ -195,6 +195,46 @@ class LendingReserveUniverse:
     to the data primary keys.
 
     For the usage see :py:meth:`resolve_lending_reserve`.
+
+    Example how to create:
+
+    .. code-block:: python
+
+        exchange_universe = client.fetch_exchange_universe()
+
+        quote_tokens = {
+            "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",  # USDC polygon
+            "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",  # USDT polygon
+        }
+
+        pairs_df = client.fetch_pair_universe().to_pandas()
+
+        # Find out all volatile pairs traded against USDC and USDT on Polygon
+        pairs_df = filter_for_chain(pairs_df, ChainId.polygon)
+        pairs_df = filter_for_stablecoins(pairs_df, StablecoinFilteringMode.only_volatile_pairs)
+        pairs_df = filter_for_quote_tokens(pairs_df, quote_tokens)
+
+        # Create lending universe and trading universe with the cross section of
+        # - Available assets in the lending protocols
+        # - Asset we can trade
+        lending_reserves = client.fetch_lending_reserve_universe()
+        pairs_df = filter_for_base_tokens(pairs_df, lending_reserves.get_asset_addresses())
+
+        pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+        # Lending reserves have around ~320 individual trading pairs on Polygon across different DEXes
+        assert 1 < pair_universe.get_count() < 1_000
+
+        eth_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "WETH", "USDC"))
+        matic_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "WMATIC", "USDC"))
+
+        # Random token not in the Aave v3 supported reserves
+        bob_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "BOB", "USDC"))
+
+        assert lending_reserves.can_leverage(eth_usdc.get_base_token())
+        assert lending_reserves.can_leverage(matic_usdc.get_base_token())
+        assert not lending_reserves.can_leverage(bob_usdc.get_base_token())
+
     """
 
     #: Reserve ID -> Reserve data mapping
@@ -300,6 +340,26 @@ class LendingReserveUniverse:
 
         raise UnknownLendingReserve(f"Could not find lending reserve {reserve_decription}. We have {len(self.reserves)} reserves loaded.")
 
+    def get_asset_addresses(self) -> Set[NonChecksummedAddress]:
+        """Get all the token addresses in this dataset.
+
+        A shortcut method.
+
+        :return:
+            Set of all assets in all lending reserves.
+        """
+        return {a.asset_address for a in self.reserves.values()}
+
+    def can_leverage(self, token: Token) -> bool:
+        """Can we go short/long on a specific token."""
+        try:
+            self.get_by_chain_and_address(
+                token.chain_id,
+                token.address,
+            )
+            return True
+        except UnknownLendingReserve:
+            return False
 
 @dataclass_json
 @dataclass

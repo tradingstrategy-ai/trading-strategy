@@ -8,6 +8,8 @@ import pandas as pd
 import pytest
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.pair import filter_for_chain, filter_for_quote_tokens, StablecoinFilteringMode, filter_for_stablecoins, PandasPairUniverse, \
+    filter_for_base_tokens
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.lending import LendingCandleType, LendingReserveUniverse, LendingProtocolType, UnknownLendingReserve, LendingReserve, LendingCandleUniverse
@@ -204,7 +206,7 @@ def test_client_fetch_lending_candles_for_lending_universe(persistent_test_clien
 def test_get_rates_by_reserve(persistent_test_client: Client):
     """Get all rates for a single reserve by description."""
 
-    client= persistent_test_client
+    client = persistent_test_client
     universe = client.fetch_lending_reserve_universe()
 
     usdt_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDT")
@@ -227,6 +229,48 @@ def test_get_rates_by_reserve(persistent_test_client: Client):
     # See above
     assert usdc_variable_borrow["open"][pd.Timestamp("2023-01-01")] == pytest.approx(1.836242)
     assert usdc_variable_borrow["close"][pd.Timestamp("2023-01-01")] == pytest.approx(1.780513)
+
+
+def test_lending_universe_construction(persistent_test_client: Client):
+    """Construct lending universe with various filters."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+
+    quote_tokens = {
+        "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",  # USDC polygon
+        "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",  # USDT polygon
+    }
+
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Find out all volatile pairs traded against USDC and USDT on Polygon
+    pairs_df = filter_for_chain(pairs_df, ChainId.polygon)
+    pairs_df = filter_for_stablecoins(pairs_df, StablecoinFilteringMode.only_volatile_pairs)
+    pairs_df = filter_for_quote_tokens(pairs_df, quote_tokens)
+
+    # Create lending universe and trading universe with the cross section of
+    # - Available assets in the lending protocols
+    # - Asset we can trade
+    lending_reserves = client.fetch_lending_reserve_universe()
+    pairs_df = filter_for_base_tokens(pairs_df, lending_reserves.get_asset_addresses())
+
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    # Lending reserves have around ~320 individual trading pairs on Polygon across different DEXes
+    assert 1 < pair_universe.get_count() < 1_000
+
+    eth_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "WETH", "USDC"))
+    matic_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "WMATIC", "USDC"))
+
+    # Random token not in the Aave v3 supported reserves
+    bob_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "BOB", "USDC"))
+
+    assert lending_reserves.can_leverage(eth_usdc.get_base_token())
+    assert lending_reserves.can_leverage(matic_usdc.get_base_token())
+    assert not lending_reserves.can_leverage(bob_usdc.get_base_token())
+
 
 
 

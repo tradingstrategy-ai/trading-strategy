@@ -1,3 +1,7 @@
+# 0.20.6
+
+- Add: `DEXPair.get_base_token()` and `DEXPair.get_quote_token()`
+
 # 0.20.5
 
 - Add concurrent write control to `CachedHTTPTransport` to allow

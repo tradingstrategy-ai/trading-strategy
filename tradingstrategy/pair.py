@@ -593,6 +593,24 @@ class DEXPair:
         """Get human description for this pair."""
         return (self.chain_id, self.exchange_slug, self.base_token_symbol, self.quote_token_symbol, self.fee)
 
+    def get_base_token(self) -> Token:
+        """Return token class presentation of base token in this trading pair."""
+        return Token(
+            chain_id=self.chain_id,
+            symbol=self.base_token_symbol,
+            address=self.base_token_address,
+            decimals=self.base_token_decimals,
+        )
+
+    def get_quote_token(self) -> Token:
+        """Return token class presentation of quote token in this trading pair."""
+        return Token(
+            chain_id=self.chain_id,
+            symbol=self.quote_token_symbol,
+            address=self.quote_token_address,
+            decimals=self.quote_token_decimals,
+        )
+
 
 class PandasPairUniverse:
     """A pair universe implementation that is created from Pandas dataset.
@@ -1534,7 +1552,72 @@ def filter_for_exchanges(pairs: pd.DataFrame, exchanges: Collection[Exchange]) -
     return our_pairs
 
 
-def filter_for_quote_tokens(pairs: pd.DataFrame, quote_token_addresses: Union[List[str], Set[str]]) -> pd.DataFrame:
+def filter_for_base_tokens(
+    pairs: pd.DataFrame,
+    base_token_addresses: List[str] | Set[str]
+) -> pd.DataFrame:
+    """Filter dataset so that it only contains data for the trading pairs that have a certain base token.
+
+    Useful as a preprocess step for creating :py:class:`tradingstrategy.lending.LendingUniverse`
+
+    Example:
+
+    .. code-block:: python
+
+        client = persistent_test_client
+
+        exchange_universe = client.fetch_exchange_universe()
+
+        quote_tokens = {
+            "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",  # USDC polygon
+            "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",  # USDT polygon
+        }
+
+        pairs_df = client.fetch_pair_universe().to_pandas()
+
+        # Find out all volatile pairs traded against USDC and USDT on Polygon
+        pairs_df = filter_for_chain(pairs_df, ChainId.polygon)
+        pairs_df = filter_for_stablecoins(pairs_df, StablecoinFilteringMode.only_volatile_pairs)
+        pairs_df = filter_for_quote_tokens(pairs_df, quote_tokens)
+
+        # Create lending universe and trading universe with the cross section of
+        # - Available assets in the lending protocols
+        # - Asset we can trade
+        lending_reserves = client.fetch_lending_reserve_universe()
+        pairs_df = filter_for_base_tokens(pairs_df, lending_reserves.get_asset_addresses())
+
+        pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+        # Lending reserves have around ~320 individual trading pairs on Polygon across different DEXes
+        assert 1 < pair_universe.get_count() < 1_000
+
+        eth_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "WETH", "USDC"))
+
+    :param quote_token_addresses:
+        List of Ethereum addresses of the tokens.
+
+        Lowercased, non-checksummed.
+
+    :return:
+        DataFrame with trading pairs filtered to match quote token condition
+    """
+    assert type(base_token_addresses) in (list, set), f"Received: {type(base_token_addresses)}: {base_token_addresses}"
+
+    for addr in base_token_addresses:
+        assert addr == addr.lower(), f"Address was not lowercased {addr}"
+
+    our_pairs: pd.DataFrame = pairs.loc[
+        (pairs['token0_address'].isin(base_token_addresses) & (pairs['token0_symbol'] == pairs['base_token_symbol'])) |
+        (pairs['token1_address'].isin(base_token_addresses) & (pairs['token1_symbol'] == pairs['base_token_symbol']))
+    ]
+
+    return our_pairs
+
+
+def filter_for_quote_tokens(
+        pairs: pd.DataFrame,
+        quote_token_addresses: List[str] | Set[str]
+) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs that have a certain quote tokens.
 
     Useful as a preprocess step for creating :py:class:`tradingstrategy.candle.GroupedCandleUniverse`
@@ -1542,7 +1625,34 @@ def filter_for_quote_tokens(pairs: pd.DataFrame, quote_token_addresses: Union[Li
 
     You might, for example, want to construct a trading universe where you have only BUSD pairs.
 
-    :param quote_token_addresses: List of Ethereum addresses of the tokens - most be lowercased, as Ethereum addresses in our raw data are.
+    Example:
+
+    .. code-block:: python
+
+        exchange_universe = client.fetch_exchange_universe()
+
+        quote_tokens = {
+            "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",  # USDC polygon
+            "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",  # USDT polygon
+        }
+
+        pairs_df = client.fetch_pair_universe().to_pandas()
+
+        # Find out all volatile pairs traded against USDC and USDT on Polygon
+        pairs_df = filter_for_chain(pairs_df, ChainId.polygon)
+        pairs_df = filter_for_stablecoins(pairs_df, StablecoinFilteringMode.only_volatile_pairs)
+        pairs_df = filter_for_quote_tokens(pairs_df, quote_tokens)
+
+        pairs_df = filter_for_quote_tokens(pairs_df, lending_reserves.get_asset_addresses())
+        pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    :param quote_token_addresses:
+        List of Ethereum addresses of the tokens.
+
+        Lowercased, non-checksummed.
+
+    :return:
+        DataFrame with trading pairs filtered to match quote token condition
     """
     assert type(quote_token_addresses) in (list, set), f"Received: {type(quote_token_addresses)}: {quote_token_addresses}"
 
@@ -1558,9 +1668,13 @@ def filter_for_quote_tokens(pairs: pd.DataFrame, quote_token_addresses: Union[Li
 
 
 class StablecoinFilteringMode(enum.Enum):
-    """How to filter pairs in stablecoin filtering."""
+    """How to filter pairs in stablecoin filtering.
+
+    See :py:func:`filter_for_stablecoins`.
+    """
     only_stablecoin_pairs = "only_stablecoin_pairs"
     only_volatile_pairs = "only_volatile_pairs"
+    all_pairs = "all_pairs"
 
 
 def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -> pd.DataFrame:
@@ -1570,8 +1684,14 @@ def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -
     Trading stablecoin to another does not make sense, unless you are doing high volume arbitration strategies.
 
     Uses internal stablecoin list from :py:mod:`tradingstrategy.stablecoin`.
+
+    - For code example see :py:func:`filter_for_quote_tokens`
+    - See also :py:class:`StablecoinFilteringMode`
     """
     assert isinstance(mode, StablecoinFilteringMode)
+
+    if mode == StablecoinFilteringMode.all_pairs:
+        return pairs
 
     if mode == StablecoinFilteringMode.only_stablecoin_pairs:
         our_pairs: pd.DataFrame = pairs.loc[
@@ -1583,6 +1703,19 @@ def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -
             ~(pairs['token0_symbol'].isin(ALL_STABLECOIN_LIKE) & pairs['token1_symbol'].isin(ALL_STABLECOIN_LIKE))
         ]
     return our_pairs
+
+
+def filter_for_chain(
+    pairs: pd.DataFrame,
+    chain_id: ChainId,
+):
+    """Extract trading pairs for specific blockchain.
+
+    - For code example see :py:func:`filter_for_quote_tokens`
+    """
+    assert isinstance(chain_id, ChainId)
+    return pairs.loc[pairs["chain_id"] == chain_id.value]
+
 
 def resolve_pairs_based_on_ticker(
     df: pd.DataFrame,
