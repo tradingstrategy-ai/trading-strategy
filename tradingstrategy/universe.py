@@ -46,16 +46,18 @@ class Universe:
     #: List of blockchains the strategy trades on
     chains: Set[ChainId]
 
-    #: List of exchanges the strategy trades on.
+    #: All the exchanges for this strategy
     #:
-    #: TODO: Do not use this - will be be deprecated in the favour of :py:attr:`exchange_universe`
-    exchanges: Set[Exchange]
+    #: Presented with a capsulated :py:class:`ExchangeUniverse` that
+    #: offers some convience methods.
+    #:
+    exchange_universe: Optional[ExchangeUniverse] = None
 
     #: List of trading pairs the strategy trades on
-    pairs: PandasPairUniverse
+    pairs: Optional[PandasPairUniverse] = None
 
     #: Historical candles for the decision making
-    candles: GroupedCandleUniverse
+    candles: Optional[GroupedCandleUniverse] = None
 
     #: Liquidity data granularity
     liquidity_time_bucket: Optional[TimeBucket] = None
@@ -74,17 +76,33 @@ class Universe:
     #:
     resampled_liquidity: Optional[ResampledLiquidityUniverse] = None
 
-    #: All the exchanges for this strategy
-    #:
-    #: Presented with a capsulated :py:class:`ExchangeUniverse` that
-    #: offers some convience methods.
-    #:
-    #: TODO: This is a new attribute - not available through all code paths yet.
-    exchange_universe: Optional[ExchangeUniverse] = None
-
     #: Lending rates
     #:
     lending_candles: Optional[LendingCandleUniverse] = None
+
+    #: List of exchanges the strategy trades on.
+    #:
+    #: TODO: Do not use this - will be be deprecated in the favour of :py:attr:`exchange_universe`
+    exchanges: Optional[Set[Exchange]] = None
+
+    def __post_init__(self):
+        """Check that the constructor was called correctly."""
+        if self.candles is not None:
+            assert isinstance(self.candles, GroupedCandleUniverse), f"Expected GroupedCandleUniverse, got {self.candles.__class__}"
+
+        if self.pairs is not None:
+            assert isinstance(self.pairs, PandasPairUniverse), f"Expected PandasPairUniverse, got {self.pairs.__class__}"
+
+        if self.exchanges is not None:
+            # TODO: Legacy
+            assert isinstance(self.exchanges, dict), f"Expected dict, got {self.exchanges.__class__}"
+
+        if self.exchange_universe is not None:
+            # TODO: Legacy
+            assert isinstance(self.exchange_universe, ExchangeUniverse), f"Expected dict, got {self.exchanges.__class__}"
+
+        if self.lending_candles is not None:
+            assert isinstance(self.lending_candles, LendingCandleUniverse), f"Expected LendingCandleUniverse, got {self.exchanges.__class__}"
 
     @property
     def lending_reserves(self) -> LendingReserveUniverse:

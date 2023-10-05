@@ -6,7 +6,9 @@
 - Add: `DEXPair.get_base_token()` and `DEXPair.get_quote_token()`
 - Add: `LendingReserveUniverse.can_leverage(token)`
 - Add: `LendingReserveUniverse.limit_to_chain()`
+- API update: Make all `Universe` members optional, as we can have lending only universes 
 - API update: `get_rates_by_reserve()` can take a lending reserve object as an argument
+- API update: `Universe` checks constructor argument types are correct
 
 # 0.20.5
 
