@@ -17,7 +17,7 @@ See also
 import datetime
 import logging
 import warnings
-from typing import Optional, Tuple, Iterable
+from typing import Optional, Tuple, Iterable, cast
 
 import numpy as np
 import pandas as pd
@@ -26,8 +26,7 @@ from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.forward_fill import forward_fill
-from tradingstrategy.utils.time import assert_compatible_timestamp
-
+from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +48,8 @@ class PairGroupedUniverse:
     - OHLCV candles
 
     - Liquidity candles
+
+    - Lending reserves (one PairGroupedUniverse per each metric like supply APR and borrow APR)
 
     The input :py:class:`pd.DataFrame` is sorted by default using `timestamp`
     column and then made this column as an index. This is not optimised (not inplace).
@@ -463,6 +464,172 @@ class PairGroupedUniverse:
                                       f"If you want to access empty or not enough data, set raise_on_not_enough_data=False.")
 
         return df
+
+    def get_single_value(
+        self,
+        asset_id: PrimaryKey,
+        when: pd.Timestamp | datetime.datetime,
+        data_lag_tolerance: pd.Timedelta,
+        kind="close",
+        asset_name: str | None=None,
+        link: str | None=None,
+    ) -> Tuple[float, pd.Timedelta]:
+        """Get a single value for a single pair/asset at a specific point of time.
+
+        The data may be sparse data. There might not be sample available in the same time point or
+        immediate previous time point. In this case the method looks back for the previous
+        data point within `tolerance` time range.
+
+        This method should be relative fast and optimised for any price, volume and liquidity queries.
+
+        Example:
+
+        .. code-block:: python
+
+            # TODO
+
+        :param asset_id:
+            Trading pair id
+
+        :param when:
+            Timestamp to query
+
+        :param kind:
+            One of OHLC data points: "open", "close", "low", "high"
+
+        :param tolerance:
+            If there is no liquidity sample available at the exact timepoint,
+            look to the past to the get the nearest sample.
+            For example if candle time interval is 5 minutes and look_back_timeframes is 10,
+            then accept a candle that is maximum of 50 minutes before the timepoint.
+
+        :param asset_name:
+            Used in exception messages.
+
+            If not given use ``asset_id``.
+
+        :param link:
+            Link to the asset page.
+
+            Used in exception messages.
+
+            If not given use ``<link unavailable>``.
+
+        :return:
+            Return (value, delay) tuple.
+
+            We always return a value. In the error cases an exception is raised.
+            The delay is the timedelta between the wanted timestamp
+            and the actual timestamp of the sampled value.
+
+            Candles are always timestamped by their opening.
+
+        :raise NoDataAvailable:
+            There were no samples available with the given condition.
+
+        """
+
+        assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
+
+        assert asset_id is not None, "asset_id must be given"
+
+        if isinstance(when, datetime.datetime):
+            when = pd.Timestamp(when)
+
+        if not asset_name:
+            asset_id = str(asset_name)
+
+        if not link:
+            link = "<link unavailable>"
+
+        last_allowed_timestamp = when - data_lag_tolerance
+
+        candles_per_pair = self.get_samples_by_pair(asset_id)
+
+        if candles_per_pair is None:
+            raise NoDataAvailable(
+                f"No candle data available for asset {asset_name}, asset id {asset_id}\n"
+                f"Trading data pair link: {link}")
+
+        samples_per_kind = candles_per_pair[kind]
+
+        # Fast path
+        try:
+            sample = samples_per_kind[when]
+            return sample, pd.Timedelta(seconds=0)
+        except KeyError:
+            pass
+
+        #
+        # No direct hit. Either sparse data or data not available before this.
+        # Lookup just got complicated,
+        # like our relationship on Facebook.
+        #
+
+        # The indexes we can have are
+        # - MultiIndex (pair id, timestamp) - if multiple trading pairs present
+        # - DatetimeIndex - if single trading pair present
+
+        if isinstance(candles_per_pair.index, pd.MultiIndex):
+            timestamp_index = cast(pd.DatetimeIndex, candles_per_pair.index.get_level_values(1))
+        elif isinstance(candles_per_pair.index, pd.DatetimeIndex):
+            timestamp_index = candles_per_pair.index
+        else:
+            raise NotImplementedError(f"Does not know how to handle index {candles_per_pair.index}")
+
+        # TODO: Do we need to cache the indexer... does it has its own storage?
+        ffill_indexer = timestamp_index.get_indexer([when], method="ffill")
+
+        before_match_iloc = ffill_indexer[0]
+
+        if before_match_iloc < 0:
+            # We get -1 if there are no timestamps where the forward fill could start
+            first_sample_timestamp = timestamp_index[0]
+            raise NoDataAvailable(
+                f"Could not find any candles for pair {asset_name}, value kind '{kind}' at or before {when}\n"
+                f"- Pair has {len(samples_per_kind)} samples\n"
+                f"- First sample is at {first_sample_timestamp}\n"
+                f"- Trading pair page link {link}\n"
+            )
+        before_match = timestamp_index[before_match_iloc]
+
+        latest_or_equal_sample = candles_per_pair.iloc[before_match_iloc]
+
+        # Check if the last sample before the cut off is within time range our tolerance
+        candle_timestamp = before_match
+
+        # Internal sanity check
+        distance = when - candle_timestamp
+        assert distance >= ZERO_TIMEDELTA, f"Somehow we managed to get a candle timestamp {candle_timestamp} that is newer than asked {when}"
+
+        if candle_timestamp >= last_allowed_timestamp:
+            # Return the chosen price column of the sample,
+            # because we are within the tolerance
+            return latest_or_equal_sample[kind], distance
+
+        # We have data, but we are out of tolerance
+        first_sample_timestamp = timestamp_index[0]
+        last_sample_timestamp = timestamp_index[-1]
+
+        raise NoDataAvailable(
+            f"Could not find candle data for pair {asset_name}\n"
+            f"- Column '{kind}'\n"
+            f"- At {when}\n"
+            f"- Lower bound of time range tolerance {last_allowed_timestamp}\n"
+            f"\n"
+            f"- Data lag tolerance is set to {data_lag_tolerance}\n"
+            f"- The pair has {len(samples_per_kind)} candles between {first_sample_timestamp} - {last_sample_timestamp}\n"
+            f"\n"
+            f"Data unavailability might be due to several reasons:\n"
+            f"\n"
+            f"- You are handling sparse data - trades have not been made or the blockchain was halted during the price look-up period.\n"
+            f"  Try to increase 'tolerance' argument time window.\n"
+            f"- You are asking historical data when the trading pair was not yet live.\n"
+            f"- Your backtest is using indicators that need more lookback buffer than you are giving to them.\n"
+            f"  Try set your data load range earlier or your backtesting starting later.\n"
+            f"\n",
+            f"Trading pair page link: {link}"
+            )
 
     def forward_fill(
         self,

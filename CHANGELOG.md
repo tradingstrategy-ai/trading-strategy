@@ -1,10 +1,13 @@
 # Current
 
 - Add: `DEXPair.get_link()` to get a direct link to the trading pair page
+- Add: `LendingReserve.get_link()` to get a direct link to the trading pair page
 - Add: `DEXPair.is_tradeable()` for quick checks if a pair has decent volume
-- Add: `PandasPairUniverse.get_exchange_for_pair`
+- Add: `PandasPairUniverse.get_exchange_for_pair()`
+- Add: `LendingMetricUniverse.get_single_value()`
 - Add: Aave Ghost (GHST) stablecoin
 - Add: Jarvis Synthetic Euro (jEUR) stablecoin
+- Add: `format_links_for_html_output()` helper to work with `DataFrame` objects
 - API update: `get_pair_by_human_description()` can have exchange slug set to `None`
   matching the best trading pair across with the lowest fee across all DEXes
 - API update: `get_closest_pair(pair)` can now now take `DEXPair` instead of a primary key

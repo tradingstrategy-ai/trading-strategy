@@ -8,6 +8,8 @@ import datetime
 
 import pandas as pd
 
+#: Pre-instiated no difference pd.Tiemdelta for optimisation
+ZERO_TIMEDELTA = pd.Timedelta(0)
 
 def is_compatible_timestamp(ts: pd.Timestamp) -> bool:
     """Ensure Pandas Timestamp is naive.
@@ -32,3 +34,5 @@ def to_int_unix_timestamp(dt: datetime.datetime) -> int:
     """Get datetime as UTC seconds since epoch."""
     # https://stackoverflow.com/a/5499906/315168
     return int(calendar.timegm(dt.utctimetuple()))
+
+

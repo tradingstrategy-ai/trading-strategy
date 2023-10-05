@@ -14,8 +14,9 @@ For more information about candles see :term:`candle` in glossary.
 """
 
 import datetime
+import warnings
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, TypedDict, Collection, Iterable, cast
+from typing import List, Optional, Tuple, TypedDict, Iterable, cast
 
 import pandas as pd
 import pyarrow as pa
@@ -24,14 +25,9 @@ from dataclasses_json import dataclass_json
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey, NonChecksummedAddress, \
-    RawChainId
+from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey, NonChecksummedAddress
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
-
-
-# Preconstructed pd.Tiemdelta for optimisation
-_ZERO_TIMEDELTA = pd.Timedelta(0)
-
+from tradingstrategy.utils.time import ZERO_TIMEDELTA
 
 class CandleSampleUnavailable(Exception):
     """We tried to look up price for a trading pair, but count not find a candle close to the timestamp."""
@@ -566,7 +562,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         # Internal sanity check
         distance = when - candle_timestamp
-        assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a candle timestamp {candle_timestamp} that is newer than asked {when}"
+        assert distance >= ZERO_TIMEDELTA, f"Somehow we managed to get a candle timestamp {candle_timestamp} that is newer than asked {when}"
 
         if candle_timestamp >= last_allowed_timestamp:
             # Return the chosen price column of the sample,
