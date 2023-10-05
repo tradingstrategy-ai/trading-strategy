@@ -13,6 +13,7 @@ from tradingstrategy.pair import filter_for_chain, filter_for_quote_tokens, Stab
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.lending import LendingCandleType, LendingReserveUniverse, LendingProtocolType, UnknownLendingReserve, LendingReserve, LendingCandleUniverse
+from tradingstrategy.utils.time import ZERO_TIMEDELTA
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +274,33 @@ def test_lending_universe_construction(persistent_test_client: Client):
     assert not lending_reserves.can_leverage(bob_usdc.get_base_token())
 
 
+def test_get_single_rate(persistent_test_client: Client):
+    """Get a single historical rate."""
 
+    client = persistent_test_client
+    lending_reserves = client.fetch_lending_reserve_universe()
 
+    usdt_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDT")
+    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
 
+    lending_reserves = lending_reserves.limit([usdt_desc, usdc_desc])
 
+    lending_candle_type_map = client.fetch_lending_candles_for_universe(
+        lending_reserves,
+        TimeBucket.d1,
+        start_time=pd.Timestamp("2023-01-01"),
+        end_time=pd.Timestamp("2023-02-01"),
+    )
+
+    lending_candles = LendingCandleUniverse(lending_candle_type_map, lending_reserves)
+
+    usdc_reserve = lending_reserves.resolve_lending_reserve(usdc_desc)
+
+    rate, lag = lending_candles.variable_borrow_apr.get_single_rate(
+        usdc_reserve,
+        pd.Timestamp("2023-01-01"),
+        data_lag_tolerance=pd.Timedelta(days=1),
+        kind="open",
+    )
+    assert rate == pytest.approx(1.836242)
+    assert lag == ZERO_TIMEDELTA
