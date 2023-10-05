@@ -96,8 +96,13 @@ def format_links_for_html_output(df: pd.DataFrame, link_columns: Collection[str]
 
     - Normal links are too long to display
 
-    - Only applicable to HTML output, not terminal
+    - Only applicable to HTML output, in a not terminal
 
+    :param link_columns:
+        Columns where the value is a URL
+
+    :return:
+        New DataFrame where URLs have been converted to links with "View" label
 
     """
     def make_clickable(val):
@@ -105,7 +110,6 @@ def format_links_for_html_output(df: pd.DataFrame, link_columns: Collection[str]
         return '<a target="_blank" href="{}">View</a>'.format(val)
 
     if get_notebook_output_mode() == JupyterOutputMode.html:
-        print("We have HTML output")
         for c in link_columns:
             df[c] = df[c].apply(make_clickable)
     else:

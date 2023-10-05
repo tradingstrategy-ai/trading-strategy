@@ -539,6 +539,37 @@ class LendingMetricUniverse(PairGroupedUniverse):
         See :py:meth:`tradingstrategy.utils.groupeduniverse.PairGroupedUniverse.get_single_value`
         for documentation.
 
+        Example:
+
+        .. code-block:: python
+
+            lending_reserves = client.fetch_lending_reserve_universe()
+
+            usdt_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDT")
+            usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+
+            lending_reserves = lending_reserves.limit([usdt_desc, usdc_desc])
+
+            lending_candle_type_map = client.fetch_lending_candles_for_universe(
+                lending_reserves,
+                TimeBucket.d1,
+                start_time=pd.Timestamp("2023-01-01"),
+                end_time=pd.Timestamp("2023-02-01"),
+            )
+
+            lending_candles = LendingCandleUniverse(lending_candle_type_map, lending_reserves)
+
+            usdc_reserve = lending_reserves.resolve_lending_reserve(usdc_desc)
+
+            rate, lag = lending_candles.variable_borrow_apr.get_single_rate(
+                usdc_reserve,
+                pd.Timestamp("2023-01-01"),
+                data_lag_tolerance=pd.Timedelta(days=1),
+                kind="open",
+            )
+            assert rate == pytest.approx(1.836242)
+            assert lag == ZERO_TIMEDELTA
+
         :return:
             Tuple (lending rate, data lag)
         """

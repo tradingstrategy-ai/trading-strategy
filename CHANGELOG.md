@@ -11,9 +11,10 @@
 - API update: `get_pair_by_human_description()` can have exchange slug set to `None`
   matching the best trading pair across with the lowest fee across all DEXes
 - API update: `get_closest_pair(pair)` can now now take `DEXPair` instead of a primary key
-  as a lookup parameter and also display the pair name in error messages
+  as a lookup parameter and also display the pair name in error message
+- Various exception message improvements
 
-# 0.20.7
+# 0.20.8
 
 - Add: Progress bar to lending rate download
 - Fix: JSONL download progress bar was missing the last refresh, leaving the progress bar a bit under 100%
