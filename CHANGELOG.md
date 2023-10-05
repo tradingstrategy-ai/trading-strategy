@@ -1,5 +1,6 @@
-# Current
+# 0.20.6
 
+- Multiple API changes to make working with lending easier
 - Lending universe construction examples
 - Add: `filter_for_base_tokens()`
 - Add: `filter_for_chain()`
@@ -9,6 +10,7 @@
 - API update: Make all `Universe` members optional, as we can have lending only universes 
 - API update: `get_rates_by_reserve()` can take a lending reserve object as an argument
 - API update: `Universe` checks constructor argument types are correct
+- Deprecate: Useless methods on `Universe`
 
 # 0.20.5
 

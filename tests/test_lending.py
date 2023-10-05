@@ -140,7 +140,7 @@ def test_limit_lending_reserve_universe(persistent_test_client):
         (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
     ])
 
-    assert limited_universe.get_size() == 2
+    assert limited_universe.get_count() == 2
 
 
 def test_client_fetch_lending_candles_for_lending_universe(persistent_test_client: Client):

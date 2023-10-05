@@ -245,8 +245,12 @@ class LendingReserveUniverse:
     def __repr__(self):
         return f"<LendingReserveUniverse with {len(self.reserves)} reserves>"
 
-    def get_size(self) -> int:
-        """How many reserves we have."""
+    def get_count(self) -> int:
+        """How many reserves we have.
+
+        :return:
+            Number of lending reserves in the trading universe
+        """
         return len(self.reserves)
 
     def iterate_reserves(self) -> Iterator[LendingReserve]:
@@ -270,7 +274,7 @@ class LendingReserveUniverse:
     ) -> LendingReserve | None:
         """Fetch a specific lending reserve."""
 
-        assert isinstance(chain_id, ChainId)
+        assert isinstance(chain_id, ChainId), f"Expected chain_id, got {chain_id.__class__}: {chain_id}"
 
         for reserve in self.reserves.values():
             if reserve.asset_symbol == token_symbol and reserve.chain_id == chain_id:

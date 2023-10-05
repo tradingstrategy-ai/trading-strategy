@@ -9,7 +9,7 @@ from collections import defaultdict
 import pandas as pd
 
 import datetime
-from typing import List, Optional, Dict, Set
+from typing import Optional, Dict, Set
 
 import requests
 import jsonlines
