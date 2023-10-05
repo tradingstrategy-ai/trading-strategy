@@ -1,6 +1,9 @@
 """Value formatting utilities."""
 
 import datetime
+from typing import Collection
+
+import pandas as pd
 
 
 def format_price(v: float) -> str:
@@ -34,3 +37,5 @@ def format_duration_days_hours_mins(d: datetime.timedelta) -> str:
             "" if int(hours) == 0 else str(int(hours)) + ' hours',
             "" if int(minutes) == 0 else str(int(minutes))  + ' mins'
         )
+
+

@@ -3,7 +3,7 @@
 import pytest
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.pair import PandasPairUniverse, DEXPair, DuplicatePair
+from tradingstrategy.pair import PandasPairUniverse, DEXPair, DuplicatePair, filter_for_chain
 
 
 # TODO: Needs rewrite
@@ -60,7 +60,6 @@ def test_dataset_create_pair_universe_conflict(logger, persistent_test_client: C
         duplicate_universe.get_by_symbols_safe("WETH", "USDC")
 
 
-
 def test_dataset_create_pair_universe_resolve_by_volume(logger, persistent_test_client: Client):
     """Resolve duplicate conflicts by volume"""
 
@@ -81,3 +80,31 @@ def test_dataset_create_pair_universe_resolve_by_volume(logger, persistent_test_
     assert pair.quote_token_symbol == "BUSD"
 
 
+def test_find_best_pair_pair_across_all_dexes(persistent_test_client: Client):
+    """Find the best pair across multiple DEXes."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+
+    # Create Polygon universe
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = filter_for_chain(pairs_df, ChainId.polygon)
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    eth_usdc_5bps = pair_universe.get_pair_by_human_description(
+        (ChainId.polygon, None, "WETH", "USDC"),
+    )
+
+    assert eth_usdc_5bps.exchange_slug == "uniswap-v3"
+    assert eth_usdc_5bps.fee == 5
+    assert eth_usdc_5bps.is_tradeable()
+
+    # Curve on QuickSwap
+    crv_usdc_30bps = pair_universe.get_pair_by_human_description(
+        (ChainId.polygon, None, "CRV", "USDC"),
+    )
+
+    assert crv_usdc_30bps.exchange_slug == "quickswap"
+    assert crv_usdc_30bps.fee == 30
+    assert not crv_usdc_30bps.is_tradeable()  # Dead pair

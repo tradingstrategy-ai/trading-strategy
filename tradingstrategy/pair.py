@@ -63,6 +63,7 @@ import enum
 import pprint
 import warnings
 from dataclasses import dataclass
+from types import NoneType
 from typing import Optional, List, Iterable, Dict, Union, Set, Tuple, TypeAlias, Collection
 
 import pandas as pd
@@ -77,7 +78,7 @@ from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType, ExchangeNotFoundError
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent, \
-    USDollarAmount, Slug
+    USDollarAmount, Slug, URL
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
@@ -134,7 +135,7 @@ class PairNotFoundError(DataNotFoundError):
             message = message + f" pair_id {pair_id}"
 
 
-        super().__init__(message + " found." + self.template)
+        super().__init__(message + " found. " + self.template)
 
 
 class DuplicatePair(Exception):
@@ -153,7 +154,7 @@ class DataDecodeFailed(Exception):
 #:
 #: - :py:data:`HumanReadableTradingPairDescription`
 
-FeelessPair: TypeAlias = Tuple[ChainId, str, str, str]
+FeelessPair: TypeAlias = Tuple[ChainId, str | None, str, str]
 
 #: Data needed to identify a trading pair with human description.
 #:
@@ -163,14 +164,14 @@ FeelessPair: TypeAlias = Tuple[ChainId, str, str, str]
 #:
 #: This is `(chain, exchange slug, base token, quote token, pool fee)`.c
 #:
-#: Pool fee is expressed as
+#: Pool fee is expressed as floating point. E.g. 0.0005 for 5 BPS fee.
 #:
 #: See also
 #:
 #: - :py:data:`HumanReadableTradingPairDescription`
 #:
 #:
-FeePair: TypeAlias = Tuple[ChainId, str, str, str, Percent]
+FeePair: TypeAlias = Tuple[ChainId, str | None, str, str, Percent]
 
 
 #: Shorthand method to identify trading pairs when written down by a human.
@@ -192,6 +193,13 @@ FeePair: TypeAlias = Tuple[ChainId, str, str, str, Percent]
 #:         (ChainId.ethereum, "uniswap-v3", "EUL", "WETH", 0.0100),  # Euler 100 bps fee
 #:         (ChainId.bsc, "pancakeswap-v2", "WBNB", "BUSD"),  # BNB
 #:         (ChainId.arbitrum, "camelot", "ARB", "WETH"),  # ARB
+#:
+#: For "best fee match" lookups you can also omit the exchange by setting it to null.
+#:
+#: .. code-block:: python
+#:
+#:     # Find any CRV-USDC pair across all DEXes on Polygon, pick one with the best fee tier
+#:     (ChainId.polygon, None, "CRV", "USDC"),
 #:
 #: See also
 #:
@@ -428,13 +436,22 @@ class DEXPair:
 
     @property
     def volume_30d(self) -> USDollarAmount:
-        """Denormalise trading volume last 30 days."""
-        vol = 0
-        if not isnan(self.buy_volume_30d):
-            vol += self.buy_volume_30d
+        """Denormalise trading volume last 30 days.
 
-        if not isnan(self.sell_volume_30d):
-            vol += self.sell_volume_30d
+        - Not an accurate figure, as this is based on rough 30 days
+          batch job
+
+        - Good enough for undertanding a trading pair is tradeable
+        """
+        vol = 0
+        buy_vol = self.buy_volume_30d or 0
+        sell_vol = self.sell_volume_30d or 0
+
+        if not isnan(buy_vol):
+            vol += buy_vol
+
+        if not isnan(sell_vol):
+            vol += sell_vol
         return vol
 
     @property
@@ -483,6 +500,30 @@ class DEXPair:
             return self.token0_decimals
         else:
             return self.token1_decimals
+
+    def is_tradeable(
+            self,
+            liquidity_threshold=None,
+            volume_threshold_30d=100_000.
+    ) -> bool:
+        """Can this pair be traded.
+
+        .. note ::
+
+            Liquidity threshold is TBD.
+
+        :param liquidity_threshold:
+            How much the trading pair pool needs to have liquidity
+            to be tradeable.
+
+        :param volume_threshold_30d:
+            How much montly volume the pair needs to have to be tradeable.
+
+            Only used if liquidity data is missing.
+        """
+
+        # Volume can be Nan as well
+        return (self.volume_30d or 0) >= volume_threshold_30d
 
     def get_ticker(self) -> str:
         """Return trading 'ticker'"""
@@ -610,6 +651,10 @@ class DEXPair:
             address=self.quote_token_address,
             decimals=self.quote_token_decimals,
         )
+
+    def get_link(self) -> URL:
+        """Get the trading pair link page on TradingStrategy.ai"""
+        return f"https://tradingstrategy.ai/trading-view/{self.chain_id.get_slug()}/{self.exchange_slug}/{self.pair_slug}"
 
 
 class PandasPairUniverse:
@@ -948,7 +993,7 @@ class PandasPairUniverse:
 
     def get_one_pair_from_pandas_universe(
             self,
-            exchange_id: PrimaryKey,
+            exchange_id: PrimaryKey | None,
             base_token: str,
             quote_token: str,
             fee_tier: Optional[Percent] = None,
@@ -979,6 +1024,11 @@ class PandasPairUniverse:
             print("BUSD address is", wbnb_busd_pair.quote_token_address)
             print("WBNB-BUSD pair contract address is", wbnb_busd_pair.address)
 
+        :param exchange_id:
+            The exchange internal id which we are looking up.
+
+            Set ``None`` to look all exchanges.
+
         :param fee_tier:
             Uniswap v3 and likes provide the same ticker  in multiple fee tiers.
 
@@ -1004,20 +1054,16 @@ class PandasPairUniverse:
 
         df = self.df
 
+        conditions = (df["base_token_symbol"] == base_token) & (df["quote_token_symbol"] == quote_token)
+
+        if exchange_id is not None:
+            conditions = conditions & (df["exchange_id"] == exchange_id)
+
         if fee_tier is not None:
             fee_bps = int(fee_tier * 10000)  # Convert to BPS
-            pairs: pd.DataFrame= df.loc[
-                (df["exchange_id"] == exchange_id) &
-                (df["base_token_symbol"] == base_token) &
-                (df["quote_token_symbol"] == quote_token) &
-                (df["fee"] == fee_bps)
-            ]
+            conditions = conditions & (df["fee"] == fee_bps)
 
-        else:
-            pairs: pd.DataFrame= df.loc[
-                (df["exchange_id"] == exchange_id) &
-                (df["base_token_symbol"] == base_token) &
-                (df["quote_token_symbol"] == quote_token)]
+        pairs: pd.DataFrame = df.loc[conditions]
 
         if len(pairs) > 1:
             if not pick_by_highest_vol:
@@ -1187,26 +1233,29 @@ class PandasPairUniverse:
         common_explanation = "Use pair description format (chain, exchange, base, quote) or (chain, exchange, base, quote, fee)"
 
         assert isinstance(chain_id, ChainId), f"Not ChainId: {chain_id}\n{common_explanation}"
-        assert type(exchange_slug) == str, f"Not exchange slug: {exchange_slug}\n{common_explanation}"
+        assert type(exchange_slug) in (str, NoneType), f"Not exchange slug: {exchange_slug}\n{common_explanation}"
         assert type(base_token) == str, f"Not base token string: {base_token}\n{common_explanation}"
         assert type(quote_token) == str, f"Not quote token string: {quote_token}\n{common_explanation}"
 
         if fee_tier is not None:
             assert (fee_tier >= 0) and (fee_tier <= 1), f"Received bad fee tier: {chain_id} {exchange_slug} {base_token} {quote_token}: {fee_tier}"
 
-        exchange = exchange_universe.get_by_chain_and_slug(chain_id, exchange_slug)
-        if exchange is None:
-            # Try to produce very helpful error message
-            if exchange_universe.get_exchange_count() == 1:
-                our_exchange_slug = exchange_universe.get_single().exchange_slug
-                exchange_message = f"The slug of the only exchange we have is {our_exchange_slug}."
-            else:
-                exchange_message = ""
+        if exchange_slug:
+            exchange = exchange_universe.get_by_chain_and_slug(chain_id, exchange_slug)
+            if exchange is None:
+                # Try to produce very helpful error message
+                if exchange_universe.get_exchange_count() == 1:
+                    our_exchange_slug = exchange_universe.get_single().exchange_slug
+                    exchange_message = f"The slug of the only exchange we have is {our_exchange_slug}."
+                else:
+                    exchange_message = ""
 
-            raise ExchangeNotFoundError(chain_id_name=chain_id.name, exchange_slug=exchange_slug, optional_extra_message=exchange_message)
+                raise ExchangeNotFoundError(chain_id_name=chain_id.name, exchange_slug=exchange_slug, optional_extra_message=exchange_message)
+        else:
+            exchange = None
 
         pair = self.get_one_pair_from_pandas_universe(
-            exchange.exchange_id,
+            exchange.exchange_id if exchange_slug else None,
             base_token,
             quote_token,
             fee_tier=fee_tier,
@@ -1220,6 +1269,21 @@ class PandasPairUniverse:
             raise PairNotFoundError(base_token=base_token, quote_token=quote_token, fee_tier=fee_tier, exchange_slug=exchange_slug)
 
         return pair
+
+    def get_exchange_for_pair(self, pair: DEXPair) -> Exchange:
+        """Get the exchange data on which a pair is trading.
+
+        :param pair:
+            Trading pair
+
+        :return:
+            Exchange instance.
+
+            Should always return a value as traind pairs cannot
+            exist without an exchange.
+        """
+        assert self.exchange_universe, "PandasPairUniverse.exchange_universe must be set in order to use this function"
+        return self.exchange_universe.get_by_id(pair.exchange_id)
 
     def create_parquet_load_filter(self, count_limit=10_000) -> List[Tuple]:
         """Returns a Parquet loading filter that contains pairs in this universe.
@@ -1752,9 +1816,9 @@ def filter_for_chain(
 
 def filter_for_exchange(
     pairs: pd.DataFrame,
-    exchange_slug: Slug,
+    exchange_slug: Slug | Set[Slug] | Tuple[Slug] | List[Slug],
 ):
-    """Extract trading pairs for specific exchange.
+    """Extract trading pairs for specific exchange(s).
 
     Example:
 
@@ -1763,9 +1827,18 @@ def filter_for_exchange(
         # Pick only pairs traded on Uniswap v3
         df = filter_for_exchange(df, "uniswap-v3")
 
+    With two exchanges:
+
+        # Pick only pairs traded on Uniswap v3 or Quickswap
+        df = filter_for_exchange(df, {"uniswap-v3", "quickswap"})
+
     """
-    assert isinstance(exchange_slug, str)
-    return pairs.loc[pairs["exchange_slug"] == exchange_slug]
+    if type(exchange_slug) == str:
+        return pairs.loc[pairs["exchange_slug"] == exchange_slug]
+    elif type(exchange_slug) in (tuple, set, list):
+        return pairs.loc[pairs["exchange_slug"].isin(exchange_slug)]
+    else:
+        raise AssertionError(f"Unsupported exchange slug filter: {exchange_slug.__class__}")
 
 
 def resolve_pairs_based_on_ticker(

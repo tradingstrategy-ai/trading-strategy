@@ -83,3 +83,7 @@ Slug: TypeAlias = str
 #: E.g. `USDC`
 #:
 TokenSymbol: TypeAlias = str
+
+#: URL as a string type
+#:
+URL: TypeAlias = str

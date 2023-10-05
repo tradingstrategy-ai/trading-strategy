@@ -1,7 +1,7 @@
 """Helpers to deal with Jupyter Notebook issues."""
 import enum
 import sys
-from typing import Callable
+from typing import Callable, Collection
 
 import pandas as pd
 from IPython import get_ipython
@@ -89,3 +89,26 @@ def is_pyodide() -> bool:
     `See Pyodide documentation <https://pyodide.org/en/stable/usage/faq.html#how-to-detect-that-code-is-run-with-pyodide>`__.
     """
     return sys.platform == 'emscripten'
+
+
+def format_links_for_html_output(df: pd.DataFrame, link_columns: Collection[str]) -> pd.DataFrame:
+    """Pandas DataFrame helper to format column link values as clicable.
+
+    - Normal links are too long to display
+
+    - Only applicable to HTML output, not terminal
+
+
+    """
+    def make_clickable(val):
+        # target _blank to open new window
+        return '<a target="_blank" href="{}">View</a>'.format(val)
+
+    if get_notebook_output_mode() == JupyterOutputMode.html:
+        print("We have HTML output")
+        for c in link_columns:
+            df[c] = df[c].apply(make_clickable)
+    else:
+        df = df.assign(**{c: "<in console>" for c in link_columns})
+
+    return df

@@ -1,6 +1,6 @@
 import warnings
 from enum import Enum
-from datetime import datetime
+import datetime
 
 from dataclasses import dataclass, field
 from typing import TypeAlias, Tuple, Collection, Iterator, Dict, Set
@@ -11,7 +11,7 @@ import pandas as pd
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.token import Token
-from tradingstrategy.types import UNIXTimestamp, PrimaryKey, TokenSymbol, Slug, NonChecksummedAddress
+from tradingstrategy.types import UNIXTimestamp, PrimaryKey, TokenSymbol, Slug, NonChecksummedAddress, URL
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
 
@@ -163,6 +163,10 @@ class LendingReserve:
             self.vtoken_address,
             self.vtoken_decimals,
         )
+
+    def get_link(self) -> URL:
+        """Get the market data page link"""
+        return f"https://tradingstrategy.ai/trading-view/{self.chain_id.get_slug()}/lending/{self.protocol_slug}/{self.asset_symbol.lower()}"
 
 #: How to symbolically identify a lending reserve.
 #:
@@ -522,6 +526,36 @@ class LendingMetricUniverse(PairGroupedUniverse):
     def get_rates_by_id(self, reserve_id: PrimaryKey) -> pd.DataFrame:
         """Return lending rates for for a particular reserve."""
         return self.get_samples_by_pair(reserve_id)
+
+    def get_single_rate(
+        self,
+        reserve: LendingReserve,
+        when: pd.Timestamp | datetime.datetime,
+        data_lag_tolerance: pd.Timedelta,
+        kind="close",
+    ) -> Tuple[float, pd.Timedelta]:
+        """Get a single historical value of a lending rate.
+
+        See :py:meth:`tradingstrategy.utils.groupeduniverse.PairGroupedUniverse.get_single_value`
+        for documentation.
+
+        :return:
+            Tuple (lending rate, data lag)
+        """
+
+        assert isinstance(reserve, LendingReserve), f"Got {reserve.__class__}"
+
+        asset_name = reserve.asset_name
+        link = reserve.get_link()
+
+        return self.get_single_value(
+            reserve.reserve_id,
+            when,
+            data_lag_tolerance,
+            kind,
+            asset_name=asset_name,
+            link=link,
+        )
 
 
 @dataclass
