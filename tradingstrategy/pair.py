@@ -436,13 +436,22 @@ class DEXPair:
 
     @property
     def volume_30d(self) -> USDollarAmount:
-        """Denormalise trading volume last 30 days."""
-        vol = 0
-        if not isnan(self.buy_volume_30d):
-            vol += self.buy_volume_30d
+        """Denormalise trading volume last 30 days.
 
-        if not isnan(self.sell_volume_30d):
-            vol += self.sell_volume_30d
+        - Not an accurate figure, as this is based on rough 30 days
+          batch job
+
+        - Good enough for undertanding a trading pair is tradeable
+        """
+        vol = 0
+        buy_vol = self.buy_volume_30d or 0
+        sell_vol = self.sell_volume_30d or 0
+
+        if not isnan(buy_vol):
+            vol += buy_vol
+
+        if not isnan(sell_vol):
+            vol += sell_vol
         return vol
 
     @property
@@ -491,6 +500,30 @@ class DEXPair:
             return self.token0_decimals
         else:
             return self.token1_decimals
+
+    def is_tradeable(
+            self,
+            liquidity_threshold=None,
+            volume_threshold_30d=100_000.
+    ) -> bool:
+        """Can this pair be traded.
+
+        .. note ::
+
+            Liquidity threshold is TBD.
+
+        :param liquidity_threshold:
+            How much the trading pair pool needs to have liquidity
+            to be tradeable.
+
+        :param volume_threshold_30d:
+            How much montly volume the pair needs to have to be tradeable.
+
+            Only used if liquidity data is missing.
+        """
+
+        # Volume can be Nan as well
+        return (self.volume_30d or 0) >= volume_threshold_30d
 
     def get_ticker(self) -> str:
         """Return trading 'ticker'"""

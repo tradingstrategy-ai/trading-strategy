@@ -98,6 +98,7 @@ def test_find_best_pair_pair_across_all_dexes(persistent_test_client: Client):
 
     assert eth_usdc_5bps.exchange_slug == "uniswap-v3"
     assert eth_usdc_5bps.fee == 5
+    assert eth_usdc_5bps.is_tradeable()
 
     # Curve on QuickSwap
     crv_usdc_30bps = pair_universe.get_pair_by_human_description(
@@ -106,5 +107,4 @@ def test_find_best_pair_pair_across_all_dexes(persistent_test_client: Client):
 
     assert crv_usdc_30bps.exchange_slug == "quickswap"
     assert crv_usdc_30bps.fee == 30
-
-
+    assert not crv_usdc_30bps.is_tradeable()  # Dead pair

@@ -372,7 +372,11 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
 
         start_when = when
-        samples_per_pair = self.get_candles_by_pair(pair_id)
+        try:
+            samples_per_pair = self.get_candles_by_pair(pair_id)
+        except KeyError as e:
+            raise CandleSampleUnavailable(f"Candle data missing for pair {pair_id}") from e
+
         assert samples_per_pair is not None, f"No candle data available for pair {pair_id}"
 
         samples_per_kind = samples_per_pair[kind]

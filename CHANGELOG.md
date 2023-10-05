@@ -1,5 +1,6 @@
 # Current
 
+- Add: `DEXPair.is_tradeable()` for quick checks if a pair has decent volume
 - Add: `PandasPairUniverse.get_exchange_for_pair`
 - Add: Aave Ghost (GHST) stablecoin
 - Add: Jarvis Synthetic Euro (jEUR) stablecoin
