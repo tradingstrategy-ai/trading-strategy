@@ -1,3 +1,11 @@
+# Current
+
+- Add: `PandasPairUniverse.get_exchange_for_pair`
+- Add: Aave Ghost (GHST) stablecoin
+- Add: Jarvis Synthetic Euro (jEUR) stablecoin
+- API update: `get_pair_by_human_description()` can have exchange slug set to `None`
+  matching the best trading pair across with the lowest fee across all DEXes
+
 # 0.20.7
 
 - Add: Progress bar to lending rate download
