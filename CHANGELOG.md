@@ -1,7 +1,9 @@
 # Current
 
 - Add: Progress bar to lending rate download
-
+- Fix: JSONL download progress bar was missing the last refresh, leaving the progress bar a bit under 100%
+- Use `tqdm_loggable` package everywhere to have more control over progress bars
+- 
 # 0.20.6
 
 - Multiple API changes to make working with lending easier

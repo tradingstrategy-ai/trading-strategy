@@ -424,6 +424,7 @@ class Client(BaseClient):
                 bits = []
 
                 for reserve in lending_reserve_universe.iterate_reserves():
+                    progress_bar.set_postfix({"Asset": reserve.asset_symbol})
                     piece = self.fetch_lending_candles_by_reserve_id(
                         reserve.reserve_id,
                         bucket,
