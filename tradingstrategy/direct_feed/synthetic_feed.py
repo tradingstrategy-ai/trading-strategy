@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Dict, Optional, List, Iterable, Type
 
 import pandas as pd
-from tqdm import tqdm
+from tqdm_loggable.auto import tqdm
 
 from eth_defi.event_reader.block_header import BlockHeader
 from eth_defi.price_oracle.oracle import BasePriceOracle

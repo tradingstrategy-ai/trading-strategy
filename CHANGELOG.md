@@ -1,5 +1,12 @@
 # Current
 
+- Add: Progress bar to lending rate download
+- Fix: JSONL download progress bar was missing the last refresh, leaving the progress bar a bit under 100%
+- Use `tqdm_loggable` package everywhere to have more control over progress bars
+- 
+# 0.20.6
+
+- Multiple API changes to make working with lending easier
 - Lending universe construction examples
 - Add: `filter_for_base_tokens()`
 - Add: `filter_for_chain()`
@@ -9,6 +16,7 @@
 - API update: Make all `Universe` members optional, as we can have lending only universes 
 - API update: `get_rates_by_reserve()` can take a lending reserve object as an argument
 - API update: `Universe` checks constructor argument types are correct
+- Deprecate: Useless methods on `Universe`
 
 # 0.20.5
 

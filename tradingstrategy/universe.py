@@ -1,4 +1,5 @@
 """Helper class to manage trading universes."""
+import warnings
 from dataclasses import dataclass
 from typing import Tuple, Set, Optional
 
@@ -126,6 +127,7 @@ class Universe:
 
         :return: start,end range
         """
+        warnings.warn(f"use universe.candles.get_timestamp_range() instead", DeprecationWarning, stacklevel=2)
         return self.candles.get_timestamp_range()
 
     def get_single_exchange(self) -> Exchange:
@@ -133,6 +135,7 @@ class Universe:
 
         :raise: AssertationError if multiple exchanges preset
         """
+        warnings.warn(f"use universe.exchange_universe.get_single() instead", DeprecationWarning, stacklevel=2)
         assert self.exchange_universe.get_exchange_count() == 1
         return self.exchange_universe.get_single()
 
@@ -145,9 +148,11 @@ class Universe:
 
         :return: Exchange instance
         """
+        warnings.warn(f"use universe.exchange_universe.get_by_id() instead", DeprecationWarning, stacklevel=2)
         for exc in self.exchanges:
             if exc.exchange_id == id:
                 return exc
         
         raise ExchangeNotFoundError(exchange_id=id) 
+
 

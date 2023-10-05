@@ -18,19 +18,19 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Final, Optional, Set, Union, Collection, Dict, Tuple
 
-# TODO: Must be here because  warnings are very inconveniently triggered import time
 import pandas as pd
-from tqdm import TqdmExperimentalWarning
 
 from tradingstrategy.candle import TradingPairDataAvailability
-# "Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console) from tqdm.autonotebook import tqdm"
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.jupyter import is_pyodide
 from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType
 
+# TODO: Must be here because  warnings are very inconveniently triggered import time
+from tqdm import TqdmExperimentalWarning
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
+from tqdm_loggable.auto import tqdm
 
 
 with warnings.catch_warnings():
@@ -366,10 +366,17 @@ class Client(BaseClient):
         start_time: datetime.datetime | pd.Timestamp = None,
         end_time: datetime.datetime | pd.Timestamp = None,
         construct_timestamp_column=True,
+        progress_bar_description: str | None=None,
     ) -> Dict[LendingCandleType, pd.DataFrame]:
         """Load lending reservers for several assets as once.
 
-        For usage examples see :py:class:`tradingstrategy.lending.LendingCandleUniverse`.
+        - Display a progress bar during download
+
+        - For usage examples see :py:class:`tradingstrategy.lending.LendingCandleUniverse`.
+
+        .. note ::
+
+            This download method is still upoptimised due to small number of reserves
 
         :param candle_types:
             Data for candle types to load
@@ -380,9 +387,16 @@ class Client(BaseClient):
             We need to convert index to column if we are going to have
             several reserves in :py:class:`tradingstrategy.lending.LendingCandleUniverse`.
 
+        :param progress_bar_description:
+            Override the default progress bar description.
+
         :return:
-            All reserves concatenated in a single dataframe, a dataframes for each candle type.
+            Dictionary of dataframes.
+
+            One DataFrame per candle type we asked for.
         """
+
+        # TODO: Replace the current loaded with JSONL based one to have better progress bar
 
         assert isinstance(lending_reserve_universe, LendingReserveUniverse)
         assert isinstance(bucket, TimeBucket)
@@ -390,30 +404,43 @@ class Client(BaseClient):
 
         result = {}
 
-        if lending_reserve_universe.get_size() > 30:
+        if lending_reserve_universe.get_count() > 30:
             logger.warning("This method is not designed to load data for long list of reserves.\n"
                            "Currently loading data for %s reverses.",
-                           lending_reserve_universe.get_size()
+                           lending_reserve_universe.get_count()
                            )
 
-        # Perform data load by issung several HTTP requests,
-        # one for each reserve and candle type
-        for candle_type in candle_types:
-            data = pd.concat([
-                self.fetch_lending_candles_by_reserve_id(
-                    reserve.reserve_id,
-                    bucket,
-                    candle_type,
-                    start_time,
-                    end_time,
-                )
-                for reserve in lending_reserve_universe.iterate_reserves()
-            ])
 
-            if construct_timestamp_column:
-                data["timestamp"] = data.index.to_series()
+        total = len(candle_types) * lending_reserve_universe.get_count()
 
-            result[candle_type] = data
+        if not progress_bar_description:
+            progress_bar_description = "Downloading lending rates"
+
+        with tqdm(desc=progress_bar_description, total=total) as progress_bar:
+            # Perform data load by issung several HTTP requests,
+            # one for each reserve and candle type
+            for candle_type in candle_types:
+
+                bits = []
+
+                for reserve in lending_reserve_universe.iterate_reserves():
+                    progress_bar.set_postfix({"Asset": reserve.asset_symbol})
+                    piece = self.fetch_lending_candles_by_reserve_id(
+                        reserve.reserve_id,
+                        bucket,
+                        candle_type,
+                        start_time,
+                        end_time,
+                    )
+                    bits.append(piece)
+                    progress_bar.update()
+
+                data = pd.concat(bits)
+
+                if construct_timestamp_column:
+                    data["timestamp"] = data.index.to_series()
+
+                result[candle_type] = data
 
         return result
 

@@ -9,7 +9,7 @@ from collections import defaultdict
 import pandas as pd
 
 import datetime
-from typing import List, Optional, Dict, Set
+from typing import Optional, Dict, Set
 
 import requests
 import jsonlines
@@ -174,8 +174,7 @@ def load_trading_strategy_like_jsonl_data(
 
     if progress_bar:
         # https://stackoverflow.com/a/45808255/315168
-        if current_ts and last_ts:
-            progress_bar.update(current_ts - last_ts)
+        progress_bar.update(progress_bar.total - progress_bar.n)
         progress_bar.close()
 
     if len(candle_data) == 0:
