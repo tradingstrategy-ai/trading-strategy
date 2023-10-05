@@ -390,7 +390,7 @@ class Client(BaseClient):
 
         result = {}
 
-        if lending_reserve_universe.get_size() > 6:
+        if lending_reserve_universe.get_size() > 30:
             logger.warning("This method is not designed to load data for long list of reserves.\n"
                            "Currently loading data for %s reverses.",
                            lending_reserve_universe.get_size()
@@ -407,7 +407,7 @@ class Client(BaseClient):
                     start_time,
                     end_time,
                 )
-                for reserve in lending_reserve_universe.iter_reserves()    
+                for reserve in lending_reserve_universe.iterate_reserves()
             ])
 
             if construct_timestamp_column:

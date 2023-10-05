@@ -77,7 +77,7 @@ from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType, ExchangeNotFoundError
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent, \
-    USDollarAmount
+    USDollarAmount, Slug
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
@@ -804,7 +804,7 @@ class PandasPairUniverse:
         data = self.smart_contract_map.get(address)
         return self.get_pair_by_id(data["pair_id"])
 
-    def get_token(self, address: str) -> Optional[Token]:
+    def get_token(self, address: str, chain_id=None) -> Optional[Token]:
         """Get a token that is part of any trade pair.
 
         Get a token details for a token that is base or quotetoken of any trading pair.
@@ -813,10 +813,22 @@ class PandasPairUniverse:
 
             TODO: Not a final implementation subject to chage.
 
+        :param address:
+            ERC-20 address of base or quote token in a trading pair.
+
+        :param chain_id:
+            Currently unsupported.
+
+            Assumes all tokens are on a single chain.
+
         :return:
             Tuple (name, symbol, address, decimals)
             or None if not found.
         """
+
+        if chain_id:
+            raise NotImplementedError()
+
         address = address.lower()
 
         token: Optional[Token] = None
@@ -870,6 +882,27 @@ class PandasPairUniverse:
         obj =_convert_to_dex_pair(data)
         self.single_pair_cache = obj
         return self.single_pair_cache
+
+    def get_single_quote_token(self) -> Token:
+        """Gets the only trading pair quote token for this trading universe.
+
+        :return:
+            Quote token for all trading pairs.
+
+        :raise AssertionError:
+            If we have trading pairs with different quotes.
+
+            E.g. both ``-ETH`` and ``-USDC`` pairs.
+        """
+
+        # Create (chain id, quote token address) set
+        quotes = set()
+        for p in self.iterate_pairs():
+            quotes.add((p.chain_id, p.quote_token_address))
+
+        tokens = [self.get_token(q[1]) for q in quotes]
+        assert len(tokens) == 1, f"We have multiple qutoe tokens: {tokens}"
+        return tokens[0]
 
     def get_by_symbols(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
         """For strategies that trade only a few trading pairs, get the only pair in the universe.
@@ -1715,6 +1748,24 @@ def filter_for_chain(
     """
     assert isinstance(chain_id, ChainId)
     return pairs.loc[pairs["chain_id"] == chain_id.value]
+
+
+def filter_for_exchange(
+    pairs: pd.DataFrame,
+    exchange_slug: Slug,
+):
+    """Extract trading pairs for specific exchange.
+
+    Example:
+
+    .. code-block:: python
+
+        # Pick only pairs traded on Uniswap v3
+        df = filter_for_exchange(df, "uniswap-v3")
+
+    """
+    assert isinstance(exchange_slug, str)
+    return pairs.loc[pairs["exchange_slug"] == exchange_slug]
 
 
 def resolve_pairs_based_on_ticker(

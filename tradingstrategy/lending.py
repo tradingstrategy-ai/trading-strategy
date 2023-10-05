@@ -1,3 +1,4 @@
+import warnings
 from enum import Enum
 from datetime import datetime
 
@@ -218,9 +219,9 @@ class LendingReserveUniverse:
         # - Available assets in the lending protocols
         # - Asset we can trade
         lending_reserves = client.fetch_lending_reserve_universe()
-        pairs_df = filter_for_base_tokens(pairs_df, lending_reserves.get_asset_addresses())
+        lending_only_pairs_df = filter_for_base_tokens(pairs_df, lending_reserves.get_asset_addresses())
 
-        pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+        pair_universe = PandasPairUniverse(lending_only_pairs_df, exchange_universe=exchange_universe)
 
         # Lending reserves have around ~320 individual trading pairs on Polygon across different DEXes
         assert 1 < pair_universe.get_count() < 1_000
@@ -229,7 +230,8 @@ class LendingReserveUniverse:
         matic_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "WMATIC", "USDC"))
 
         # Random token not in the Aave v3 supported reserves
-        bob_usdc = pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "BOB", "USDC"))
+        full_pair_universe =  PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+        bob_usdc = full_pair_universe.get_pair_by_human_description((ChainId.polygon, "uniswap-v3", "BOB", "USDC"))
 
         assert lending_reserves.can_leverage(eth_usdc.get_base_token())
         assert lending_reserves.can_leverage(matic_usdc.get_base_token())
@@ -247,7 +249,7 @@ class LendingReserveUniverse:
         """How many reserves we have."""
         return len(self.reserves)
 
-    def iter_reserves(self) -> Iterator[LendingReserve]:
+    def iterate_reserves(self) -> Iterator[LendingReserve]:
         return self.reserves.values()
 
     def get_reserve_by_id(self, reserve_id: PrimaryKey) -> LendingReserve | None:
@@ -258,6 +260,18 @@ class LendingReserveUniverse:
             token_symbol: TokenSymbol,
             chain_id: ChainId,
     ) -> LendingReserve | None:
+        warnings.warn("get_reserve_by_symbol_and_chain() has been deprecated in the favour of get_by_chain_and_symbol()", DeprecationWarning, stacklevel=2)
+        return self.get_by_chain_and_symbol(chain_id, token_symbol)
+
+    def get_by_chain_and_symbol(
+            self,
+            chain_id: ChainId,
+            token_symbol: TokenSymbol,
+    ) -> LendingReserve | None:
+        """Fetch a specific lending reserve."""
+
+        assert isinstance(chain_id, ChainId)
+
         for reserve in self.reserves.values():
             if reserve.asset_symbol == token_symbol and reserve.chain_id == chain_id:
                 return reserve
@@ -291,6 +305,12 @@ class LendingReserveUniverse:
             r = self.resolve_lending_reserve(d)
             new_reserves[r.reserve_id] = r
 
+        return LendingReserveUniverse(new_reserves)
+
+    def limit_to_chain(self, chain_id: ChainId):
+        """Drop all lending reserves except ones on a specific chain."""
+        assert isinstance(chain_id, ChainId)
+        new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.chain_id == chain_id}
         return LendingReserveUniverse(new_reserves)
 
     def resolve_lending_reserve(self, reserve_decription: LendingReserveDescription) -> LendingReserve:
@@ -471,7 +491,10 @@ class LendingMetricUniverse(PairGroupedUniverse):
             fix_wick_threshold=None,
         )
 
-    def get_rates_by_reserve(self, reserve_description: LendingReserveDescription) -> pd.DataFrame:
+    def get_rates_by_reserve(
+            self,
+            reserve_description: LendingReserveDescription | LendingReserve
+    ) -> pd.DataFrame:
         """Get all historical rates for a single pair.
 
         Example:
@@ -484,7 +507,12 @@ class LendingMetricUniverse(PairGroupedUniverse):
             assert rates["open"][pd.Timestamp("2023-01-01")] == pytest.approx(1.836242)
             assert rates["close"][pd.Timestamp("2023-01-01")] == pytest.approx(1.780513)
         """
-        reserve = self.reserves.resolve_lending_reserve(reserve_description)
+        if isinstance(reserve_description, LendingReserve):
+            reserve = reserve_description
+        elif type(reserve_description) == tuple:
+            reserve = self.reserves.resolve_lending_reserve(reserve_description)
+        else:
+            raise AssertionError(f"Unknown lending reserve description: {reserve_description}")
         return self.get_samples_by_pair(reserve.reserve_id)
 
     def get_rates_by_id(self, reserve_id: PrimaryKey) -> pd.DataFrame:

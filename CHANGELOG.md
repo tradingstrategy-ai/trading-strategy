@@ -5,6 +5,8 @@
 - Add: `filter_for_chain()`
 - Add: `DEXPair.get_base_token()` and `DEXPair.get_quote_token()`
 - Add: `LendingReserveUniverse.can_leverage(token)`
+- Add: `LendingReserveUniverse.limit_to_chain()`
+- API update: `get_rates_by_reserve()` can take a lending reserve object as an argument
 
 # 0.20.5
 
