@@ -223,7 +223,7 @@ def load_candles_jsonl(
         Dataframe with candle data for giving pairs.
     """
 
-    assert len(pair_ids) < sanity_check_count, f"We have {len(pair_ids)}, but you probably don't want to use this data fetch method for more than {sanity_check_count} pairs"
+    assert len(pair_ids) < sanity_check_count, f"We attempt to load data for trading pairs {len(pair_ids)}, but you probably don't want to use this data fetch method for more than {sanity_check_count} pairs"
 
     api_url = f"{server_url}/candles-jsonl"
 
