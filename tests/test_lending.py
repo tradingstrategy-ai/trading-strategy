@@ -48,7 +48,7 @@ def test_fetch_lending_reserve_info(client: Client):
     assert reserve.vtoken_address == "0x953a573793604af8d41f306feb8274190db4ae0e"
     assert reserve.vtoken_decimals == 18
 
-    reserve = universe.get_reserve_by_symbol_and_chain("USDC", ChainId.ethereum)
+    reserve = universe.get_by_chain_and_symbol(ChainId.ethereum, "USDC")
     assert reserve.reserve_id
     assert reserve.chain_id == 1
     assert reserve.asset_symbol == "USDC"

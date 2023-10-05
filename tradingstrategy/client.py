@@ -416,7 +416,7 @@ class Client(BaseClient):
         if not progress_bar_description:
             progress_bar_description = "Downloading lending rates"
 
-        with tqdm.tqdm(desc=progress_bar_description, total=total) as progress_bar:
+        with tqdm(desc=progress_bar_description, total=total) as progress_bar:
             # Perform data load by issung several HTTP requests,
             # one for each reserve and candle type
             for candle_type in candle_types:

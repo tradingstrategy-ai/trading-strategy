@@ -1,3 +1,7 @@
+# Current
+
+- Add: Progress bar to lending rate download
+
 # 0.20.6
 
 - Multiple API changes to make working with lending easier

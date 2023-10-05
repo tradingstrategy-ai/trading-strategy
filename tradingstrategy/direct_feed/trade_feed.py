@@ -10,7 +10,7 @@ from typing import Dict, Optional, List, Iterable, Type, TypeAlias, Protocol
 
 import pandas as pd
 from numpy import isnan
-from tqdm_loggable import tqdm
+from tqdm_loggable.auto import tqdm
 
 from eth_defi.price_oracle.oracle import BasePriceOracle
 from eth_defi.event_reader.reorganisation_monitor import ReorganisationMonitor, ChainReorganisationResolution
