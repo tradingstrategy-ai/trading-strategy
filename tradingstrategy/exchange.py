@@ -207,7 +207,10 @@ class Exchange:
         return self.__dict__
 
     def __hash__(self) -> int:
-        return int(self.address, 16)
+        try:
+            return int(self.address, 16)
+        except TypeError as e:
+            raise TypeError(f"Tried to convert: {self.address}") from e
 
     def __eq__(self, other) -> bool:
         # https://stackoverflow.com/a/12511715/315168

@@ -86,7 +86,12 @@ class Universe:
     exchanges: Optional[Set[Exchange]] = None
 
     def __post_init__(self):
-        """Check that the constructor was called correctly."""
+        """Check that the constructor was called correctly.
+
+        - Bail out the library user early for any error
+
+        - Clean up some old code mess
+        """
         if self.candles is not None:
             assert isinstance(self.candles, GroupedCandleUniverse), f"Expected GroupedCandleUniverse, got {self.candles.__class__}"
 
@@ -95,11 +100,16 @@ class Universe:
 
         if self.exchanges is not None:
             # TODO: Legacy
-            assert isinstance(self.exchanges, dict), f"Expected dict, got {self.exchanges.__class__}"
+            # Deprecate in some point
+            if type(self.exchanges) == list:
+                self.exchanges = set(self.exchanges)
+            assert isinstance(self.exchanges, set), f"Expected set, got {self.exchanges.__class__}"
 
         if self.exchange_universe is not None:
-            # TODO: Legacy
             assert isinstance(self.exchange_universe, ExchangeUniverse), f"Expected dict, got {self.exchanges.__class__}"
+        else:
+            # TODO: Legacy backwards compatible
+            self.exchange_universe = ExchangeUniverse({e.exchange_id: e for e in self.exchanges})
 
         if self.lending_candles is not None:
             assert isinstance(self.lending_candles, LendingCandleUniverse), f"Expected LendingCandleUniverse, got {self.exchanges.__class__}"
@@ -123,8 +133,8 @@ class Universe:
 
         :raise: AssertationError if multiple exchanges preset
         """
-        assert len(self.exchanges) == 1
-        return self.exchanges[0]
+        assert self.exchange_universe.get_exchange_count() == 1
+        return self.exchange_universe.get_single()
 
     def get_exchange_by_id(self, id: int) -> Optional[Exchange]:
         """Get exchange by its id.
