@@ -22,6 +22,7 @@ import pyarrow as pa
 from dataclasses_json import dataclass_json
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey, NonChecksummedAddress, \
     RawChainId
@@ -318,7 +319,9 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """Get candles for a single pair.
 
         :return:
-            Pandas dataframe object with the following columns
+            Pandas dataframe object with the following columns.
+
+            Return ``None`` if there is no candle data for this ``pair_id``.
 
             - timestamp
 
@@ -332,26 +335,34 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """
 
         if pair_id not in self.candles_cache:
-            self.candles_cache[pair_id] = self.get_samples_by_pair(pair_id)
+            try:
+                self.candles_cache[pair_id] = self.get_samples_by_pair(pair_id)
+            except KeyError:
+                return None
         
         return self.candles_cache[pair_id]
 
     def get_closest_price(self,
-                          pair_id: PrimaryKey,
-                          when: pd.Timestamp,
-                          kind="close", look_back_time_frames=5) -> USDollarAmount:
-        """Get the available liquidity for a trading pair at a specific timepoint or some candles before the timepoint.
+                          pair: PrimaryKey | DEXPair,
+                          when: pd.Timestamp | datetime.datetime,
+                          kind="close",
+                          look_back_time_frames=5) -> USDollarAmount:
+        """Get the available price for a trading pair at a specific timepoint or some candles before the timepoint.
 
         .. warning ::
 
             This is a slow lookup method. You might want to use :py:meth:`get_price_with_tolerance`
             instead.
 
-        :param pair_id:
-            Trading pair id
+        :param pair:
+            Trading pair id or pair object.
 
         :param when:
-            Timestamp to query
+            Timestamp to query.
+
+            This is rounded down to the nearest time bucket.
+            E.g. when using 1d candles, ``2023-09-30 22:04:00.383776``
+            will be rounded down to ``2023-09-30 00:00``.
 
         :param kind:
             One of OHLC data points: "open", "close", "low", "high"
@@ -369,15 +380,33 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             There was no samples available with the given condition.
         """
 
+        warnings.warn('This method is deprecated. Use GroupedCandleUniverse.get_price_with_tolerance() instead', DeprecationWarning, stacklevel=2)
+
         assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
+
+        if isinstance(when, datetime.datetime):
+            when = pd.Timestamp(when)
+
+        if isinstance(pair, DEXPair):
+            pair_id = pair.pair_id
+            pair_name = pair.get_ticker()
+            link = pair.get_link()
+        elif type(pair) == int:
+            pair_id = pair
+            pair_name = str(pair_id)
+            link = "<link unavailable>"
+        else:
+            raise AssertionError(f"Unknown pair type: {pair.__class__}")
+
+        when = when.round(self.time_bucket.to_frequency())
 
         start_when = when
         try:
             samples_per_pair = self.get_candles_by_pair(pair_id)
         except KeyError as e:
-            raise CandleSampleUnavailable(f"Candle data missing for pair {pair_id}") from e
+            raise CandleSampleUnavailable(f"Candle data missing for pair {pair_name}") from e
 
-        assert samples_per_pair is not None, f"No candle data available for pair {pair_id}"
+        assert samples_per_pair is not None, f"No candle data available for pair {pair_name}"
 
         samples_per_kind = samples_per_pair[kind]
         for attempt in range(look_back_time_frames):
@@ -396,21 +425,23 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             last_sample = samples_per_pair.iloc[-1]
         except KeyError:
             raise CandleSampleUnavailable(
-                f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {start_when}\n"
-                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples."
+                f"Could not find any candles for pair {pair_name}, value kind '{kind}', between {when} - {start_when}\n"
+                f"Could not figure out existing data range. Has {len(samples_per_kind)} samples.\n"
+                f"Trading pair data can be viewed at {link}"
             )
 
         raise CandleSampleUnavailable(
-            f"Could not find any candles for pair {pair_id}, value kind '{kind}', between {when} - {start_when}\n"
+            f"Could not find any candles for pair {pair_name}, value kind '{kind}', between {when} - {start_when}\n"
             f"The pair has {len(samples_per_kind)} candles between {first_sample['timestamp']} - {last_sample['timestamp']}\n"
-            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}"
+            f"Sample interval is {second_sample['timestamp'] - first_sample['timestamp']}\n"
+            f"Trading pair data can be viewed at {link}"
             )
 
     def get_price_with_tolerance(self,
-                          pair_id: PrimaryKey,
-                          when: pd.Timestamp,
-                          tolerance: pd.Timedelta,
-                          kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
+                                 pair: PrimaryKey | DEXPair,
+                                 when: pd.Timestamp | datetime.datetime,
+                                 tolerance: pd.Timedelta,
+                                 kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
         """Get the price for a trading pair at a specific time point, or before within a time range tolerance.
 
         The data may be sparse data. There might not be sample available in the same time point or
@@ -433,7 +464,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             assert test_price == pytest.approx(100.50)
             assert distance == pd.Timedelta("5m")
 
-        :param pair_id:
+        :param pair:
             Trading pair id
 
         :param when:
@@ -463,10 +494,28 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
 
+        if isinstance(when, datetime.datetime):
+            when = pd.Timestamp(when)
+
+        if isinstance(pair, DEXPair):
+            pair_id = pair.pair_id
+            pair_name = pair.get_ticker()
+            link = pair.get_link()
+        elif type(pair) == int:
+            pair_id = pair
+            pair_name = str(pair_id)
+            link = "<link unavailable>"
+        else:
+            raise AssertionError(f"Unknown pair type: {pair.__class__}")
+
         last_allowed_timestamp = when - tolerance
 
         candles_per_pair = self.get_candles_by_pair(pair_id)
-        assert candles_per_pair is not None, f"No candle data available for pair {pair_id}"
+
+        if candles_per_pair is None:
+            raise CandleSampleUnavailable(
+                f"No candle data available for pair {pair_name}, pair id {pair_id}\n"
+                f"Trading data pair link: {link}")
 
         samples_per_kind = candles_per_pair[kind]
 
@@ -503,9 +552,10 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             # We get -1 if there are no timestamps where the forward fill could start
             first_sample_timestamp = timestamp_index[0]
             raise CandleSampleUnavailable(
-                f"Could not find any candles for pair {pair_id}, value kind '{kind}' at or before {when}\n"
+                f"Could not find any candles for pair {pair_name}, value kind '{kind}' at or before {when}\n"
                 f"- Pair has {len(samples_per_kind)} samples\n"
                 f"- First sample is at {first_sample_timestamp}\n"
+                f"- Trading pair page link {link}\n"
             )
         before_match = timestamp_index[before_match_iloc]
 
@@ -528,7 +578,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         last_sample_timestamp = timestamp_index[-1]
 
         raise CandleSampleUnavailable(
-            f"Could not find candle data for pair {pair_id}\n"
+            f"Could not find candle data for pair {pair_name}\n"
             f"- Column '{kind}'\n"
             f"- At {when}\n"
             f"- Lower bound of time range tolerance {last_allowed_timestamp}\n"
@@ -543,6 +593,8 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"- You are asking historical data when the trading pair was not yet live.\n"
             f"- Your backtest is using indicators that need more lookback buffer than you are giving to them.\n"
             f"  Try set your data load range earlier or your backtesting starting later.\n"
+            f"\n",
+            f"Trading pair page link: {link}"
             )
 
     @staticmethod

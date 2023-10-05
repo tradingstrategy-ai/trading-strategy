@@ -78,7 +78,7 @@ from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType, ExchangeNotFoundError
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent, \
-    USDollarAmount, Slug
+    USDollarAmount, Slug, URL
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
@@ -651,6 +651,10 @@ class DEXPair:
             address=self.quote_token_address,
             decimals=self.quote_token_decimals,
         )
+
+    def get_link(self) -> URL:
+        """Get the trading pair link page on TradingStrategy.ai"""
+        return f"https://tradingstrategy.ai/trading-view/{self.chain_id.get_slug()}/{self.exchange_slug}/{self.pair_slug}"
 
 
 class PandasPairUniverse:

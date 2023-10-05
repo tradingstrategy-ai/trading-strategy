@@ -46,19 +46,19 @@ def test_get_price_with_tolerance(synthetic_candles):
     assert universe.get_pair_count() == 1
     assert universe.get_candle_count() == 4
 
-    test_price, distance = universe.get_price_with_tolerance(pair_id=1, when=pd.Timestamp("2020-01-01"), tolerance=pd.Timedelta(1, "d"))
+    test_price, distance = universe.get_price_with_tolerance(pair=1, when=pd.Timestamp("2020-01-01"), tolerance=pd.Timedelta(1, "d"))
     assert test_price == pytest.approx(100.10)
     assert distance == pd.Timedelta(0)
 
-    test_price, distance = universe.get_price_with_tolerance(pair_id=1, when=pd.Timestamp("2020-01-02"), tolerance=pd.Timedelta(1, "d"))
+    test_price, distance = universe.get_price_with_tolerance(pair=1, when=pd.Timestamp("2020-01-02"), tolerance=pd.Timedelta(1, "d"))
     assert test_price == pytest.approx(100.10)
     assert distance == pd.Timedelta("1d")
 
-    test_price, distance = universe.get_price_with_tolerance(pair_id=1, when=pd.Timestamp("2020-02-01"), tolerance=pd.Timedelta(1, "m"))
+    test_price, distance = universe.get_price_with_tolerance(pair=1, when=pd.Timestamp("2020-02-01"), tolerance=pd.Timedelta(1, "m"))
     assert test_price == pytest.approx(100.50)
     assert distance == pd.Timedelta(0)
 
-    test_price, distance = universe.get_price_with_tolerance(pair_id=1, when=pd.Timestamp("2020-02-01 00:05"), tolerance=pd.Timedelta(30, "m"))
+    test_price, distance = universe.get_price_with_tolerance(pair=1, when=pd.Timestamp("2020-02-01 00:05"), tolerance=pd.Timedelta(30, "m"))
     assert test_price == pytest.approx(100.50)
     assert distance == pd.Timedelta("5m")
 
@@ -70,13 +70,13 @@ def test_get_price_not_within_tolerance(synthetic_candles):
 
     with pytest.raises(CandleSampleUnavailable):
         universe.get_price_with_tolerance(
-            pair_id=1,
+            pair=1,
             when=pd.Timestamp("2020-01-05"),
             tolerance=pd.Timedelta(1, "d"))
 
     with pytest.raises(CandleSampleUnavailable):
         universe.get_price_with_tolerance(
-            pair_id=1,
+            pair=1,
             when=pd.Timestamp("2020-01-01 00:05"),
             tolerance=pd.Timedelta(1, "m"))
 
@@ -118,7 +118,7 @@ def test_forward_fill_multiple_pairs():
     assert len(candles) == 4
 
     price, difference = universe.get_price_with_tolerance(
-        pair_id=1,
+        pair=1,
         when=pd.Timestamp("2020-01-04"),
         tolerance=pd.Timedelta(7, "d"))
 
@@ -133,7 +133,7 @@ def test_forward_fill_multiple_pairs():
     assert len(candles) == 9  # 2020-01-01 - 2020-01-09
 
     price, difference = universe.get_price_with_tolerance(
-        pair_id=1,
+        pair=1,
         when=pd.Timestamp("2020-01-04"),
         tolerance=pd.Timedelta(7, "d"))
 
@@ -184,7 +184,7 @@ def test_forward_fill_too_early_multiple_pairs():
 
     with pytest.raises(CandleSampleUnavailable):
         universe.get_price_with_tolerance(
-            pair_id=1,
+            pair=1,
             when=pd.Timestamp("2019-12-31"),
             tolerance=pd.Timedelta(7, "d"))
 
@@ -194,6 +194,6 @@ def test_forward_fill_too_early_multiple_pairs():
 
     with pytest.raises(CandleSampleUnavailable):
         price, difference = universe.get_price_with_tolerance(
-            pair_id=1,
+            pair=1,
             when=pd.Timestamp("2019-12-31"),
             tolerance=pd.Timedelta(7, "d"))
