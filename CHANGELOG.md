@@ -1,4 +1,4 @@
-# Current
+# 0.20.9
 
 - Add: `DEXPair.get_link()` to get a direct link to the trading pair page
 - Add: `LendingReserve.get_link()` to get a direct link to the trading pair page
@@ -13,6 +13,7 @@
 - API update: `get_closest_pair(pair)` can now now take `DEXPair` instead of a primary key
   as a lookup parameter and also display the pair name in error message
 - Various exception message improvements
+- Remove duplicate timestamp from candle labels
 
 # 0.20.8
 
