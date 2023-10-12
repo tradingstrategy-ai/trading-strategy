@@ -1,3 +1,10 @@
+"""Lending rates and lending protocols.
+
+Data structures for understanding and using lending rates
+like supply APR and borrow APR across various DeFi lending protocols.
+
+See :py:class:`LendingReserveUniverse` on how to load the data.
+"""
 import warnings
 from enum import Enum
 import datetime
@@ -135,7 +142,7 @@ class LendingReserve:
         return hash((self.chain_id, self.protocol_slug, self.asset_address))
 
     def __repr__(self):
-        return f"<LendingReserve {self.chain_id.name} {self.protocol_slug.name} {self.asset_symbol}>"
+        return f"<LendingReserve for asset {self.asset_symbol} in protocol {self.protocol_slug.name} on {self.chain_id.get_name()} >"
     
     def get_asset(self) -> Token:
         """Return description for the underlying asset."""

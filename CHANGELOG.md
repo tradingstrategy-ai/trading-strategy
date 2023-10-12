@@ -1,3 +1,7 @@
+# 0.20.10
+
+- Remove duplicate timestamp label on visualisation  
+
 # 0.20.9
 
 - Add: `DEXPair.get_link()` to get a direct link to the trading pair page
