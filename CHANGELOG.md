@@ -1,3 +1,7 @@
+# Current
+
+- Add more asserts to `Universe` creation to catch human mistakes early
+
 # 0.20.10
 
 - Remove duplicate timestamp label on visualisation  
