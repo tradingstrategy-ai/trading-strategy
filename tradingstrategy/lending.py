@@ -142,7 +142,7 @@ class LendingReserve:
         return hash((self.chain_id, self.protocol_slug, self.asset_address))
 
     def __repr__(self):
-        return f"<LendingReserve for asset {self.asset_symbol} in protocol {self.protocol_slug.name} on {self.chain_id.get_name()} >"
+        return f"<LendingReserve #{self.reserve_id} for asset {self.asset_symbol} in protocol {self.protocol_slug.name} on {self.chain_id.get_name()} >"
     
     def get_asset(self) -> Token:
         """Return description for the underlying asset."""
