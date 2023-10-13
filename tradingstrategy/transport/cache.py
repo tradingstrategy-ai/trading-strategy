@@ -435,7 +435,7 @@ class CachedHTTPTransport:
 
             try:
                 resp = self.requests.get(api_url, params=params, stream=True)
-            except DataNotAvailable:
+            except DataNotAvailable as e:
                 # We have special request hook that translates 404 to this exception
                 raise DataNotAvailable(f"Could not fetch lending candles for {params}") from e
             except Exception as e:
