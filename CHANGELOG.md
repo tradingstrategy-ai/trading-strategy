@@ -1,6 +1,7 @@
 # Current
 
-- Add more asserts to `Universe` creation to catch human mistakes early
+- Internal change: Add more asserts to `Universe` creation to catch human mistakes early
+- API change: `get_by_chain_and_symbol()` raises `UnknownLendingReserve` instead of returning `None`
 
 # 0.20.10
 
@@ -79,6 +80,7 @@
 
 - Change `PandasPairUniverse.get_pair_by_human_description()` signature
   to be easier to use
+- More user friendly data not available / 404 error handling for lending candles 
 
 # 0.18.2
 

@@ -282,15 +282,20 @@ class LendingReserveUniverse:
             self,
             chain_id: ChainId,
             token_symbol: TokenSymbol,
-    ) -> LendingReserve | None:
-        """Fetch a specific lending reserve."""
+    ) -> LendingReserve:
+        """Fetch a specific lending reserve.
+
+        :raise UnknownLendingReserve:
+            If we do not have data available.
+        """
 
         assert isinstance(chain_id, ChainId), f"Expected chain_id, got {chain_id.__class__}: {chain_id}"
 
         for reserve in self.reserves.values():
             if reserve.asset_symbol == token_symbol and reserve.chain_id == chain_id:
                 return reserve
-        return None
+
+        raise UnknownLendingReserve(f"Could not find lending reserve {chain_id}: {token_symbol}. We have {len(self.reserves)} reserves loaded.")
 
     def get_by_chain_and_address(
             self,

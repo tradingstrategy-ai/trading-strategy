@@ -304,3 +304,5 @@ def test_get_single_rate(persistent_test_client: Client):
     )
     assert rate == pytest.approx(1.836242)
     assert lag == ZERO_TIMEDELTA
+
+
