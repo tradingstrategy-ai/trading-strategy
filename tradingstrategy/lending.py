@@ -579,6 +579,9 @@ class LendingMetricUniverse(PairGroupedUniverse):
 
         :return:
             Tuple (lending rate, data lag)
+
+            The lending rate may be 0 if the reserve is special
+            and borrowing/lending is disabled.
         """
 
         assert isinstance(reserve, LendingReserve), f"Got {reserve.__class__}"

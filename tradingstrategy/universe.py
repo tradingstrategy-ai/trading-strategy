@@ -115,6 +115,11 @@ class Universe:
         if self.lending_candles is not None:
             assert isinstance(self.lending_candles, LendingCandleUniverse), f"Expected LendingCandleUniverse, got {self.exchanges.__class__}"
 
+        assert type(self.chains) in (set, tuple, list), f"Expected collection of chains, got {self.chains.__class__}: {self.chains}"
+
+        for c in self.chains:
+            assert isinstance(c, ChainId), f"Expected ChainId object, got {c.__class__}: {c}"
+
     @property
     def lending_reserves(self) -> LendingReserveUniverse:
         """Each lending metric is paired with a copy of the universe"""
@@ -153,6 +158,7 @@ class Universe:
             if exc.exchange_id == id:
                 return exc
         
-        raise ExchangeNotFoundError(exchange_id=id) 
+        raise ExchangeNotFoundError(exchange_id=id)
+
 
 
