@@ -1,5 +1,7 @@
 # Current
 
+- Add: `LendingReserveUniverse.limit_to_assets()`
+- Add: `filter_for_trading_fee(pairs_dataframe)`
 - Internal change: Add more asserts to `Universe` creation to catch human mistakes early
 - API change: `get_by_chain_and_symbol()` raises `UnknownLendingReserve` instead of returning `None`
 

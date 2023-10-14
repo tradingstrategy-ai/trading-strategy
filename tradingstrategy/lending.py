@@ -327,10 +327,20 @@ class LendingReserveUniverse:
 
         return LendingReserveUniverse(new_reserves)
 
-    def limit_to_chain(self, chain_id: ChainId):
+    def limit_to_chain(self, chain_id: ChainId) -> "LendingReserveUniverse":
         """Drop all lending reserves except ones on a specific chain."""
         assert isinstance(chain_id, ChainId)
         new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.chain_id == chain_id}
+        return LendingReserveUniverse(new_reserves)
+
+    def limit_to_assets(self, assets: Set[TokenSymbol]) -> "LendingReserveUniverse":
+        """Drop all lending reserves except listed tokens."""
+        for a in assets:
+            assert type(a) == str
+        new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.asset_symbol in assets}
+
+        assert len(assets) == len(new_reserves), f"Could not resolve all assets: {assets}"
+
         return LendingReserveUniverse(new_reserves)
 
     def resolve_lending_reserve(self, reserve_decription: LendingReserveDescription) -> LendingReserve:
