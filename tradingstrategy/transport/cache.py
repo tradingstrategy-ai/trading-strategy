@@ -41,6 +41,8 @@ class DataNotAvailable(APIError):
 
     This may happen e.g. when a new entry has just come online,
     it has been added to the pair or reserve map, but does not have candles available yet.
+
+    Wraps 404 error from the dataset server.local
     """
 
 
