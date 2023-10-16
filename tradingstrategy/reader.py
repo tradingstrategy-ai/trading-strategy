@@ -58,7 +58,7 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
     logger.info("Reading Parquet %s", f)
     # https://arrow.apache.org/docs/python/parquet.html
     try:
-        table = pq.read_table(f, filters=filters, use_threads=threaded_read_enabled)
+        table = pq.read_table(f, filters=filters, use_threads=True, pre_buffer=False, memory_map=True)
     except ArrowInvalid as e:
         raise BrokenData(f"Could not read Parquet file: {f}\n"
                          f"Probably a corrupted download.\n"
