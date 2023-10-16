@@ -19,13 +19,6 @@ class BrokenData(Exception):
         self.path = path
 
 
-threaded_read_enabled = os.environ.get("PYARROW_THREADED_READ", "true") != "false"
-
-# Log in unit test output that we have closed out one cause of memory leaks
-if not threaded_read_enabled:
-    logger.warning("PyArrow: Threader Parquet file reading disabled")
-
-
 def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
     """Reads compressed Parquet file of data to memory.
 
