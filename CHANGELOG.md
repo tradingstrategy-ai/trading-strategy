@@ -1,3 +1,7 @@
+# 0.20.12
+
+- Internal change: Use `parquet.read_table(memory_map=True)` to decrease RAM usage
+
 # 0.20.11
 
 - Add: `LendingReserveUniverse.limit_to_assets()`
