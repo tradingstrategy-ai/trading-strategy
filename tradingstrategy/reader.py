@@ -96,5 +96,5 @@ def read_parquet_pyarrow(path: Path, filters: Optional[List[Tuple]]=None) -> "py
 
 #: Choose between different backends
 #:
-#read_parquet = read_parquet_fastparquet
-read_parquet = read_parquet_pyarrow
+read_parquet = read_parquet_fastparquet
+#read_parquet = read_parquet_pyarrow

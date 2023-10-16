@@ -1,6 +1,7 @@
 """Candle universe loading tests."""
 
 import datetime
+import sys
 
 import pandas
 import pandas as pd
@@ -15,7 +16,7 @@ from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles
 
 
-def test_grouped_candles(persistent_test_client: Client):
+def test_grouped_candles(persistent_test_client: Client, logger):
     """Group downloaded candles by a trading pair."""
 
     client = persistent_test_client
@@ -33,8 +34,6 @@ def test_grouped_candles(persistent_test_client: Client):
     assert sushi_usdt.get_trading_pair_page_url() == "https://tradingstrategy.ai/trading-view/ethereum/sushi/sushi-usdt"
     sushi_usdt_candles = candle_universe.get_candles_by_pair(sushi_usdt.pair_id)
 
-    # Get max and min weekly candle of SUSHI-USDT on SushiSwap
-    import ipdb ; ipdb.set_trace()
     high_price = sushi_usdt_candles["high"]
     max_price = high_price.max()
 
