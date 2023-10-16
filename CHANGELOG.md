@@ -1,4 +1,4 @@
-# Current
+# 0.20.11
 
 - Add: `LendingReserveUniverse.limit_to_assets()`
 - Add: `filter_for_trading_fee(pairs_dataframe)`
