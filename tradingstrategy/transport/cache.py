@@ -271,6 +271,11 @@ class CachedHTTPTransport:
         return self.get_json_response("chain-status", params={"chain_id": chain_id})
 
     def fetch_pair_universe(self) -> pathlib.Path:
+        """Get the pair universe as a file.
+
+        :return:
+            The path of a locally cache file
+        """
         fname = "pair-universe.parquet"
         cached = self.get_cached_item(fname)
 

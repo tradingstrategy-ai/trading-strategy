@@ -1,11 +1,11 @@
 """Optimised liquidity universe tests."""
 import pandas as pd
 import pytest
-from tradingstrategy.candle import GroupedCandleUniverse
+
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.liquidity import GroupedLiquidityUniverse, LiquidityDataUnavailable, ResampledLiquidityUniverse
-from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
+from tradingstrategy.liquidity import ResampledLiquidityUniverse
+from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 
 

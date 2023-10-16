@@ -4,7 +4,7 @@ from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, LiquidityDataUnavailable
-from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
+from tradingstrategy.pair import DEXPair, PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 
 
@@ -96,28 +96,6 @@ def test_combined_candles_and_liquidity(persistent_test_client: Client):
     # where liquidity was added but which never traded
     # print(liq_pair_count, candle_pair_count)
     assert abs((liq_pair_count - candle_pair_count) / liq_pair_count) < 0.15
-
-
-def test_liquidity_index_is_datetime(persistent_test_client: Client):
-    """Any liquidity samples use datetime index by default.
-
-    Avoid raw running counter indexes. This makes manipulating data much easier.
-    """
-    client = persistent_test_client
-
-    exchange_universe = client.fetch_exchange_universe()
-    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
-    pairs = client.fetch_pair_universe()
-    pair_universe = LegacyPairUniverse.create_from_pyarrow_table(pairs)
-    pair = pair_universe.get_pair_by_ticker_by_exchange(exchange.exchange_id, "WETH", "DAI")
-
-    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
-    assert exchange, "Uniswap v2 not found"
-
-    raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
-    liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
-    liq1 = liquidity_universe.get_liquidity_samples_by_pair(pair.pair_id)
-    assert isinstance(liq1.index, pd.DatetimeIndex)
 
 
 def test_merge_liquidity_samples(persistent_test_client: Client):

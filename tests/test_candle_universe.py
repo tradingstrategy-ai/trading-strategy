@@ -9,7 +9,7 @@ import pytest
 from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
+from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded

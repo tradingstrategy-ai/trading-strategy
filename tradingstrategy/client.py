@@ -41,10 +41,6 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     import dataclasses_json  # Trigger marsmallow import to supress the warning
 
-import pyarrow
-import pyarrow as pa
-from pyarrow import Table
-
 from tradingstrategy.chain import ChainId
 from tradingstrategy.environment.base import Environment, download_with_progress_plain
 from tradingstrategy.environment.config import Configuration
@@ -163,12 +159,17 @@ class Client(BaseClient):
         self.transport.purge_cache(filename)
 
     @_retry_corrupted_parquet_fetch
-    def fetch_pair_universe(self) -> pa.Table:
+    def fetch_pair_universe(self) -> "pyarrow.Table | fastparquet.ParquetFile":
         """Fetch pair universe from local cache or the candle server.
 
         The compressed file size is around 5 megabytes.
 
         If the download seems to be corrupted, it will be attempted 3 times.
+
+
+        :return:
+            TODO: Change the return type to DataFrame.
+
         """
         path = self.transport.fetch_pair_universe()
         return read_parquet(path)
@@ -184,7 +185,7 @@ class Client(BaseClient):
                 raise RuntimeError(f"Could not read JSON file {path}") from e
 
     @_retry_corrupted_parquet_fetch
-    def fetch_all_candles(self, bucket: TimeBucket) -> pyarrow.Table:
+    def fetch_all_candles(self, bucket: TimeBucket) -> "pyarrow.Table | fastparquet.ParquetFile":
         """Get cached blob of candle data of a certain candle width.
 
         The returned data can be between several hundreds of megabytes to several gigabytes
@@ -457,7 +458,7 @@ class Client(BaseClient):
         return result
 
     @_retry_corrupted_parquet_fetch
-    def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> Table:
+    def fetch_all_liquidity_samples(self, bucket: TimeBucket) -> "pyarrow.Table | fastparquet.ParquetFile":
         """Get cached blob of liquidity events of a certain time window.
 
         The returned data can be between several hundreds of megabytes to several gigabytes
@@ -484,7 +485,7 @@ class Client(BaseClient):
             raise RuntimeError(f"Could not read JSON file {path}") from e
 
     @_retry_corrupted_parquet_fetch
-    def fetch_lending_reserves_all_time(self) -> Table:
+    def fetch_lending_reserves_all_time(self) -> "pyarrow.Table | fastparquet.ParquetFile":
         """Get a cached blob of lending protocol reserve events and precomupted stats.
 
         The returned data can be between several hundreds of megabytes to several
