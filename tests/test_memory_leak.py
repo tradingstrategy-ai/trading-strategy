@@ -3,14 +3,30 @@
 import sys
 import gc
 import time
+from pathlib import PosixPath
 
+import pytest
 from tradingstrategy.client import Client
 
 from pyarrow import parquet as pq
 
 
+TEST_PARQUET_FILE = PosixPath('/tmp/trading-strategy-tests/memory-leak.parquet')
+
+
+@pytest.mark.skipif(
+    TEST_PARQUET_FILE.exists() == False,
+    reason="Manual memory leak test"
+)
 def test_memory_leak(persistent_test_client: Client):
-    """Load trading pair and lending data for the same backtest"""
+    """Load pair parquet file repeatly and see how it affects RSS.
+
+    To test:
+
+        cp /tmp/trading-strategy-tests/pair-universe.parquet /tmp/trading-strategy-tests/memory-leak.parquet
+        pytest -k test_memory_leak
+
+    """
     import psutil
     client = persistent_test_client
 
@@ -18,9 +34,8 @@ def test_memory_leak(persistent_test_client: Client):
 
     for i in range(0, 180):
         rss = p.memory_info().rss
-        # data = client.fetch_pair_universe()
-        file_path = client.transport.get_cached_item("pair-universe.parquet")
-        data = pq.read_table(file_path, memory_map=False, use_threads=True)
+        file_path = TEST_PARQUET_FILE
+        data = pq.read_table(file_path, memory_map=True, use_threads=False)
 
         print("RSS is ", rss)
         gc.collect()

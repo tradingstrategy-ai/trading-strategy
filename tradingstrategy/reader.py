@@ -34,7 +34,7 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
 
     See :py:func:`pyarrow.parquet.read_table`.
 
-    You can disable "threaded read" using `PYARROW_THREADED_READ`
+    You can disable "threaded read" using ``PYARROW_THREADED_READ``
     environment variable to lower the memory consumption.
     Used in parallel testing.
 
