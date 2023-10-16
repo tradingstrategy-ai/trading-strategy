@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def test_client_download_lending_reserves_all_time(client: Client, cache_path: str):
     """Download all available data on lending protocol reserves."""
-    df = client.fetch_lending_reserves_all_time()
+    df = client.fetch_lending_reserves_all_time().to_pandas()
     # Check we cached the file correctly
     assert Path(f"{cache_path}/lending-reserves-all.parquet").exists()
     assert len(df) > 100

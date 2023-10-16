@@ -64,7 +64,7 @@ def test_client_download_exchange_universe(client: Client, cache_path: str):
 
 def test_client_download_all_pairs(client: Client, cache_path: str):
     """Download all candles for a specific candle width."""
-    df = client.fetch_all_candles(TimeBucket.d30)
+    df = client.fetch_all_candles(TimeBucket.d30).to_pandas()
     # Check we cached the file correctly
     assert os.path.exists(f"{cache_path}/candles-30d.parquet")
     assert len(df) > 100
@@ -72,7 +72,7 @@ def test_client_download_all_pairs(client: Client, cache_path: str):
 
 def test_client_download_all_liquidity_samples(client: Client, cache_path: str):
     """Download all liquidity samples for a specific candle width."""
-    df = client.fetch_all_liquidity_samples(TimeBucket.d30)
+    df = client.fetch_all_liquidity_samples(TimeBucket.d30).to_pandas()
     # Check we cached the file correctly
     assert os.path.exists(f"{cache_path}/liquidity-samples-30d.parquet")
     assert len(df) > 100
