@@ -1,11 +1,18 @@
-"""Reading and consuming datasets."""
+"""Reading and consuming datasets.
+
+Python has two backends for dealing with Parquet files
+
+- ``fastparquet``
+
+- ``pyarrow``
+
+FastParquet is used. A legacy function using PyArrow is still around.
+"""
 
 import logging
 from pathlib import Path
 from typing import Optional, List, Tuple
 
-import pyarrow as pa
-from pyarrow import parquet as pq, ArrowInvalid
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +25,33 @@ class BrokenData(Exception):
         self.path = path
 
 
-def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
+def read_parquet_fastparquet(path: Path, filters: Optional[List[Tuple]]=None) -> "fastparquet.ParquetFile":
     """Reads compressed Parquet file of data to memory.
+
+    Uses ``fastparquet`` backend.
+
+    File or stream can describe :py:class:`tradingstrategy.candle.Candle`
+    or :py:class:`tradingstrategy.pair.DEXPair` data.
+
+
+    :param stream:
+        A file input that must support seeking.
+
+    :param filters:
+        Unsupported
+
+    """
+    from fastparquet import ParquetFile
+    pf = ParquetFile(path)
+    return pf
+
+
+def read_parquet_pyarrow(path: Path, filters: Optional[List[Tuple]]=None) -> "pyarrow.Table":
+    """Reads compressed Parquet file of data to memory.
+
+    .. warning::
+
+        Please use ``read_parquet_fastparquet`` instead, as it consumes less memory.
 
     File or stream can describe :py:class:`tradingstrategy.candle.Candle`
     or :py:class:`tradingstrategy.pair.DEXPair` data.
@@ -40,6 +72,10 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
         Parquet read_table filters.
 
     """
+
+    import pyarrow as pa
+    from pyarrow import parquet as pq, ArrowInvalid
+
     assert isinstance(path, Path), f"Expected path: {path}"
     f = path.as_posix()
     logger.info("Reading Parquet %s", f)
@@ -55,3 +91,8 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
                          path=path) \
                         from e
     return table
+
+
+#: Choose between different backends
+#:
+read_parquet = read_parquet_fastparquet
