@@ -1649,6 +1649,27 @@ def filter_for_exchanges(pairs: pd.DataFrame, exchanges: Collection[Exchange]) -
     return our_pairs
 
 
+def filter_for_trading_fee(pairs: pd.DataFrame, fee: Percent) -> pd.DataFrame:
+    """Select only pairs with a specific trading fee.
+
+    Filter pairs based on :py:term:`AMM` :py:term:`swap` fee.
+
+    :param fee:
+        Fee as the floating point.
+
+        For example ``0.0005`` for :term:`Uniswap` 5 BPS fee tier.
+    """
+
+    assert 0 < fee < 1, f"Got fee: {fee}"
+
+    int_fee = int(fee * 10_000)
+
+    our_pairs: pd.DataFrame = pairs.loc[
+        (pairs['fee'] == int_fee)
+    ]
+    return our_pairs
+
+
 def filter_for_base_tokens(
     pairs: pd.DataFrame,
     base_token_addresses: List[str] | Set[str]

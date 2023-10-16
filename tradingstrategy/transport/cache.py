@@ -33,7 +33,17 @@ logger = logging.getLogger(__name__)
 
 
 class APIError(Exception):
-    pass
+    """API error parent class."""
+
+
+class DataNotAvailable(APIError):
+    """Data not available.
+
+    This may happen e.g. when a new entry has just come online,
+    it has been added to the pair or reserve map, but does not have candles available yet.
+
+    Wraps 404 error from the dataset server.local
+    """
 
 
 class CachedHTTPTransport:
@@ -131,7 +141,9 @@ class CachedHTTPTransport:
 
         if add_exception_hook:
             def exception_hook(response: Response, *args, **kwargs):
-                if response.status_code >= 400:
+                if response.status_code == 404:
+                    raise DataNotAvailable(f"Server error reply: code:{response.status_code} message:{response.text}")
+                elif response.status_code >= 400:
                     raise APIError(f"Server error reply: code:{response.status_code} message:{response.text}")
 
             session.hooks = {
@@ -423,7 +435,13 @@ class CachedHTTPTransport:
             if end_time:
                 params["end"] = end_time.isoformat()
 
-            resp = self.requests.get(api_url, params=params, stream=True)
+            try:
+                resp = self.requests.get(api_url, params=params, stream=True)
+            except DataNotAvailable as e:
+                # We have special request hook that translates 404 to this exception
+                raise DataNotAvailable(f"Could not fetch lending candles for {params}") from e
+            except Exception as e:
+                raise APIError(f"Could not fetch lending candles for {params}") from e
 
             # TODO: handle error
             candles = resp.json()[candle_type]

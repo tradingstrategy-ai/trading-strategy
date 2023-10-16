@@ -142,7 +142,7 @@ class LendingReserve:
         return hash((self.chain_id, self.protocol_slug, self.asset_address))
 
     def __repr__(self):
-        return f"<LendingReserve for asset {self.asset_symbol} in protocol {self.protocol_slug.name} on {self.chain_id.get_name()} >"
+        return f"<LendingReserve #{self.reserve_id} for asset {self.asset_symbol} in protocol {self.protocol_slug.name} on {self.chain_id.get_name()} >"
     
     def get_asset(self) -> Token:
         """Return description for the underlying asset."""
@@ -282,15 +282,20 @@ class LendingReserveUniverse:
             self,
             chain_id: ChainId,
             token_symbol: TokenSymbol,
-    ) -> LendingReserve | None:
-        """Fetch a specific lending reserve."""
+    ) -> LendingReserve:
+        """Fetch a specific lending reserve.
+
+        :raise UnknownLendingReserve:
+            If we do not have data available.
+        """
 
         assert isinstance(chain_id, ChainId), f"Expected chain_id, got {chain_id.__class__}: {chain_id}"
 
         for reserve in self.reserves.values():
             if reserve.asset_symbol == token_symbol and reserve.chain_id == chain_id:
                 return reserve
-        return None
+
+        raise UnknownLendingReserve(f"Could not find lending reserve {chain_id}: {token_symbol}. We have {len(self.reserves)} reserves loaded.")
 
     def get_by_chain_and_address(
             self,
@@ -322,10 +327,20 @@ class LendingReserveUniverse:
 
         return LendingReserveUniverse(new_reserves)
 
-    def limit_to_chain(self, chain_id: ChainId):
+    def limit_to_chain(self, chain_id: ChainId) -> "LendingReserveUniverse":
         """Drop all lending reserves except ones on a specific chain."""
         assert isinstance(chain_id, ChainId)
         new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.chain_id == chain_id}
+        return LendingReserveUniverse(new_reserves)
+
+    def limit_to_assets(self, assets: Set[TokenSymbol]) -> "LendingReserveUniverse":
+        """Drop all lending reserves except listed tokens."""
+        for a in assets:
+            assert type(a) == str
+        new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.asset_symbol in assets}
+
+        assert len(assets) == len(new_reserves), f"Could not resolve all assets: {assets}"
+
         return LendingReserveUniverse(new_reserves)
 
     def resolve_lending_reserve(self, reserve_decription: LendingReserveDescription) -> LendingReserve:

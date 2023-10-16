@@ -54,8 +54,7 @@ from tradingstrategy.environment.jupyter import (
 )
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.transport.cache import CachedHTTPTransport
-
+from tradingstrategy.transport.cache import CachedHTTPTransport, DataNotAvailable
 
 logger = logging.getLogger(__name__)
 
@@ -425,14 +424,27 @@ class Client(BaseClient):
 
                 for reserve in lending_reserve_universe.iterate_reserves():
                     progress_bar.set_postfix({"Asset": reserve.asset_symbol})
-                    piece = self.fetch_lending_candles_by_reserve_id(
-                        reserve.reserve_id,
-                        bucket,
-                        candle_type,
-                        start_time,
-                        end_time,
-                    )
-                    bits.append(piece)
+                    try:
+                        piece = self.fetch_lending_candles_by_reserve_id(
+                            reserve.reserve_id,
+                            bucket,
+                            candle_type,
+                            start_time,
+                            end_time,
+                        )
+                        bits.append(piece)
+                    except DataNotAvailable as e:
+                        # Some of the reserves do not have full data available yet
+                        logger.warning(
+                            "Lending candles could not be fetch for reserve: %s, bucket: %s, candle: %s, start: %s, end: %s, error: %s",
+                            reserve,
+                            bucket,
+                            candle_type,
+                            start_time,
+                            end_time,
+                            e,
+                        )
+
                     progress_bar.update()
 
                 data = pd.concat(bits)
