@@ -1,4 +1,4 @@
-"""Reading and consuming datasets.
+"""Reading and consuming Parquet dataset files.
 
 Python has two backends for dealing with Parquet files
 
