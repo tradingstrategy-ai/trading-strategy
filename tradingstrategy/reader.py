@@ -1,6 +1,7 @@
 """Reading and consuming datasets."""
 
 import logging
+import os
 from pathlib import Path
 from typing import Optional, List, Tuple
 
@@ -33,6 +34,10 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
 
     See :py:func:`pyarrow.parquet.read_table`.
 
+    You can disable "threaded read" using `PYARROW_THREADED_READ`
+    environment variable to lower the memory consumption.
+    Used in parallel testing.
+
     :param stream:
         A file input that must support seeking.
 
@@ -40,12 +45,15 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
         Parquet read_table filters.
 
     """
+
+    threaded_read_enabled = os.environ.get("PYARROW_THREADED_READ", "true") != "false"
+
     assert isinstance(path, Path), f"Expected path: {path}"
     f = path.as_posix()
     logger.info("Reading Parquet %s", f)
     # https://arrow.apache.org/docs/python/parquet.html
     try:
-        table = pq.read_table(f, filters=filters)
+        table = pq.read_table(f, filters=filters, use_threads=threaded_read_enabled)
     except ArrowInvalid as e:
         raise BrokenData(f"Could not read Parquet file: {f}\n"
                          f"Probably a corrupted download.\n"
