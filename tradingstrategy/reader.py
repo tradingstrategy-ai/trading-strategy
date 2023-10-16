@@ -28,11 +28,16 @@ class BrokenData(Exception):
 def read_parquet_fastparquet(path: Path, filters: Optional[List[Tuple]]=None) -> "fastparquet.ParquetFile":
     """Reads compressed Parquet file of data to memory.
 
+    .. warning::
+
+        Currently the read candle data is corrupted.
+
+        See https://github.com/dask/fastparquet/issues/849
+
     Uses ``fastparquet`` backend.
 
     File or stream can describe :py:class:`tradingstrategy.candle.Candle`
     or :py:class:`tradingstrategy.pair.DEXPair` data.
-
 
     :param stream:
         A file input that must support seeking.
@@ -48,10 +53,6 @@ def read_parquet_fastparquet(path: Path, filters: Optional[List[Tuple]]=None) ->
 
 def read_parquet_pyarrow(path: Path, filters: Optional[List[Tuple]]=None) -> "pyarrow.Table":
     """Reads compressed Parquet file of data to memory.
-
-    .. warning::
-
-        Please use ``read_parquet_fastparquet`` instead, as it consumes less memory.
 
     File or stream can describe :py:class:`tradingstrategy.candle.Candle`
     or :py:class:`tradingstrategy.pair.DEXPair` data.
@@ -95,4 +96,5 @@ def read_parquet_pyarrow(path: Path, filters: Optional[List[Tuple]]=None) -> "py
 
 #: Choose between different backends
 #:
-read_parquet = read_parquet_fastparquet
+#read_parquet = read_parquet_fastparquet
+read_parquet = read_parquet_pyarrow
