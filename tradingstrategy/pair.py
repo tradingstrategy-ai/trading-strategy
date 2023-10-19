@@ -786,14 +786,16 @@ class PandasPairUniverse:
         """How many trading pairs there are."""
         return len(self.df)
 
-    def get_pair_by_id(self, pair_id: PrimaryKey)  -> Optional[DEXPair]:
+    def get_pair_by_id(self, pair_id: PrimaryKey) -> DEXPair:
         """Look up pair information and return its data.
 
         Uses a cached path. Constructing :py:class:`DEXPair`
         objects is a bit slow, so this is a preferred method
         if you need to access multiple pairs in a hot loop.
 
-        :raise PairNotFoundError: If pair is not found
+        :raise PairNotFoundError:
+
+            If pair for the pair id is not loaded in our datasets.
 
         :return:
             Nicely presented :py:class:`DEXPair`.
