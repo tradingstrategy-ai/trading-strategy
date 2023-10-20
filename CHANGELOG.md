@@ -1,3 +1,7 @@
+# 0.20.13
+
+- move make clickable to module level
+
 # 0.20.12
 
 - Internal change: Use `parquet.read_table(memory_map=True)` to decrease RAM usage
