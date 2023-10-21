@@ -24,17 +24,32 @@ logger = logging.getLogger(__name__)
 class JupyterEnvironment(Environment):
     """Define paths and setup processes when using Capitalgram from any local Jupyter Notebook installation"""
 
-    def __init__(self, cache_path=None):
+    def __init__(
+        self,
+        cache_path=None,
+        allow_settings=True,
+    ):
+        """CReate environment.
+
+        :param cache_path:
+            Where do we store downloaded datasets
+
+        :param allow_settings:
+            Allow creation of the settings file.
+        """
         if not cache_path:
             self.cache_path = os.path.expanduser("~/.cache/tradingstrategy")
         else:
             self.cache_path = cache_path
+
+        self.allow_settings = allow_settings
 
     def get_cache_path(self) -> str:
         return self.cache_path
 
     def get_settings_path(self) -> str:
         return os.path.expanduser("~/.tradingstrategy")
+
     def discover_configuration(self) -> Optional[Configuration]:
         spath = self.get_settings_path()
         settings_file = os.path.join(spath, "settings.json")
@@ -56,6 +71,7 @@ class JupyterEnvironment(Environment):
 
     def clear_configuration(self):
         """Delete the saved config file (if any)"""
+        assert self.allow_settings
         spath = self.get_settings_path()
         path = os.path.join(spath, "settings.json")
         if os.path.exists(path):
@@ -63,6 +79,7 @@ class JupyterEnvironment(Environment):
 
     def interactive_setup(self) -> Configuration:
         """Perform interactive user onbaording"""
+        assert self.allow_settings
         config = run_interactive_setup()
         self.save_configuration(config)
         return config
@@ -76,6 +93,7 @@ class JupyterEnvironment(Environment):
 
     def setup_on_demand(self, **kwargs) -> Configuration:
         """Check if we need to set up the environment."""
+        assert self.allow_settings
         config = self.discover_configuration()
         if not config:
             if platform.system() == 'Emscripten':

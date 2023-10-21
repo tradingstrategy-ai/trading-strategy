@@ -640,18 +640,28 @@ class Client(BaseClient):
         return Client(env, transport)
 
     @classmethod
-    def create_live_client(cls, api_key: Optional[str]=None, cache_path: Optional[Path]=None) -> "Client":
+    def create_live_client(
+        cls,
+        api_key: Optional[str] = None,
+        cache_path: Optional[Path] = None,
+        allow_settings=True,
+    ) -> "Client":
         """Create a live trading instance of the client.
 
         The live client is non-interactive and logs using Python logger.
 
-        :param api_key: Trading Strategy oracle API key, starts with `secret-token:tradingstrategy-...`
+        :param api_key:
+            Trading Strategy oracle API key, starts with `secret-token:tradingstrategy-...`
 
-        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
+        :param cache_path:
+            Where downloaded datasets are stored. Defaults to `~/.cache`.
+
+        :param allow_settings:
+            Allow creation of the settings file.
         """
         cls.preflight_check()
         cls.setup_notebook()
-        env = JupyterEnvironment()
+        env = JupyterEnvironment(allow_settings=allow_settings)
         if cache_path:
             cache_path = cache_path.as_posix()
         else:
