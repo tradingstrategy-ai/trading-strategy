@@ -659,6 +659,10 @@ class Client(BaseClient):
         :param allow_settings:
             Allow creation of the settings file.
         """
+
+        if not allow_settings:
+            assert api_key, "API key must be given if a settings file is not used"
+
         cls.preflight_check()
         cls.setup_notebook()
         env = JupyterEnvironment(allow_settings=allow_settings)
@@ -666,11 +670,14 @@ class Client(BaseClient):
             cache_path = cache_path.as_posix()
         else:
             cache_path = env.get_cache_path()
+
         config = Configuration(api_key)
+
         transport = CachedHTTPTransport(
             download_with_progress_plain,
             "https://tradingstrategy.ai/api",
             cache_path=cache_path,
             api_key=config.api_key,
             add_exception_hook=False)
+
         return Client(env, transport)
