@@ -631,8 +631,11 @@ class Client(BaseClient):
         else:
             cache_path = tempfile.mkdtemp()
 
-        env = JupyterEnvironment(cache_path=cache_path)
-        config = Configuration(api_key=os.environ["TRADING_STRATEGY_API_KEY"])
+        api_key = os.environ.get("TRADING_STRATEGY_API_KEY")
+        assert api_key, "Unit test data client cannot be created without TRADING_STRATEGY_API_KEY env"
+
+        env = JupyterEnvironment(cache_path=cache_path, settings_path=None)
+        config = Configuration(api_key=api_key)
         transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", api_key=config.api_key, cache_path=env.get_cache_path(), timeout=15)
         return Client(env, transport)
 
@@ -645,7 +648,9 @@ class Client(BaseClient):
     ) -> "Client":
         """Create a live trading instance of the client.
 
-        The live client is non-interactive and logs using Python logger.
+        - The live client is non-interactive and logs using Python logger
+
+        - No interactive progress bars are set up
 
         :param api_key:
             Trading Strategy oracle API key, starts with `secret-token:tradingstrategy-...`

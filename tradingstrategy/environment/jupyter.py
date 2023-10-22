@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 #:
 #: Store under user home
 #:
-DEFAULT_SETTINGS_PATH = os.path.expanduser("~/.tradingstrategy")
+DEFAULT_SETTINGS_PATH = Path(os.path.expanduser("~/.tradingstrategy"))
 
 
 class SettingsDisabled(Exception):
@@ -61,6 +61,7 @@ class JupyterEnvironment(Environment):
             self.cache_path = cache_path
 
         if settings_path:
+
             assert isinstance(settings_path, Path), f"Got {settings_path.__class__}"
 
         self.setting_path = settings_path
