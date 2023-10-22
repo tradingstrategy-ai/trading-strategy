@@ -50,7 +50,7 @@ from tradingstrategy.environment.base import Environment, download_with_progress
 from tradingstrategy.environment.config import Configuration
 from tradingstrategy.environment.jupyter import (
     JupyterEnvironment,
-    download_with_tqdm_progress_bar,
+    download_with_tqdm_progress_bar, DEFAULT_SETTINGS_PATH,
 )
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -517,10 +517,8 @@ class Client(BaseClient):
 
     @classmethod
     def setup_notebook(cls):
-        """Setup diagram rendering and such.
-
-        Force high DPI output for all images.
-        """
+        """Legacy."""
+        warnings.warn('This method is deprecated. Use tradeexecutor.utils.notebook module', DeprecationWarning, stacklevel=2)
         # https://stackoverflow.com/a/51955985/315168
         try:
             import matplotlib as mpl
@@ -572,10 +570,11 @@ class Client(BaseClient):
                               cache_path: Optional[str] = None,
                               api_key: Optional[str] = None,
                               pyodide=None,
+                              settings_path=DEFAULT_SETTINGS_PATH,
                               ) -> "Client":
         """Create a new API client.
 
-        This function is intented to be used from Jupyter notebooks
+        This function is intended to be used from Jupyter notebooks
 
         - Any local or server-side IPython session
 
@@ -592,14 +591,19 @@ class Client(BaseClient):
             Detect the use of this library inside Pyodide / JupyterLite.
             If `None` then autodetect Pyodide presence,
             otherwise can be forced with `True`.
+
+        :param settings_path:
+            Where do we write our settings file.
+
+            Set ``None`` to disable settings file in Docker/web browser environments.
+
         """
 
         if pyodide is None:
             pyodide = is_pyodide()
 
         cls.preflight_check()
-        cls.setup_notebook()
-        env = JupyterEnvironment()
+        env = JupyterEnvironment(settings_path=settings_path)
 
         # Try Pyodide default key
         if not api_key:
@@ -621,7 +625,7 @@ class Client(BaseClient):
 
     @classmethod
     def create_test_client(cls, cache_path=None) -> "Client":
-        """Create a new Capitalgram clienet to be used with automated test suites.
+        """Create a new Trading Strategy client to be used with automated test suites.
 
         Reads the API key from the environment variable `TRADING_STRATEGY_API_KEY`.
         A temporary folder is used as a cache path.
@@ -634,33 +638,57 @@ class Client(BaseClient):
         else:
             cache_path = tempfile.mkdtemp()
 
-        env = JupyterEnvironment(cache_path=cache_path)
-        config = Configuration(api_key=os.environ["TRADING_STRATEGY_API_KEY"])
+        api_key = os.environ.get("TRADING_STRATEGY_API_KEY")
+        assert api_key, "Unit test data client cannot be created without TRADING_STRATEGY_API_KEY env"
+
+        env = JupyterEnvironment(cache_path=cache_path, settings_path=None)
+        config = Configuration(api_key=api_key)
         transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", api_key=config.api_key, cache_path=env.get_cache_path(), timeout=15)
         return Client(env, transport)
 
     @classmethod
-    def create_live_client(cls, api_key: Optional[str]=None, cache_path: Optional[Path]=None) -> "Client":
+    def create_live_client(
+        cls,
+        api_key: Optional[str] = None,
+        cache_path: Optional[Path] = None,
+        settings_path: Path | None = DEFAULT_SETTINGS_PATH,
+    ) -> "Client":
         """Create a live trading instance of the client.
 
-        The live client is non-interactive and logs using Python logger.
+        - The live client is non-interactive and logs using Python logger
 
-        :param api_key: Trading Strategy oracle API key, starts with `secret-token:tradingstrategy-...`
+        - No interactive progress bars are set up
 
-        :param cache_path: Where downloaded datasets are stored. Defaults to `~/.cache`.
+        :param api_key:
+            Trading Strategy oracle API key, starts with `secret-token:tradingstrategy-...`
+
+        :param cache_path:
+            Where downloaded datasets are stored. Defaults to `~/.cache`.
+
+        :param settings_path:
+            Where do we write our settings file.
+
+            Set ``None`` to disable settings file in Docker environments.
         """
+
         cls.preflight_check()
-        cls.setup_notebook()
-        env = JupyterEnvironment()
+
+        if settings_path is None:
+            assert api_key, "Either API key or settings file must be given"
+
+        env = JupyterEnvironment(settings_path=settings_path)
         if cache_path:
             cache_path = cache_path.as_posix()
         else:
             cache_path = env.get_cache_path()
+
         config = Configuration(api_key)
+
         transport = CachedHTTPTransport(
             download_with_progress_plain,
             "https://tradingstrategy.ai/api",
             cache_path=cache_path,
             api_key=config.api_key,
             add_exception_hook=False)
+
         return Client(env, transport)

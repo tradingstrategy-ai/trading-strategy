@@ -3,6 +3,7 @@ import logging
 import os
 import platform
 import shutil
+from pathlib import Path
 from typing import Optional
 
 from requests import Session
@@ -21,20 +22,60 @@ if platform.system() == 'Emscripten':
 logger = logging.getLogger(__name__)
 
 
+#: Where we will store our settings file
+#:
+#: Store under user home
+#:
+DEFAULT_SETTINGS_PATH = Path(os.path.expanduser("~/.tradingstrategy"))
+
+
+class SettingsDisabled(Exception):
+    """Raised when the user tries to create/read settings file when it is purposefully disabled.
+
+    Docker environments.
+    """
+
+
 class JupyterEnvironment(Environment):
     """Define paths and setup processes when using Capitalgram from any local Jupyter Notebook installation"""
 
-    def __init__(self, cache_path=None):
+    def __init__(
+        self,
+        cache_path=None,
+        settings_path: Path | None = DEFAULT_SETTINGS_PATH,
+    ):
+        """CReate environment.
+
+        :param cache_path:
+            Where do we store downloaded datasets
+
+        :param settings_path:
+            Override the default settings path.
+
+            Useful for unit tests.
+        """
         if not cache_path:
+            # TODO: Not use which Unix standard mandates ~/.cache
             self.cache_path = os.path.expanduser("~/.cache/tradingstrategy")
         else:
             self.cache_path = cache_path
+
+        if settings_path:
+
+            assert isinstance(settings_path, Path), f"Got {settings_path.__class__}"
+
+        self.setting_path = settings_path
+
+    def check_settings_enabled(self):
+        if not self.setting_path:
+            raise SettingsDisabled("Settings file is disabled and the code path tried to access it.")
 
     def get_cache_path(self) -> str:
         return self.cache_path
 
     def get_settings_path(self) -> str:
-        return os.path.expanduser("~/.tradingstrategy")
+        return self.setting_path
+
     def discover_configuration(self) -> Optional[Configuration]:
         spath = self.get_settings_path()
         settings_file = os.path.join(spath, "settings.json")
@@ -56,6 +97,7 @@ class JupyterEnvironment(Environment):
 
     def clear_configuration(self):
         """Delete the saved config file (if any)"""
+        self.check_settings_enabled()
         spath = self.get_settings_path()
         path = os.path.join(spath, "settings.json")
         if os.path.exists(path):
@@ -63,12 +105,14 @@ class JupyterEnvironment(Environment):
 
     def interactive_setup(self) -> Configuration:
         """Perform interactive user onbaording"""
+        self.check_settings_enabled()
         config = run_interactive_setup()
         self.save_configuration(config)
         return config
 
     def non_interactive_setup(self, **kwargs) -> Configuration:
         """Perform interactive user onbaording"""
+        self.check_settings_enabled()
         config = run_non_interactive_setup(**kwargs)
         if config:
             self.save_configuration(config)
@@ -76,6 +120,7 @@ class JupyterEnvironment(Environment):
 
     def setup_on_demand(self, **kwargs) -> Configuration:
         """Check if we need to set up the environment."""
+        self.check_settings_enabled()
         config = self.discover_configuration()
         if not config:
             if platform.system() == 'Emscripten':
