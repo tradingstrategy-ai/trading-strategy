@@ -50,7 +50,7 @@ from tradingstrategy.environment.base import Environment, download_with_progress
 from tradingstrategy.environment.config import Configuration
 from tradingstrategy.environment.jupyter import (
     JupyterEnvironment,
-    download_with_tqdm_progress_bar,
+    download_with_tqdm_progress_bar, DEFAULT_SETTINGS_PATH,
 )
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -517,10 +517,8 @@ class Client(BaseClient):
 
     @classmethod
     def setup_notebook(cls):
-        """Setup diagram rendering and such.
-
-        Force high DPI output for all images.
-        """
+        """Legacy."""
+        warnings.warn('This method is deprecated. Use tradeexecutor.utils.notebook module', DeprecationWarning, stacklevel=2)
         # https://stackoverflow.com/a/51955985/315168
         try:
             import matplotlib as mpl
@@ -598,7 +596,6 @@ class Client(BaseClient):
             pyodide = is_pyodide()
 
         cls.preflight_check()
-        cls.setup_notebook()
         env = JupyterEnvironment()
 
         # Try Pyodide default key
@@ -644,7 +641,7 @@ class Client(BaseClient):
         cls,
         api_key: Optional[str] = None,
         cache_path: Optional[Path] = None,
-        allow_settings=True,
+        settings_path: Path | None = DEFAULT_SETTINGS_PATH,
     ) -> "Client":
         """Create a live trading instance of the client.
 
@@ -656,16 +653,18 @@ class Client(BaseClient):
         :param cache_path:
             Where downloaded datasets are stored. Defaults to `~/.cache`.
 
-        :param allow_settings:
-            Allow creation of the settings file.
+        :param settings_path:
+            Where do we write our settings file.
+
+            Set ``None`` to disable settings file in Docker environments.
         """
 
-        if not allow_settings:
-            assert api_key, "API key must be given if a settings file is not used"
-
         cls.preflight_check()
-        cls.setup_notebook()
-        env = JupyterEnvironment(allow_settings=allow_settings)
+
+        if settings_path is None:
+            assert api_key, "Either API key or settings file must be given"
+
+        env = JupyterEnvironment(settings_path=settings_path)
         if cache_path:
             cache_path = cache_path.as_posix()
         else:
