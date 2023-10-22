@@ -570,10 +570,11 @@ class Client(BaseClient):
                               cache_path: Optional[str] = None,
                               api_key: Optional[str] = None,
                               pyodide=None,
+                              settings_path=DEFAULT_SETTINGS_PATH,
                               ) -> "Client":
         """Create a new API client.
 
-        This function is intented to be used from Jupyter notebooks
+        This function is intended to be used from Jupyter notebooks
 
         - Any local or server-side IPython session
 
@@ -590,13 +591,19 @@ class Client(BaseClient):
             Detect the use of this library inside Pyodide / JupyterLite.
             If `None` then autodetect Pyodide presence,
             otherwise can be forced with `True`.
+
+        :param settings_path:
+            Where do we write our settings file.
+
+            Set ``None`` to disable settings file in Docker/web browser environments.
+
         """
 
         if pyodide is None:
             pyodide = is_pyodide()
 
         cls.preflight_check()
-        env = JupyterEnvironment()
+        env = JupyterEnvironment(settings_path=settings_path)
 
         # Try Pyodide default key
         if not api_key:
@@ -618,7 +625,7 @@ class Client(BaseClient):
 
     @classmethod
     def create_test_client(cls, cache_path=None) -> "Client":
-        """Create a new Capitalgram clienet to be used with automated test suites.
+        """Create a new Trading Strategy client to be used with automated test suites.
 
         Reads the API key from the environment variable `TRADING_STRATEGY_API_KEY`.
         A temporary folder is used as a cache path.
