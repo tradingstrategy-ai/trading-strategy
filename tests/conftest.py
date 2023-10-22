@@ -31,6 +31,7 @@ def persistent_test_client() -> Client:
     """
     c = Client.create_test_client("/tmp/trading-strategy-tests")
 
+    # Old testing hack
     if os.environ.get("CLEAR_CACHES"):
         c.clear_caches()
 
