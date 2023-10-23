@@ -1,6 +1,14 @@
+# 0.20.14
+
+- Internal change: move `make_clickable` to module level, so it can be reused
+
 # 0.20.13
 
-- move make clickable to module level
+- API change: `Client.create_live_client(settings_file_path)`
+  argument allows to disable and reading of settings file,
+  to avoid any confusion in Dockerised environments
+- Internal change: Unit tests do not try to poke settings file 
+  anymore
 
 # 0.20.12
 

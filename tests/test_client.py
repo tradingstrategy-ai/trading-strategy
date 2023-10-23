@@ -4,7 +4,9 @@ import os
 import logging
 from pathlib import Path
 
-from tradingstrategy.environment.jupyter import JupyterEnvironment
+import pytest
+
+from tradingstrategy.environment.jupyter import JupyterEnvironment, SettingsDisabled
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
@@ -136,3 +138,17 @@ def test_create_pyodide_client_detect():
     env.clear_configuration()
     client = Client.create_jupyter_client(pyodide=True)
     assert isinstance(client, Client)
+
+
+
+@pytest.mark.skipif(os.environ.get("TRADING_STRATEGY_API_KEY") is None, reason="Set TRADING_STRATEGY_API_KEY environment variable to run this test")
+def test_settings_disabled():
+    """We get an exception if settings are disabled when we try to access/create settings file."""
+
+    api_key = os.environ["TRADING_STRATEGY_API_KEY"]
+
+    client = Client.create_live_client(api_key=api_key, settings_path=None)
+    env = client.env
+    assert isinstance(env, JupyterEnvironment)
+    with pytest.raises(SettingsDisabled):
+        env.setup_on_demand()
