@@ -1,3 +1,7 @@
+# 0.20.14
+
+- Internal change: move `make_clickable` to module level, so it can be reused
+
 # 0.20.13
 
 - API change: `Client.create_live_client(settings_file_path)`

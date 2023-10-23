@@ -91,6 +91,21 @@ def is_pyodide() -> bool:
     return sys.platform == 'emscripten'
 
 
+def make_clickable(text, url):
+    """Format a value as a clickable link.
+    
+    :param text:
+        Text to display for the link.
+
+    :param url:
+        URL to link to.
+
+    :return:
+        HTML string with a clickable link.
+    """
+    return '<a href="{}">{}</a>'.format(url, text)
+
+
 def format_links_for_html_output(df: pd.DataFrame, link_columns: Collection[str]) -> pd.DataFrame:
     """Pandas DataFrame helper to format column link values as clicable.
 
@@ -105,13 +120,10 @@ def format_links_for_html_output(df: pd.DataFrame, link_columns: Collection[str]
         New DataFrame where URLs have been converted to links with "View" label
 
     """
-    def make_clickable(val):
-        # target _blank to open new window
-        return '<a target="_blank" href="{}">View</a>'.format(val)
 
     if get_notebook_output_mode() == JupyterOutputMode.html:
         for c in link_columns:
-            df[c] = df[c].apply(make_clickable)
+            df[c] = df[c].apply(lambda url: make_clickable("View", url))
     else:
         df = df.assign(**{c: "<in console>" for c in link_columns})
 
