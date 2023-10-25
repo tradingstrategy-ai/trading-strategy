@@ -1,3 +1,7 @@
+# Current
+
+- Update candle mappings so volume doesn't get set to None
+
 # 0.20.14
 
 - Internal change: move `make_clickable` to module level, so it can be reused
