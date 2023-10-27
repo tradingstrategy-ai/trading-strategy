@@ -311,7 +311,7 @@ class LendingReserveUniverse:
             if reserve.asset_address == asset_address and reserve.chain_id == chain_id:
                 return reserve
 
-        raise UnknownLendingReserve(f"Could not find lending reserve {chain_id}: {asset_address}. We have {len(self.reserves)} reserves loaded.")
+        raise UnknownLendingReserve(f"Could not find lending reserve on chain {chain_id.get_name()}, reserve token address {asset_address}. We have {len(self.reserves)} reserves loaded.")
 
     def limit(self, reserve_descriptions: Collection[LendingReserveDescription]) -> "LendingReserveUniverse":
         """Remove all lending reverses that are not on the whitelist.
