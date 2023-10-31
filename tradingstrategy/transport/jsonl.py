@@ -41,7 +41,7 @@ CANDLE_MAPPINGS = {
     "sb": "start_block",
     "eb": "end_block",
     "tc": None,  # Currently not available for Uni v3 exchanges
-    "v": None,  # Deprecated
+    "v": "volume",  # TODO deprecate
 }
 
 
