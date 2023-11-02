@@ -1,3 +1,8 @@
+# 0.20.16
+
+- Add `LendingMetricUniverse.estimate_accrued_interest` so we can estimate the position cost and interest profit
+  in backtesting
+
 # 0.20.15
 
 - Update candle mappings so volume doesn't get set to None

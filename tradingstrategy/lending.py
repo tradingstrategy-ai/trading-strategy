@@ -6,6 +6,7 @@ like supply APR and borrow APR across various DeFi lending protocols.
 See :py:class:`LendingReserveUniverse` on how to load the data.
 """
 import warnings
+from _decimal import Decimal
 from enum import Enum
 import datetime
 
@@ -20,6 +21,8 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.token import Token
 from tradingstrategy.types import UNIXTimestamp, PrimaryKey, TokenSymbol, Slug, NonChecksummedAddress, URL
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
+
+from eth_defi.aave_v3.rates import SECONDS_PER_YEAR
 
 
 class LendingProtocolType(str, Enum):
@@ -37,6 +40,12 @@ class LendingCandleType(str, Enum):
 class UnknownLendingReserve(Exception):
     """Does not know about this lending reserve."""
 
+
+class NoLendingData(Exception):
+    """Lending data missing for asked period.
+
+    Reserve was likely not active yet.
+    """
 
 
 @dataclass_json
@@ -142,7 +151,7 @@ class LendingReserve:
         return hash((self.chain_id, self.protocol_slug, self.asset_address))
 
     def __repr__(self):
-        return f"<LendingReserve #{self.reserve_id} for asset {self.asset_symbol} in protocol {self.protocol_slug.name} on {self.chain_id.get_name()} >"
+        return f"<LendingReserve #{self.reserve_id} for asset {self.asset_symbol} ({self.asset_address}) in protocol {self.protocol_slug.name} on {self.chain_id.get_name()} >"
     
     def get_asset(self) -> Token:
         """Return description for the underlying asset."""
@@ -613,6 +622,60 @@ class LendingMetricUniverse(PairGroupedUniverse):
             link=link,
         )
 
+    def estimate_accrued_interest(
+        self,
+        reserve: LendingReserveDescription | LendingReserve,
+        start: datetime.datetime | pd.Timestamp,
+        end: datetime.datetime | pd.Timestamp,
+    ) -> Decimal:
+        """Estimate how much credit or debt interest we would gain on Aave at a given period.
+
+        :param reserve:
+            Asset we are interested in.
+
+        :param start:
+            Start of the period
+
+        :param end:
+            End of the period
+
+        :return:
+            Interest multiplier.
+
+            1.0 = no interest.
+
+        """
+
+        if isinstance(start, datetime.datetime):
+            start = pd.Timestamp(start)
+
+        if isinstance(end, datetime.datetime):
+            end = pd.Timestamp(end)
+
+        assert isinstance(start, pd.Timestamp), f"Not a timestamp: {start}"
+        assert isinstance(end, pd.Timestamp), f"Not a timestamp: {end}"
+
+        assert start <= end
+
+        df = self.get_rates_by_reserve(reserve)
+
+        # TODO: Can we use index here to speed up?
+        candles = df[(df["timestamp"] >= start) & (df["timestamp"] <= end)]
+
+        if len(candles) == 0:
+            raise NoLendingData(f"No lending data for {reserve}, {start} - {end}")
+
+        # get average APR from high and low
+        candles["avg"] = candles[["high", "low"]].mean(axis=1)
+        avg_apr = Decimal(candles["avg"].mean() / 100)
+
+        duration = Decimal((end - start).total_seconds())
+        accrued_interest_estimation = (1 + 1 * avg_apr) * duration / SECONDS_PER_YEAR  # Use Aave v3 seconds per year
+
+        assert accrued_interest_estimation >= 1, f"Aave interest cannot be negative: {accrued_interest_estimation}"
+
+        return accrued_interest_estimation
+
 
 @dataclass
 class LendingCandleUniverse:
@@ -707,3 +770,5 @@ class LendingCandleUniverse:
                 return metric.reserves
 
         raise AssertionError("Empty LendingCandlesUniverse")
+
+

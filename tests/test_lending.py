@@ -2,6 +2,7 @@
 """Client lending dataset download and integrity tests"""
 
 import logging
+from _decimal import Decimal
 from pathlib import Path
 
 import pandas as pd
@@ -12,7 +13,8 @@ from tradingstrategy.pair import filter_for_chain, filter_for_quote_tokens, Stab
     filter_for_base_tokens
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
-from tradingstrategy.lending import LendingCandleType, LendingReserveUniverse, LendingProtocolType, UnknownLendingReserve, LendingReserve, LendingCandleUniverse
+from tradingstrategy.lending import LendingCandleType, LendingReserveUniverse, LendingProtocolType, UnknownLendingReserve, LendingReserve, \
+    LendingCandleUniverse, NoLendingData
 from tradingstrategy.utils.time import ZERO_TIMEDELTA
 
 logger = logging.getLogger(__name__)
@@ -306,3 +308,66 @@ def test_get_single_rate(persistent_test_client: Client):
     assert lag == ZERO_TIMEDELTA
 
 
+def test_get_estimate_interest(persistent_test_client: Client):
+    """Estimate how much profit we make with USDC credit.
+
+    Estimate borrow cost and supply profit for a year.
+    """
+
+    client = persistent_test_client
+    lending_reserves = client.fetch_lending_reserve_universe()
+
+    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+
+    lending_reserves = lending_reserves.limit([usdc_desc])
+
+    lending_candle_type_map = client.fetch_lending_candles_for_universe(
+        lending_reserves,
+        TimeBucket.d1,
+        start_time=pd.Timestamp("2022-09-01"),
+        end_time=pd.Timestamp("2023-09-01"),
+    )
+    lending_candles = LendingCandleUniverse(lending_candle_type_map, lending_reserves)
+
+    # Estimate borrow cost
+    borrow_interest_multiplier = lending_candles.variable_borrow_apr.estimate_accrued_interest(
+        usdc_desc,
+        start=pd.Timestamp("2022-09-01"),
+        end=pd.Timestamp("2023-09-01"),
+    )
+    assert borrow_interest_multiplier == pytest.approx(Decimal('1.028597760665127969909038441'))
+
+    # Estimate borrow cost
+    supply_interest_multiplier = lending_candles.supply_apr.estimate_accrued_interest(
+        usdc_desc,
+        start=pd.Timestamp("2022-09-01"),
+        end=pd.Timestamp("2023-09-01"),
+    )
+    assert supply_interest_multiplier == pytest.approx(Decimal('1.017786465640168974688961612'))
+
+
+def test_estimate_interest_bad_timeframe(persistent_test_client: Client):
+    """Try estimate interest when we have no data."""
+
+    client = persistent_test_client
+    lending_reserves = client.fetch_lending_reserve_universe()
+
+    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+
+    lending_reserves = lending_reserves.limit([usdc_desc])
+
+    lending_candle_type_map = client.fetch_lending_candles_for_universe(
+        lending_reserves,
+        TimeBucket.d1,
+        start_time=pd.Timestamp("2022-09-01"),
+        end_time=pd.Timestamp("2023-09-01"),
+    )
+    lending_candles = LendingCandleUniverse(lending_candle_type_map, lending_reserves)
+
+    # Ask for non-existing period
+    with pytest.raises(NoLendingData):
+        lending_candles.variable_borrow_apr.estimate_accrued_interest(
+            usdc_desc,
+            start=pd.Timestamp("2020-01-01"),
+            end=pd.Timestamp("2020-01-02"),
+        )
