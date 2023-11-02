@@ -630,6 +630,40 @@ class LendingMetricUniverse(PairGroupedUniverse):
     ) -> Decimal:
         """Estimate how much credit or debt interest we would gain on Aave at a given period.
 
+        Example:
+
+        .. code-block:
+
+            lending_reserves = client.fetch_lending_reserve_universe()
+
+            usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+
+            lending_reserves = lending_reserves.limit([usdc_desc])
+
+            lending_candle_type_map = client.fetch_lending_candles_for_universe(
+                lending_reserves,
+                TimeBucket.d1,
+                start_time=pd.Timestamp("2022-09-01"),
+                end_time=pd.Timestamp("2023-09-01"),
+            )
+            lending_candles = LendingCandleUniverse(lending_candle_type_map, lending_reserves)
+
+            # Estimate borrow cost
+            borrow_interest_multiplier = lending_candles.variable_borrow_apr.estimate_accrued_interest(
+                usdc_desc,
+                start=pd.Timestamp("2022-09-01"),
+                end=pd.Timestamp("2023-09-01"),
+            )
+            assert borrow_interest_multiplier == pytest.approx(Decimal('1.028597760665127969909038441'))
+
+            # Estimate borrow cost
+            supply_interest_multiplier = lending_candles.supply_apr.estimate_accrued_interest(
+                usdc_desc,
+                start=pd.Timestamp("2022-09-01"),
+                end=pd.Timestamp("2023-09-01"),
+            )
+            assert supply_interest_multiplier == pytest.approx(Decimal('1.017786465640168974688961612'))
+
         :param reserve:
             Asset we are interested in.
 
@@ -642,8 +676,9 @@ class LendingMetricUniverse(PairGroupedUniverse):
         :return:
             Interest multiplier.
 
-            1.0 = no interest.
+            Multiply the starting balance with this number to get the interest applied balance at ``end``.
 
+            1.0 = no interest.
         """
 
         if isinstance(start, datetime.datetime):
