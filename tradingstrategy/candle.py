@@ -433,11 +433,14 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"Trading pair data can be viewed at {link}"
             )
 
-    def get_price_with_tolerance(self,
-                                 pair: PrimaryKey | DEXPair,
-                                 when: pd.Timestamp | datetime.datetime,
-                                 tolerance: pd.Timedelta,
-                                 kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
+    def get_price_with_tolerance(
+            self,
+            pair: PrimaryKey | DEXPair,
+            when: pd.Timestamp | datetime.datetime,
+            tolerance: pd.Timedelta,
+            kind="close",
+            pair_name_hint: str | None=None,
+    ) -> Tuple[USDollarAmount, pd.Timedelta]:
         """Get the price for a trading pair at a specific time point, or before within a time range tolerance.
 
         The data may be sparse data. There might not be sample available in the same time point or
@@ -475,6 +478,11 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             For example if candle time interval is 5 minutes and look_back_timeframes is 10,
             then accept a candle that is maximum of 50 minutes before the timepoint.
 
+        :param pair_name_hint:
+            What should we call this pair in the error messages.
+
+            If not given, try to figure out from the context.
+
         :return:
             Return (price, delay) tuple.
             We always return a price. In the error cases an exception is raised.
@@ -499,7 +507,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             link = pair.get_link()
         elif type(pair) == int:
             pair_id = pair
-            pair_name = str(pair_id)
+            pair_name = pair_name_hint or str(pair_id)
             link = "<link unavailable>"
         else:
             raise AssertionError(f"Unknown pair type: {pair.__class__}")
@@ -589,7 +597,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"- You are asking historical data when the trading pair was not yet live.\n"
             f"- Your backtest is using indicators that need more lookback buffer than you are giving to them.\n"
             f"  Try set your data load range earlier or your backtesting starting later.\n"
-            f"\n",
+            f"\n"
             f"Trading pair page link: {link}"
             )
 

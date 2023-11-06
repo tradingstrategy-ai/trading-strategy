@@ -1,3 +1,9 @@
+# 0.20.17
+
+- Fix: DataFrame copy warning in `estimate_accrued_interest`
+- Add: `get_price_with_tolerance(pair_name_hint)` to have better exception messages 
+- Fix: `CandleSampleUnavailable` exception message was tuple instead of newline separated string
+
 # 0.20.16
 
 - Add `LendingMetricUniverse.estimate_accrued_interest` so we can estimate the position cost and interest profit

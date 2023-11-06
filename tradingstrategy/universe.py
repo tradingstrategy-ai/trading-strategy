@@ -121,9 +121,15 @@ class Universe:
             assert isinstance(c, ChainId), f"Expected ChainId object, got {c.__class__}: {c}"
 
     @property
-    def lending_reserves(self) -> LendingReserveUniverse:
-        """Each lending metric is paired with a copy of the universe"""
-        return self.lending_candles.lending_reserves
+    def lending_reserves(self) -> LendingReserveUniverse | None:
+        """Each lending metric is paired with a copy of the universe
+
+        :return:
+            ``None`` if lending data is not loaded
+        """
+        if self.lending_candles is not None:
+            return self.lending_candles.lending_reserves
+        return None
 
     def get_candle_availability(self) -> Tuple[pd.Timestamp, pd.Timestamp]:
         """Get the time range for which we have candle data.

@@ -316,6 +316,9 @@ class LendingReserveUniverse:
         :raise UnknownLendingReserve:
             If we do not have data available.
         """
+
+        assert isinstance(chain_id, ChainId), f"Got: {chain_id}"
+
         for reserve in self.reserves.values():
             if reserve.asset_address == asset_address and reserve.chain_id == chain_id:
                 return reserve
@@ -701,11 +704,11 @@ class LendingMetricUniverse(PairGroupedUniverse):
             raise NoLendingData(f"No lending data for {reserve}, {start} - {end}")
 
         # get average APR from high and low
-        candles["avg"] = candles[["high", "low"]].mean(axis=1)
-        avg_apr = Decimal(candles["avg"].mean() / 100)
+        avg = candles[["high", "low"]].mean(axis=1)
+        avg_apr = Decimal(avg.mean() / 100)
 
         duration = Decimal((end - start).total_seconds())
-        accrued_interest_estimation = (1 + 1 * avg_apr) * duration / SECONDS_PER_YEAR  # Use Aave v3 seconds per year
+        accrued_interest_estimation = 1 + (1 * avg_apr) * duration / SECONDS_PER_YEAR  # Use Aave v3 seconds per year
 
         assert accrued_interest_estimation >= 1, f"Aave interest cannot be negative: {accrued_interest_estimation}"
 
