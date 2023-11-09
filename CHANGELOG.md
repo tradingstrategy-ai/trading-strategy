@@ -1,3 +1,7 @@
+# Current
+
+- API update: `get_candles_by_pair()` accepts `DEXPair` instead or a primary key
+
 # 0.20.17
 
 - Fix: DataFrame copy warning in `estimate_accrued_interest`

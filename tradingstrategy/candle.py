@@ -311,7 +311,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """Return the dataset size - how many candles total"""
         return self.get_sample_count()
 
-    def get_candles_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
+    def (self, pair: "PrimaryKey | DEXPair") -> Optional[pd.DataFrame]:
         """Get candles for a single pair.
 
         :return:
@@ -330,13 +330,16 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             - close
         """
 
+        if isinstance(pair, DEXPair):
+            pair_id = pair.pair_id
+        else:
+            pair_id = pair
+
         if pair_id not in self.candles_cache:
             try:
                 self.candles_cache[pair_id] = self.get_samples_by_pair(pair_id)
             except KeyError:
                 return None
-        
-        return self.candles_cache[pair_id]
 
     def get_closest_price(self,
                           pair: PrimaryKey | DEXPair,
