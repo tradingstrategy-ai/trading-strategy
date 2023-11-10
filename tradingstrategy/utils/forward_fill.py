@@ -96,9 +96,10 @@ def forward_fill(
         # Wrote Parquest file under /tmp
         fpath = f"/tmp/{chain_id.get_slug()}-{exchange_slug}-candles-{time_bucket.value}.parquet"
         flattened_df = pairs_df.obj
+        flattened_df = flattened_df.reset_index().set_index("timestamp")  # Get rid of grouping
         flattened_df.to_parquet(fpath)
         print(f"Wrote {fpath} {os.path.getsize(fpath):,} bytes")
-        
+
     :param df:
         Candle data for single or multiple trading pairs
 
