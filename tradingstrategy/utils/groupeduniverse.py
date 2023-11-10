@@ -715,7 +715,7 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
 
 
 def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFrame:
-    """Downsample OHLCV candles or liquidity samples to less granular time bucket.
+    """Resample OHLCV candles or liquidity samples to less granular time bucket.
 
     E.g. transform 1h candles to 24h candles.
 
@@ -723,9 +723,11 @@ def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFr
 
     .. code-block:: python
 
+        from tradingstrategy.utils.groupeduniverse import resample_candles
+
         single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
         single_pair_candles = single_pair_candles.set_index("timestamp", drop=False)
-        monthly_candles = upsample_candles(single_pair_candles, TimeBucket.d30)
+        monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
         assert len(monthly_candles) <= len(single_pair_candles) / 4
 
     """
