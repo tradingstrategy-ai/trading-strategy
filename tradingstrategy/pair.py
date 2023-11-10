@@ -1807,6 +1807,15 @@ def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -
 
     - For code example see :py:func:`filter_for_quote_tokens`
     - See also :py:class:`StablecoinFilteringMode`
+
+    :param pairs:
+        DataFrame of of :py:class:`tradingstrategy.pair.DEXPair`
+
+    :param mode:
+         Are we looking for stablecoin pairs or volatile pairs
+
+    :return:
+        Filtered DataFrame
     """
     assert isinstance(mode, StablecoinFilteringMode)
 

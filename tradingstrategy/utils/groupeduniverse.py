@@ -69,9 +69,14 @@ class PairGroupedUniverse:
                  fix_wick_threshold: tuple | None = (0.1, 1.9),
                  primary_key_column="pair_id",
                  ):
-        """
+        """Set up new candle universe where data is grouped by trading pair.
+
+        :param df:
+            DataFrame backing the data.
+
         :param time_bucket:
             What bar size candles we are operating at. Default to daily.
+
             TODO: Currently not used. Will be removed in the future versions.
 
         :param timestamp_column:

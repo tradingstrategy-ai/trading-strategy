@@ -294,6 +294,7 @@ def visualise_ohlcv(
 
     return fig
 
+
 def validate_plot_info(
     volume_bar_mode: VolumeBarMode, 
     num_detached_indicators: int, 
@@ -509,3 +510,4 @@ def _get_secondary_y(volume_mode: VolumeBarMode) -> bool:
     else:
         raise ValueError(f"Unknown volume bar mode: {volume_mode}")
             
+

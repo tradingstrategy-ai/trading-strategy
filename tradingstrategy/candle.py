@@ -311,8 +311,11 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """Return the dataset size - how many candles total"""
         return self.get_sample_count()
 
-    def get_candles_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
+    def get_candles_by_pair(self, pair: "PrimaryKey | tradingstrategy.pair.DEXPair") -> Optional[pd.DataFrame]:
         """Get candles for a single pair.
+
+        :param pair:
+            Pair internal id or ``DEXPair`` instance of a trading pair.
 
         :return:
             Pandas dataframe object with the following columns.
@@ -329,6 +332,11 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
             - close
         """
+
+        if isinstance(pair, DEXPair):
+            pair_id = pair.pair_id
+        else:
+            pair_id = pair
 
         if pair_id not in self.candles_cache:
             try:

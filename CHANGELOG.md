@@ -1,3 +1,7 @@
+# Cucrrent
+
+- `CandleUniverse.get_candles_by_pair()` accepts `DEXPair` besides `pair_id` as an argument
+
 # 0.20.17
 
 - Fix: DataFrame copy warning in `estimate_accrued_interest`
