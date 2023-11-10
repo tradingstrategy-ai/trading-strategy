@@ -1,6 +1,7 @@
-# Cucrrent
+# Current
 
-- `CandleUniverse.get_candles_by_pair()` accepts `DEXPair` besides `pair_id` as an argument
+- API update: `CandleUniverse.get_candles_by_pair()` accepts `DEXPair` besides `pair_id` as an argument
+- `forward_fill()` can handle `volume` column
 
 # 0.20.17
 
