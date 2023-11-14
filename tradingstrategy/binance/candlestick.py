@@ -4,9 +4,14 @@
 import requests
 import datetime
 import pandas as pd
+import numpy as np
+import logging
 
 from tradingstrategy.timebucket import TimeBucket
 from pathlib import Path
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_binance_candlestick_data(
@@ -14,8 +19,9 @@ def get_binance_candlestick_data(
     time_bucket: TimeBucket,
     start_at: datetime.datetime,
     end_at: datetime.datetime,
+    force_redownload=False,
 ):
-    """Get candlestick price and volume data from Binance. If saved, use saved version, else create saved version.
+    """Get clean candlestick price and volume data from Binance. If saved, use saved version, else create saved version.
 
     .. code-block:: python
         five_min_data = get_binance_candlestick_data("ETHUSDC", TimeBucket.m5, datetime.datetime(2021, 1, 1), datetime.datetime(2021, 4, 1))
@@ -32,6 +38,9 @@ def get_binance_candlestick_data(
     :param end_at:
         End date of the data
 
+    :param force_redownload:
+        Force redownload of data from Binance and overwrite cached version
+
     :return:
         Pandas dataframe with the OHLCV data for the columns and datetimes as the index
     """
@@ -39,13 +48,13 @@ def get_binance_candlestick_data(
     # to include the end date, we need to add one day
     end_at = end_at + datetime.timedelta(days=1)
 
-    try:
-        df = pd.read_parquet(
-            _get_parquet_path(symbol, time_bucket, start_at, end_at)
-        )
-        return df
-    except:
-        pass
+    if not force_redownload:
+        try:
+            return pd.read_parquet(
+                _get_parquet_path(symbol, time_bucket, start_at, end_at)
+            )
+        except:
+            pass
 
     params_str = f"symbol={symbol}&interval={time_bucket.value}"
 
@@ -102,8 +111,7 @@ def get_binance_candlestick_data(
                     close_prices.append(float(item[4]))
                     volume.append(float(item[5]))
         else:
-            print(f"Error fetching data between {start_timestamp} and {end_timestamp}")
-            print(f"Response: {response.status_code} {response.text}")
+            logger.warn(f"Error fetching data between {start_timestamp} and {end_timestamp}. \nResponse: {response.status_code} {response.text} \nMake sure you are using valid pair symbol e.g. `ETHUSDC`, not just ETH")
 
     df = pd.DataFrame(
         {
@@ -116,9 +124,58 @@ def get_binance_candlestick_data(
         index=dates,
     )
 
+    # df = clean_time_series_data(df)  
+
     df.to_parquet(_get_parquet_path(symbol, time_bucket, start_at, end_at))
 
     return df
+
+
+def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
+    """Unused for now since data from Binance occasionally has gaps. Not a huge deal.
+
+    Cleans time series data to ensure:
+    - No Nan values 
+    - Index contains no duplicates
+    - Has equally spaced intervals with no gaps
+    - Sorted index in ascending order by datetime
+    
+    :param df: Pandas dataframe or series
+    :return: Cleaned dataframe or series
+    """
+
+    if df.isna().any(axis=None):
+        raise ValueError("Dataframe contains NaN values")
+    
+    if df.duplicated().any():
+        raise ValueError("Dataframe contains duplicate values")
+    
+    assert type(df.index) == pd.DatetimeIndex, "Index must be a DatetimeIndex"
+
+    df.sort_index(inplace=True)
+    
+    if len(uneven_indices := get_indices_of_uneven_intervals(df)) > 0:
+        raise ValueError(f"Dataframe contains uneven intervals at indices {uneven_indices}")
+
+    return df
+
+
+def get_indices_of_uneven_intervals(df: pd.DataFrame | pd.Series) -> bool:
+    """Checks if a time series contains perfectly evenly spaced time intervals with no gaps.
+    
+    :param df: Pandas dataframe or series
+    :return: True if time series is perfectly evenly spaced, False otherwise
+    """
+    assert type(df.index) == pd.DatetimeIndex, "Index must be a DatetimeIndex"
+
+    numeric_representation = df.index.astype(np.int64)
+
+    differences = np.diff(numeric_representation)
+
+    not_equal_to_first = differences != differences[0]
+
+    return np.where(not_equal_to_first)[0]
+
 
 def _get_parquet_path(
     symbol: str,
