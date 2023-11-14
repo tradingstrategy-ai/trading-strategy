@@ -1792,8 +1792,17 @@ class StablecoinFilteringMode(enum.Enum):
 
     See :py:func:`filter_for_stablecoins`.
     """
+
+    #: Stable-stable pairs
     only_stablecoin_pairs = "only_stablecoin_pairs"
+
+    #: Volatile pairs
+    #:
+    #: Usually this is "tradeable" pairs
+    #:
     only_volatile_pairs = "only_volatile_pairs"
+
+    #: Any trading pair
     all_pairs = "all_pairs"
 
 
@@ -1807,6 +1816,31 @@ def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -
 
     - For code example see :py:func:`filter_for_quote_tokens`
     - See also :py:class:`StablecoinFilteringMode`
+
+    Example:
+
+    .. code-block:: python
+
+        from tradingstrategy.pair import filter_for_stablecoins, StablecoinFilteringMode
+
+        # Remove pairs with expensive 1% fee tier
+        # Remove stable-stable pairs
+        tradeable_pairs_df = pairs_df.loc[pairs_df["fee"] <= 30]
+        tradeable_pairs_df = filter_for_stablecoins(tradeable_pairs_df, StablecoinFilteringMode.only_volatile_pairs)
+
+        # Narrow down candle data to pairs that are left after filtering
+        candles_df = candles_df.loc[candles_df["pair_id"].isin(tradeable_pairs_df["pair_id"])]
+
+        print(f"We have {len(tradeable_pairs_df)} tradeable pairs")
+
+    :param pairs:
+        DataFrame of of :py:class:`tradingstrategy.pair.DEXPair`
+
+    :param mode:
+         Are we looking for stablecoin pairs or volatile pairs
+
+    :return:
+        Filtered DataFrame
     """
     assert isinstance(mode, StablecoinFilteringMode)
 

@@ -69,9 +69,14 @@ class PairGroupedUniverse:
                  fix_wick_threshold: tuple | None = (0.1, 1.9),
                  primary_key_column="pair_id",
                  ):
-        """
+        """Set up new candle universe where data is grouped by trading pair.
+
+        :param df:
+            DataFrame backing the data.
+
         :param time_bucket:
             What bar size candles we are operating at. Default to daily.
+
             TODO: Currently not used. Will be removed in the future versions.
 
         :param timestamp_column:
@@ -720,8 +725,11 @@ def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta, forward_fill
 
     .. code-block:: python
 
+        from tradingstrategy.utils.groupeduniverse import resample_candles
+
         single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
         single_pair_candles = single_pair_candles.set_index("timestamp", drop=False)
+        monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
         monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
         assert len(monthly_candles) <= len(single_pair_candles) / 4
 

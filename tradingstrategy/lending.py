@@ -6,6 +6,7 @@ like supply APR and borrow APR across various DeFi lending protocols.
 See :py:class:`LendingReserveUniverse` on how to load the data.
 """
 import warnings
+from _decimal import Decimal
 from enum import Enum
 import datetime
 
@@ -20,6 +21,8 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.token import Token
 from tradingstrategy.types import UNIXTimestamp, PrimaryKey, TokenSymbol, Slug, NonChecksummedAddress, URL
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
+
+from eth_defi.aave_v3.rates import SECONDS_PER_YEAR
 
 
 class LendingProtocolType(str, Enum):
@@ -37,6 +40,12 @@ class LendingCandleType(str, Enum):
 class UnknownLendingReserve(Exception):
     """Does not know about this lending reserve."""
 
+
+class NoLendingData(Exception):
+    """Lending data missing for asked period.
+
+    Reserve was likely not active yet.
+    """
 
 
 @dataclass_json
@@ -142,7 +151,7 @@ class LendingReserve:
         return hash((self.chain_id, self.protocol_slug, self.asset_address))
 
     def __repr__(self):
-        return f"<LendingReserve #{self.reserve_id} for asset {self.asset_symbol} in protocol {self.protocol_slug.name} on {self.chain_id.get_name()} >"
+        return f"<LendingReserve #{self.reserve_id} for asset {self.asset_symbol} ({self.asset_address}) in protocol {self.protocol_slug.name} on {self.chain_id.get_name()} >"
     
     def get_asset(self) -> Token:
         """Return description for the underlying asset."""
@@ -307,11 +316,14 @@ class LendingReserveUniverse:
         :raise UnknownLendingReserve:
             If we do not have data available.
         """
+
+        assert isinstance(chain_id, ChainId), f"Got: {chain_id}"
+
         for reserve in self.reserves.values():
             if reserve.asset_address == asset_address and reserve.chain_id == chain_id:
                 return reserve
 
-        raise UnknownLendingReserve(f"Could not find lending reserve {chain_id}: {asset_address}. We have {len(self.reserves)} reserves loaded.")
+        raise UnknownLendingReserve(f"Could not find lending reserve on chain {chain_id.get_name()}, reserve token address {asset_address}. We have {len(self.reserves)} reserves loaded.")
 
     def limit(self, reserve_descriptions: Collection[LendingReserveDescription]) -> "LendingReserveUniverse":
         """Remove all lending reverses that are not on the whitelist.
@@ -613,6 +625,95 @@ class LendingMetricUniverse(PairGroupedUniverse):
             link=link,
         )
 
+    def estimate_accrued_interest(
+        self,
+        reserve: LendingReserveDescription | LendingReserve,
+        start: datetime.datetime | pd.Timestamp,
+        end: datetime.datetime | pd.Timestamp,
+    ) -> Decimal:
+        """Estimate how much credit or debt interest we would gain on Aave at a given period.
+
+        Example:
+
+        .. code-block:
+
+            lending_reserves = client.fetch_lending_reserve_universe()
+
+            usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+
+            lending_reserves = lending_reserves.limit([usdc_desc])
+
+            lending_candle_type_map = client.fetch_lending_candles_for_universe(
+                lending_reserves,
+                TimeBucket.d1,
+                start_time=pd.Timestamp("2022-09-01"),
+                end_time=pd.Timestamp("2023-09-01"),
+            )
+            lending_candles = LendingCandleUniverse(lending_candle_type_map, lending_reserves)
+
+            # Estimate borrow cost
+            borrow_interest_multiplier = lending_candles.variable_borrow_apr.estimate_accrued_interest(
+                usdc_desc,
+                start=pd.Timestamp("2022-09-01"),
+                end=pd.Timestamp("2023-09-01"),
+            )
+            assert borrow_interest_multiplier == pytest.approx(Decimal('1.028597760665127969909038441'))
+
+            # Estimate borrow cost
+            supply_interest_multiplier = lending_candles.supply_apr.estimate_accrued_interest(
+                usdc_desc,
+                start=pd.Timestamp("2022-09-01"),
+                end=pd.Timestamp("2023-09-01"),
+            )
+            assert supply_interest_multiplier == pytest.approx(Decimal('1.017786465640168974688961612'))
+
+        :param reserve:
+            Asset we are interested in.
+
+        :param start:
+            Start of the period
+
+        :param end:
+            End of the period
+
+        :return:
+            Interest multiplier.
+
+            Multiply the starting balance with this number to get the interest applied balance at ``end``.
+
+            1.0 = no interest.
+        """
+
+        if isinstance(start, datetime.datetime):
+            start = pd.Timestamp(start)
+
+        if isinstance(end, datetime.datetime):
+            end = pd.Timestamp(end)
+
+        assert isinstance(start, pd.Timestamp), f"Not a timestamp: {start}"
+        assert isinstance(end, pd.Timestamp), f"Not a timestamp: {end}"
+
+        assert start <= end
+
+        df = self.get_rates_by_reserve(reserve)
+
+        # TODO: Can we use index here to speed up?
+        candles = df[(df["timestamp"] >= start) & (df["timestamp"] <= end)]
+
+        if len(candles) == 0:
+            raise NoLendingData(f"No lending data for {reserve}, {start} - {end}")
+
+        # get average APR from high and low
+        avg = candles[["high", "low"]].mean(axis=1)
+        avg_apr = Decimal(avg.mean() / 100)
+
+        duration = Decimal((end - start).total_seconds())
+        accrued_interest_estimation = 1 + (1 * avg_apr) * duration / SECONDS_PER_YEAR  # Use Aave v3 seconds per year
+
+        assert accrued_interest_estimation >= 1, f"Aave interest cannot be negative: {accrued_interest_estimation}"
+
+        return accrued_interest_estimation
+
 
 @dataclass
 class LendingCandleUniverse:
@@ -707,3 +808,5 @@ class LendingCandleUniverse:
                 return metric.reserves
 
         raise AssertionError("Empty LendingCandlesUniverse")
+
+

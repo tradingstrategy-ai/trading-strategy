@@ -2,8 +2,7 @@ import datetime
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
-from tradingstrategy.pair import DEXPair, filter_for_stablecoins, StablecoinFilteringMode, \
-    StablecoinFilteringMode
+from tradingstrategy.pair import DEXPair, filter_for_stablecoins, StablecoinFilteringMode
 from tradingstrategy.stablecoin import is_stablecoin_like
 
 

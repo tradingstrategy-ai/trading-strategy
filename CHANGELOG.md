@@ -1,3 +1,23 @@
+# Current
+
+- API update: `CandleUniverse.get_candles_by_pair()` accepts `DEXPair` besides `pair_id` as an argument
+- `forward_fill()` can handle `volume` column
+
+# 0.20.17
+
+- Fix: DataFrame copy warning in `estimate_accrued_interest`
+- Add: `get_price_with_tolerance(pair_name_hint)` to have better exception messages 
+- Fix: `CandleSampleUnavailable` exception message was tuple instead of newline separated string
+
+# 0.20.16
+
+- Add `LendingMetricUniverse.estimate_accrued_interest` so we can estimate the position cost and interest profit
+  in backtesting
+
+# 0.20.15
+
+- Update candle mappings so volume doesn't get set to None
+
 # 0.20.14
 
 - Internal change: move `make_clickable` to module level, so it can be reused
