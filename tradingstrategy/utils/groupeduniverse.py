@@ -709,8 +709,10 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
     return our_pairs
 
 
-def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFrame:
-    """Downsample OHLCV candles or liquidity samples to less granular time bucket.
+def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta, forward_fill: bool = False) -> pd.DataFrame:
+    """Downsample or upsample OHLCV candles or liquidity samples.
+
+    If upsampling (going from less frequent to more frequent), use forward_fill = True to fill in the missing values.
 
     E.g. transform 1h candles to 24h candles.
 
@@ -720,16 +722,26 @@ def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFr
 
         single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
         single_pair_candles = single_pair_candles.set_index("timestamp", drop=False)
-        monthly_candles = upsample_candles(single_pair_candles, TimeBucket.d30)
+        monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
         assert len(monthly_candles) <= len(single_pair_candles) / 4
 
     """
     
     assert isinstance(new_timedelta, pd.Timedelta), f"We got {new_timedelta}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
-    
+
+    # make sure float
+    if isinstance(df, pd.Series):
+        df = df.astype(float)
+
     #pandas_time_delta = new_bucket.to_pandas_timedelta()
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
-    candles = df.resample(new_timedelta).mean(numeric_only=True)
+    candles = df.resample(new_timedelta).mean()
+
+    if forward_fill:
+        candles = candles.fillna(method="ffill")
+
+    if isinstance(df, pd.Series):
+        return candles
 
     # TODO: Figure out right way to preserve timestamp column,
     # resample seems to destroy it
