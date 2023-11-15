@@ -14,7 +14,7 @@ def convert_binance_lending_rates_to_supply(interestRates: pd.Series) -> pd.Seri
     """
     assert isinstance(interestRates, pd.Series), f"Expected pandas Series, got {interestRates.__class__}: {interestRates}"
     assert isinstance(interestRates.index, pd.DatetimeIndex), f"Expected DateTimeIndex, got {interestRates.index.__class__}: {interestRates.index}"
-    return interestRates * 0.9995
+    return interestRates * 0.95
 
 
 def get_binance_lending_interest_rates(
