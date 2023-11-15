@@ -14,7 +14,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def get_binance_candlestick_data(
+def get_binance_candlestick_data_and_path(
     symbol: str,
     time_bucket: TimeBucket,
     start_at: datetime.datetime,
@@ -92,7 +92,7 @@ def get_binance_candlestick_data(
         [],
     )
 
-    for i in range(0, len(timestamps) - 1, 2):
+    for i in range(0, len(timestamps) - 1):
         start_timestamp = timestamps[i]
         end_timestamp = timestamps[i + 1]
         full_params_str = (
@@ -124,11 +124,14 @@ def get_binance_candlestick_data(
         index=dates,
     )
 
+    # remove rows with index (date) duplicates
+    df = df[df.index.duplicated(keep="first") == False]
+
     # df = clean_time_series_data(df)  
+    path = _get_parquet_path(symbol, time_bucket, start_at, end_at)
+    df.to_parquet(path)
 
-    df.to_parquet(_get_parquet_path(symbol, time_bucket, start_at, end_at))
-
-    return df
+    return df, path
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
