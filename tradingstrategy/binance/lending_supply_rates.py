@@ -7,10 +7,14 @@ from tradingstrategy.utils.time import generate_monthly_timestamps
 from tradingstrategy.utils.groupeduniverse import resample_candles
 
 def convert_binance_lending_rates_to_supply(interestRates: pd.Series) -> pd.Series:
-    """Convert Binance lending rates to supply rates."""
+    """Convert Binance lending rates to supply rates. Based on Binance taker fees of 0.05% for perp futures.
+    
+    :param interestRates: Series of lending interest rates
+    :return: Series of supply rates
+    """
     assert isinstance(interestRates, pd.Series), f"Expected pandas Series, got {interestRates.__class__}: {interestRates}"
     assert isinstance(interestRates.index, pd.DatetimeIndex), f"Expected DateTimeIndex, got {interestRates.index.__class__}: {interestRates.index}"
-    return interestRates * 0.95
+    return interestRates * 0.9995
 
 
 def get_binance_lending_interest_rates(
