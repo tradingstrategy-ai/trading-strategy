@@ -858,7 +858,3 @@ def convert_interest_rates_to_lending_candle_type_map(*args):
     }
 
     return lending_candle_type_map
-
-
-
-
