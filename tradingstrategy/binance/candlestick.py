@@ -14,7 +14,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def get_binance_candlestick_data_and_path(
+def get_binance_candlestick_data(
     symbol: str,
     time_bucket: TimeBucket,
     start_at: datetime.datetime,
@@ -51,7 +51,7 @@ def get_binance_candlestick_data_and_path(
     if not force_redownload:
         try:
             return pd.read_parquet(
-                _get_parquet_path(symbol, time_bucket, start_at, end_at)
+                get_parquet_path(symbol, time_bucket, start_at, end_at)
             )
         except:
             pass
@@ -128,10 +128,29 @@ def get_binance_candlestick_data_and_path(
     df = df[df.index.duplicated(keep="first") == False]
 
     # df = clean_time_series_data(df)  
-    path = _get_parquet_path(symbol, time_bucket, start_at, end_at)
+    path = get_parquet_path(symbol, time_bucket, start_at, end_at)
     df.to_parquet(path)
 
-    return df, path
+    return df
+
+
+def get_parquet_path(
+    symbol: str,
+    time_bucket: TimeBucket,
+    start_at: datetime.datetime,
+    end_at: datetime.datetime,
+) -> Path:
+    """Get parquet path for the candlestick data.
+    
+    :param symbol: Trading pair symbol E.g. ETHUSDC
+    :param time_bucket: TimeBucket instance
+    :param start_at: Start date of the data
+    :param end_at: End date of the data
+    :return: Path to the parquet file
+    """
+    return Path(
+        f"./{symbol}-{time_bucket.value}-{start_at}-{end_at}.parquet"
+    )
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
@@ -178,22 +197,3 @@ def get_indices_of_uneven_intervals(df: pd.DataFrame | pd.Series) -> bool:
     not_equal_to_first = differences != differences[0]
 
     return np.where(not_equal_to_first)[0]
-
-
-def _get_parquet_path(
-    symbol: str,
-    time_bucket: TimeBucket,
-    start_at: datetime.datetime,
-    end_at: datetime.datetime,
-) -> Path:
-    """Get parquet path for the candlestick data.
-    
-    :param symbol: Trading pair symbol E.g. ETHUSDC
-    :param time_bucket: TimeBucket instance
-    :param start_at: Start date of the data
-    :param end_at: End date of the data
-    :return: Path to the parquet file
-    """
-    return Path(
-        f"./{symbol}-{time_bucket.value}-{start_at}-{end_at}.parquet"
-    )
