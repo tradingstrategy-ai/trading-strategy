@@ -23,8 +23,14 @@ def get_binance_candlestick_data(
 ):
     """Get clean candlestick price and volume data from Binance. If saved, use saved version, else create saved version.
 
+    Note, if you want to use this data in our framework, you will need to add informational columns to the dataframe and overwrite it. See code below.
+
     .. code-block:: python
-        five_min_data = get_binance_candlestick_data("ETHUSDC", TimeBucket.m5, datetime.datetime(2021, 1, 1), datetime.datetime(2021, 4, 1))
+        symbol = "ETHUSDT"
+        df = get_binance_candlestick_data(symbol, TimeBucket.h1, datetime.datetime(2021, 1, 1), datetime.datetime(2021, 4, 1))
+        df = add_informational_columns(df, pair, EXCHANGE_SLUG)
+        path = get_parquet_path(symbol, TimeBucket.h1, datetime.datetime(2021, 1, 1), datetime.datetime(2021, 4, 1))
+        df.to_parquet(path)
 
     :param symbol:
         Trading pair symbol E.g. ETHUSDC
@@ -102,7 +108,8 @@ def get_binance_candlestick_data(
             json_data = response.json()
             if len(json_data) > 0:
                 for item in json_data:
-                    dates.append(datetime.datetime.fromtimestamp(item[0] / 1000))
+                    date_time = datetime.datetime.fromtimestamp(item[0] / 1000)
+                    dates.append(date_time)
                     open_prices.append(float(item[1]))
                     high_prices.append(float(item[2]))
                     low_prices.append(float(item[3]))
