@@ -14,7 +14,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def get_binance_candlestick_data(
+def fetch_binance_candlestick_data(
     symbol: str,
     time_bucket: TimeBucket,
     start_at: datetime.datetime,
@@ -183,7 +183,7 @@ def get_parquet_path(
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
-    """Unused for now since data from Binance occasionally has gaps. Not a huge deal.
+    """Unused for now since data from Binance data occasionally has gaps. Not a huge deal.
 
     Cleans time series data to ensure:
     - No Nan values 
