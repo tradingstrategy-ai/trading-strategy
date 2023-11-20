@@ -762,6 +762,9 @@ def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFr
         'volume': 'sum',
     }
 
+    columns = df.columns.tolist()
+    assert all(item in columns for item in list(ohlc_dict.keys())), f"{list(ohlc_dict.keys())} needs to be in the column names"
+
     #pandas_time_delta = new_bucket.to_pandas_timedelta()
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
     candles = df.resample(new_timedelta).mean(ohlc_dict) 
