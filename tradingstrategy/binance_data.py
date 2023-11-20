@@ -11,7 +11,7 @@ import shutil
 from tradingstrategy.timebucket import TimeBucket
 from pathlib import Path
 from tradingstrategy.utils.time import generate_monthly_timestamps
-from tradingstrategy.utils.groupeduniverse import resample_candles
+from tradingstrategy.utils.groupeduniverse import resample_series
 
 
 logger = logging.getLogger(__name__)
@@ -282,7 +282,7 @@ class BinanceDownloader:
                 f"No data found for {asset_symbol} between {start_at} and {end_at}. Check your symbol matches with valid symbols in method description. \nResponse: {response.status_code} {response.text}"
             )
 
-        resampled_rates = resample_candles(
+        resampled_rates = resample_series(
             unsampled_rates, time_bucket.to_pandas_timedelta(), forward_fill=True
         )
 

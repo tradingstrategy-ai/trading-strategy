@@ -713,11 +713,28 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
     ]
     return our_pairs
 
+def resample_series(series: pd.Series, new_timedelta: pd.Timedelta, forward_fill: bool = False):
+    """Downsample or upsample liquidity series. If upsamping, use forward_fill = True to fill in the missing values.
+    
+    Note, this does not apply to OHLCV candles, use resample_candles() for that.
 
-def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta, forward_fill: bool = False) -> pd.DataFrame:
+    :param series: Series to resample
+    :param new_timedelta: New timedelta to resample to
+    :param forward_fill: Forward fill missing values if upsampling
+    """
+    
+    series = series.astype(float)
+
+    candles = series.resample(new_timedelta).mean(numeric_only=True) 
+
+    if forward_fill:
+        candles = candles.fillna(method="ffill")
+
+    return candles
+
+
+def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFrame:
     """Downsample or upsample OHLCV candles or liquidity samples.
-
-    If upsampling (going from less frequent to more frequent), use forward_fill = True to fill in the missing values.
 
     E.g. transform 1h candles to 24h candles.
 
@@ -737,19 +754,17 @@ def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta, forward_fill
     
     assert isinstance(new_timedelta, pd.Timedelta), f"We got {new_timedelta}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
 
-    # make sure float
-    if isinstance(df, pd.Series):
-        df = df.astype(float)
+    ohlc_dict = {
+        'open': 'first',
+        'high': 'max',
+        'low': 'min',
+        'close': 'last',
+        'volume': 'sum',
+    }
 
     #pandas_time_delta = new_bucket.to_pandas_timedelta()
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
-    candles = df.resample(new_timedelta).mean()
-
-    if forward_fill:
-        candles = candles.fillna(method="ffill")
-
-    if isinstance(df, pd.Series):
-        return candles
+    candles = df.resample(new_timedelta).mean(ohlc_dict) 
 
     # TODO: Figure out right way to preserve timestamp column,
     # resample seems to destroy it
