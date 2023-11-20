@@ -196,29 +196,42 @@ class BinanceCandleDownloader:
         file = Path(f"{symbol}-{time_bucket.value}-{start_at}-{end_at}.parquet")
         return self.cache_directory.joinpath(file)
 
-    def purge_candle_data(
+    def purge_cached_file(
         self,
-        symbol: str,
-        time_bucket: TimeBucket,
-        start_at: datetime.datetime,
-        end_at: datetime.datetime,
-    ):
+        *,
+        symbol: str = None,
+        time_bucket: TimeBucket = None,
+        start_at: datetime.datetime = None,
+        end_at: datetime.datetime = None,
+        path: Path = None,
+    ) -> None:
         """Purge specific cached candle data file.
 
-        :param path: Path to the parquet file
+        :param symbol: Trading pair symbol E.g. ETHUSDC
+        :param time_bucket: TimeBucket instance
+        :param start_at: Start date of the data
+        :param end_at: End date of the data
+        :param path: Path to the parquet file. If not specified, it will be generated from the other parameters.
         """
-        path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
+        if not path:
+            path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
         if path.exists():
             path.unlink()
         else:
             logger.warn(f"File {path} does not exist.")
 
-    def purge_all_candle_data(self):
-        """Purge cached candle data.
+    def purge_all_cached_data(self) -> None:
+        """Purge all cached candle data. This delete all contents of a cache directory, but not the directory itself. I.e. the cache directory will be left empty
 
         :param path: Path to the parquet file
         """
-        shutil.rmtree(self.cache_directory)
+        for item in self.cache_directory.iterdir():
+            if item.is_dir():
+                # Recursively delete directories
+                shutil.rmtree(item)
+            else:
+                # Delete files
+                item.unlink()
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
