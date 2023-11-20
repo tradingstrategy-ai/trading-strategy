@@ -18,10 +18,12 @@ logger = logging.getLogger(__name__)
 class BinanceCandleDownloader:
     """Class for downloading Binance candlestick OHLCV data."""
 
-    def __init__(self, parent_directory: Path = Path("./")):
-        self.parent_directory = parent_directory
+    def __init__(self, cache_directory: Path = Path("/tmp/binance_candle_data")):
+        """Initialize BinanceCandleDownloader and create folder for cached data if it does not exist."""
+        cache_directory.mkdir(parents=True, exist_ok=True)
+        self.cache_directory = cache_directory
 
-    def fetch_binance_candlestick_data(
+    def fetch_candlestick_data(
         self,
         symbol: str,
         time_bucket: TimeBucket,
@@ -60,7 +62,7 @@ class BinanceCandleDownloader:
         """
         if not force_redownload:
             try:
-                return self.get_binance_data_parquet(
+                return self.get_data_parquet(
                     symbol, time_bucket, start_at, end_at
                 )
             except:
@@ -150,7 +152,7 @@ class BinanceCandleDownloader:
 
         return df
 
-    def get_binance_data_parquet(
+    def get_data_parquet(
         self,
         symbol: str,
         time_bucket: TimeBucket,
@@ -192,14 +194,31 @@ class BinanceCandleDownloader:
         :return: Path to the parquet file
         """
         file = Path(f"{symbol}-{time_bucket.value}-{start_at}-{end_at}.parquet")
-        return self.parent_directory.joinpath(file)
+        return self.cache_directory.joinpath(file)
 
-    def purge_binance_candle_data(directory_path: Path):
+    def purge_candle_data(
+        self,
+        symbol: str,
+        time_bucket: TimeBucket,
+        start_at: datetime.datetime,
+        end_at: datetime.datetime,
+    ):
+        """Purge specific cached candle data file.
+
+        :param path: Path to the parquet file
+        """
+        path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
+        if path.exists():
+            path.unlink()
+        else:
+            logger.warn(f"File {path} does not exist.")
+
+    def purge_all_candle_data(self):
         """Purge cached candle data.
 
         :param path: Path to the parquet file
         """
-        shutil.rmtree(directory_path)
+        shutil.rmtree(self.cache_directory)
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
