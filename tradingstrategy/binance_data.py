@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class BinanceDownloader:
     """Class for downloading Binance candlestick OHLCV data."""
 
-    def __init__(self, cache_directory: Path = Path("/tmp/binance_candle_data")):
+    def __init__(self, cache_directory: Path = Path("/tmp/binance_data")):
         """Initialize BinanceCandleDownloader and create folder for cached data if it does not exist."""
         cache_directory.mkdir(parents=True, exist_ok=True)
         self.cache_directory = cache_directory
@@ -68,12 +68,12 @@ class BinanceDownloader:
             except:
                 pass
 
-        df = self._fetch_candlestick_data(
-            symbol, time_bucket, start_at, end_at, force_redownload
-        )
+        # to include the end date, we need to add one day
+        end_at = end_at + datetime.timedelta(days=1)
+        df = self._fetch_candlestick_data(symbol, time_bucket, start_at, end_at)
+        end_at = end_at - datetime.timedelta(days=1)
 
         # write to parquet
-        end_at = end_at - datetime.timedelta(days=1)
         path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
         df.to_parquet(path)
 
@@ -85,11 +85,7 @@ class BinanceDownloader:
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
-        force_redownload=False,
     ):
-        # to include the end date, we need to add one day
-        end_at = end_at + datetime.timedelta(days=1)
-
         params_str = f"symbol={symbol}&interval={time_bucket.value}"
 
         if start_at:
@@ -144,7 +140,7 @@ class BinanceDownloader:
                         close_prices.append(float(item[4]))
                         volume.append(float(item[5]))
             else:
-                logger.warn(
+                raise ValueError(
                     f"Error fetching data between {start_timestamp} and {end_timestamp}. \nResponse: {response.status_code} {response.text} \nMake sure you are using valid pair symbol e.g. `ETHUSDC`, not just ETH"
                 )
 
@@ -169,11 +165,11 @@ class BinanceDownloader:
     def fetch_lending_rates(
         self,
         asset_symbol: str,
+        time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
-        time_bucket: TimeBucket,
         force_redownload=False,
-    ) -> pd.DataFrame:
+    ) -> pd.Series:
         """Get daily lending interest rates for a given asset from Binance, resampled to the given time bucket.
 
         :param asset_symbol:
@@ -225,16 +221,14 @@ class BinanceDownloader:
             except:
                 pass
 
-        df = self._fetch_lending_rates(
-            asset_symbol, start_at, end_at, time_bucket, force_redownload
-        )
+        series = self._fetch_lending_rates(asset_symbol, start_at, end_at, time_bucket)
 
         path = self.get_parquet_path(
             asset_symbol, time_bucket, start_at, end_at, is_lending=True
         )
-        df.to_parquet(path)
+        series.to_frame(name="lending_rates").to_parquet(path)
 
-        return df
+        return series
 
     def _fetch_lending_rates(
         self,
@@ -242,8 +236,7 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
         time_bucket: TimeBucket,
-        force_redownload=False,
-    ) -> pd.DataFrame:
+    ) -> pd.Series:
         assert type(asset_symbol) == str, "asset_symbol must be a string"
         assert (
             type(start_at) == datetime.datetime
@@ -271,10 +264,9 @@ class BinanceDownloader:
                 if len(data) > 0:
                     response_data.extend(data)
             else:
-                print(
-                    f"Error fetching data for {asset_symbol} between {start_timestamp} and {end_timestamp}"
+                raise ValueError(
+                    f"No data found for {asset_symbol} between {start_at} and {end_at}. Check your symbol matches with valid symbols in method description. \nResponse: {response.status_code} {response.text}"
                 )
-                print(f"Response: {response.status_code} {response.text}")
 
         dates = []
         interest_rates = []
@@ -284,9 +276,17 @@ class BinanceDownloader:
 
         unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
 
-        return resample_candles(
+        # doesn't always raise error
+        if unsampled_rates.empty:
+            raise ValueError(
+                f"No data found for {asset_symbol} between {start_at} and {end_at}. Check your symbol matches with valid symbols in method description. \nResponse: {response.status_code} {response.text}"
+            )
+
+        resampled_rates = resample_candles(
             unsampled_rates, time_bucket.to_pandas_timedelta(), forward_fill=True
         )
+
+        return resampled_rates
 
     def get_data_parquet(
         self,
@@ -304,14 +304,9 @@ class BinanceDownloader:
         :param end_at: End date of the data
         :return: Path to the parquet file
         """
+        path = self.get_parquet_path(symbol, time_bucket, start_at, end_at, is_lending)
         try:
-            return pd.read_parquet(
-                self.get_parquet_path(symbol, time_bucket, start_at, end_at, is_lending)
-            )
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                f"Parquet file for {symbol} {time_bucket.value} {start_at} {end_at} not found."
-            )
+            return pd.read_parquet(path)
         except Exception as e:
             raise e
 
@@ -337,7 +332,7 @@ class BinanceDownloader:
             file_str = "candles"
 
         file = Path(
-            file_str + f"{symbol}-{time_bucket.value}-{start_at}-{end_at}.parquet"
+            file_str + f"-{symbol}-{time_bucket.value}-{start_at}-{end_at}.parquet"
         )
         return self.cache_directory.joinpath(file)
 
