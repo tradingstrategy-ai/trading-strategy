@@ -1,3 +1,5 @@
+"""Functions for getting lending supply rates from Binance."""
+
 import datetime
 import requests
 import pandas as pd
@@ -5,6 +7,7 @@ import pandas as pd
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.utils.time import generate_monthly_timestamps
 from tradingstrategy.utils.groupeduniverse import resample_candles
+
 
 def convert_binance_lending_rates_to_supply(interestRates: pd.Series) -> pd.Series:
     """Convert Binance lending rates to supply rates. Based on Binance taker fees of 0.05% for perp futures.
@@ -17,7 +20,7 @@ def convert_binance_lending_rates_to_supply(interestRates: pd.Series) -> pd.Seri
     return interestRates * 0.95
 
 
-def get_binance_lending_interest_rates(
+def fetch_binance_lending_interest_rates(
     asset_symbol:str,
     start_date:datetime.datetime,
     end_date:datetime.datetime,
@@ -96,8 +99,6 @@ def get_binance_lending_interest_rates(
         dates.append(pd.to_datetime(data["timestamp"], unit="ms"))
         interest_rates.append(float(data["dailyInterestRate"]))
     
-    # TODO: ensure index has no missing dates i.e. evenly spaced intervals throughout the period
-
     unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
 
     return resample_candles(unsampled_rates, time_bucket.to_pandas_timedelta(), forward_fill=True)
