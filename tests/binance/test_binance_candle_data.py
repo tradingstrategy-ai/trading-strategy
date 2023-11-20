@@ -40,7 +40,7 @@ def test_read_fresh_candle_data(candle_downloader: BinanceCandleDownloader):
 
 
 def test_read_cached_candle_data(
-    candle_downloader: BinanceCandleDownloader, path: Path
+    candle_downloader: BinanceCandleDownloader
 ):
     """Test reading cached candle data. Must be run after test_read_fresh_candle_data."""
     df = candle_downloader.get_data_parquet(SYMBOL, TIME_BUCKET, START_AT, END_AT)
