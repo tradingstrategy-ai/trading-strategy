@@ -11,19 +11,23 @@ from tradingstrategy.utils.groupeduniverse import resample_candles
 
 def convert_binance_lending_rates_to_supply(interestRates: pd.Series) -> pd.Series:
     """Convert Binance lending rates to supply rates. Based on Binance taker fees of 0.05% for perp futures.
-    
+
     :param interestRates: Series of lending interest rates
     :return: Series of supply rates
     """
-    assert isinstance(interestRates, pd.Series), f"Expected pandas Series, got {interestRates.__class__}: {interestRates}"
-    assert isinstance(interestRates.index, pd.DatetimeIndex), f"Expected DateTimeIndex, got {interestRates.index.__class__}: {interestRates.index}"
+    assert isinstance(
+        interestRates, pd.Series
+    ), f"Expected pandas Series, got {interestRates.__class__}: {interestRates}"
+    assert isinstance(
+        interestRates.index, pd.DatetimeIndex
+    ), f"Expected DateTimeIndex, got {interestRates.index.__class__}: {interestRates.index}"
     return interestRates * 0.95
 
 
 def fetch_binance_lending_interest_rates(
-    asset_symbol:str,
-    start_date:datetime.datetime,
-    end_date:datetime.datetime,
+    asset_symbol: str,
+    start_date: datetime.datetime,
+    end_date: datetime.datetime,
     time_bucket: TimeBucket,
 ) -> pd.DataFrame:
     """Get daily lending interest rates for a given asset from Binance, resampled to the given time bucket.
@@ -63,16 +67,22 @@ def fetch_binance_lending_interest_rates(
             "AERGO", "SNT", "STEEM", "MEME", "PLA", "MULTI", "UFT", "ILV"
         ]
 
-        To see current list of all valid asset symbols, submit API request https://api1.binance.com/sapi/v1/margin/allAssets with your Binance API key. 
+        To see current list of all valid asset symbols, submit API request https://api1.binance.com/sapi/v1/margin/allAssets with your Binance API key.
 
     :param start_date:
         Start date for the data. Note this value cannot be eariler than datetime.datetime(2019,4,1) due to Binance data limitations
 
     """
     assert type(asset_symbol) == str, "asset_symbol must be a string"
-    assert type(start_date) == datetime.datetime, "start_date must be a datetime.datetime object"
-    assert type(end_date) == datetime.datetime, "end_date must be a datetime.datetime object"
-    assert type(time_bucket) == TimeBucket, "time_delta must be a pandas Timedelta object"
+    assert (
+        type(start_date) == datetime.datetime
+    ), "start_date must be a datetime.datetime object"
+    assert (
+        type(end_date) == datetime.datetime
+    ), "end_date must be a datetime.datetime object"
+    assert (
+        type(time_bucket) == TimeBucket
+    ), "time_delta must be a pandas Timedelta object"
     # assert start_date >= datetime.datetime(2019,4,1), "start_date cannot be earlier than 2019-04-01 due to Binance data limitations"
 
     monthly_timestamps = generate_monthly_timestamps(start_date, end_date)
@@ -90,7 +100,9 @@ def fetch_binance_lending_interest_rates(
             if len(data) > 0:
                 response_data.extend(data)
         else:
-            print(f"Error fetching data for {asset_symbol} between {start_timestamp} and {end_timestamp}")
+            print(
+                f"Error fetching data for {asset_symbol} between {start_timestamp} and {end_timestamp}"
+            )
             print(f"Response: {response.status_code} {response.text}")
 
     dates = []
@@ -98,7 +110,9 @@ def fetch_binance_lending_interest_rates(
     for data in response_data:
         dates.append(pd.to_datetime(data["timestamp"], unit="ms"))
         interest_rates.append(float(data["dailyInterestRate"]))
-    
+
     unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
 
-    return resample_candles(unsampled_rates, time_bucket.to_pandas_timedelta(), forward_fill=True)
+    return resample_candles(
+        unsampled_rates, time_bucket.to_pandas_timedelta(), forward_fill=True
+    )
