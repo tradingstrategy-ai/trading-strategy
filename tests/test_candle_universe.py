@@ -291,6 +291,35 @@ def test_candle_upsample(persistent_test_client: Client):
     assert len(monthly_candles) <= len(single_pair_candles) / 4
 
 
+def test_candle_resample():
+    # Step 1: Create a Small Sample DataFrame
+    data = {
+        'open': [100, 102, 101],
+        'high': [105, 103, 104],
+        'low': [95, 97, 96],
+        'close': [101, 99, 100],
+        'volume': [150, 120, 130]
+    }
+    index = pd.to_datetime(['2023-01-01 09:00', '2023-01-01 09:30', '2023-01-01 10:00'])
+    df = pd.DataFrame(data, index=index)
+
+    # step 2: manually determine expected results
+    expected_data = {
+        'open': [100, 101],  # first 'open' value
+        'high': [max(105, 103, 104), 104],  # max 'high' value
+        'low': [min(95, 97, 96), 96],  # min 'low' value
+        'close': [99, 100],  # last 'close' value
+        'volume': [150 + 120, 130]  # sum of 'volume'
+    }
+    expected_df = pd.DataFrame(expected_data, index=pd.to_datetime(['2023-01-01 09:00', '2023-01-01 10:00']))
+
+    # Step 3: Resample and Apply Correct Aggregation
+    new_timedelta = pd.Timedelta(hours=1)
+    resampled_df = resample_candles(df, new_timedelta)
+
+    assert expected_df.equals(resampled_df)
+
+
 def test_candle_get_last_entries(persistent_test_client: Client):
     """Get candles before a certain timestamp."""
 
