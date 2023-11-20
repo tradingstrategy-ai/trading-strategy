@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 from pathlib import Path
 
-from tradingstrategy.binance.candlestick import BinanceCandleDownloader
+from tradingstrategy.binance_data import BinanceDownloader
 from tradingstrategy.timebucket import TimeBucket
 
 
@@ -15,15 +15,15 @@ END_AT = datetime.datetime(2021, 1, 2)
 
 @pytest.fixture(scope="module")
 def candle_downloader():
-    return BinanceCandleDownloader()
+    return BinanceDownloader()
 
 
 @pytest.fixture(scope="module")
-def path(candle_downloader: BinanceCandleDownloader):
+def path(candle_downloader: BinanceDownloader):
     return candle_downloader.get_parquet_path(SYMBOL, TIME_BUCKET, START_AT, END_AT)
 
 
-def test_read_fresh_candle_data(candle_downloader: BinanceCandleDownloader):
+def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
     """Test reading fresh candle data. Will be downloaded from Binance API."""
     df = candle_downloader.fetch_candlestick_data(
         SYMBOL,
@@ -40,7 +40,7 @@ def test_read_fresh_candle_data(candle_downloader: BinanceCandleDownloader):
 
 
 def test_read_cached_candle_data(
-    candle_downloader: BinanceCandleDownloader
+    candle_downloader: BinanceDownloader
 ):
     """Test reading cached candle data. Must be run after test_read_fresh_candle_data."""
     df = candle_downloader.get_data_parquet(SYMBOL, TIME_BUCKET, START_AT, END_AT)
@@ -51,7 +51,7 @@ def test_read_cached_candle_data(
     assert df.isna().values.any() == False
 
 
-def test_purge_cached_candle_data(candle_downloader: BinanceCandleDownloader, path):
+def test_purge_cached_candle_data(candle_downloader: BinanceDownloader, path):
     """Test purging cached candle data. Must be run after test_read_fresh_candle_data."""
     assert path.exists() == True
     candle_downloader.purge_cached_file(path=path)
