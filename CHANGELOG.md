@@ -1,7 +1,8 @@
 # 0.21.0
 
 - Add functionality for downloading and manipulating Binance candle and lending data
-- Update `resample_candles()` method to work for pd.Series as well as pd.DataFrame
+- Fix `resample_candles()` method
+- Add `resample_series()` method to work for single column pd.Series price data
 - Fix `CandleUniverse.get_candles_by_pair()` (add return value)
 
 
