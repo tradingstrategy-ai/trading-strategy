@@ -292,7 +292,6 @@ def test_candle_upsample(persistent_test_client: Client):
 
 
 def test_candle_resample():
-    # Step 1: Create a Small Sample DataFrame
     data = {
         'open': [100, 102, 101],
         'high': [105, 103, 104],
@@ -303,13 +302,13 @@ def test_candle_resample():
     index = pd.to_datetime(['2023-01-01 09:00', '2023-01-01 09:30', '2023-01-01 10:00'])
     df = pd.DataFrame(data, index=index)
 
-    # step 2: manually determine expected results
     expected_data = {
         'open': [100, 101],  # first 'open' value
         'high': [max(105, 103, 104), 104],  # max 'high' value
         'low': [min(95, 97, 96), 96],  # min 'low' value
         'close': [99, 100],  # last 'close' value
-        'volume': [150 + 120, 130]  # sum of 'volume'
+        'volume': [150 + 120, 130],  # sum of 'volume'
+        'timestamp': [pd.Timestamp('2023-01-01 09:00:00'), pd.Timestamp('2023-01-01 10:00:00')]  # first and last timestamp
     }
     expected_df = pd.DataFrame(expected_data, index=pd.to_datetime(['2023-01-01 09:00', '2023-01-01 10:00']))
 
