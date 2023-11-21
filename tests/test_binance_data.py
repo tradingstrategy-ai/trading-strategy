@@ -62,7 +62,7 @@ def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
                 force_redownload=True,
             )
 
-            path = BinanceDownloader.get_parquet_path(
+            path = candle_downloader.get_parquet_path(
                 CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
             )
             df.to_parquet(path)
