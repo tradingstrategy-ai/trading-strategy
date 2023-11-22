@@ -23,7 +23,12 @@ def candle_downloader():
 
 
 def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
-    """Test reading fresh candle data. Will be downloaded from Binance API."""
+    """Test reading fresh candle data. 
+    
+    Will be mock data if run on Github, otherwise will be downloadeded from Binance API if local.
+    
+    This is to check that the candle data is correct i.e. correct time bucket, no missing values, correct columns etc
+    """
 
     if os.environ.get("GITHUB_ACTIONS", None) == "true":
         with patch(
@@ -82,7 +87,10 @@ def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
 
 
 def test_read_cached_candle_data(candle_downloader: BinanceDownloader):
-    """Test reading cached candle data. Must be run after test_read_fresh_candle_data."""
+    """Test reading cached candle data. Must be run after test_read_fresh_candle_data.
+    
+    Checks that the caching functionality works correctly.
+    """
     df = candle_downloader.get_data_parquet(
         CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
     )
@@ -94,7 +102,10 @@ def test_read_cached_candle_data(candle_downloader: BinanceDownloader):
 
 
 def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
-    """Test reading fresh lending data. Will be downloaded from Binance API."""
+    """Test reading fresh lending data. Will be downloaded from Binance API.
+    
+    This is to check that the lending data is correct i.e. correct time bucket, no missing values
+    """
     series = candle_downloader.fetch_lending_rates(
         LENDING_SYMBOL,
         LENDING_TIME_BUCKET,
@@ -109,7 +120,10 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
 
 
 def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
-    """Test reading cached candle data. Must be run after test_read_fresh_lending_data."""
+    """Test reading cached candle data. Must be run after test_read_fresh_lending_data.
+    
+    Checks that the cache is working correctly
+    """
     series = candle_downloader.get_data_parquet(
         LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
     )
@@ -120,7 +134,10 @@ def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
 
 
 def test_purge_cache(candle_downloader: BinanceDownloader):
-    """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data"""
+    """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
+    
+    Checks that deleting cached data works correctly.
+    """
     candle_path = candle_downloader.get_parquet_path(
         CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
     )
