@@ -343,6 +343,8 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                 self.candles_cache[pair_id] = self.get_samples_by_pair(pair_id)
             except KeyError:
                 return None
+        
+        return self.candles_cache[pair_id]
 
     def get_closest_price(self,
                           pair: PrimaryKey | DEXPair,

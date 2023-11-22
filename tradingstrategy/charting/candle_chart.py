@@ -120,7 +120,7 @@ def make_candle_labels(
 
         percentage_change = (row.close - row.open) / row.open * 100
         text = [
-            # f"{timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}", # timestamp already in the heading
+            f"{timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}", # timestamp already in the heading -> update: heading sometimes doesn't show
             # "",
             f"Open: {round(row.open, candle_decimals)} {price_text}",
             f"High: {round(row.high, candle_decimals)} {price_text}",

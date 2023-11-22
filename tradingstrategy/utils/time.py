@@ -36,3 +36,29 @@ def to_int_unix_timestamp(dt: datetime.datetime) -> int:
     return int(calendar.timegm(dt.utctimetuple()))
 
 
+def generate_monthly_timestamps(start: datetime.datetime, end: datetime.datetime) -> list[int]:
+    """Generate timestamps from the start to the end. One timestamp per month.
+    
+    :param start: Start date
+    :param end: End date
+
+    :return: List of timestamps
+    """
+    # TODO: ensure index has no missing dates i.e. evenly spaced intervals throughout the period
+    timestamps = []
+    current_date = start
+    while current_date <= end:
+        timestamps.append(int(current_date.timestamp()))
+        # Check if adding one month stays within the year
+        if current_date.month == 12:
+            current_date = current_date.replace(year=current_date.year + 1, month=1)
+        else:
+            current_date = current_date.replace(month=current_date.month + 1)
+
+        if current_date > end:
+            timestamps.append(int(end.timestamp()))
+            break
+
+    return timestamps
+
+

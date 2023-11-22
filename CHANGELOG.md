@@ -1,4 +1,12 @@
-# Current
+# 0.21.0
+
+- Add functionality for downloading and manipulating Binance candle and lending data
+- Fix `resample_candles()` method
+- Add `resample_series()` method to work for single column pd.Series price data
+- Fix `CandleUniverse.get_candles_by_pair()` (add return value)
+
+
+# 0.20.18
 
 - API update: `CandleUniverse.get_candles_by_pair()` accepts `DEXPair` besides `pair_id` as an argument
 - `forward_fill()` can handle `volume` column
