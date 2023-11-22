@@ -34,7 +34,7 @@ def test_generate_candle_data(synthetic_candles):
     assert universe.get_pair_count() == 1
     assert universe.get_candle_count() == 4
 
-    df = universe.get_candles_by_pair(pair_id=1)
+    df = universe.get_candles_by_pair(1)
     assert df.loc[pd.Timestamp("2020-01-01")]["open"] == pytest.approx(100.10)
     assert df.loc[pd.Timestamp("2020-02-01")]["close"] == pytest.approx(100.50)
 

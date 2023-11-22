@@ -810,3 +810,51 @@ class LendingCandleUniverse:
         raise AssertionError("Empty LendingCandlesUniverse")
 
 
+def convert_interest_rates_to_lending_candle_type_map(*args):
+    """Convert lending and supply interest rates for all assets to a single lending_candle_type map.
+    
+    :param *args:
+        List of dictionaries for each reserve. Each dictionary must have 3 keys/value pairs of the form:
+        1. reserve_id: reserve id
+        2. lending_data: pandas Series of lending rates
+        3. supply_data: pandas Series of suppy rates
+
+        Note that lending_data and supply_data should start and end at the same dates.
+
+    :return: Dictionary of lending_candle_type_map
+    """
+
+    data = []
+    for dictionary in args:
+        assert set(dictionary.keys()) == {"reserve_id", "lending_data", "supply_data"}
+
+        reserve_id = dictionary["reserve_id"]
+        _lending_data = dictionary["lending_data"]
+        _supply_data = dictionary["supply_data"]
+        
+        assert len(_lending_data) == len(_supply_data), "Lending data and supply data must have the same length"
+        assert isinstance(_lending_data.index, pd.DatetimeIndex), "Index must be a DatetimeIndex"
+        assert _lending_data.index.equals(_supply_data.index), "Lending data and supply data must have the same index"
+
+        data.extend(zip(dictionary["lending_data"], dictionary["supply_data"], [reserve_id] * len(_lending_data), _lending_data.index))
+
+    lending_candle_type_map = {
+        LendingCandleType.variable_borrow_apr: pd.DataFrame({
+            "open": [_data[0] for _data in data],
+            "close": [_data[0] for _data in data],
+            "high": [_data[0] for _data in data],
+            "low": [_data[0] for _data in data],
+            "timestamp": [_data[3] for _data in data],
+            "reserve_id": [_data[2] for _data in data],
+        }),
+        LendingCandleType.supply_apr: pd.DataFrame({
+            "open": [_data[1] for _data in data],
+            "close": [_data[1] for _data in data],
+            "high": [_data[1] for _data in data],
+            "low": [_data[1] for _data in data],
+            "timestamp": [_data[3] for _data in data],
+            "reserve_id": [_data[2] for _data in data],
+        }),
+    }
+
+    return lending_candle_type_map
