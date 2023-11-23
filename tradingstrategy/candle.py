@@ -635,6 +635,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         Useful for synthetic data/testing.
         """
+        assert "pair_id" in df.columns, f"Columns lack pair_id: {df.columns}"
         return GroupedCandleUniverse(df, time_bucket=bucket)
 
     @staticmethod
