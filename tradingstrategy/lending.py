@@ -704,15 +704,31 @@ class LendingMetricUniverse(PairGroupedUniverse):
             total_candles = len(df)
             earliest = df.index[0]
             last = df.index[-1]
-            raise NoLendingData(
-                f"No lending data for {reserve}, {start} - {end}\n"
-                f"This reserve has {total_candles:,} total candles\n"
-                f"First candle is at is {earliest}, last candle is at {last}\n"
-            )
 
-        # get average APR from high and low
-        avg = candles[["high", "low"]].mean(axis=1)
-        avg_apr = Decimal(avg.mean() / 100)
+            if start < earliest or end > last:
+                raise NoLendingData(
+                    f"No lending data for asked period\n"
+                    f"Reserve: {reserve}\n"
+                    f"Asked interest rates for period {start} - {end}\n"
+                    f"This reserve has {total_candles:,} total candles\n"
+                    f"First candle is at is {earliest}, last candle is at {last}\n"
+                )
+
+            # We are within the available data period,
+            # but we do not have candles.
+            # This is because there are zero events generated in Aave during the period
+            # and we are using sparse data.
+            # We just use the last APR.
+            ffill_indexer = df.index.get_indexer([start], method="ffill")
+            before_match_iloc = ffill_indexer[0]
+            avg_apr = Decimal(df["close"][before_match_iloc])
+
+        else:
+            # Calculate interest rate estimate based on the data
+
+            # get average APR from high and low
+            avg = candles[["high", "low"]].mean(axis=1)
+            avg_apr = Decimal(avg.mean() / 100)
 
         duration = Decimal((end - start).total_seconds())
         accrued_interest_estimation = 1 + (1 * avg_apr) * duration / SECONDS_PER_YEAR  # Use Aave v3 seconds per year

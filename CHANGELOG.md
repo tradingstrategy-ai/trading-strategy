@@ -1,3 +1,8 @@
+# 0.21.1
+
+- Fix `estimate_accrued_interest` crashing when there are gaps in data
+- Fix `resample_candles` to retain `pair_id` column if one is present in data
+
 # 0.21
 
 - Add functionality for downloading and manipulating Binance candle and lending data

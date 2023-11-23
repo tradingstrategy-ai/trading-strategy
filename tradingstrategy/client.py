@@ -613,6 +613,11 @@ class Client(BaseClient):
         # Try file system stored API key,
         # if not prompt interactively
         if not api_key:
+            assert settings_path, \
+                "Trading Strategy API key not given as TRADING_STRATEGY_API_KEY environment variable or an argument.\n" \
+                "Interactive setup is disabled for this data client.\n" \
+                "Cannot continue."
+
             config = env.setup_on_demand(api_key=api_key)
             api_key = config.api_key
 
