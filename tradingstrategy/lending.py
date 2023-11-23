@@ -701,7 +701,14 @@ class LendingMetricUniverse(PairGroupedUniverse):
         candles = df[(df["timestamp"] >= start) & (df["timestamp"] <= end)]
 
         if len(candles) == 0:
-            raise NoLendingData(f"No lending data for {reserve}, {start} - {end}")
+            total_candles = len(df)
+            earliest = df.index[0]
+            last = df.index[-1]
+            raise NoLendingData(
+                f"No lending data for {reserve}, {start} - {end}\n"
+                f"This reserve has {total_candles:,} total candles\n"
+                f"First candle is at is {earliest}, last candle is at {last}\n"
+            )
 
         # get average APR from high and low
         avg = candles[["high", "low"]].mean(axis=1)
