@@ -736,12 +736,13 @@ def resample_series(series: pd.Series, new_timedelta: pd.Timedelta, forward_fill
 def resample_candles(df: pd.DataFrame, resample_freq: pd.Timedelta) -> pd.DataFrame:
     """Downsample or upsample OHLCV candles or liquidity samples.
 
-    E.g. transform 1h candles to 24h candles.
+    E.g. upsample 1h candles to 1d candles.
 
     Example:
 
     .. code-block:: python
 
+        # Transform daily candles to monthly candles
         from tradingstrategy.utils.groupeduniverse import resample_candles
 
         single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
@@ -791,7 +792,6 @@ def resample_candles(df: pd.DataFrame, resample_freq: pd.Timedelta) -> pd.DataFr
         f"{list(ohlc_dict.keys())} needs to be in the column names\n" \
         f"We got columns: {df.columns.tolist()}"
 
-    #pandas_time_delta = new_bucket.to_pandas_timedelta()
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
     candles = df.resample(resample_freq).agg(ohlc_dict)
 
