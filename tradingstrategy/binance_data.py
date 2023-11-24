@@ -17,6 +17,10 @@ from tradingstrategy.utils.groupeduniverse import resample_series
 logger = logging.getLogger(__name__)
 
 
+class BinanceDataFetchError(ValueError):
+    """Something wrong with Binance."""
+
+
 class BinanceDownloader:
     """Class for downloading Binance candlestick OHLCV data."""
 
@@ -143,7 +147,7 @@ class BinanceDownloader:
                         close_prices.append(float(item[4]))
                         volume.append(float(item[5]))
             else:
-                raise ValueError(
+                raise BinanceDataFetchError(
                     f"Error fetching data between {start_timestamp} and {end_timestamp}. \nResponse: {response.status_code} {response.text} \nMake sure you are using valid pair symbol e.g. `ETHUSDC`, not just ETH"
                 )
 
@@ -267,7 +271,7 @@ class BinanceDownloader:
                 if len(data) > 0:
                     response_data.extend(data)
             else:
-                raise ValueError(
+                raise BinanceDataFetchError(
                     f"No data found for {asset_symbol} between {start_at} and {end_at}. Check your symbol matches with valid symbols in method description. \nResponse: {response.status_code} {response.text}"
                 )
 
@@ -281,7 +285,7 @@ class BinanceDownloader:
 
         # doesn't always raise error
         if unsampled_rates.empty:
-            raise ValueError(
+            raise BinanceDataFetchError(
                 f"No data found for {asset_symbol} between {start_at} and {end_at}. Check your symbol matches with valid symbols in method description. \nResponse: {response.status_code} {response.text}"
             )
 
@@ -292,7 +296,13 @@ class BinanceDownloader:
         return resampled_rates
 
     def fetch_approx_asset_trading_start_date(self, symbol) -> datetime.datetime:
-        """Get the asset trading start date at Binance."""
+        """Get the asset trading start date at Binance.
+
+        Binance was launched around 2017-08-01.
+
+        :raise BinanceDataFetchError:
+            If the asset does not exist.
+        """
 
         monthly_candles = self.fetch_candlestick_data(
             symbol,

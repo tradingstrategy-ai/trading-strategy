@@ -41,6 +41,7 @@ total_size = 0
 with tqdm(total=len(pairs)) as progress_bar:
     for symbol in pairs:
 
+        start = downloader.fetch_approx_asset_trading_start_date(symbol)
         end = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
         # Fetch data for this pair, or use the cached file if already downloaded earlier
