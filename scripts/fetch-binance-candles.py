@@ -1,8 +1,11 @@
 """An example script to download Binance daily data for given set of pairs.
 
-- Download spot market OHLCV data from Binance public API endpoint
+- Download margin trading market OHLCV data from Binance public API endpoint
 
-- Create a combined Parquet file for all pairs.
+- Download all markets or a subset of markets you want to examine
+
+- Write a combined Parquet file for all pairs
+
 """
 import datetime
 import os
@@ -14,27 +17,28 @@ from tqdm.auto import tqdm
 from tradingstrategy.binance_data import BinanceDownloader
 from tradingstrategy.timebucket import TimeBucket
 
-# Choose 10 well-known pairs
-pairs = {
-    "ETHUSDT",
-    "BTCUSDT",
-    "LINKUSDT",
-    "MATICUSDT",
-    "AAVEUSDT",
-    "COMPUSDT",
-    "MKRUSDT",
-    "BNBUSDT",
-    "AVAXUSDT",
-    "CAKEUSDT",
-    "SNXUSDT",
-    "CRVUSDT",
-}
-
 time_bucket = TimeBucket.d1
-pair_hash = hex(hash("".join(sorted(list(pairs)))))  # If we change any of pairs the filename must change
-fpath = f"/tmp/binance-candles-{time_bucket.value}-{pair_hash}.parquet"
-
+fpath = f"/tmp/binance-candles-{time_bucket.value}.parquet"
 downloader = BinanceDownloader()
+
+# Choose from well-known pairs
+# pairs = {
+#     "ETHUSDT",
+#     "BTCUSDT",
+#     "LINKUSDT",
+#     "MATICUSDT",
+#     "AAVEUSDT",
+#     "COMPUSDT",
+#     "MKRUSDT",
+#     "BNBUSDT",
+#     "AVAXUSDT",
+#     "CAKEUSDT",
+#     "SNXUSDT",
+#     "CRVUSDT",
+# }
+
+# Download all available margin trade markets quoted in USDT
+pairs = {ticker for ticker in downloader.fetch_assets(market="MARGIN") if ticker.endswith("USDT")}
 
 parts = []
 total_size = 0

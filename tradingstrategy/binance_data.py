@@ -1,5 +1,7 @@
 """Get candlestick price and volume data from Binance.
 """
+from types import NoneType
+from typing import Literal, Iterable
 
 import requests
 import datetime
@@ -22,12 +24,22 @@ class BinanceDataFetchError(ValueError):
 
 
 class BinanceDownloader:
-    """Class for downloading Binance candlestick OHLCV data."""
+    """Download Binance data.
+
+    - OHLCV price feeds
+
+    - Lending rates
+
+    - Asset universe
+
+    If not mentioned, the API concerns margin trading markets, not spot markets.
+    """
 
     def __init__(self, cache_directory: Path = Path("/tmp/binance_data")):
         """Initialize BinanceCandleDownloader and create folder for cached data if it does not exist."""
         cache_directory.mkdir(parents=True, exist_ok=True)
         self.cache_directory = cache_directory
+        self.api_server = "api.binance.com"
 
     def fetch_candlestick_data(
         self,
@@ -133,7 +145,7 @@ class BinanceDownloader:
             full_params_str = (
                 f"{params_str}&startTime={start_timestamp}&endTime={end_timestamp}"
             )
-            url = f"https://api.binance.com/api/v3/klines?{full_params_str}&limit=1000"
+            url = f"https://{self.api_server}/api/v3/klines?{full_params_str}&limit=1000"
             response = requests.get(url)
             if response.status_code == 200:
                 json_data = response.json()
@@ -263,6 +275,7 @@ class BinanceDownloader:
         for i in range(len(monthly_timestamps) - 1):
             start_timestamp = monthly_timestamps[i] * 1000
             end_timestamp = monthly_timestamps[i + 1] * 1000
+            # TODO: Check the server availble here?
             url = f"https://www.binance.com/bapi/margin/v1/public/margin/vip/spec/history-interest-rate?asset={asset_symbol}&vipLevel=0&size=90&startTime={start_timestamp}&endTime={end_timestamp}"
             response = requests.get(url)
             if response.status_code == 200:
@@ -313,6 +326,36 @@ class BinanceDownloader:
 
         assert len(monthly_candles) > 0, f"Could not find starting date for asset {symbol}"
         return monthly_candles.index[0].to_pydatetime()
+
+    def fetch_assets(self, market: Literal["SPOT"] | Literal["MARGIN"] | NoneType = "MARGIN") -> Iterable[str]:
+        """Load available assets on binance.
+
+        Example:
+
+            # Show all pairs that
+            downloader = BinanceDownloader()
+            pairs = {ticker for ticker in downloader.fetch_assets(market="MARGIN") if ticker.endswith("USDT")}
+            print(f"USDT margin trading pairs: {pairs}")
+
+        :param market:
+            Are we looking for MARGIN or SPOT or both markets.
+
+        :return:
+            Iterable of all asset symbols.
+
+            E.g. "ETHUSDT", "BTCUSDT"
+        """
+
+        # https://binance-docs.github.io/apidocs/spot/en/#exchange-information
+        resp = requests.get(f"https://{self.api_server}/api/v3/exchangeInfo")
+        data = resp.json()
+        symbols = data["symbols"]
+        for s in symbols:
+            if market:
+                if market not in s["permissions"]:
+                    continue
+
+            yield s["symbol"]
 
     def get_data_parquet(
         self,

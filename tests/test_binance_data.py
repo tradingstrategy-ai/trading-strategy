@@ -158,10 +158,7 @@ def test_purge_cache(candle_downloader: BinanceDownloader):
 
 @pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Github US servers are blocked by Binance")
 def test_starting_date(candle_downloader: BinanceDownloader):
-    """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
-
-    Checks that deleting cached data works correctly.
-    """
+    """Get asset trading start date on Binance."""
 
     # Longest living asset
     btc_starting_date = candle_downloader.fetch_approx_asset_trading_start_date("BTCUSDT")
@@ -173,13 +170,20 @@ def test_starting_date(candle_downloader: BinanceDownloader):
 
 @pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Github US servers are blocked by Binance")
 def test_starting_date_unknown(candle_downloader: BinanceDownloader):
-    """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
-
-    Checks that deleting cached data works correctly.
-    """
+    """Fail checking trading start date of an ticket on Binance when ticker is unknown."""
 
     # Unknown asset
     with pytest.raises(BinanceDataFetchError):
         candle_downloader.fetch_approx_asset_trading_start_date("FOOBAR")
 
 
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Github US servers are blocked by Binance")
+def test_fetch_assets(candle_downloader: BinanceDownloader):
+    """Get available tradeable assets on Binance.
+    """
+    assets = list(candle_downloader.fetch_assets())
+    assert "BTCUSDT" in assets
+    assert "ETHUSDT" in assets
+
+    # 484 tickers at the end of 2023
+    assert len(assets) >= 484
