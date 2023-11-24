@@ -7,9 +7,10 @@ import pandas as pd
 import numpy as np
 import logging
 import shutil
-
-from tradingstrategy.timebucket import TimeBucket
 from pathlib import Path
+
+from tradingstrategy.chain import ChainId
+from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.utils.time import generate_monthly_timestamps
 from tradingstrategy.utils.groupeduniverse import resample_series
 
@@ -70,7 +71,12 @@ class BinanceDownloader:
 
         # to include the end date, we need to add one day
         end_at = end_at + datetime.timedelta(days=1)
-        df = self._fetch_candlestick_data(symbol, time_bucket, start_at, end_at)
+        df = self._fetch_candlestick_data(
+            symbol,
+            time_bucket,
+            start_at,
+            end_at,
+        )
         end_at = end_at - datetime.timedelta(days=1)
 
         # write to parquet
@@ -85,7 +91,7 @@ class BinanceDownloader:
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
-    ):
+    ) -> pd.DataFrame:
         params_str = f"symbol={symbol}&interval={time_bucket.value}"
 
         if start_at:
@@ -160,7 +166,12 @@ class BinanceDownloader:
         # Each timestamp in `timestamps` besides the first and last entry will be duplicated, so remove
         remove_duplicates_df = df[df.index.duplicated(keep="first") == False]
 
-        return remove_duplicates_df
+        new_cols_df = self.add_informational_columns(
+            remove_duplicates_df,
+            symbol,
+        )
+
+        return new_cols_df
 
     def fetch_lending_rates(
         self,
@@ -226,9 +237,11 @@ class BinanceDownloader:
         path = self.get_parquet_path(
             asset_symbol, time_bucket, start_at, end_at, is_lending=True
         )
-        series.to_frame(name="lending_rates").to_parquet(path)
+        df = series.to_frame(name="lending_rates")
+        
+        df.to_parquet(path)
 
-        return series
+        return df
 
     def _fetch_lending_rates(
         self,
@@ -375,25 +388,30 @@ class BinanceDownloader:
 
 
 def convert_binance_lending_rates_to_supply(
-    interestRates: pd.Series, multiplier: float = 0.95
+    interest_rates: pd.DataFrame, multiplier: float = 0.95
 ) -> pd.Series:
     """Convert Binance lending rates to supply rates.
 
     Right now, this rate is somewhat arbitrary. It is 95% of the lending rate by default.
 
-    :param interestRates: Series of lending interest rates
+    :param interest_rates: DataFrame of lending interest rates
     :return: Series of supply rates
     """
 
+    assert type(interest_rates) == pd.DataFrame, "interest_rates must be a DataFrame"
     assert 0 < multiplier < 1, "Multiplier must be between 0 and 1"
 
     assert isinstance(
-        interestRates, pd.Series
-    ), f"Expected pandas Series, got {interestRates.__class__}: {interestRates}"
+        interest_rates, pd.DataFrame
+    ), f"Expected pandas Series, got {interest_rates.__class__}: {interest_rates}"
     assert isinstance(
-        interestRates.index, pd.DatetimeIndex
-    ), f"Expected DateTimeIndex, got {interestRates.index.__class__}: {interestRates.index}"
-    return interestRates * multiplier
+        interest_rates.index, pd.DatetimeIndex
+    ), f"Expected DateTimeIndex, got {interest_rates.index.__class__}: {interest_rates.index}"
+    
+    interest_rates.iloc[:,0] = interest_rates.iloc[:,0] * multiplier
+
+    return interest_rates
+    
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
