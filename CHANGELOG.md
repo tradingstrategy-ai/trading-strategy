@@ -1,3 +1,9 @@
+# Current
+
+- Add: `BinanceDownloader.fetch_approx_asset_trading_start_date()` to figure out when asset was listed on Binance
+- Fix: `BinanceDownloader` timestamps to be UTC
+- Add: Example script how to download Binance data for multiple assets and write in a single Parquet file
+
 # 0.21.1
 
 - Fix `estimate_accrued_interest` crashing when there are gaps in data
