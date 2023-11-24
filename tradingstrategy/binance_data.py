@@ -17,6 +17,10 @@ from tradingstrategy.utils.groupeduniverse import resample_series
 logger = logging.getLogger(__name__)
 
 
+class BinanceDataFetchError(ValueError):
+    """Something wrong with Binance."""
+
+
 class BinanceDownloader:
     """Class for downloading Binance candlestick OHLCV data."""
 
@@ -86,7 +90,10 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
     ):
-        params_str = f"symbol={symbol}&interval={time_bucket.value}"
+
+        interval = get_binance_interval(time_bucket)
+
+        params_str = f"symbol={symbol}&interval={interval}"
 
         if start_at:
             assert end_at, "If you specify a start_at, you must also specify an end_at"
@@ -132,7 +139,7 @@ class BinanceDownloader:
                 json_data = response.json()
                 if len(json_data) > 0:
                     for item in json_data:
-                        date_time = datetime.datetime.fromtimestamp(item[0] / 1000)
+                        date_time = datetime.datetime.utcfromtimestamp(item[0] / 1000)
                         dates.append(date_time)
                         open_prices.append(float(item[1]))
                         high_prices.append(float(item[2]))
@@ -140,7 +147,7 @@ class BinanceDownloader:
                         close_prices.append(float(item[4]))
                         volume.append(float(item[5]))
             else:
-                raise ValueError(
+                raise BinanceDataFetchError(
                     f"Error fetching data between {start_timestamp} and {end_timestamp}. \nResponse: {response.status_code} {response.text} \nMake sure you are using valid pair symbol e.g. `ETHUSDC`, not just ETH"
                 )
 
@@ -264,7 +271,7 @@ class BinanceDownloader:
                 if len(data) > 0:
                     response_data.extend(data)
             else:
-                raise ValueError(
+                raise BinanceDataFetchError(
                     f"No data found for {asset_symbol} between {start_at} and {end_at}. Check your symbol matches with valid symbols in method description. \nResponse: {response.status_code} {response.text}"
                 )
 
@@ -278,7 +285,7 @@ class BinanceDownloader:
 
         # doesn't always raise error
         if unsampled_rates.empty:
-            raise ValueError(
+            raise BinanceDataFetchError(
                 f"No data found for {asset_symbol} between {start_at} and {end_at}. Check your symbol matches with valid symbols in method description. \nResponse: {response.status_code} {response.text}"
             )
 
@@ -287,6 +294,25 @@ class BinanceDownloader:
         )
 
         return resampled_rates
+
+    def fetch_approx_asset_trading_start_date(self, symbol) -> datetime.datetime:
+        """Get the asset trading start date at Binance.
+
+        Binance was launched around 2017-08-01.
+
+        :raise BinanceDataFetchError:
+            If the asset does not exist.
+        """
+
+        monthly_candles = self.fetch_candlestick_data(
+            symbol,
+            TimeBucket.d30,
+            datetime.datetime(2017, 1, 1),
+            datetime.datetime.utcnow(),
+        )
+
+        assert len(monthly_candles) > 0, f"Could not find starting date for asset {symbol}"
+        return monthly_candles.index[0].to_pydatetime()
 
     def get_data_parquet(
         self,
@@ -442,3 +468,12 @@ def get_indices_of_uneven_intervals(df: pd.DataFrame | pd.Series) -> bool:
     not_equal_to_first = differences != differences[0]
 
     return np.where(not_equal_to_first)[0]
+
+
+def get_binance_interval(bucket: TimeBucket) -> str:
+    """Convert our TimeBucket to Binance's internal format."""
+    if bucket == TimeBucket.d30:
+        # Can be one of `1s, 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M`
+        return "1M"
+    else:
+        return bucket.value
