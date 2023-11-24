@@ -525,9 +525,13 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         candles_per_pair = self.get_candles_by_pair(pair_id)
 
         if candles_per_pair is None:
+            uniq_pairs = self.get_pair_count()
             raise CandleSampleUnavailable(
                 f"No candle data available for pair {pair_name}, pair id {pair_id}\n"
-                f"Trading data pair link: {link}")
+                f"Trading data pair link: {link}"
+                f"Did you load price data for this trading pair?\n"
+                f"We have price feed data loaded for {uniq_pairs} trading pairs\n"
+            )
 
         samples_per_kind = candles_per_pair[kind]
 

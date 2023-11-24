@@ -718,7 +718,7 @@ class PandasPairUniverse:
             We cannot properly resolve pairs unless we can map exchange names to their ids.
             Currently optional, only needed by `get_pair()`.
         """
-        assert isinstance(df, pd.DataFrame)
+        assert isinstance(df, pd.DataFrame), f"Expected DataFrame, gor {df.__class__}"
         self.df = df.set_index(df["pair_id"])
 
         #: pair_id -> raw dict data mappings
