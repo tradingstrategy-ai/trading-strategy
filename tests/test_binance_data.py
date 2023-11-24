@@ -154,3 +154,18 @@ def test_purge_cache(candle_downloader: BinanceDownloader):
 
     candle_downloader.purge_all_cached_data()
     assert len(list(candle_downloader.cache_directory.iterdir())) == 0
+
+
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Github US servers are blocked by Binance")
+def test_starting_date(candle_downloader: BinanceDownloader):
+    """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
+
+    Checks that deleting cached data works correctly.
+    """
+
+    # Longest living asset
+    btc_starting_date = candle_downloader.fetch_approx_asset_trading_start_date("BTCUSDT")
+    assert btc_starting_date == datetime.datetime(2017, 8, 1, 0, 0)
+
+    curve_starting_date = candle_downloader.fetch_approx_asset_trading_start_date("CRVUSDT")
+    assert curve_starting_date == datetime.datetime(2020, 8, 1, 0, 0)
