@@ -164,14 +164,7 @@ class BinanceDownloader:
         # df = clean_time_series_data(df)
 
         # Each timestamp in `timestamps` besides the first and last entry will be duplicated, so remove
-        remove_duplicates_df = df[df.index.duplicated(keep="first") == False]
-
-        new_cols_df = self.add_informational_columns(
-            remove_duplicates_df,
-            symbol,
-        )
-
-        return new_cols_df
+        return df[df.index.duplicated(keep="first") == False]
 
     def fetch_lending_rates(
         self,
