@@ -14,6 +14,7 @@ from tqdm.auto import tqdm
 from tradingstrategy.binance_data import BinanceDownloader
 from tradingstrategy.timebucket import TimeBucket
 
+<<<<<<< Updated upstream
 # Choose 10 well-known pairs
 pairs = {
     "ETHUSDT",
@@ -34,6 +35,10 @@ time_bucket = TimeBucket.d1
 pair_hash = hex(hash("".join(sorted(list(pairs)))))  # If we change any of pairs the filename must change
 fpath = f"/tmp/binance-candles-{time_bucket.value}-{pair_hash}.parquet"
 
+=======
+time_bucket = TimeBucket.h1
+fpath = f"/tmp/binance-candles-{time_bucket.value}.parquet"
+>>>>>>> Stashed changes
 downloader = BinanceDownloader()
 
 parts = []
