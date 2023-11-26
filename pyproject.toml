@@ -24,12 +24,8 @@ plotly = "^5.1.0"
 jsonlines = "^3.1.0"
 requests = "^2.28.1"
 tqdm-loggable = "^0.1.2"
-
-# Needed for direct data feeds
-typer = {version = "^0.7.0", optional = true}
-# web3-ethereum-defi = "^0.24"
-web3-ethereum-defi = {path = "../web3-ethereum-defi", develop = true, extras=["data", "test"]}
-dash = {version = "^2.7.1", optional = true}
+web3-ethereum-defi = ">=0.24"
+#web3-ethereum-defi = {path = "../web3-ethereum-defi", develop = true, extras=["data", "test"]}
 
 # Legacy strategy and trading engines
 trading-strategy-qstrader = {version="^0.5.0", optional = true}
@@ -38,6 +34,10 @@ trading-strategy-backtrader = {version="^0.1",  optional = true}
 coloredlogs = {version = "^15.0.1", optional = true}
 filelock = "^3.12.4"
 pytest-xdist = {version="^3.3.1", optional = true}
+
+# Needed for direct data feeds
+typer = {version = "^0.7.0", optional = true}
+dash = {version = "^2.7.1", optional = true}
 
 [tool.poetry.dev-dependencies]
 pytest = "7.1.3"
