@@ -4764,17 +4764,17 @@ telegram = ["requests"]
 
 [[package]]
 name = "tqdm-loggable"
-version = "0.1.4"
-description = "TQDM progress bar friendliness for non-interactive terminals and logging output"
+version = "0.2"
+description = "TQDM progress bar helpers for logging and other headless application"
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">3.8"
 files = [
-    {file = "tqdm_loggable-0.1.4-py3-none-any.whl", hash = "sha256:54fde4e7e146157b2c71230fbed2d981c362741fbcc6230dc632abbf4500094c"},
-    {file = "tqdm_loggable-0.1.4.tar.gz", hash = "sha256:ab5a4a29c5a0398c328455b099e3faf1c93113e8db6e04cb3de9ba539d0a593c"},
+    {file = "tqdm_loggable-0.2-py3-none-any.whl", hash = "sha256:9703046302b93a667166487759e6f3f49597e86c89eb132ba1f31caa07bf0941"},
+    {file = "tqdm_loggable-0.2.tar.gz", hash = "sha256:175abec3e1f63bbd2eac192fa5da075e80c7bb715d7ccf3cd1a29b7ab5af0617"},
 ]
 
 [package.dependencies]
-tqdm = ">=4.64.1,<5.0.0"
+tqdm = ">4.64"
 
 [[package]]
 name = "trading-strategy-backtrader"
@@ -5074,13 +5074,13 @@ tester = ["eth-tester[py-evm] (==v0.9.1-b.1)", "py-geth (>=3.11.0)"]
 
 [[package]]
 name = "web3-ethereum-defi"
-version = "0.24"
+version = "0.24.1"
 description = "Python library for Uniswap, Aave, ChainLink, Enzyme and other protocols on BNB Chain, Polygon, Ethereum and other blockchains"
 optional = false
 python-versions = ">=3.10,<=3.12"
 files = [
-    {file = "web3_ethereum_defi-0.24-py3-none-any.whl", hash = "sha256:544ff649faa3e39a77fcfa7319c3447c1f431082e036d72050de99e8dd7a0cef"},
-    {file = "web3_ethereum_defi-0.24.tar.gz", hash = "sha256:963d55b92393095d0dba1b4d907a1eba281874f28c34303136bc570640b4075b"},
+    {file = "web3_ethereum_defi-0.24.1-py3-none-any.whl", hash = "sha256:6f7577939ebabe020598b1fe55a44a29f929f5ea76dcc96704bcf9454b3ee2fd"},
+    {file = "web3_ethereum_defi-0.24.1.tar.gz", hash = "sha256:cb6e89af0a40f1f11ffe16bbce1e3a1e97cdd9e1fbab8f1e206cd72029b690c8"},
 ]
 
 [package.dependencies]
@@ -5098,14 +5098,14 @@ pyarrow = {version = "*", optional = true, markers = "extra == \"data\""}
 pytest-xdist = {version = ">=3.3.1,<4.0.0", optional = true, markers = "extra == \"test\""}
 setuptools = ">=69.0.2,<70.0.0"
 sigfig = ">=1.3.2,<2.0.0"
-tqdm = {version = ">=4.66.1,<5.0.0", optional = true, markers = "extra == \"data\""}
-tqdm-loggable = ">=0.1.3,<0.2.0"
-ujson = "5.8.0"
+tqdm = {version = ">=4.66.1", optional = true, markers = "extra == \"data\""}
+tqdm-loggable = ">=0.1.3"
+ujson = ">=5.8.0"
 urllib3 = "<2"
 web3 = {version = "6.11.3", extras = ["tester"]}
 
 [package.extras]
-data = ["gql[requests] (>=3.3.0,<4.0.0)", "jupyter (>=1.0.0,<2.0.0)", "matplotlib (>=3.5.2,<4.0.0)", "pandas (<2.2)", "plotly (>=5.8.2,<6.0.0)", "pyarrow", "tqdm (>=4.66.1,<5.0.0)"]
+data = ["gql[requests] (>=3.3.0,<4.0.0)", "jupyter (>=1.0.0,<2.0.0)", "matplotlib (>=3.5.2,<4.0.0)", "pandas (<2.2)", "plotly (>=5.8.2,<6.0.0)", "pyarrow", "tqdm (>=4.66.1)"]
 docs = ["Sphinx (>=4.5.0,<5.0.0)", "furo (>=2022.6.4.1,<2023.0.0.0)", "nbsphinx (>=0.8.9,<0.9.0)", "sphinx-autodoc-typehints (>=1.16.0,<2.0.0)", "sphinx-rtd-theme (>=1.0.0,<2.0.0)", "sphinx-sitemap (>=2.2.0,<3.0.0)", "zope-dottedname (>=6.0,<7.0)"]
 test = ["pytest-xdist (>=3.3.1,<4.0.0)"]
 
@@ -5386,4 +5386,4 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<=3.12"
-content-hash = "a743086ccf11968cb0518b82d998c8c2e24fcaa8bee61ba7797dff26b25479df"
+content-hash = "4be6d078dca0b291f76d1d52d882bcf1fd8492d3bdcd0bca738e6c86f8de2f7c"
