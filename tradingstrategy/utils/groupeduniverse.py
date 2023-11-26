@@ -26,7 +26,7 @@ from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.forward_fill import forward_fill
-from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA
+from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA, naive_utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -828,7 +828,7 @@ def fix_bad_wicks(
         Complain if this takes too long
     """
 
-    start = datetime.datetime.utcnow()
+    start = naive_utcnow()
 
     if len(df) == 0:
         return df
@@ -838,7 +838,7 @@ def fix_bad_wicks(
     df["high"] = np.where(df["high"] > df["close"] * threshold[1], df["close"], df["high"])
     df["low"] = np.where(df["low"] < df["close"] * threshold[0], df["close"], df["low"])
 
-    duration = datetime.datetime.utcnow() - start
+    duration = naive_utcnow() - start
 
     if duration > datetime.timedelta(seconds=too_slow_threshold):
         logger.warning("Very slow fix_bad_wicks(): %s", duration)

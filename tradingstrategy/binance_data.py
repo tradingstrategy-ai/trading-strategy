@@ -10,7 +10,7 @@ import shutil
 
 from tradingstrategy.timebucket import TimeBucket
 from pathlib import Path
-from tradingstrategy.utils.time import generate_monthly_timestamps
+from tradingstrategy.utils.time import generate_monthly_timestamps, naive_utcnow, naive_utcfromtimestamp
 from tradingstrategy.utils.groupeduniverse import resample_series
 
 
@@ -139,7 +139,7 @@ class BinanceDownloader:
                 json_data = response.json()
                 if len(json_data) > 0:
                     for item in json_data:
-                        date_time = datetime.datetime.utcfromtimestamp(item[0] / 1000)
+                        date_time = naive_utcfromtimestamp(item[0] / 1000)
                         dates.append(date_time)
                         open_prices.append(float(item[1]))
                         high_prices.append(float(item[2]))
@@ -308,7 +308,7 @@ class BinanceDownloader:
             symbol,
             TimeBucket.d30,
             datetime.datetime(2017, 1, 1),
-            datetime.datetime.utcnow(),
+            naive_utcnow(),
         )
 
         assert len(monthly_candles) > 0, f"Could not find starting date for asset {symbol}"

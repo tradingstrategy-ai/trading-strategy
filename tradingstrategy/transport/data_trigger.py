@@ -43,7 +43,7 @@ def wait_for_data(client: Client,
 
     logger.info("Waiting for strategy data for tick: %s, candle: %s")
 
-    deadline = datetime.datetime.utcnow() + maximum_wait
+    deadline = naive_utcnow() + maximum_wait
 
     # Query only the latest candle from JSONL endpoint
     candle_ts = tick - bucket.to_pandas_timedelta()
@@ -52,7 +52,7 @@ def wait_for_data(client: Client,
 
     attempts = 1
 
-    while datetime.datetime.utcnow() < deadline:
+    while naive_utcnow() < deadline:
         logger.info("Starting to check the data age, attempt #%d", attempts)
 
         try:

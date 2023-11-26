@@ -1,9 +1,9 @@
 """Test fixtures."""
 import logging
 import os
+import sys
 
 import pytest
-import coloredlogs
 
 from tradingstrategy.client import Client
 
@@ -52,7 +52,11 @@ def logger(request) -> logging.Logger:
     fmt = "%(name)-25s %(levelname)-8s %(message)s"
 
     # Use colored logging output for console
-    coloredlogs.install(level=log_level, fmt=fmt, logger=logger)
+    try:
+        import coloredlogs
+        coloredlogs.install(level=log_level, fmt=fmt, logger=logger)
+    except ImportError:
+        logging.basicConfig(stream=sys.stdout, level=log_level)
 
     # Disable logging of JSON-RPC requests and reploes
     logging.getLogger("web3.RequestManager").setLevel(logging.WARNING)
