@@ -24,7 +24,7 @@ plotly = "^5.1.0"
 jsonlines = "^3.1.0"
 requests = "^2.28.1"
 tqdm-loggable = "^0.1.2"
-web3-ethereum-defi = ">=0.24"
+web3-ethereum-defi = {version=">=0.24", extras=["data", "test"]}
 #web3-ethereum-defi = {path = "../web3-ethereum-defi", develop = true, extras=["data", "test"]}
 
 # Legacy strategy and trading engines
@@ -33,7 +33,6 @@ scipy = {version="^1.6.1", optional = true}
 trading-strategy-backtrader = {version="^0.1",  optional = true}
 coloredlogs = {version = "^15.0.1", optional = true}
 filelock = "^3.12.4"
-pytest-xdist = {version="^3.3.1", optional = true}
 
 # Needed for direct data feeds
 typer = {version = "^0.7.0", optional = true}
@@ -43,11 +42,10 @@ dash = {version = "^2.7.1", optional = true}
 pytest = "7.1.3"
 ipdb = "^0.13.9"
 coloredlogs = "^15.0.1"
-
+pytest-xdist = "^3.3.1"
 memory-profiler = "^0.60.0"
 poetry-core = "^1.1.0"
 pytest-asyncio = "^0.19.0"
-
 
 [tool.poetry.extras]
 # Real-time OHLCV feeds over JSON-RPC
@@ -58,8 +56,6 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 
 # Legacy backtrader framework support
 backtrader = ["trading-strategy-backtrader"]
-
-test = ["pytest-xdist"]
 
 
 [build-system]
