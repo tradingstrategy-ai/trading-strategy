@@ -1,4 +1,5 @@
 import pytest
+from web3.middleware import gas_price_strategy_middleware, buffered_gas_estimate_middleware
 from web3.providers.eth_tester.middleware import default_transaction_fields_middleware, ethereum_tester_middleware
 
 from eth_defi.token import fetch_erc20_details, create_token
@@ -32,11 +33,10 @@ def web3(tester_provider):
     """Set up a local unit testing blockchain."""
     web3 = Web3(tester_provider)
     # # Remove web3 6.0 AttributedDict middleware
-    # web3.middleware_onion.clear()
-    web3.middleware_onion.remove("attrdict")
-    web3.middleware_onion.remove("pythonic")
+    web3.middleware_onion.clear()
+    web3.middleware_onion.add(gas_price_strategy_middleware)
+    web3.middleware_onion.add(buffered_gas_estimate_middleware)
     return web3
-
 
 
 @pytest.fixture()

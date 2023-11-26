@@ -48,7 +48,7 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
 
     assert isinstance(path, Path), f"Expected path: {path}"
     f = path.as_posix()
-    logger.info("Reading Parquet %s", f)
+    logger.debug("Reading Parquet %s", f)
     # https://arrow.apache.org/docs/python/parquet.html
     try:
         table = pq.read_table(f, filters=filters, use_threads=True, pre_buffer=False, memory_map=True)

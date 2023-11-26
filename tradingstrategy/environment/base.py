@@ -5,6 +5,8 @@ from abc import ABC
 
 from requests import Session, ReadTimeout
 
+from tradingstrategy.utils.time import naive_utcnow
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,7 +26,7 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
 
     assert timeout > 0
 
-    start = datetime.datetime.utcnow()
+    start = naive_utcnow()
 
     logger.info("Starting %s download from %s", human_desc, url)
 
@@ -48,7 +50,7 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
     if attempts != max_attempts:
         logger.warning("Recovered download with attempts left: %d, %s", attempts, url)
 
-    initial_response = datetime.datetime.utcnow() - start
+    initial_response = naive_utcnow() - start
 
     headers = response.headers
     if "content-length" in headers:
@@ -62,6 +64,6 @@ def download_with_progress_plain(session: Session, path: str, url: str, params: 
         for block in response.iter_content(8 * 1024):
             handle.write(block)
             fsize += len(block)
-            time_to_first_byte = datetime.datetime.utcnow() - start
-    duration = datetime.datetime.utcnow() - start
+            time_to_first_byte = naive_utcnow() - start
+    duration = naive_utcnow() - start
     logger.info("Saved %s to %s. Downloaded %d bytes in %s. Time to initial response was: %s. Time to first byte was: %s.", url, path, fsize, duration, initial_response, time_to_first_byte)

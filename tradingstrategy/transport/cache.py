@@ -28,6 +28,7 @@ from tradingstrategy.types import PrimaryKey
 from tradingstrategy.lending import LendingCandle, LendingCandleType
 from urllib3 import Retry
 
+from tradingstrategy.utils.time import naive_utcfromtimestamp
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +172,7 @@ class CachedHTTPTransport:
             # Candle files with an end time never expire, as the history does not change
             return f
 
-        mtime = datetime.datetime.fromtimestamp(f.stat().st_mtime)
+        mtime = naive_utcfromtimestamp(f.stat().st_mtime)
         if datetime.datetime.now() - mtime > self.cache_period:
             # File cache expired
             return None

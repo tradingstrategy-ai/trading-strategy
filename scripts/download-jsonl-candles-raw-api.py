@@ -75,8 +75,8 @@ for item in reader:
     candle_data[pair_id].append(item)
 
 eth_usdc_candles = candle_data[eth_usdc["summary"]["pair_id"]]
-first_candle = datetime.datetime.utcfromtimestamp(eth_usdc_candles[0]["ts"])
-last_candle = datetime.datetime.utcfromtimestamp(eth_usdc_candles[-1]["ts"])
+first_candle = naive_utcfromtimestamp(eth_usdc_candles[0]["ts"])
+last_candle = naive_utcfromtimestamp(eth_usdc_candles[-1]["ts"])
 bnb_busd_candles = candle_data[bnb_busd["summary"]["pair_id"]]
 
 print(f"ETH-USDC has {len(eth_usdc_candles):,} candles from {first_candle} to {last_candle}")

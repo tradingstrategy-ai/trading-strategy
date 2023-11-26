@@ -62,3 +62,21 @@ def generate_monthly_timestamps(start: datetime.datetime, end: datetime.datetime
     return timestamps
 
 
+def naive_utcnow() -> datetime.datetime:
+    """Get utcnow() but without timezone information.
+
+    Fixes for Python 3.12 compatibility
+
+    - https://blog.miguelgrinberg.com/post/it-s-time-for-a-change-datetime-utcnow-is-now-deprecated
+    """
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+
+def naive_utcfromtimestamp(timestamp: float | int) -> datetime.datetime:
+    """Get naive UTC datetime from UNIX time.
+
+    Fixes for Python 3.12 compatibility
+
+    - https://blog.miguelgrinberg.com/post/it-s-time-for-a-change-datetime-utcnow-is-now-deprecated
+    """
+    return datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc).replace(tzinfo=None)
