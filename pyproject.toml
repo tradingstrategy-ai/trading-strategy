@@ -12,6 +12,17 @@ packages = [
     { include = "tradingstrategy" },
 ]
 
+# See PyPi for supported links https://github.com/pypi/warehouse/blob/main/warehouse/templates/packaging/detail.html
+# https://stackoverflow.com/a/74394591/315168
+# https://pypi.org/project/links-demo/
+[tool.poetry.urls]
+Changelog = "https://github.com/tradingstrategy-ai/web3-ethereum-defi/blob/master/CHANGELOG.md"
+Documentation = "https://tradingstrategy.ai/docs/"
+Twitter = "https://twitter.com/tradingprotocol"
+Youtube = "https://www.youtube.com/@tradingstrategyprotocol"
+Discord = "https://discord.gg/5M88m9nM8H"
+Sponsor = "https://tradingstrategy.ai"
+
 [tool.poetry.dependencies]
 # Web3.py dependency compatibility
 # E.g. ethpm
