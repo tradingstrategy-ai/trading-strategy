@@ -50,7 +50,7 @@ def test_grouped_liquidity(persistent_test_client: Client):
     amount, delay = liquidity_universe.get_liquidity_with_tolerance(
         sushi_usdt.pair_id,
         pd.Timestamp("2021-12-31"),
-        tolerance=pd.Timedelta("1y"),
+        tolerance=pd.Timedelta(days=365),
     )
     assert amount == pytest.approx(2292.4517)
     assert delay == pd.Timedelta('4 days 00:00:00')
@@ -60,7 +60,7 @@ def test_grouped_liquidity(persistent_test_client: Client):
         liquidity_universe.get_liquidity_with_tolerance(
             sushi_usdt.pair_id,
             pd.Timestamp("1970-01-01"),
-            tolerance=pd.Timedelta("1y"),
+            tolerance=pd.Timedelta(days=360),
         )
 
 
