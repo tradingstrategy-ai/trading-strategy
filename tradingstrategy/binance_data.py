@@ -231,7 +231,7 @@ class BinanceDownloader:
             asset_symbol, time_bucket, start_at, end_at, is_lending=True
         )
         df = series.to_frame(name="lending_rates")
-        
+
         df.to_parquet(path)
 
         return df
@@ -342,6 +342,28 @@ class BinanceDownloader:
         )
         return self.cache_directory.joinpath(file)
 
+    def overwrite_cached_data(
+        self,
+        df: pd.DataFrame,
+        symbol,
+        STOP_LOSS_TIME_BUCKET,
+        START_AT_DATA,
+        END_AT,
+        is_lending: bool = False,
+    ) -> None:
+        """Overwrite specific cached candle data file.
+
+        :param symbol: Trading pair symbol E.g. ETHUSDC
+        :param time_bucket: TimeBucket instance
+        :param start_at: Start date of the data
+        :param end_at: End date of the data
+        :param path: Path to the parquet file. If not specified, it will be generated from the other parameters.
+        """
+        path = self.get_parquet_path(
+            symbol, STOP_LOSS_TIME_BUCKET, START_AT_DATA, END_AT, is_lending
+        )
+        df.to_parquet(path)
+
     def purge_cached_file(
         self,
         *,
@@ -400,11 +422,10 @@ def convert_binance_lending_rates_to_supply(
     assert isinstance(
         interest_rates.index, pd.DatetimeIndex
     ), f"Expected DateTimeIndex, got {interest_rates.index.__class__}: {interest_rates.index}"
-    
-    interest_rates.iloc[:,0] = interest_rates.iloc[:,0] * multiplier
+
+    interest_rates.iloc[:, 0] = interest_rates.iloc[:, 0] * multiplier
 
     return interest_rates
-    
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
