@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from unittest.mock import patch, Mock
 
-from tradingstrategy.binance_data import BinanceDownloader, BinanceDataFetchError
+from tradingstrategy.binance.downloader import BinanceDownloader, BinanceDataFetchError
 from tradingstrategy.timebucket import TimeBucket
 
 
