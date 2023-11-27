@@ -359,9 +359,11 @@ class BinanceDownloader:
         :param end_at: End date of the data
         :param path: Path to the parquet file. If not specified, it will be generated from the other parameters.
         """
+        # TODO, assert exists
         path = self.get_parquet_path(
             symbol, STOP_LOSS_TIME_BUCKET, START_AT_DATA, END_AT, is_lending
         )
+        assert path.exists(), f"File {path} does not exist."
         df.to_parquet(path)
 
     def purge_cached_file(
