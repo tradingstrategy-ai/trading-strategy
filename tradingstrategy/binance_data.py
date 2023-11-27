@@ -82,9 +82,10 @@ class BinanceDownloader:
             start_at,
             end_at,
         )
-        end_at = end_at - datetime.timedelta(days=1)
+        df["symbol"] = symbol
 
         # write to parquet
+        end_at = end_at - datetime.timedelta(days=1)
         path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
         df.to_parquet(path)
 
