@@ -151,7 +151,7 @@ class Candle:
     ])
 
     def __repr__(self):
-        human_timestamp = datetime.datetime.utcfromtimestamp(self.timestamp)
+        human_timestamp = naive_utcfromtimestamp(self.timestamp)
         return f"@{human_timestamp} O:{self.open} H:{self.high} L:{self.low} C:{self.close} V:{self.volume} B:{self.buys} S:{self.sells} SB:{self.start_block} EB:{self.end_block}"
 
     @property
@@ -635,6 +635,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         Useful for synthetic data/testing.
         """
+        assert "pair_id" in df.columns, f"Columns lack pair_id: {df.columns}"
         return GroupedCandleUniverse(df, time_bucket=bucket)
 
     @staticmethod

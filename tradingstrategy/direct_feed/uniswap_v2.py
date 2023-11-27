@@ -343,7 +343,7 @@ class UniswapV2TradeFeed(TradeFeed):
             block_hash=swap["block_hash"],
             log_index=swap["log_index"],
             tx_hash=swap["tx_hash"],
-            timestamp=pd.Timestamp.utcfromtimestamp(timestamp),
+            timestamp=pd.Timestamp.utcfromtimestamp(timestamp).tz_localize(None),
             price=price,
             amount=amount,
             exchange_rate=exchange_rate,

@@ -1,10 +1,21 @@
-# 0.21.0
+# Current
+
+- Add: `BinanceDownloader.fetch_approx_asset_trading_start_date()` to figure out when asset was listed on Binance
+- Fix: `BinanceDownloader` timestamps to be UTC
+- Add: Example script how to download Binance data for multiple assets and write in a single Parquet file
+
+# 0.21.1
+
+- Fix `estimate_accrued_interest` crashing when there are gaps in data
+- Fix `resample_candles` to retain `pair_id` column if one is present in data
+
+# 0.21
 
 - Add functionality for downloading and manipulating Binance candle and lending data
-- Fix `resample_candles()` method
+  to have alternative datasets to benchmark the strategies for overfit and data quality issues
 - Add `resample_series()` method to work for single column pd.Series price data
 - Fix `CandleUniverse.get_candles_by_pair()` (add return value)
-
+- Fix `resample_candles()` method
 
 # 0.20.18
 

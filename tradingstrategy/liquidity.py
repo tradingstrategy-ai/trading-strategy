@@ -101,7 +101,7 @@ class XYLiquidity:
     end_block: BlockNumber
 
     def __repr__(self):
-        human_timestamp = datetime.datetime.utcfromtimestamp(self.timestamp)
+        human_timestamp = naive_utcfromtimestamp(self.timestamp)
         return f"@{human_timestamp} O:{self.open} H:{self.high} L:{self.low} C:{self.close} V:{self.volume} A:{self.adds} R:{self.removes} SB:{self.start_block} EB:{self.end_block}"
 
     @classmethod

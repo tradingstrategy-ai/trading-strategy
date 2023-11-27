@@ -26,7 +26,7 @@ from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.forward_fill import forward_fill
-from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA
+from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA, naive_utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -733,15 +733,16 @@ def resample_series(series: pd.Series, new_timedelta: pd.Timedelta, forward_fill
     return candles
 
 
-def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFrame:
+def resample_candles(df: pd.DataFrame, resample_freq: pd.Timedelta) -> pd.DataFrame:
     """Downsample or upsample OHLCV candles or liquidity samples.
 
-    E.g. transform 1h candles to 24h candles.
+    E.g. upsample 1h candles to 1d candles.
 
     Example:
 
     .. code-block:: python
 
+        # Transform daily candles to monthly candles
         from tradingstrategy.utils.groupeduniverse import resample_candles
 
         single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
@@ -750,28 +751,56 @@ def resample_candles(df: pd.DataFrame, new_timedelta: pd.Timedelta) -> pd.DataFr
         monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
         assert len(monthly_candles) <= len(single_pair_candles) / 4
 
+    :param df:
+        DataFrame of price, liquidity or lending rate candles.
+
+        Supported columns: open, high, low, close.
+        Optional: pair_id, volume.
+
+    :param resample_freq:
+        Resample frequency
+
+    :return:
+        Candles in the new time frame.
+
+        Contains an added `timestamp` column that is also the index.
+
     """
     
-    assert isinstance(new_timedelta, pd.Timedelta), f"We got {new_timedelta}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
+    assert isinstance(resample_freq, pd.Timedelta), f"We got {resample_freq}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
+
+    # Sanity check we don't try to resample mixed data of multiple pairs
+    if "pair_id" in df.columns:
+        pair_ids = df["pair_id"].unique()
+        assert len(pair_ids) == 1, f"Must have single pair_id only"
+        pair_id = pair_ids[0]
+    else:
+        pair_id = None
 
     ohlc_dict = {
         'open': 'first',
         'high': 'max',
         'low': 'min',
         'close': 'last',
-        'volume': 'sum',
     }
 
-    columns = df.columns.tolist()
-    assert all(item in columns for item in list(ohlc_dict.keys())), f"{list(ohlc_dict.keys())} needs to be in the column names"
+    if "volume" in df.columns:
+        ohlc_dict["volume"] = "sum"
 
-    #pandas_time_delta = new_bucket.to_pandas_timedelta()
+    columns = df.columns.tolist()
+    assert all(item in columns for item in list(ohlc_dict.keys())), \
+        f"{list(ohlc_dict.keys())} needs to be in the column names\n" \
+        f"We got columns: {df.columns.tolist()}"
+
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
-    candles = df.resample(new_timedelta).agg(ohlc_dict) 
+    candles = df.resample(resample_freq).agg(ohlc_dict)
 
     # TODO: Figure out right way to preserve timestamp column,
     # resample seems to destroy it
     candles["timestamp"] = candles.index
+
+    if pair_id:
+        candles["pair_id"] = pair_id
 
     return candles
 
@@ -799,7 +828,7 @@ def fix_bad_wicks(
         Complain if this takes too long
     """
 
-    start = datetime.datetime.utcnow()
+    start = naive_utcnow()
 
     if len(df) == 0:
         return df
@@ -809,7 +838,7 @@ def fix_bad_wicks(
     df["high"] = np.where(df["high"] > df["close"] * threshold[1], df["close"], df["high"])
     df["low"] = np.where(df["low"] < df["close"] * threshold[0], df["close"], df["low"])
 
-    duration = datetime.datetime.utcnow() - start
+    duration = naive_utcnow() - start
 
     if duration > datetime.timedelta(seconds=too_slow_threshold):
         logger.warning("Very slow fix_bad_wicks(): %s", duration)

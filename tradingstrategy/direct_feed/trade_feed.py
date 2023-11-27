@@ -72,7 +72,7 @@ class Trade:
         return f"<Trade pair: {self.pair}, price: {self.price}, amount: {self.amount}, exchange rate: {self.exchange_rate}>"
 
     def __post_init__(self):
-        assert self.timestamp.tzinfo is None, "Don't use timezone aware timestamps - everything must be naive UTC"
+        assert self.timestamp.tzinfo is None, f"Don't use timezone aware timestamps - everything must be naive UTC. Got {self.timestamp}"
         assert self.tx_hash, "tx_hash missing"
 
     @staticmethod
@@ -414,7 +414,7 @@ class TradeFeed:
         """
 
         if not now_:
-            now_ = pd.Timestamp.utcnow().tz_localize(None)
+            now_ = pd.Timestamp.naive_utcnow().tz_localize(None)
 
         adjusted_duration = (required_duration * tolerance)
         start_threshold = now_ - adjusted_duration

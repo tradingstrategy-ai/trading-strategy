@@ -18,7 +18,7 @@ from tqdm_loggable.auto import tqdm
 
 from tradingstrategy.candle import Candle
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.utils.time import to_int_unix_timestamp
+from tradingstrategy.utils.time import to_int_unix_timestamp, naive_utcnow, naive_utcfromtimestamp
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +122,7 @@ def load_trading_strategy_like_jsonl_data(
     # Figure out how to plot candle download progress using TQDM
     # Draw progress bar using timestamps first candle - last candle
     progress_bar_start = None
-    progress_bar_end = end_time or datetime.datetime.utcnow()
+    progress_bar_end = end_time or naive_utcnow()
     progress_bar_end = to_int_unix_timestamp(progress_bar_end)
     current_ts = last_ts = None
     progress_bar = None
@@ -158,7 +158,7 @@ def load_trading_strategy_like_jsonl_data(
         if idx % refresh_rate == 0:
             if last_ts and progress_bar:
                 progress_bar.update(current_ts - last_ts)
-                progress_bar.set_postfix({"Currently at": datetime.datetime.utcfromtimestamp(current_ts)})
+                progress_bar.set_postfix({"Currently at": naive_utcfromtimestamp(current_ts)})
             last_ts = current_ts
 
     # Some data validation facilities
