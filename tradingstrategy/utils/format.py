@@ -2,6 +2,7 @@
 
 import datetime
 from typing import Collection
+from Crypto.Hash import SHA256
 
 import pandas as pd
 
@@ -39,3 +40,17 @@ def format_duration_days_hours_mins(d: datetime.timedelta) -> str:
         )
 
 
+def string_to_eth_address(input_string) -> str:
+    """Convert a string to an Ethereum address deterministically.
+
+    :param input_string: Input string to convert to an Ethereum address.
+    :return: Ethereum address.
+    """
+    hasher = SHA256.new()
+    hasher.update(input_string.encode('utf-8'))
+    hashed = hasher.hexdigest()
+
+    # Take the first 40 characters of the hash and prepend '0x' to create an Ethereum address
+    eth_address = '0x' + hashed[:40]
+
+    return eth_address
