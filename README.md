@@ -76,7 +76,9 @@ automated trading strategies you need to install trade-executor package as well]
 
 # Documentation
 
-- [Read Trading Strategy documentation](https://tradingstrategy.ai/docs/).
+- [Documentation](https://tradingstrategy.ai/docs/).
+
+- [Getting started](https://tradingstrategy.ai/docs/getting-started.html).
 
 Community
 ---------
