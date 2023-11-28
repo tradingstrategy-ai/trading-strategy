@@ -444,7 +444,7 @@ class BinanceDownloader:
 
     def load_lending_candle_type_map(
         self,
-        symbols: dict[PrimaryKey, str],
+        asset_symbols: dict[PrimaryKey, str],
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
@@ -460,13 +460,13 @@ class BinanceDownloader:
         :return: LendingCandleUniverse
         """
         data = []
-        for reserve_id, symbol in symbols.items():
+        for reserve_id, asset_symbol in asset_symbols.items():
             assert (
-                symbol in self.get_all_lending_symbols()
-            ), f"Symbol {symbol} is not a valid lending symbol"
+                asset_symbol in self.get_all_lending_symbols()
+            ), f"Symbol {asset_symbol} is not a valid lending symbol"
 
             lending_data = self.fetch_lending_rates(
-                "ETH",
+                asset_symbol,
                 time_bucket,
                 start_at,
                 end_at,
