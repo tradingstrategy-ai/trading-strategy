@@ -612,6 +612,13 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"\n"
             f"Trading pair page link: {link}"
             )
+    
+    def get_pairs_df(self) -> pd.DataFrame:
+        """Return Pandas dataframe with a row for each pair in the universe.
+
+        """
+        # TODO make work for multipair
+        return self.pairs.first().reset_index()
 
     @staticmethod
     def create_empty() -> "GroupedCandleUniverse":
