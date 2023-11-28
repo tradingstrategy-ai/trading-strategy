@@ -19,7 +19,10 @@ from tradingstrategy.utils.time import (
     naive_utcfromtimestamp,
 )
 from tradingstrategy.utils.groupeduniverse import resample_series
-from tradingstrategy.lending import LendingCandleType, convert_binance_lending_rates_to_supply
+from tradingstrategy.lending import (
+    LendingCandleType,
+    convert_binance_lending_rates_to_supply,
+)
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.lending import convert_interest_rates_to_lending_candle_type_map
 
@@ -41,12 +44,12 @@ class BinanceDownloader:
 
     def fetch_candlestick_data(
         self,
-        symbol: str,
+        symbols: list[str] | str,
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
         force_redownload=False,
-    ):
+    ) -> pd.DataFrame:
         """Get clean candlestick price and volume data from Binance. If saved, use saved version, else create saved version.
 
         Note, if you want to use this data in our framework, you will need to add informational columns to the dataframe and overwrite it. See code below.
@@ -76,6 +79,30 @@ class BinanceDownloader:
         :return:
             Pandas dataframe with the OHLCV data for the columns and datetimes as the index
         """
+        if isinstance(symbols, str):
+            symbols = [symbols]
+
+        dataframes = []
+
+        for symbol in symbols:
+            df = self.fetch_candlestick_data_single_pair(
+                symbol, time_bucket, start_at, end_at, force_redownload
+            )
+            dataframes.append(df)
+
+        combined_dataframe = pd.concat(dataframes, axis=0)
+
+        return combined_dataframe
+
+    def fetch_candlestick_data_single_pair(
+        self,
+        symbol: str,
+        time_bucket: TimeBucket,
+        start_at: datetime.datetime,
+        end_at: datetime.datetime,
+        force_redownload=False,
+    ) -> pd.DataFrame:
+        """Fetch candlestick data for a single pair."""
         if not force_redownload:
             try:
                 return self.get_data_parquet(symbol, time_bucket, start_at, end_at)
@@ -106,6 +133,7 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
     ) -> pd.DataFrame:
+        """Private function to fetch candlestick data from Binance. This function does will always download data from Binance"""
         interval = get_binance_interval(time_bucket)
 
         params_str = f"symbol={symbol}&interval={interval}"
@@ -448,8 +476,8 @@ class BinanceDownloader:
             data.append(
                 {
                     "reserve_id": reserve_id,
-                    "lending_data": lending_data.iloc[:,0],
-                    "supply_data": supply_data.iloc[:,0],
+                    "lending_data": lending_data.iloc[:, 0],
+                    "supply_data": supply_data.iloc[:, 0],
                 }
             )
 
