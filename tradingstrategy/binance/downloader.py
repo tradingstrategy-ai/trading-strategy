@@ -8,12 +8,20 @@ import numpy as np
 import logging
 import shutil
 from pathlib import Path
+from typing import Dict
 
-from tradingstrategy.chain import ChainId
+from tradingstrategy.binance.constants import BINANCE_LENDING_SYMBOLS
 from tradingstrategy.timebucket import TimeBucket
 from pathlib import Path
-from tradingstrategy.utils.time import generate_monthly_timestamps, naive_utcnow, naive_utcfromtimestamp
+from tradingstrategy.utils.time import (
+    generate_monthly_timestamps,
+    naive_utcnow,
+    naive_utcfromtimestamp,
+)
 from tradingstrategy.utils.groupeduniverse import resample_series
+from tradingstrategy.lending import LendingCandleType, convert_binance_lending_rates_to_supply
+from tradingstrategy.types import PrimaryKey
+from tradingstrategy.lending import convert_interest_rates_to_lending_candle_type_map
 
 
 logger = logging.getLogger(__name__)
@@ -98,7 +106,6 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
     ) -> pd.DataFrame:
-
         interval = get_binance_interval(time_bucket)
 
         params_str = f"symbol={symbol}&interval={interval}"
@@ -186,45 +193,19 @@ class BinanceDownloader:
         """Get daily lending interest rates for a given asset from Binance, resampled to the given time bucket.
 
         :param asset_symbol:
+            See py:method:`tradingstrategy.binance.downloader.get_all_lending_symbols` for valid symbols
 
-            List of all valid asset symbols as at 2023-11-06 18:00 UTC:
-
-            asset_names = [
-                "BTC", "ETH", "XRP", "BNB", "TRX", "USDT", "LINK", "EOS", "ADA", "ONT",
-                "USDC", "ETC", "LTC", "XLM", "XMR", "NEO", "ATOM", "DASH", "ZEC", "MATIC",
-                "BUSD", "BAT", "IOST", "VET", "QTUM", "IOTA", "XTZ", "BCH", "RVN", "ZIL",
-                "ONE", "ANKR", "CELR", "TFUEL", "IOTX", "HBAR", "FTM", "SXP", "BNT", "DOT",
-                "REN", "ALGO", "ZRX", "THETA", "COMP", "KNC", "OMG", "KAVA", "BAND", "DOGE",
-                "RLC", "WAVES", "MKR", "SNX", "YFI", "CRV", "SUSHI", "UNI", "MANA", "STORJ",
-                "UMA", "JST", "AVAX", "NEAR", "FIL", "TRB", "RSR", "TOMO", "OCEAN", "AAVE",
-                "SAND", "CHZ", "ARPA", "COTI", "FET", "TROY", "CHR", "ORN", "NMR", "GRT",
-                "STPT", "LRC", "KSM", "ROSE", "REEF", "STMX", "ALPHA", "STX", "ENJ", "RUNE",
-                "SKL", "INJ", "OXT", "CTSI", "OGN", "EGLD", "1INCH", "DODO", "LIT", "NKN",
-                "MDT", "CKB", "CAKE", "SOL", "XEM", "LINA", "GLM", "XVS", "MDX", "SUPER",
-                "GTC", "PUNDIX", "AUDIO", "BOND", "SLP", "TRU", "POND", "ERN", "ATA", "NULS",
-                "DENT", "TVK", "DF", "FLOW", "AR", "DYDX", "MASK", "UNFI", "AXS", "LUNA",
-                "SHIB", "ENS", "BAKE", "ALICE", "TLM", "ICP", "C98", "GALA", "ONG", "HIVE",
-                "DAR", "IDEX", "ANT", "CLV", "WAXP", "BNX", "KLAY", "MINA", "XEC", "RNDR",
-                "JASMY", "QUICK", "LPT", "AGLD", "BICO", "CTXC", "DUSK", "HOT", "SFP", "YGG",
-                "FLUX", "ICX", "CELO", "BETA", "BLZ", "MTL", "PEOPLE", "QNT", "PYR", "KEY",
-                "PAXG", "FRONT", "TWT", "RAD", "QI", "GMT", "APE", "BSW", "KDA", "MBL", "ASTR",
-                "API3", "CTK", "WOO", "GAL", "OP", "REI", "LEVER", "LDO", "FIDA", "FLM", "BURGER",
-                "AUCTION", "IMX", "SPELL", "STG", "BEL", "WING", "AVA", "LOKA", "LUNC", "PHB",
-                "LOOM", "AMB", "SANTOS", "VIB", "EPX", "HARD", "USTC", "DEGO", "HIGH", "GMX",
-                "LAZIO", "PORTO", "ACH", "STRAX", "KP3R", "REQ", "POLYX", "APT", "PHA", "OSMO",
-                "GLMR", "MAGIC", "HOOK", "AGIX", "HFT", "CFX", "ZEN", "SSV", "LQTY", "ALCX",
-                "FXS", "PERP", "TUSD", "USDP", "GNS", "JOE", "RIF", "SYN", "ID", "ARB", "OAX",
-                "RDNT", "EDU", "SUI", "FLOKI", "PEPE", "COMBO", "MAV", "XVG", "PENDLE", "ARKM",
-                "WLD", "T", "FDUSD", "RPL", "SEI", "CYBER", "VTHO", "WBETH", "NTRN", "HIFI",
-                "CVX", "ARK", "ARDR", "ACA", "VIDT", "GHST", "GAS", "OOKI", "TIA", "POWR",
-                "AERGO", "SNT", "STEEM", "MEME", "PLA", "MULTI", "UFT", "ILV"
-            ]
-
-            To see current list of all valid asset symbols, submit API request https://api1.binance.com/sapi/v1/margin/allAssets with your Binance API key.
+        :param time_bucket:
+            Time bucket to resample the data to
 
         :param start_date:
             Start date for the data. Note this value cannot be eariler than datetime.datetime(2019,4,1) due to Binance data limitations
 
+        :param end_date:
+            End date for the data
+
+        :param force_redownload:
+            Force redownload of data from Binance and overwrite cached version
         """
         if not force_redownload:
             try:
@@ -319,7 +300,9 @@ class BinanceDownloader:
             naive_utcnow(),
         )
 
-        assert len(monthly_candles) > 0, f"Could not find starting date for asset {symbol}"
+        assert (
+            len(monthly_candles) > 0
+        ), f"Could not find starting date for asset {symbol}"
         return monthly_candles.index[0].to_pydatetime()
 
     def get_data_parquet(
@@ -431,31 +414,59 @@ class BinanceDownloader:
                 # Delete files
                 item.unlink()
 
+    def load_lending_candle_type_map(
+        self,
+        symbols: dict[PrimaryKey, str],
+        time_bucket: TimeBucket,
+        start_at: datetime.datetime,
+        end_at: datetime.datetime,
+    ) -> Dict[LendingCandleType, pd.DataFrame]:
+        """Load lending candles for all assets.
 
-def convert_binance_lending_rates_to_supply(
-    interest_rates: pd.DataFrame, multiplier: float = 0.95
-) -> pd.Series:
-    """Convert Binance lending rates to supply rates.
+        See py:method:`tradingstrategy.binance.downloader.fetch_lending_rates` for valid symbols
 
-    Right now, this rate is somewhat arbitrary. It is 95% of the lending rate by default.
+        :param symbols:
+            Dictionary of reserve_id to token symbol. The token symbol should be a valid symbol
+            that can be used in .. py:method:`tradingstrategy.binance.downloader.fetch_lending_rates`.
 
-    :param interest_rates: DataFrame of lending interest rates
-    :return: Series of supply rates
-    """
+        :return: LendingCandleUniverse
+        """
+        data = []
+        for reserve_id, symbol in symbols.items():
+            assert (
+                symbol in self.get_all_lending_symbols()
+            ), f"Symbol {symbol} is not a valid lending symbol"
 
-    assert type(interest_rates) == pd.DataFrame, "interest_rates must be a DataFrame"
-    assert 0 < multiplier < 1, "Multiplier must be between 0 and 1"
+            lending_data = self.fetch_lending_rates(
+                "ETH",
+                time_bucket,
+                start_at,
+                end_at,
+            )
+            supply_data = convert_binance_lending_rates_to_supply(lending_data)
 
-    assert isinstance(
-        interest_rates, pd.DataFrame
-    ), f"Expected pandas Series, got {interest_rates.__class__}: {interest_rates}"
-    assert isinstance(
-        interest_rates.index, pd.DatetimeIndex
-    ), f"Expected DateTimeIndex, got {interest_rates.index.__class__}: {interest_rates.index}"
+            data.append(
+                {
+                    "reserve_id": reserve_id,
+                    "lending_data": lending_data.iloc[:,0],
+                    "supply_data": supply_data.iloc[:,0],
+                }
+            )
 
-    interest_rates.iloc[:, 0] = interest_rates.iloc[:, 0] * multiplier
+        lending_candle_type_map = convert_interest_rates_to_lending_candle_type_map(
+            *data
+        )
 
-    return interest_rates
+        return lending_candle_type_map
+
+    @staticmethod
+    def get_all_lending_symbols():
+        """List of all valid asset symbols as at 2023-11-06 18:00 UTC:
+
+        .. note:: This list is subject to change. To get the latest list, submit API request https://api1.binance.com/sapi/v1/margin/allAssets with your Binance API key.
+
+        """
+        return BINANCE_LENDING_SYMBOLS
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
