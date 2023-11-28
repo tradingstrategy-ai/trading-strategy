@@ -45,7 +45,7 @@ class ExchangeNotFoundError(DataNotFoundError):
         assert exchange_slug or exchange_name or factory_address or exchange_id, "At least one exchange_id, exchange_slug, exchange_name or factory_address must be provided."
 
         if chain_id_name:
-            message = f"The trading universe does not contain data on chain {chain_id_name} for"
+            message = f"The trading universe does not contain exchange data on chain {chain_id_name} for"
         else:
             message = f"The trading universe does not contain data for"
 
@@ -306,8 +306,8 @@ class ExchangeUniverse:
         for xchg in self.exchanges.values():
             if xchg.address.lower() == factory_address and xchg.chain_id == chain_id:
                 return xchg
-            
-        return ExchangeNotFoundError(chain_id_name=chain_id.name, factory_address=factory_address)
+
+        raise ExchangeNotFoundError(chain_id_name=chain_id.name, factory_address=factory_address)
 
     def get_single(self) -> Exchange:
         """Get the one and the only exchange in this universe.
