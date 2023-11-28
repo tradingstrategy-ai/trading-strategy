@@ -422,6 +422,14 @@ class LendingReserveUniverse:
             return True
         except UnknownLendingReserve:
             return False
+        
+    def get_reserve_id_for_asset_symbol(self, symbol: str) -> int:
+        """Get the reserve id for a given symbol."""
+        for reserve in self.reserves.values():
+            if reserve.asset_symbol == symbol:
+                return reserve.reserve_id
+
+        raise UnknownLendingReserve(f"Could not find lending reserve for symbol {symbol}. We have {len(self.reserves)} reserves loaded.")
 
 @dataclass_json
 @dataclass
