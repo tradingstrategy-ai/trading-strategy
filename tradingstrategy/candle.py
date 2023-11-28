@@ -615,9 +615,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
     
     def get_pairs_df(self) -> pd.DataFrame:
         """Return Pandas dataframe with a row for each pair in the universe.
-
         """
-        # TODO make work for multipair
         return self.pairs.first().reset_index()
 
     @staticmethod
