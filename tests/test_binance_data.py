@@ -70,7 +70,7 @@ def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
                 TIME_BUCKET,
                 START_AT,
                 END_AT,
-                force_redownload=True,
+                force_download=True,
             )
 
             path = candle_downloader.get_parquet_path(
@@ -83,7 +83,7 @@ def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
             TIME_BUCKET,
             START_AT,
             END_AT,
-            force_redownload=True,
+            force_download=True,
         )
 
     assert df.equals(correct_df)
@@ -129,7 +129,7 @@ def test_read_fresh_candle_data_multipair(candle_downloader: BinanceDownloader):
                 TIME_BUCKET,
                 START_AT,
                 END_AT,
-                force_redownload=True,
+                force_download=True,
             )
 
             path = candle_downloader.get_parquet_path(
@@ -142,7 +142,7 @@ def test_read_fresh_candle_data_multipair(candle_downloader: BinanceDownloader):
             TIME_BUCKET,
             START_AT,
             END_AT,
-            force_redownload=True,
+            force_download=True,
         )
 
     assert df.equals(correct_df)
@@ -177,7 +177,7 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
         LENDING_TIME_BUCKET,
         START_AT,
         END_AT,
-        force_redownload=True,
+        force_download=True,
     )
 
     assert isinstance(df, pd.DataFrame)
