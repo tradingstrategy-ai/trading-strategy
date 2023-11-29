@@ -893,26 +893,24 @@ def convert_interest_rates_to_lending_candle_type_map(*args) -> Dict[LendingCand
 
 
 def convert_binance_lending_rates_to_supply(
-    interest_rates: pd.DataFrame, multiplier: float = 0.95
-) -> pd.DataFrame:
+    interest_rates: pd.Series, multiplier: float = 0.95
+) -> pd.Series:
     """Convert Binance lending rates to supply rates.
 
     Right now, this default conversion rate is somewhat arbitrary. It is 95% of the lending rate by default.
 
-    :param interest_rates: DataFrame of lending interest rates
-    :return: DataFrame of supply rates
+    :param interest_rates: Series of lending interest rates
+    :return: Series of supply rates
     """
 
-    assert type(interest_rates) == pd.DataFrame, "interest_rates must be a DataFrame"
+    assert type(interest_rates) == pd.Series, "interest_rates must be a DataFrame"
     assert 0 < multiplier < 1, "Multiplier must be between 0 and 1"
 
     assert isinstance(
-        interest_rates, pd.DataFrame
+        interest_rates, pd.Series
     ), f"Expected pandas Series, got {interest_rates.__class__}: {interest_rates}"
     assert isinstance(
         interest_rates.index, pd.DatetimeIndex
     ), f"Expected DateTimeIndex, got {interest_rates.index.__class__}: {interest_rates.index}"
 
-    interest_rates.iloc[:, 0] = interest_rates.iloc[:, 0] * multiplier
-
-    return interest_rates
+    return interest_rates * multiplier
