@@ -81,7 +81,7 @@ def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
         )
 
     assert len(df) == 2
-    assert df.columns.tolist() == ["open", "high", "low", "close", "volume"]
+    assert df.columns.tolist() == ["open", "high", "low", "close", "volume", "symbol"]
     assert df.isna().sum().sum() == 0
     assert df.isna().values.any() == False
 
@@ -96,7 +96,7 @@ def test_read_cached_candle_data(candle_downloader: BinanceDownloader):
     )
 
     assert len(df) == 2
-    assert df.columns.tolist() == ["open", "high", "low", "close", "volume"]
+    assert df.columns.tolist() == ["open", "high", "low", "close", "volume", "symbol"]
     assert df.isna().sum().sum() == 0
     assert df.isna().values.any() == False
 
@@ -106,7 +106,7 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
     
     This is to check that the lending data is correct i.e. correct time bucket, no missing values
     """
-    series = candle_downloader.fetch_lending_rates(
+    df = candle_downloader.fetch_lending_rates(
         LENDING_SYMBOL,
         LENDING_TIME_BUCKET,
         START_AT,
@@ -114,23 +114,24 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
         force_redownload=True,
     )
 
-    assert len(series) == 2
-    assert series.isna().sum() == 0
-    assert series.isna().values.any() == False
-
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 2
+    assert df.isna().sum().sum() == 0
+    assert df.isna().values.any() == False
+    
 
 def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
     """Test reading cached candle data. Must be run after test_read_fresh_lending_data.
     
     Checks that the cache is working correctly
     """
-    series = candle_downloader.get_data_parquet(
+    df = candle_downloader.get_data_parquet(
         LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
     )
 
-    assert len(series) == 2
-    assert series.isna().sum().sum() == 0
-    assert series.isna().values.any() == False
+    assert len(df) == 2
+    assert df.isna().sum().sum() == 0
+    assert df.isna().values.any() == False
 
 
 def test_purge_cache(candle_downloader: BinanceDownloader):
