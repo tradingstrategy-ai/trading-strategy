@@ -217,7 +217,7 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
         force_redownload=False,
-    ) -> pd.Series:
+    ) -> pd.DataFrame:
         """Get daily lending interest rates for a given asset from Binance, resampled to the given time bucket.
 
         :param asset_symbol:
@@ -234,6 +234,9 @@ class BinanceDownloader:
 
         :param force_redownload:
             Force redownload of data from Binance and overwrite cached version
+
+        :return:
+            Pandas dataframe with the interest rates for the column and datetimes as the index
         """
         if not force_redownload:
             try:
