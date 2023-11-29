@@ -231,7 +231,7 @@ def test_fee_tier_uniswap_v2(persistent_test_client):
     with pytest.raises(ExchangeNotFoundError) as excinfo:
         exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "alex-v2")
 
-    assert excinfo.value.args[0] == 'The trading universe does not contain data on chain ethereum for exchange_slug alex-v2. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore DEXs.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    For any further questions join our Discord: https://tradingstrategy.ai/community'
+    assert excinfo.value.args[0] == 'The trading universe does not contain exchange data on chain ethereum for exchange_slug alex-v2. This might be a problem in your data loading and filtering. \n                \n    Use tradingstrategy.ai website to explore DEXs.\n    \n    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges\n    \n    For any further questions join our Discord: https://tradingstrategy.ai/community'
 
 
 def test_fee_tier_uniswap_v3(persistent_test_client):

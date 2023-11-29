@@ -1,9 +1,23 @@
-# Current
+# 0.22.1
+
+- Fix `get_by_chain_and_factory()` was returning `ExchangeNotFoundError` instead of raising it 
+
+# 0.22
+
+Binance data downloading added. Python 3.11, Python 3.12 and Pandas 2.x compatibility fixes.
 
 - Add: `BinanceDownloader.fetch_approx_asset_trading_start_date()` to figure out when asset was listed on Binance
 - Fix: `BinanceDownloader` timestamps to be UTC
 - Add: Example script how to download Binance data for multiple assets and write in a single Parquet file
-
+- Upgrade to support Python 3.12 with breaking `datetime.datetime.utcnow()` changes
+- Upgrade to support Pandas 2.x with breaking `pd.Timestamp.utcnow()` changes
+- Upgrade to web3-ethereum-defi latest with Python 3.12 compatibilty
+- Upgrade to `pyarrow` 14.0 for Python 3.12 compatibility
+- `datetime.datetime.utcnow()` and `datetime.datetime.utcfromtimestamp` workarounds - we do not need timezones that unnecessarily bloat data size
+- Add `naive_utcnow` for Python 3.12 compatibility
+- Add `naive_utcfromtimestamp` for Python 3.12 compatibility
+- Change from `pd.Timestamp.utcfromtimestamp()` to `pd.Timestamp.utcfromtimestamp().tz_localize(None)` when needed
+- 
 # 0.21.1
 
 - Fix `estimate_accrued_interest` crashing when there are gaps in data
