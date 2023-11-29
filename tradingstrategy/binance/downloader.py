@@ -7,8 +7,10 @@ import pandas as pd
 import numpy as np
 import logging
 import shutil
+import os
 from pathlib import Path
 from typing import Dict
+from tqdm.auto import tqdm
 
 from tradingstrategy.binance.constants import BINANCE_LENDING_SYMBOLS
 from tradingstrategy.timebucket import TimeBucket
@@ -48,7 +50,7 @@ class BinanceDownloader:
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
-        force_redownload=False,
+        force_download=False,
     ) -> pd.DataFrame:
         """Get clean candlestick price and volume data from Binance. If saved, use saved version, else create saved version.
 
@@ -73,7 +75,7 @@ class BinanceDownloader:
         :param end_at:
             End date of the data
 
-        :param force_redownload:
+        :param force_download:
             Force redownload of data from Binance and overwrite cached version
 
         :return:
@@ -83,12 +85,23 @@ class BinanceDownloader:
             symbols = [symbols]
 
         dataframes = []
+        total_size = 0
 
-        for symbol in symbols:
-            df = self.fetch_candlestick_data_single_pair(
-                symbol, time_bucket, start_at, end_at, force_redownload
-            )
-            dataframes.append(df)
+        with tqdm(total=len(symbols)) as progress_bar:
+            for symbol in symbols:
+                df = self.fetch_candlestick_data_single_pair(
+                    symbol, time_bucket, start_at, end_at, force_download
+                )
+                dataframes.append(df)
+
+                # Count the cached file size
+                path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
+                total_size += os.path.getsize(path)
+
+                progress_bar.set_postfix(
+                    {"pair": symbol, "total_size (MBytes)": total_size / (1024**2)}
+                )
+                progress_bar.update()
 
         combined_dataframe = pd.concat(dataframes, axis=0)
 
@@ -100,10 +113,13 @@ class BinanceDownloader:
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
-        force_redownload=False,
+        force_download=False,
     ) -> pd.DataFrame:
-        """Fetch candlestick data for a single pair."""
-        if not force_redownload:
+        """Fetch candlestick data for a single pair.
+
+        Using this function directly will not include progress bars. Use `fetch_candlestick_data` instead.
+        """
+        if not force_download:
             try:
                 return self.get_data_parquet(symbol, time_bucket, start_at, end_at)
             except:
@@ -148,6 +164,13 @@ class BinanceDownloader:
             ), "end_at must be a datetime.datetime object"
             start_timestamp = int(start_at.timestamp() * 1000)
             end_timestamp = int(end_at.timestamp() * 1000)
+        else:
+            start_at = self.fetch_approx_asset_trading_start_date(symbol)
+
+        if end_at:
+            assert start_at < end_at, "end_at must be after start_at"
+        else:
+            end_at = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
         # generate timestamps for each iteration
         dates = [start_at]
@@ -212,11 +235,11 @@ class BinanceDownloader:
 
     def fetch_lending_rates(
         self,
-        asset_symbol: str,
+        asset_symbols: list[str] | str,
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
-        force_redownload=False,
+        force_download=False,
     ) -> pd.DataFrame:
         """Get daily lending interest rates for a given asset from Binance, resampled to the given time bucket.
 
@@ -232,13 +255,60 @@ class BinanceDownloader:
         :param end_date:
             End date for the data
 
-        :param force_redownload:
+        :param force_download:
             Force redownload of data from Binance and overwrite cached version
 
         :return:
             Pandas dataframe with the interest rates for the column and datetimes as the index
         """
-        if not force_redownload:
+        if isinstance(asset_symbols, str):
+            asset_symbols = [asset_symbols]
+
+        dataframes = []
+        total_size = 0
+
+        with tqdm(total=len(asset_symbols)) as progress_bar:
+            for asset_symbol in asset_symbols:
+                df = self.fetch_lending_rates_single_pair(
+                    asset_symbol, time_bucket, start_at, end_at, force_download
+                )
+                dataframes.append(df)
+
+                # Count the cached file size
+                path = self.get_parquet_path(
+                    asset_symbol, time_bucket, start_at, end_at, is_lending=True
+                )
+                total_size += os.path.getsize(path)
+
+                progress_bar.set_postfix(
+                    {
+                        "pair": asset_symbol,
+                        "total_size (MBytes)": total_size / (1024**2),
+                    }
+                )
+                progress_bar.update()
+
+        combined_dataframe = pd.concat(dataframes, axis=0)
+
+        return combined_dataframe
+
+    def fetch_lending_rates_single_pair(
+        self,
+        asset_symbol: str,
+        time_bucket: TimeBucket,
+        start_at: datetime.datetime,
+        end_at: datetime.datetime,
+        force_download=False,
+    ) -> pd.DataFrame:
+        """Fetch lending rates for a single asset.
+
+        Using this function directly will not include progress bars. Use `fetch_lending_rates` instead.
+        """
+        assert (
+            asset_symbol in self.get_all_lending_symbols()
+        ), f"Symbol {asset_symbol} is not a valid lending symbol"
+
+        if not force_download:
             try:
                 return self.get_data_parquet(
                     asset_symbol, time_bucket, start_at, end_at, is_lending=True
@@ -252,6 +322,7 @@ class BinanceDownloader:
             asset_symbol, time_bucket, start_at, end_at, is_lending=True
         )
         df = series.to_frame(name="lending_rates")
+        df["asset_symbol"] = asset_symbol
 
         df.to_parquet(path)
 
@@ -447,10 +518,11 @@ class BinanceDownloader:
 
     def load_lending_candle_type_map(
         self,
-        asset_symbols: dict[PrimaryKey, str],
+        asset_symbols_dict: dict[PrimaryKey, str],
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
+        force_download=False,
     ) -> Dict[LendingCandleType, pd.DataFrame]:
         """Load lending candles for all assets.
 
@@ -463,24 +535,30 @@ class BinanceDownloader:
         :return: LendingCandleUniverse
         """
         data = []
-        for reserve_id, asset_symbol in asset_symbols.items():
-            assert (
-                asset_symbol in self.get_all_lending_symbols()
-            ), f"Symbol {asset_symbol} is not a valid lending symbol"
 
-            lending_data = self.fetch_lending_rates(
-                asset_symbol,
-                time_bucket,
-                start_at,
-                end_at,
-            )
-            supply_data = convert_binance_lending_rates_to_supply(lending_data)
+        lending_data = self.fetch_lending_rates(
+            list(asset_symbols_dict.values()),
+            time_bucket,
+            start_at,
+            end_at,
+            force_download=force_download,
+        )
+        supply_data = convert_binance_lending_rates_to_supply(lending_data["lending_rates"])
+
+        df = lending_data.copy()
+
+        df["supply_rates"] = supply_data
+
+        for reserve_id, asset_symbol in asset_symbols_dict.items():
+            lending_data_for_asset = df.loc[df["asset_symbol"] == asset_symbol, "lending_rates"]
+            supply_data_for_asset = df.loc[df["asset_symbol"] == asset_symbol, "supply_rates"]
+            assert len(lending_data_for_asset) == len(supply_data_for_asset), "Lending and supply data must have the same length"
 
             data.append(
                 {
-                    "reserve_id": reserve_id,
-                    "lending_data": lending_data.iloc[:, 0],
-                    "supply_data": supply_data.iloc[:, 0],
+                    "reserve_id": [reserve_id] * len(lending_data_for_asset),
+                    "lending_data": lending_data_for_asset,
+                    "supply_data": supply_data_for_asset,
                 }
             )
 
