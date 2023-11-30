@@ -61,7 +61,7 @@ def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
 
     if os.environ.get("GITHUB_ACTIONS", None) == "true":
         with patch(
-            "tradingstrategy.binance_data.BinanceDownloader.fetch_candlestick_data"
+            "tradingstrategy.binance.downloader.BinanceDownloader.fetch_candlestick_data"
         ) as mock_fetch_candlestick_data:
             mock_fetch_candlestick_data.return_value = correct_df
 
@@ -120,7 +120,7 @@ def test_read_fresh_candle_data_multipair(candle_downloader: BinanceDownloader):
 
     if os.environ.get("GITHUB_ACTIONS", None) == "true":
         with patch(
-            "tradingstrategy.binance_data.BinanceDownloader.fetch_candlestick_data"
+            "tradingstrategy.binance.downloader.BinanceDownloader.fetch_candlestick_data"
         ) as mock_fetch_candlestick_data:
             mock_fetch_candlestick_data.return_value = correct_df
 
