@@ -615,6 +615,21 @@ class GroupedCandleUniverse(PairGroupedUniverse):
     
     def get_pairs_df(self) -> pd.DataFrame:
         """Return Pandas dataframe with a row for each pair in the universe.
+
+        Use if creating Dataset manually.
+
+        .. code-block:: python
+            pairs_df = candle_universe.get_pairs_df()
+            dataset = Dataset(
+                time_bucket=candle_time_bucket,
+                exchanges=exchange_universe,
+                pairs=pairs_df,
+                candles=candle_universe.df,
+                backtest_stop_loss_time_bucket=stop_loss_time_bucket,
+                backtest_stop_loss_candles=stop_loss_candle_universe.df,
+                lending_candles=lending_candle_universe,
+                lending_reserves=lending_reserve_universe,
+            )
         """
         return self.pairs.first().reset_index()
 
