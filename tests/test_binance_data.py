@@ -254,3 +254,17 @@ def test_starting_date_unknown(candle_downloader: BinanceDownloader):
     # Unknown asset
     with pytest.raises(BinanceDataFetchError):
         candle_downloader.fetch_approx_asset_trading_start_date("FOOBAR")
+
+
+@pytest.mark.skipif(
+    os.environ.get("GITHUB_ACTIONS", None) == "true",
+    reason="Github US servers are blocked by Binance",
+)
+def test_fetch_assets(candle_downloader: BinanceDownloader):
+    """Get available tradeable assets on Binance."""
+    assets = list(candle_downloader.fetch_assets())
+    assert "BTCUSDT" in assets
+    assert "ETHUSDT" in assets
+
+    # 484 tickers at the end of 2023
+    assert len(assets) >= 484
