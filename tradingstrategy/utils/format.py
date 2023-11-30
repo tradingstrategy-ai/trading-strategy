@@ -47,5 +47,5 @@ def string_to_eth_address(input_string) -> str:
     :return: Ethereum address.
     """
     hashed_bytes = Web3.keccak(text=input_string)
-    eth_address = '0x' + hashed_bytes[-20:].hex()
+    eth_address = hashed_bytes[-20:].hex()
     return eth_address

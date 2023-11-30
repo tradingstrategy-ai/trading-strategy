@@ -13,7 +13,6 @@ from types import NoneType
 from typing import Dict, Literal, Iterable
 from tqdm.auto import tqdm
 
-from tradingstrategy.binance.constants import BINANCE_LENDING_SYMBOLS
 from tradingstrategy.timebucket import TimeBucket
 from pathlib import Path
 from tradingstrategy.utils.time import (
