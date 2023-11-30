@@ -9,7 +9,8 @@ import logging
 import shutil
 import os
 from pathlib import Path
-from typing import Dict
+from types import NoneType
+from typing import Dict, Literal, Iterable
 from tqdm.auto import tqdm
 
 from tradingstrategy.binance.constants import BINANCE_LENDING_SYMBOLS
@@ -43,6 +44,7 @@ class BinanceDownloader:
         """Initialize BinanceCandleDownloader and create folder for cached data if it does not exist."""
         cache_directory.mkdir(parents=True, exist_ok=True)
         self.cache_directory = cache_directory
+        self.api_server = "api.binance.com"
 
     def fetch_candlestick_data(
         self,
@@ -304,10 +306,6 @@ class BinanceDownloader:
 
         Using this function directly will not include progress bars. Use `fetch_lending_rates` instead.
         """
-        assert (
-            asset_symbol in self.get_all_lending_symbols()
-        ), f"Symbol {asset_symbol} is not a valid lending symbol"
-
         if not force_download:
             try:
                 return self.get_data_parquet(
@@ -567,15 +565,41 @@ class BinanceDownloader:
         )
 
         return lending_candle_type_map
-
-    @staticmethod
-    def get_all_lending_symbols():
-        """List of all valid asset symbols as at 2023-11-06 18:00 UTC:
-
-        .. note:: This list is subject to change. To get the latest list, submit API request https://api1.binance.com/sapi/v1/margin/allAssets with your Binance API key.
-
+    
+    def fetch_assets(self, market: Literal["SPOT"] | Literal["MARGIN"] | NoneType = "MARGIN") -> Iterable[str]:
+        """Load available assets on binance.
+        Example:
+            # Show all pairs that
+            downloader = BinanceDownloader()
+            pairs = {ticker for ticker in downloader.fetch_assets(market="MARGIN") if ticker.endswith("USDT")}
+            print(f"USDT margin trading pairs: {pairs}")
+        :param market:
+            Are we looking for MARGIN or SPOT or both markets.
+        :return:
+            Iterable of all asset symbols.
+            E.g. "ETHUSDT", "BTCUSDT"
         """
-        return BINANCE_LENDING_SYMBOLS
+
+        # https://binance-docs.github.io/apidocs/spot/en/#exchange-information
+        resp = requests.get(f"https://{self.api_server}/api/v3/exchangeInfo")
+        data = resp.json()
+        symbols = data["symbols"]
+        for s in symbols:
+            if market:
+                if market not in s["permissions"]:
+                    continue
+
+            yield s["symbol"]
+
+    def get_all_lending_symbols(self):
+        """List of all valid asset symbols for fetching lending data
+        """
+        return self.fetch_assets(market="MARGIN")
+    
+    def get_all_candlestick_symbols(self):
+        """List of all valid pool symbols for fetching candle data
+        """
+        return self.fetch_assets(market="SPOT")
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
