@@ -27,6 +27,7 @@ from tradingstrategy.lending import (
 )
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.lending import convert_interest_rates_to_lending_candle_type_map
+from tradingstrategy.binance.constants import BINANCE_SUPPORTED_QUOTE_TOKENS, split_binance_symbol
 
 
 logger = logging.getLogger(__name__)
@@ -125,6 +126,9 @@ class BinanceDownloader:
                 return self.get_data_parquet(symbol, time_bucket, start_at, end_at)
             except:
                 pass
+
+        if symbol not in self.fetch_all_spot_symbols():
+            raise BinanceDataFetchError(f"Symbol {symbol} is not a valid spot symbol")
 
         # to include the end date, we need to add one day
         end_at = end_at + datetime.timedelta(days=1)
@@ -312,6 +316,9 @@ class BinanceDownloader:
                 )
             except:
                 pass
+        
+        if asset_symbol not in self.fetch_all_lending_symbols():
+            raise BinanceDataFetchError(f"Symbol {asset_symbol} is not a valid lending symbol")
 
         series = self._fetch_lending_rates(asset_symbol, start_at, end_at, time_bucket)
 
@@ -590,12 +597,12 @@ class BinanceDownloader:
 
             yield s["symbol"]
 
-    def get_all_lending_symbols(self):
+    def fetch_all_lending_symbols(self):
         """List of all valid asset symbols for fetching lending data
         """
-        return self.fetch_assets(market="MARGIN")
+        return set(BINANCE_SUPPORTED_QUOTE_TOKENS).union({split_binance_symbol(ticker)[0] for ticker in self.fetch_assets(market="MARGIN") if ticker.endswith(BINANCE_SUPPORTED_QUOTE_TOKENS)})
     
-    def get_all_candlestick_symbols(self):
+    def fetch_all_spot_symbols(self):
         """List of all valid pool symbols for fetching candle data
         """
         return self.fetch_assets(market="SPOT")
