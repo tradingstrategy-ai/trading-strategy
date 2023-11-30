@@ -268,3 +268,9 @@ def test_fetch_assets(candle_downloader: BinanceDownloader):
 
     # 484 tickers at the end of 2023
     assert len(assets) >= 484
+
+    spot_symbols = list(candle_downloader.fetch_assets('SPOT'))
+    assert len(spot_symbols) >= 2331
+
+    lending_symbols = list(candle_downloader.fetch_all_lending_symbols())
+    assert len(lending_symbols) >= 312
