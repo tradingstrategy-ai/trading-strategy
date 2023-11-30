@@ -2,7 +2,7 @@
 
 import datetime
 from typing import Collection
-from Crypto.Hash import SHA256
+from web3 import Web3
 
 import pandas as pd
 
@@ -46,11 +46,6 @@ def string_to_eth_address(input_string) -> str:
     :param input_string: Input string to convert to an Ethereum address.
     :return: Ethereum address.
     """
-    hasher = SHA256.new()
-    hasher.update(input_string.encode('utf-8'))
-    hashed = hasher.hexdigest()
-
-    # Take the first 40 characters of the hash and prepend '0x' to create an Ethereum address
-    eth_address = '0x' + hashed[:40]
-
+    hashed_bytes = Web3.keccak(text=input_string)
+    eth_address = '0x' + hashed_bytes[-20:].hex()
     return eth_address
