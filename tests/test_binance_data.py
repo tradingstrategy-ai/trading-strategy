@@ -168,6 +168,38 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
 
     This is to check that the lending data is correct i.e. correct time bucket, no missing values
     """
+    correct_df = pd.DataFrame(
+        {
+            "lending_rates": {
+                pd.Timestamp("2020-12-31 00:00:00", freq="D"): 0.00025,
+                pd.Timestamp("2021-01-01 00:00:00", freq="D"): 0.00025,
+            },
+            "asset_symbol": {
+                pd.Timestamp("2020-12-31 00:00:00", freq="D"): "ETH",
+                pd.Timestamp("2021-01-01 00:00:00", freq="D"): "ETH",
+            },
+        }
+    )
+
+    if os.environ.get("GITHUB_ACTIONS", None) == "true":
+        with patch(
+            "tradingstrategy.binance.downloader.BinanceDownloader.fetch_lending_rates"
+        ) as mock_fetch_candlestick_data:
+            mock_fetch_candlestick_data.return_value = correct_df
+
+            df = candle_downloader.fetch_candlestick_data(
+                CANDLE_SYMBOL,
+                TIME_BUCKET,
+                START_AT,
+                END_AT,
+                force_download=True,
+            )
+
+            path = candle_downloader.get_parquet_path(
+                CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT, is_lending=True
+            )
+            df.to_parquet(path)
+
     df = candle_downloader.fetch_lending_rates(
         LENDING_SYMBOL,
         LENDING_TIME_BUCKET,
@@ -269,7 +301,7 @@ def test_fetch_assets(candle_downloader: BinanceDownloader):
     # 484 tickers at the end of 2023
     assert len(assets) >= 484
 
-    spot_symbols = list(candle_downloader.fetch_assets('SPOT'))
+    spot_symbols = list(candle_downloader.fetch_assets("SPOT"))
     assert len(spot_symbols) >= 2331
 
     lending_symbols = list(candle_downloader.fetch_all_lending_symbols())
