@@ -132,10 +132,6 @@ def test_read_fresh_candle_data_multipair(candle_downloader: BinanceDownloader):
                 force_download=True,
             )
 
-            path = candle_downloader.get_parquet_path(
-                CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
-            )
-            df.to_parquet(path)
     else:
         df = candle_downloader.fetch_candlestick_data(
             [CANDLE_SYMBOL, "BTCUSDC"],
