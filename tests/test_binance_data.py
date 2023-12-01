@@ -171,12 +171,12 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
     correct_df = pd.DataFrame(
         {
             "lending_rates": {
-                pd.Timestamp("2020-12-31 00:00:00", freq="D"): 0.00025,
-                pd.Timestamp("2021-01-01 00:00:00", freq="D"): 0.00025,
+                pd.Timestamp("2020-12-31 00:00:00"): 0.00025,
+                pd.Timestamp("2021-01-01 00:00:00"): 0.00025,
             },
             "asset_symbol": {
-                pd.Timestamp("2020-12-31 00:00:00", freq="D"): "ETH",
-                pd.Timestamp("2021-01-01 00:00:00", freq="D"): "ETH",
+                pd.Timestamp("2020-12-31 00:00:00"): "ETH",
+                pd.Timestamp("2021-01-01 00:00:00"): "ETH",
             },
         }
     )
