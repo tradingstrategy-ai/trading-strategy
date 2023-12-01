@@ -187,7 +187,7 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
         ) as mock_fetch_candlestick_data:
             mock_fetch_candlestick_data.return_value = correct_df
 
-            df = candle_downloader.fetch_candlestick_data(
+            df = candle_downloader.fetch_lending_rates(
                 CANDLE_SYMBOL,
                 TIME_BUCKET,
                 START_AT,
