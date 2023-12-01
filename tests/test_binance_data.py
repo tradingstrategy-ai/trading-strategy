@@ -199,14 +199,14 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
                 CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT, is_lending=True
             )
             df.to_parquet(path)
-
-    df = candle_downloader.fetch_lending_rates(
-        LENDING_SYMBOL,
-        LENDING_TIME_BUCKET,
-        START_AT,
-        END_AT,
-        force_download=True,
-    )
+    else:
+        df = candle_downloader.fetch_lending_rates(
+            LENDING_SYMBOL,
+            LENDING_TIME_BUCKET,
+            START_AT,
+            END_AT,
+            force_download=True,
+        )
 
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 2
