@@ -112,7 +112,7 @@ class PairGroupedUniverse:
         if fix_wick_threshold:
             self.df = fix_bad_wicks(self.df, fix_wick_threshold)
 
-        self.pairs: pd.GroupBy = self.df.groupby([self.primary_key_column])
+        self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
 
         self.timestamp_column = timestamp_column
         self.time_bucket = time_bucket
