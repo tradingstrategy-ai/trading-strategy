@@ -138,7 +138,7 @@ class BinanceDownloader:
             start_at,
             end_at,
         )
-        df["symbol"] = symbol
+        df["pair_id"] = symbol
 
         # write to parquet
         end_at = end_at - datetime.timedelta(days=1)
@@ -326,7 +326,7 @@ class BinanceDownloader:
             asset_symbol, time_bucket, start_at, end_at, is_lending=True
         )
         df = series.to_frame(name="lending_rates")
-        df["asset_symbol"] = asset_symbol
+        df["pair_id"] = asset_symbol
 
         df.to_parquet(path)
 
@@ -554,8 +554,8 @@ class BinanceDownloader:
         df["supply_rates"] = supply_data
 
         for reserve_id, asset_symbol in asset_symbols_dict.items():
-            lending_data_for_asset = df.loc[df["asset_symbol"] == asset_symbol, "lending_rates"]
-            supply_data_for_asset = df.loc[df["asset_symbol"] == asset_symbol, "supply_rates"]
+            lending_data_for_asset = df.loc[df["pair_id"] == asset_symbol, "lending_rates"]
+            supply_data_for_asset = df.loc[df["pair_id"] == asset_symbol, "supply_rates"]
             assert len(lending_data_for_asset) == len(supply_data_for_asset), "Lending and supply data must have the same length"
 
             data.append(
