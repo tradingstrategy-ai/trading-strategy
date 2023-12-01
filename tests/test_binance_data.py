@@ -52,7 +52,7 @@ def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
                 pd.Timestamp("2021-01-01"): 15151.39095,
                 pd.Timestamp("2021-01-02"): 26362.64832,
             },
-            "symbol": {
+            "pair_id": {
                 pd.Timestamp("2021-01-01"): "ETHUSDC",
                 pd.Timestamp("2021-01-02"): "ETHUSDC",
             },
@@ -88,7 +88,7 @@ def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
 
     assert df.equals(correct_df)
     assert len(df) == 2
-    assert df.columns.tolist() == ["open", "high", "low", "close", "volume", "symbol"]
+    assert df.columns.tolist() == list(correct_df.columns)
     assert df.isna().sum().sum() == 0
     assert df.isna().values.any() == False
 
@@ -108,7 +108,7 @@ def test_read_fresh_candle_data_multipair(candle_downloader: BinanceDownloader):
             "low": [714.86, 716.71, 28608.73, 29027.03],
             "close": [730.79, 774.73, 29407.93, 32215.18],
             "volume": [15151.39095, 26362.64832, 1736.62048, 4227.234681],
-            "symbol": ["ETHUSDC", "ETHUSDC", "BTCUSDC", "BTCUSDC"],
+            "pair_id": ["ETHUSDC", "ETHUSDC", "BTCUSDC", "BTCUSDC"],
         },
         index=[
             pd.Timestamp("2021-01-01 00:00:00"),
@@ -143,7 +143,7 @@ def test_read_fresh_candle_data_multipair(candle_downloader: BinanceDownloader):
 
     assert df.equals(correct_df)
     assert len(df) == 4
-    assert df.columns.tolist() == ["open", "high", "low", "close", "volume", "symbol"]
+    assert df.columns.tolist() == list(correct_df.columns)
     assert df.isna().sum().sum() == 0
     assert df.isna().values.any() == False
 
@@ -158,7 +158,7 @@ def test_read_cached_candle_data(candle_downloader: BinanceDownloader):
     )
 
     assert len(df) == 2
-    assert df.columns.tolist() == ["open", "high", "low", "close", "volume", "symbol"]
+    assert df.columns.tolist() == ["open", "high", "low", "close", "volume", "pair_id"]
     assert df.isna().sum().sum() == 0
     assert df.isna().values.any() == False
 
