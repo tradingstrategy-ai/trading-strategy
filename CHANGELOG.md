@@ -1,4 +1,11 @@
+# 0.22.2
 
+Updates to `BinanceDownloader`
+
+- Add `BinanceDownloader.fetch_approx_asset_trading_start_date()` to figure out when asset was listed on Binance
+- Change `BinanceDownloader.fetch_candlestick_data()` and `BinanceDownloader.fetch_lending_rates()` to accept multiple pairs at once
+- Add progress bars
+- Add symbol validation
 
 # 0.22.1
 

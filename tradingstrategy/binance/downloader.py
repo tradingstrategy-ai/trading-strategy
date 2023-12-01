@@ -7,11 +7,27 @@ import pandas as pd
 import numpy as np
 import logging
 import shutil
+import os
+from pathlib import Path
+from types import NoneType
+from typing import Dict, Literal, Iterable
+from tqdm.auto import tqdm
 
 from tradingstrategy.timebucket import TimeBucket
 from pathlib import Path
-from tradingstrategy.utils.time import generate_monthly_timestamps, naive_utcnow, naive_utcfromtimestamp
+from tradingstrategy.utils.time import (
+    generate_monthly_timestamps,
+    naive_utcnow,
+    naive_utcfromtimestamp,
+)
 from tradingstrategy.utils.groupeduniverse import resample_series
+from tradingstrategy.lending import (
+    LendingCandleType,
+    convert_binance_lending_rates_to_supply,
+)
+from tradingstrategy.types import PrimaryKey
+from tradingstrategy.lending import convert_interest_rates_to_lending_candle_type_map
+from tradingstrategy.binance.constants import BINANCE_SUPPORTED_QUOTE_TOKENS, split_binance_symbol
 
 
 logger = logging.getLogger(__name__)
@@ -28,15 +44,16 @@ class BinanceDownloader:
         """Initialize BinanceCandleDownloader and create folder for cached data if it does not exist."""
         cache_directory.mkdir(parents=True, exist_ok=True)
         self.cache_directory = cache_directory
+        self.api_server = "api.binance.com"
 
     def fetch_candlestick_data(
         self,
-        symbol: str,
+        symbols: list[str] | str,
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
-        force_redownload=False,
-    ):
+        force_download=False,
+    ) -> pd.DataFrame:
         """Get clean candlestick price and volume data from Binance. If saved, use saved version, else create saved version.
 
         Note, if you want to use this data in our framework, you will need to add informational columns to the dataframe and overwrite it. See code below.
@@ -60,24 +77,71 @@ class BinanceDownloader:
         :param end_at:
             End date of the data
 
-        :param force_redownload:
+        :param force_download:
             Force redownload of data from Binance and overwrite cached version
 
         :return:
             Pandas dataframe with the OHLCV data for the columns and datetimes as the index
         """
-        if not force_redownload:
+        if isinstance(symbols, str):
+            symbols = [symbols]
+
+        dataframes = []
+        total_size = 0
+
+        with tqdm(total=len(symbols)) as progress_bar:
+            for symbol in symbols:
+                df = self.fetch_candlestick_data_single_pair(
+                    symbol, time_bucket, start_at, end_at, force_download
+                )
+                dataframes.append(df)
+
+                # Count the cached file size
+                path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
+                total_size += os.path.getsize(path)
+
+                progress_bar.set_postfix(
+                    {"pair": symbol, "total_size (MBytes)": total_size / (1024**2)}
+                )
+                progress_bar.update()
+
+        combined_dataframe = pd.concat(dataframes, axis=0)
+
+        return combined_dataframe
+
+    def fetch_candlestick_data_single_pair(
+        self,
+        symbol: str,
+        time_bucket: TimeBucket,
+        start_at: datetime.datetime,
+        end_at: datetime.datetime,
+        force_download=False,
+    ) -> pd.DataFrame:
+        """Fetch candlestick data for a single pair.
+
+        Using this function directly will not include progress bars. Use `fetch_candlestick_data` instead.
+        """
+        if not force_download:
             try:
                 return self.get_data_parquet(symbol, time_bucket, start_at, end_at)
             except:
                 pass
 
+        if symbol not in self.fetch_all_spot_symbols():
+            raise BinanceDataFetchError(f"Symbol {symbol} is not a valid spot symbol")
+
         # to include the end date, we need to add one day
         end_at = end_at + datetime.timedelta(days=1)
-        df = self._fetch_candlestick_data(symbol, time_bucket, start_at, end_at)
-        end_at = end_at - datetime.timedelta(days=1)
+        df = self._fetch_candlestick_data(
+            symbol,
+            time_bucket,
+            start_at,
+            end_at,
+        )
+        df["pair_id"] = symbol
 
         # write to parquet
+        end_at = end_at - datetime.timedelta(days=1)
         path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
         df.to_parquet(path)
 
@@ -89,8 +153,8 @@ class BinanceDownloader:
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
-    ):
-
+    ) -> pd.DataFrame:
+        """Private function to fetch candlestick data from Binance. This function does will always download data from Binance"""
         interval = get_binance_interval(time_bucket)
 
         params_str = f"symbol={symbol}&interval={interval}"
@@ -105,6 +169,13 @@ class BinanceDownloader:
             ), "end_at must be a datetime.datetime object"
             start_timestamp = int(start_at.timestamp() * 1000)
             end_timestamp = int(end_at.timestamp() * 1000)
+        else:
+            start_at = self.fetch_approx_asset_trading_start_date(symbol)
+
+        if end_at:
+            assert start_at < end_at, "end_at must be after start_at"
+        else:
+            end_at = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
 
         # generate timestamps for each iteration
         dates = [start_at]
@@ -165,77 +236,101 @@ class BinanceDownloader:
         # df = clean_time_series_data(df)
 
         # Each timestamp in `timestamps` besides the first and last entry will be duplicated, so remove
-        remove_duplicates_df = df[df.index.duplicated(keep="first") == False]
-
-        return remove_duplicates_df
+        return df[df.index.duplicated(keep="first") == False]
 
     def fetch_lending_rates(
+        self,
+        asset_symbols: list[str] | str,
+        time_bucket: TimeBucket,
+        start_at: datetime.datetime,
+        end_at: datetime.datetime,
+        force_download=False,
+    ) -> pd.DataFrame:
+        """Get daily lending interest rates for a given asset from Binance, resampled to the given time bucket.
+
+        :param asset_symbol:
+            See py:method:`tradingstrategy.binance.downloader.get_all_lending_symbols` for valid symbols
+
+        :param time_bucket:
+            Time bucket to resample the data to
+
+        :param start_date:
+            Start date for the data. Note this value cannot be eariler than datetime.datetime(2019,4,1) due to Binance data limitations
+
+        :param end_date:
+            End date for the data
+
+        :param force_download:
+            Force redownload of data from Binance and overwrite cached version
+
+        :return:
+            Pandas dataframe with the interest rates for the column and datetimes as the index
+        """
+        if isinstance(asset_symbols, str):
+            asset_symbols = [asset_symbols]
+
+        dataframes = []
+        total_size = 0
+
+        with tqdm(total=len(asset_symbols)) as progress_bar:
+            for asset_symbol in asset_symbols:
+                df = self.fetch_lending_rates_single_pair(
+                    asset_symbol, time_bucket, start_at, end_at, force_download
+                )
+                dataframes.append(df)
+
+                # Count the cached file size
+                path = self.get_parquet_path(
+                    asset_symbol, time_bucket, start_at, end_at, is_lending=True
+                )
+                total_size += os.path.getsize(path)
+
+                progress_bar.set_postfix(
+                    {
+                        "pair": asset_symbol,
+                        "total_size (MBytes)": total_size / (1024**2),
+                    }
+                )
+                progress_bar.update()
+
+        combined_dataframe = pd.concat(dataframes, axis=0)
+
+        return combined_dataframe
+
+    def fetch_lending_rates_single_pair(
         self,
         asset_symbol: str,
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
-        force_redownload=False,
-    ) -> pd.Series:
-        """Get daily lending interest rates for a given asset from Binance, resampled to the given time bucket.
+        force_download=False,
+    ) -> pd.DataFrame:
+        """Fetch lending rates for a single asset.
 
-        :param asset_symbol:
-
-            List of all valid asset symbols as at 2023-11-06 18:00 UTC:
-
-            asset_names = [
-                "BTC", "ETH", "XRP", "BNB", "TRX", "USDT", "LINK", "EOS", "ADA", "ONT",
-                "USDC", "ETC", "LTC", "XLM", "XMR", "NEO", "ATOM", "DASH", "ZEC", "MATIC",
-                "BUSD", "BAT", "IOST", "VET", "QTUM", "IOTA", "XTZ", "BCH", "RVN", "ZIL",
-                "ONE", "ANKR", "CELR", "TFUEL", "IOTX", "HBAR", "FTM", "SXP", "BNT", "DOT",
-                "REN", "ALGO", "ZRX", "THETA", "COMP", "KNC", "OMG", "KAVA", "BAND", "DOGE",
-                "RLC", "WAVES", "MKR", "SNX", "YFI", "CRV", "SUSHI", "UNI", "MANA", "STORJ",
-                "UMA", "JST", "AVAX", "NEAR", "FIL", "TRB", "RSR", "TOMO", "OCEAN", "AAVE",
-                "SAND", "CHZ", "ARPA", "COTI", "FET", "TROY", "CHR", "ORN", "NMR", "GRT",
-                "STPT", "LRC", "KSM", "ROSE", "REEF", "STMX", "ALPHA", "STX", "ENJ", "RUNE",
-                "SKL", "INJ", "OXT", "CTSI", "OGN", "EGLD", "1INCH", "DODO", "LIT", "NKN",
-                "MDT", "CKB", "CAKE", "SOL", "XEM", "LINA", "GLM", "XVS", "MDX", "SUPER",
-                "GTC", "PUNDIX", "AUDIO", "BOND", "SLP", "TRU", "POND", "ERN", "ATA", "NULS",
-                "DENT", "TVK", "DF", "FLOW", "AR", "DYDX", "MASK", "UNFI", "AXS", "LUNA",
-                "SHIB", "ENS", "BAKE", "ALICE", "TLM", "ICP", "C98", "GALA", "ONG", "HIVE",
-                "DAR", "IDEX", "ANT", "CLV", "WAXP", "BNX", "KLAY", "MINA", "XEC", "RNDR",
-                "JASMY", "QUICK", "LPT", "AGLD", "BICO", "CTXC", "DUSK", "HOT", "SFP", "YGG",
-                "FLUX", "ICX", "CELO", "BETA", "BLZ", "MTL", "PEOPLE", "QNT", "PYR", "KEY",
-                "PAXG", "FRONT", "TWT", "RAD", "QI", "GMT", "APE", "BSW", "KDA", "MBL", "ASTR",
-                "API3", "CTK", "WOO", "GAL", "OP", "REI", "LEVER", "LDO", "FIDA", "FLM", "BURGER",
-                "AUCTION", "IMX", "SPELL", "STG", "BEL", "WING", "AVA", "LOKA", "LUNC", "PHB",
-                "LOOM", "AMB", "SANTOS", "VIB", "EPX", "HARD", "USTC", "DEGO", "HIGH", "GMX",
-                "LAZIO", "PORTO", "ACH", "STRAX", "KP3R", "REQ", "POLYX", "APT", "PHA", "OSMO",
-                "GLMR", "MAGIC", "HOOK", "AGIX", "HFT", "CFX", "ZEN", "SSV", "LQTY", "ALCX",
-                "FXS", "PERP", "TUSD", "USDP", "GNS", "JOE", "RIF", "SYN", "ID", "ARB", "OAX",
-                "RDNT", "EDU", "SUI", "FLOKI", "PEPE", "COMBO", "MAV", "XVG", "PENDLE", "ARKM",
-                "WLD", "T", "FDUSD", "RPL", "SEI", "CYBER", "VTHO", "WBETH", "NTRN", "HIFI",
-                "CVX", "ARK", "ARDR", "ACA", "VIDT", "GHST", "GAS", "OOKI", "TIA", "POWR",
-                "AERGO", "SNT", "STEEM", "MEME", "PLA", "MULTI", "UFT", "ILV"
-            ]
-
-            To see current list of all valid asset symbols, submit API request https://api1.binance.com/sapi/v1/margin/allAssets with your Binance API key.
-
-        :param start_date:
-            Start date for the data. Note this value cannot be eariler than datetime.datetime(2019,4,1) due to Binance data limitations
-
+        Using this function directly will not include progress bars. Use `fetch_lending_rates` instead.
         """
-        if not force_redownload:
+        if not force_download:
             try:
                 return self.get_data_parquet(
                     asset_symbol, time_bucket, start_at, end_at, is_lending=True
                 )
             except:
                 pass
+        
+        if asset_symbol not in self.fetch_all_lending_symbols():
+            raise BinanceDataFetchError(f"Symbol {asset_symbol} is not a valid lending symbol")
 
         series = self._fetch_lending_rates(asset_symbol, start_at, end_at, time_bucket)
 
         path = self.get_parquet_path(
             asset_symbol, time_bucket, start_at, end_at, is_lending=True
         )
-        series.to_frame(name="lending_rates").to_parquet(path)
+        df = series.to_frame(name="lending_rates")
+        df["pair_id"] = asset_symbol
 
-        return series
+        df.to_parquet(path)
+
+        return df
 
     def _fetch_lending_rates(
         self,
@@ -311,7 +406,9 @@ class BinanceDownloader:
             naive_utcnow(),
         )
 
-        assert len(monthly_candles) > 0, f"Could not find starting date for asset {symbol}"
+        assert (
+            len(monthly_candles) > 0
+        ), f"Could not find starting date for asset {symbol}"
         return monthly_candles.index[0].to_pydatetime()
 
     def get_data_parquet(
@@ -362,6 +459,30 @@ class BinanceDownloader:
         )
         return self.cache_directory.joinpath(file)
 
+    def overwrite_cached_data(
+        self,
+        df: pd.DataFrame,
+        symbol,
+        STOP_LOSS_TIME_BUCKET,
+        START_AT_DATA,
+        END_AT,
+        is_lending: bool = False,
+    ) -> None:
+        """Overwrite specific cached candle data file.
+
+        :param symbol: Trading pair symbol E.g. ETHUSDC
+        :param time_bucket: TimeBucket instance
+        :param start_at: Start date of the data
+        :param end_at: End date of the data
+        :param path: Path to the parquet file. If not specified, it will be generated from the other parameters.
+        """
+        # TODO, assert exists
+        path = self.get_parquet_path(
+            symbol, STOP_LOSS_TIME_BUCKET, START_AT_DATA, END_AT, is_lending
+        )
+        assert path.exists(), f"File {path} does not exist."
+        df.to_parquet(path)
+
     def purge_cached_file(
         self,
         *,
@@ -399,27 +520,92 @@ class BinanceDownloader:
                 # Delete files
                 item.unlink()
 
+    def load_lending_candle_type_map(
+        self,
+        asset_symbols_dict: dict[PrimaryKey, str],
+        time_bucket: TimeBucket,
+        start_at: datetime.datetime,
+        end_at: datetime.datetime,
+        force_download=False,
+    ) -> Dict[LendingCandleType, pd.DataFrame]:
+        """Load lending candles for all assets.
 
-def convert_binance_lending_rates_to_supply(
-    interestRates: pd.Series, multiplier: float = 0.95
-) -> pd.Series:
-    """Convert Binance lending rates to supply rates.
+        See py:method:`tradingstrategy.binance.downloader.fetch_lending_rates` for valid symbols
 
-    Right now, this rate is somewhat arbitrary. It is 95% of the lending rate by default.
+        :param symbols:
+            Dictionary of reserve_id to token symbol. The token symbol should be a valid symbol
+            that can be used in .. py:method:`tradingstrategy.binance.downloader.fetch_lending_rates`.
 
-    :param interestRates: Series of lending interest rates
-    :return: Series of supply rates
-    """
+        :return: LendingCandleUniverse
+        """
+        data = []
 
-    assert 0 < multiplier < 1, "Multiplier must be between 0 and 1"
+        lending_data = self.fetch_lending_rates(
+            list(asset_symbols_dict.values()),
+            time_bucket,
+            start_at,
+            end_at,
+            force_download=force_download,
+        )
+        supply_data = convert_binance_lending_rates_to_supply(lending_data["lending_rates"])
 
-    assert isinstance(
-        interestRates, pd.Series
-    ), f"Expected pandas Series, got {interestRates.__class__}: {interestRates}"
-    assert isinstance(
-        interestRates.index, pd.DatetimeIndex
-    ), f"Expected DateTimeIndex, got {interestRates.index.__class__}: {interestRates.index}"
-    return interestRates * multiplier
+        df = lending_data.copy()
+
+        df["supply_rates"] = supply_data
+
+        for reserve_id, asset_symbol in asset_symbols_dict.items():
+            lending_data_for_asset = df.loc[df["pair_id"] == asset_symbol, "lending_rates"]
+            supply_data_for_asset = df.loc[df["pair_id"] == asset_symbol, "supply_rates"]
+            assert len(lending_data_for_asset) == len(supply_data_for_asset), "Lending and supply data must have the same length"
+
+            data.append(
+                {
+                    "reserve_id": [reserve_id] * len(lending_data_for_asset),
+                    "lending_data": lending_data_for_asset,
+                    "supply_data": supply_data_for_asset,
+                }
+            )
+
+        lending_candle_type_map = convert_interest_rates_to_lending_candle_type_map(
+            *data
+        )
+
+        return lending_candle_type_map
+    
+    def fetch_assets(self, market: Literal["SPOT"] | Literal["MARGIN"] | NoneType = "MARGIN") -> Iterable[str]:
+        """Load available assets on binance.
+        Example:
+            # Show all pairs that
+            downloader = BinanceDownloader()
+            pairs = {ticker for ticker in downloader.fetch_assets(market="MARGIN") if ticker.endswith("USDT")}
+            print(f"USDT margin trading pairs: {pairs}")
+        :param market:
+            Are we looking for MARGIN or SPOT or both markets.
+        :return:
+            Iterable of all asset symbols.
+            E.g. "ETHUSDT", "BTCUSDT"
+        """
+
+        # https://binance-docs.github.io/apidocs/spot/en/#exchange-information
+        resp = requests.get(f"https://{self.api_server}/api/v3/exchangeInfo")
+        data = resp.json()
+        symbols = data["symbols"]
+        for s in symbols:
+            if market:
+                if market not in s["permissions"]:
+                    continue
+
+            yield s["symbol"]
+
+    def fetch_all_lending_symbols(self):
+        """List of all valid asset symbols for fetching lending data
+        """
+        return set(BINANCE_SUPPORTED_QUOTE_TOKENS).union({split_binance_symbol(ticker)[0] for ticker in self.fetch_assets(market="MARGIN") if ticker.endswith(BINANCE_SUPPORTED_QUOTE_TOKENS)})
+    
+    def fetch_all_spot_symbols(self):
+        """List of all valid pool symbols for fetching candle data
+        """
+        return self.fetch_assets(market="SPOT")
 
 
 def clean_time_series_data(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:

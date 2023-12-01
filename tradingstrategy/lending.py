@@ -833,7 +833,7 @@ class LendingCandleUniverse:
         raise AssertionError("Empty LendingCandlesUniverse")
 
 
-def convert_interest_rates_to_lending_candle_type_map(*args):
+def convert_interest_rates_to_lending_candle_type_map(*args) -> Dict[LendingCandleType, pd.DataFrame]:
     """Convert lending and supply interest rates for all assets to a single lending_candle_type map.
     
     :param *args:
@@ -854,7 +854,8 @@ def convert_interest_rates_to_lending_candle_type_map(*args):
         reserve_id = dictionary["reserve_id"]
         _lending_data = dictionary["lending_data"]
         _supply_data = dictionary["supply_data"]
-        
+
+        assert type(_lending_data) == type(_supply_data) == pd.Series, "Lending data and supply data must be pandas Series"
         assert len(_lending_data) == len(_supply_data), "Lending data and supply data must have the same length"
         assert isinstance(_lending_data.index, pd.DatetimeIndex), "Index must be a DatetimeIndex"
         assert _lending_data.index.equals(_supply_data.index), "Lending data and supply data must have the same index"
@@ -881,3 +882,27 @@ def convert_interest_rates_to_lending_candle_type_map(*args):
     }
 
     return lending_candle_type_map
+
+
+def convert_binance_lending_rates_to_supply(
+    interest_rates: pd.Series, multiplier: float = 0.95
+) -> pd.Series:
+    """Convert Binance lending rates to supply rates.
+
+    Right now, this default conversion rate is somewhat arbitrary. It is 95% of the lending rate by default.
+
+    :param interest_rates: Series of lending interest rates
+    :return: Series of supply rates
+    """
+
+    assert type(interest_rates) == pd.Series, "interest_rates must be a DataFrame"
+    assert 0 < multiplier < 1, "Multiplier must be between 0 and 1"
+
+    assert isinstance(
+        interest_rates, pd.Series
+    ), f"Expected pandas Series, got {interest_rates.__class__}: {interest_rates}"
+    assert isinstance(
+        interest_rates.index, pd.DatetimeIndex
+    ), f"Expected DateTimeIndex, got {interest_rates.index.__class__}: {interest_rates.index}"
+
+    return interest_rates * multiplier

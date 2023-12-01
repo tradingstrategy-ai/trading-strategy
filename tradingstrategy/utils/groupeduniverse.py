@@ -196,7 +196,7 @@ class PairGroupedUniverse:
             warnings.simplefilter("ignore")
         
             for pair_id, data in self.pairs:
-                yield pair_id
+                yield int(pair_id)
 
     def get_all_samples_by_timestamp(self, ts: pd.Timestamp) -> pd.DataFrame:
         """Get list of candles/samples for all pairs at a certain timepoint.

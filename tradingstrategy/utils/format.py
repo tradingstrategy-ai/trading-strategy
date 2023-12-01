@@ -2,6 +2,7 @@
 
 import datetime
 from typing import Collection
+from web3 import Web3
 
 import pandas as pd
 
@@ -39,3 +40,12 @@ def format_duration_days_hours_mins(d: datetime.timedelta) -> str:
         )
 
 
+def string_to_eth_address(input_string) -> str:
+    """Convert a string to an Ethereum address deterministically.
+
+    :param input_string: Input string to convert to an Ethereum address.
+    :return: Ethereum address.
+    """
+    hashed_bytes = Web3.keccak(text=input_string)
+    eth_address = hashed_bytes[-20:].hex()
+    return eth_address
