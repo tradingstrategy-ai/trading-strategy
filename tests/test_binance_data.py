@@ -188,15 +188,15 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
             mock_fetch_candlestick_data.return_value = correct_df
 
             df = candle_downloader.fetch_lending_rates(
-                CANDLE_SYMBOL,
-                TIME_BUCKET,
+                LENDING_SYMBOL,
+                LENDING_TIME_BUCKET,
                 START_AT,
                 END_AT,
                 force_download=True,
             )
 
             path = candle_downloader.get_parquet_path(
-                CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT, is_lending=True
+                LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
             )
             df.to_parquet(path)
     else:
