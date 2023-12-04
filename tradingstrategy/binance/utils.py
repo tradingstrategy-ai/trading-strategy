@@ -80,7 +80,7 @@ def generate_pair_for_binance(
         token1_decimals=quote_token_decimals,
         exchange_slug=BINANCE_EXCHANGE_SLUG,
         exchange_address=BINANCE_EXCHANGE_ADDRESS,
-        fee=BINANCE_FEE * 10_000,
+        fee=fee * 10_000,
     )
 
 
