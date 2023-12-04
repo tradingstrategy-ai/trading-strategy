@@ -1,6 +1,6 @@
 # 0.22.3
 
-- Add more Binance related utility functions to `tradingstrategy.binance.utils`
+- Add more Binance data sideloading related utility functions to `tradingstrategy.binance.utils`
 
 # 0.22.2
 
