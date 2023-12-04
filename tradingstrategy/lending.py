@@ -855,6 +855,7 @@ def convert_interest_rates_to_lending_candle_type_map(*args) -> Dict[LendingCand
         _lending_data = dictionary["lending_data"]
         _supply_data = dictionary["supply_data"]
 
+        assert isinstance(reserve_id, int), "reserve_id must be an integer"
         assert type(_lending_data) == type(_supply_data) == pd.Series, "Lending data and supply data must be pandas Series"
         assert len(_lending_data) == len(_supply_data), "Lending data and supply data must have the same length"
         assert isinstance(_lending_data.index, pd.DatetimeIndex), "Index must be a DatetimeIndex"

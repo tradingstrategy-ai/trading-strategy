@@ -560,7 +560,7 @@ class BinanceDownloader:
 
             data.append(
                 {
-                    "reserve_id": [reserve_id] * len(lending_data_for_asset),
+                    "reserve_id": reserve_id,
                     "lending_data": lending_data_for_asset,
                     "supply_data": supply_data_for_asset,
                 }
