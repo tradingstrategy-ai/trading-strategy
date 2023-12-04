@@ -6,7 +6,13 @@ from pathlib import Path
 from unittest.mock import patch, Mock
 
 from tradingstrategy.binance.downloader import BinanceDownloader, BinanceDataFetchError
+from tradingstrategy.binance.utils import (
+    generate_pairs_for_binance,
+    add_info_columns_to_ohlc,
+    generate_lending_reserve_for_binance,
+)
 from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.chain import ChainId
 
 
 CANDLE_SYMBOL = "ETHUSDC"
@@ -306,3 +312,56 @@ def test_fetch_assets(candle_downloader: BinanceDownloader):
 
     lending_symbols = list(candle_downloader.fetch_all_lending_symbols())
     assert len(lending_symbols) >= 312
+
+
+def test_add_info_columns():
+    """Check that add_info_columns_to_ohlc works correctly."""
+    symbols = [CANDLE_SYMBOL]
+
+    pairs = generate_pairs_for_binance(symbols)
+
+    df = pd.DataFrame(
+        {
+            "open": {
+                pd.Timestamp("2021-01-01"): 736.9,
+                pd.Timestamp("2021-01-02"): 731.19,
+            },
+            "high": {
+                pd.Timestamp("2021-01-01"): 750.39,
+                pd.Timestamp("2021-01-02"): 788.89,
+            },
+            "low": {
+                pd.Timestamp("2021-01-01"): 714.86,
+                pd.Timestamp("2021-01-02"): 716.71,
+            },
+            "close": {
+                pd.Timestamp("2021-01-01"): 730.79,
+                pd.Timestamp("2021-01-02"): 774.73,
+            },
+            "volume": {
+                pd.Timestamp("2021-01-01"): 15151.39095,
+                pd.Timestamp("2021-01-02"): 26362.64832,
+            },
+            "pair_id": {
+                pd.Timestamp("2021-01-01"): "ETHUSDC",
+                pd.Timestamp("2021-01-02"): "ETHUSDC",
+            },
+        }
+    )
+
+    assert len(df.columns) == 6
+
+    candle_df = add_info_columns_to_ohlc(
+        df, {symbol: pair for symbol, pair in zip(symbols, pairs)}
+    )
+
+    assert len(df.columns) == 20
+    assert candle_df.isna().sum().sum() == 0
+
+
+def test_generate_lending_reserve():
+    """Check that generate_lending_reserve_for_binance works correctly."""
+    reserve = generate_lending_reserve_for_binance(
+        "ETH", "0x4b2d72c1cb89c0b2b320c43bb67ff79f562f5ff4", 1
+    )
+    assert reserve.chain_id == ChainId.unknown
