@@ -1,3 +1,7 @@
+# 0.22.4
+
+- Update error message for Binance symbols
+
 # 0.22.3
 
 - Add more Binance data sideloading related utility functions to `tradingstrategy.binance.utils`
