@@ -113,7 +113,7 @@ def add_info_columns_to_ohlc(df: pd.DataFrame, pairs: dict[str, DEXPair]):
 
     for symbol, pair in pairs.items():
         if symbol not in df["pair_id"].unique():
-            raise ValueError(f"Symbol {symbol} not found in DataFrame")
+            raise ValueError(f"Symbol {symbol} not found in DataFrame. Pair ids are {list(df['pair_id'].unique())}")
 
         # Update the DataFrame only for the rows where 'symbol' matches
         mask = df["pair_id"] == symbol
