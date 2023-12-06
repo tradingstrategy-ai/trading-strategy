@@ -1,3 +1,7 @@
+# Current
+
+- Add `PandasPairUniverse.get_token_by_symbol()`
+
 # 0.22.4
 
 - Update error message for Binance symbols

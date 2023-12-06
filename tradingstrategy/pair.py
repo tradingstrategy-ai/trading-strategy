@@ -937,8 +937,6 @@ class PandasPairUniverse:
 
         """
 
-        token: Optional[Token] = None
-
         assert len(self.pair_map) > 0, "This method can be only used with in-memory pair index"
 
         symbol = symbol.lower()
