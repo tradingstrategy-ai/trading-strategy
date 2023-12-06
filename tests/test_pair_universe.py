@@ -6,7 +6,7 @@ import pytest
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.exchange import ExchangeType, ExchangeNotFoundError
-from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, PairNotFoundError, DEXPair, generate_address_columns
+from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, PairNotFoundError, DEXPair, generate_address_columns, TokenNotFound, MultipleTokensWithSymbol
 
 
 @pytest.fixture
@@ -162,6 +162,33 @@ def test_get_token(persistent_test_client):
     assert token.symbol == "USDC"
     assert token.decimals == 18
     assert token.chain_id == ChainId.bsc
+
+
+def test_get_token_by_symbol(persistent_test_client):
+    """Look up tokens by symbol"""
+
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    pair_universe = PandasPairUniverse(pairs_df)
+
+    # Auto pick by vol
+    token = pair_universe.get_token_by_symbol("WMATIC", chain_id=ChainId.polygon)
+    assert token.symbol == "WMATIC"
+    assert token.decimals == 18
+    assert token.chain_id == ChainId.polygon
+
+    # Single match only
+    token = pair_universe.get_token_by_symbol("CAGA", chain_id=ChainId.ethereum, pick_by_highest_volume=False)
+    assert token.symbol == "CAGA"
+    assert token.decimals == 18
+
+    # Not found
+    with pytest.raises(TokenNotFound):
+        pair_universe.get_token_by_symbol("NONEXISTINGCOIN")
+
+    # Multiple matches, no auto pick
+    with pytest.raises(MultipleTokensWithSymbol):
+        pair_universe.get_token_by_symbol("WMATIC", pick_by_highest_volume=False)
 
 
 def test_resolve_based_on_human_description(persistent_test_client):

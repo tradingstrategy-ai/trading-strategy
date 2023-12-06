@@ -62,6 +62,7 @@ import logging
 import enum
 import pprint
 import warnings
+from collections import Counter
 from dataclasses import dataclass
 from types import NoneType
 from typing import Optional, List, Iterable, Dict, Union, Set, Tuple, TypeAlias, Collection
@@ -78,7 +79,7 @@ from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType, ExchangeNotFoundError
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent, \
-    USDollarAmount, Slug, URL
+    USDollarAmount, Slug, URL, TokenSymbol
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
@@ -140,6 +141,14 @@ class PairNotFoundError(DataNotFoundError):
 
 class DuplicatePair(Exception):
     """Found multiple trading pairs for the same naive lookup."""
+
+
+class MultipleTokensWithSymbol(Exception):
+    """Found multiple tokens with the same symbol."""
+
+
+class TokenNotFound(Exception):
+    """No token found with a symbol or address."""
 
 
 class DataDecodeFailed(Exception):
@@ -210,7 +219,6 @@ FeePair: TypeAlias = Tuple[ChainId, str | None, str, str, Percent]
 #: - :py:data:`FeePair`
 #:
 HumanReadableTradingPairDescription: TypeAlias = FeePair | FeelessPair
-
 
 
 @dataclass_json
@@ -304,14 +312,14 @@ class DEXPair:
     #: However we humans always want the quote token to be USD, or ETH or BTC.
     #: For the reverse token orders, the candle serve swaps the token order
     #: so that the quote token is the more natural token of the pair (in the above case USD)
-    base_token_symbol: Optional[str] = None
+    base_token_symbol: Optional[TokenSymbol] = None
 
     #: Naturalised base and quote token.
     #: Uniswap may present the pair in USDC-WETH or WETH-USDC order based on the token address order.
     #: However we humans always want the quote token to be USD, or ETH or BTC.
     #: For the reverse token orders, the candle serve swaps the token order
     #: so that the quote token is the more natural token of the pair (in the above case USD)
-    quote_token_symbol: Optional[str] = None
+    quote_token_symbol: Optional[TokenSymbol] = None
 
     #: Number of decimals to convert between human amount and Ethereum fixed int raw amount.
     #: Note - this information might be missing from ERC-20 smart contracts.
@@ -887,12 +895,84 @@ class PandasPairUniverse:
                 p = self.get_pair_by_id(pair_id)
                 if p.token0_address == address:
                     token = Token(p.chain_id, p.token0_symbol, p.token0_address, p.token0_decimals)
-                    break
                 elif p.token1_address == address:
                     token = Token(p.chain_id, p.token1_symbol, p.token1_address, p.token1_decimals)
-                    break
             self.token_cache[address] = token
+
         return self.token_cache[address]
+
+    def get_token_by_symbol(
+        self,
+        symbol: TokenSymbol,
+        chain_id=None,
+        pick_by_highest_volume=True,
+    ) -> Optional[Token]:
+        """Get one and only one token from the trading universe by its symbol.
+
+        There might be multiple scam tokens for any legit token symbol.
+        By default we use ``pick_by_highest_volume`` to choose one.
+        If this method does not use, use :py:meth:`get_token` with address lookup instead.
+
+        This method is not designed for heavy access,
+        as it is using uncached data. Use sparsingly.
+
+        :param symbol:
+            E.g. ``USDC``.
+
+        :param chain_id:
+            Match token on a specific chain only.
+
+        :param pick_by_highest_volume:
+            If multiple mactches are found, pick one witht the highest 30d vol.
+
+        :return:
+            Tuple (name, symbol, address, decimals)
+            or None if not found.
+
+        :raise MultipleTokensWithSymbol:
+            In the case we get multiple matches.
+
+        :raise TokenNotFound:
+            If none of the loaded trading pairs contains a matching token with a symbol.
+
+        """
+
+        token: Optional[Token] = None
+
+        assert len(self.pair_map) > 0, "This method can be only used with in-memory pair index"
+
+        symbol = symbol.lower()
+
+        # Token -> total vol mappings
+        matches: Counter[Token, USDollarAmount] = Counter()
+
+        for pair_id in self.pair_map.keys():
+            p = self.get_pair_by_id(pair_id)
+
+            if chain_id:
+                if p.chain_id != chain_id:
+                    continue
+
+            matched_token = None
+            if p.token0_symbol.lower() == symbol:
+                matched_token = Token(p.chain_id, p.token0_symbol, p.token0_address, p.token0_decimals)
+            elif p.token1_symbol.lower() == symbol:
+                matched_token = Token(p.chain_id, p.token1_symbol, p.token1_address, p.token1_decimals)
+
+            if matched_token:
+                matches[matched_token] += p.volume_30d
+
+        if len(matches) > 1:
+            if pick_by_highest_volume:
+                token = matches.most_common(1)[0][0]
+            else:
+                raise MultipleTokensWithSymbol(f"Matched multiple tokens for symbol {symbol}: {matches}")
+        elif len(matches) == 1:
+            token = next(iter(matches.keys()))
+        else:
+            raise TokenNotFound(f"Trading pair data does not contain any token with symbol {symbol}")
+
+        return token
 
     def get_all_tokens(self) -> Set[Token]:
         """Get all base and quote tokens in trading pairs.
