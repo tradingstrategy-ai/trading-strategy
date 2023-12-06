@@ -872,17 +872,14 @@ class PandasPairUniverse:
             ERC-20 address of base or quote token in a trading pair.
 
         :param chain_id:
-            Currently unsupported.
+            Get token only on a specific chain.
 
-            Assumes all tokens are on a single chain.
+            Same token address can be across multiple chains.
 
         :return:
             Tuple (name, symbol, address, decimals)
             or None if not found.
         """
-
-        if chain_id:
-            raise NotImplementedError()
 
         address = address.lower()
 
@@ -893,6 +890,11 @@ class PandasPairUniverse:
         if address not in self.token_cache:
             for pair_id in self.pair_map.keys():
                 p = self.get_pair_by_id(pair_id)
+
+                if chain_id:
+                    if p.chain_id != chain_id:
+                        continue
+
                 if p.token0_address == address:
                     token = Token(p.chain_id, p.token0_symbol, p.token0_address, p.token0_decimals)
                 elif p.token1_address == address:
@@ -925,6 +927,8 @@ class PandasPairUniverse:
         :param pick_by_highest_volume:
             If multiple mactches are found, pick one witht the highest 30d vol.
 
+            Volume is 30d total across all loaded pairs.
+
         :return:
             Tuple (name, symbol, address, decimals)
             or None if not found.
@@ -953,9 +957,9 @@ class PandasPairUniverse:
 
             matched_token = None
             if p.token0_symbol.lower() == symbol:
-                matched_token = Token(p.chain_id, p.token0_symbol, p.token0_address, p.token0_decimals)
+                matched_token = self.get_token(p.token0_address, chain_id)
             elif p.token1_symbol.lower() == symbol:
-                matched_token = Token(p.chain_id, p.token1_symbol, p.token1_address, p.token1_decimals)
+                matched_token = self.get_token(p.token1_address, chain_id)
 
             if matched_token:
                 matches[matched_token] += p.volume_30d
