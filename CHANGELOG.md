@@ -1,4 +1,4 @@
-# Current
+# 0.22.5
 
 - Add `PandasPairUniverse.get_token_by_symbol()`
 - Add `PandasPairUniverse.get_token(chain_id)` argument
