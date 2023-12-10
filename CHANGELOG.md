@@ -1,3 +1,7 @@
+# Current
+
+- Add `PairNotFound(description)` to have better error messages on pair look-up failures
+
 # 0.22.5
 
 - Add `PandasPairUniverse.get_token_by_symbol()`

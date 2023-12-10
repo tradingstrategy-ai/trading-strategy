@@ -89,72 +89,6 @@ from tradingstrategy.exceptions import DataNotFoundError
 logger = logging.getLogger(__name__)
 
 
-class PairNotFoundError(DataNotFoundError):
-    """No trading pair found matching the given criteria."""
-
-    advanced_search_url = "https://tradingstrategy.ai/search?q=&sortBy=liquidity%3Adesc&filters=%7B%22pool_swap_fee%22%3A%5B%5D%2C%22price_change_24h%22%3A%5B%5D%2C%22liquidity%22%3A%5B%5D%2C%22volume_24h%22%3A%5B%5D%2C%22type%22%3A%5B%5D%2C%22blockchain%22%3A%5B%5D%2C%22exchange%22%3A%5B%5D%7D"
-
-    template = f"""This might be a problem in your data loading and filtering. 
-                
-    Use tradingstrategy.ai website to explore pairs. Once on a pair page, click on the `Copy Python identifier` button to get the correct pair information to use in your strategy.
-    
-    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges
-    
-    Here is advanced search: {advanced_search_url}
-    
-    For any further questions join our Discord: https://tradingstrategy.ai/community"""
-
-    def __init__(
-        self, 
-        *, 
-        base_token: Optional[str]=None, 
-        quote_token: Optional[str]=None, 
-        fee_tier: Optional[Percent] = None, 
-        pair_id: Optional[int]=None,
-        exchange_slug: Optional[str] = None, 
-        exchange_id: Optional[int] = None,
-    ):
-
-        if base_token:
-            assert quote_token, "If base token is specified, quote token must be specified too."
-        if quote_token:
-            assert base_token, "If quote token is specified, base token must be specified too."
-
-        if base_token and quote_token:
-            message = f"No pair with base_token {base_token}, quote_token {quote_token}, fee tier {fee_tier}"
-        else:
-            assert exchange_slug or pair_id, "Either exchange_slug or pair_id must be specified if base_token and quote_token are not specified"
-            message = "No pair with "
-
-        if exchange_slug:
-            message = message + f" exchange_slug {exchange_slug}"
-
-        if exchange_id:
-            message = message + f" exchange_id {exchange_id}"
-
-        if pair_id:
-            message = message + f" pair_id {pair_id}"
-
-
-        super().__init__(message + " found. " + self.template)
-
-
-class DuplicatePair(Exception):
-    """Found multiple trading pairs for the same naive lookup."""
-
-
-class MultipleTokensWithSymbol(Exception):
-    """Found multiple tokens with the same symbol."""
-
-
-class TokenNotFound(Exception):
-    """No token found with a symbol or address."""
-
-
-class DataDecodeFailed(Exception):
-    """The parquet file has damaged data for this trading pair."""
-
-
 #: Data needed to identify a trading pair with human description.
 #:
 #: This is `(chain, exchange slug, base token, quote token)`.
@@ -219,6 +153,78 @@ FeePair: TypeAlias = Tuple[ChainId, str | None, str, str, Percent]
 #: - :py:data:`FeePair`
 #:
 HumanReadableTradingPairDescription: TypeAlias = FeePair | FeelessPair
+
+
+
+class PairNotFoundError(DataNotFoundError):
+    """No trading pair found matching the given criteria."""
+
+    advanced_search_url = "https://tradingstrategy.ai/search?q=&sortBy=liquidity%3Adesc&filters=%7B%22pool_swap_fee%22%3A%5B%5D%2C%22price_change_24h%22%3A%5B%5D%2C%22liquidity%22%3A%5B%5D%2C%22volume_24h%22%3A%5B%5D%2C%22type%22%3A%5B%5D%2C%22blockchain%22%3A%5B%5D%2C%22exchange%22%3A%5B%5D%7D"
+
+    template = f"""This might be a problem in your data loading and filtering. 
+                
+    Use tradingstrategy.ai website to explore pairs. Once on a pair page, click on the `Copy Python identifier` button to get the correct pair information to use in your strategy.
+    
+    Here is a list of DEXes: https://tradingstrategy.ai/trading-view/exchanges
+    
+    Here is advanced search: {advanced_search_url}
+    
+    For any further questions join our Discord: https://tradingstrategy.ai/community"""
+
+    def __init__(
+        self, 
+        *, 
+        base_token: Optional[str]=None, 
+        quote_token: Optional[str]=None, 
+        fee_tier: Optional[Percent] = None, 
+        pair_id: Optional[int]=None,
+        exchange_slug: Optional[str] = None, 
+        exchange_id: Optional[int] = None,
+        description: Optional[HumanReadableTradingPairDescription] = None,
+    ):
+
+        if base_token:
+            assert quote_token, "If base token is specified, quote token must be specified too."
+        if quote_token:
+            assert base_token, "If quote token is specified, base token must be specified too."
+
+        if base_token and quote_token:
+            message = f"No pair with base_token {base_token}, quote_token {quote_token}, fee tier {fee_tier}"
+        else:
+            assert exchange_slug or pair_id, "Either exchange_slug or pair_id must be specified if base_token and quote_token are not specified"
+            message = "No pair with "
+
+        if exchange_slug:
+            message = message + f" exchange_slug {exchange_slug}"
+
+        if exchange_id:
+            message = message + f" exchange_id {exchange_id}"
+
+        if pair_id:
+            message = message + f" pair_id {pair_id}"
+
+        if description:
+            message = message + f" description: {description}"
+
+        super().__init__(message + " found. " + self.template)
+
+
+class DuplicatePair(Exception):
+    """Found multiple trading pairs for the same naive lookup."""
+
+
+class MultipleTokensWithSymbol(Exception):
+    """Found multiple tokens with the same symbol."""
+
+
+class TokenNotFound(Exception):
+    """No token found with a symbol or address."""
+
+
+class DataDecodeFailed(Exception):
+    """The parquet file has damaged data for this trading pair."""
+
+
 
 
 @dataclass_json
@@ -1338,19 +1344,20 @@ class PandasPairUniverse:
         else:
             exchange = None
 
-        pair = self.get_one_pair_from_pandas_universe(
-            exchange.exchange_id if exchange_slug else None,
-            base_token,
-            quote_token,
-            fee_tier=fee_tier,
-            pick_by_highest_vol=True,
-        )
+        try:
+            pair = self.get_one_pair_from_pandas_universe(
+                exchange.exchange_id if exchange_slug else None,
+                base_token,
+                quote_token,
+                fee_tier=fee_tier,
+                pick_by_highest_vol=True,
+            )
 
-        # this check techinically unnecessary 
-        # since get_one_pair_from_pandas_universe will raise
-        # but just to be sure
-        if pair is None:
-            raise PairNotFoundError(base_token=base_token, quote_token=quote_token, fee_tier=fee_tier, exchange_slug=exchange_slug)
+            # this check techinically unnecessary
+            # since get_one_pair_from_pandas_universe will raise
+            # but just to be sure
+        except PairNotFoundError as e:
+            raise PairNotFoundError(base_token=base_token, quote_token=quote_token, fee_tier=fee_tier, exchange_slug=exchange_slug, description=desc) from e
 
         return pair
 
