@@ -1,6 +1,7 @@
 # Current
 
 - Add `PairNotFound(description)` to have better error messages on pair look-up failures
+- Stricter input type checks for exchanges when creating `Universe`
 
 # 0.22.5
 

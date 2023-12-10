@@ -239,7 +239,11 @@ class ExchangeUniverse:
     @staticmethod
     def from_collection(exchanges: Collection[Exchange]) -> "ExchangeUniverse":
         """Create exchange universe from a collection of exchanges."""
-        exchange_dict = {e.exchange_id: e for e in exchanges}
+        assert type(exchanges) in (list, tuple, set), f"Got: {exchanges}"
+        try:
+            exchange_dict = {e.exchange_id: e for e in exchanges}
+        except AttributeError as e:
+            raise ValueError(f"Could not map: {exchanges}") from e
         return ExchangeUniverse(exchanges=exchange_dict)
 
     def get_by_id(self, id) -> Optional[Exchange]:

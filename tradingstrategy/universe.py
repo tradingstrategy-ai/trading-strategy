@@ -106,6 +106,10 @@ class Universe:
                 self.exchanges = set(self.exchanges)
             assert isinstance(self.exchanges, set), f"Expected set, got {self.exchanges.__class__}"
 
+            assert len(self.exchanges) > 1, f"Got {self.exchanges}"
+            first_exchange = next(iter(self.exchanges))
+            assert isinstance(first_exchange, Exchange), f"Got {first_exchange}"
+
         if self.exchange_universe is not None:
             assert isinstance(self.exchange_universe, ExchangeUniverse), f"Expected dict, got {self.exchanges.__class__}"
         else:
