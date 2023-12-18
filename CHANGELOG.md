@@ -1,7 +1,8 @@
-# Current
+# 0.22.6
 
 - Add `PairNotFound(description)` to have better error messages on pair look-up failures
 - Stricter input type checks for exchanges when creating `Universe`
+- Add `UniswapV2MockClient.clear_caches` for compatibility with `Client` in unit testing
 
 # 0.22.5
 
