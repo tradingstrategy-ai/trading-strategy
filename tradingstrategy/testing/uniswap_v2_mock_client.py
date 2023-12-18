@@ -1,7 +1,8 @@
 """Client implementation that only uses Uniswap v2 on-chain data to generate datasets."""
 import logging
+from pathlib import Path
 from types import NoneType
-from typing import Tuple, cast
+from typing import Tuple, cast, Optional, Union
 
 from pyarrow import Table
 
@@ -225,7 +226,9 @@ class UniswapV2MockClient(MockClient):
 
         return exchange_universe, pair_table
 
-
+    def clear_caches(self, filename: Optional[Union[str, Path]] = None):
+        # No-op
+        return
 
 
 
