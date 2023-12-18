@@ -160,6 +160,12 @@ class CachedHTTPTransport:
         return path
 
     def get_cached_item(self, fname: Union[str, pathlib.Path]) -> Optional[pathlib.Path]:
+        """Get a cached file.
+
+        - Return ``None`` if the cache has expired
+
+        - The cache timeout is coded in the filename
+        """
 
         path = self.get_cached_file_path(fname)
         if not os.path.exists(path):
@@ -321,6 +327,13 @@ class CachedHTTPTransport:
             return self.get_cached_item(fname)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
+        """Load candles and return a cached file where they are stored.
+
+        - If cached file exists return it directly
+
+        - Wait if someone else is writing the file
+          (in multiple parallel testers)
+        """
         assert isinstance(bucket, TimeBucket)
         fname = f"candles-{bucket.value}.parquet"
         path = self.get_cached_file_path(fname)
@@ -329,10 +342,17 @@ class CachedHTTPTransport:
 
             cached = self.get_cached_item(fname)
             if cached:
+                # Cache exists and is not expired
                 return cached
 
             # Download save the file
-            self.save_response(path, "candles-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading OHLCV data for {bucket.value} time bucket")
+            params = {"bucket": bucket.value}
+            self.save_response(path, "candles-all", params, human_readable_hint=f"Downloading OHLCV data for {bucket.value} time bucket")
+            logger.info(
+                "Saved %s as with params %s",
+                path,
+                params
+            )
             return self.get_cached_item(path)
 
     def fetch_liquidity_all_time(self, bucket: TimeBucket) -> pathlib.Path:
@@ -642,6 +662,9 @@ def wait_other_writers(path: Path | str, timeout=120):
         How many seconds wait to acquire the lock file.
 
         Default 2 minutes.
+
+    :raise filelock.Timeout:
+        If the file writer is stuck with the lock.
     """
 
     if type(path) == str:
@@ -659,5 +682,13 @@ def wait_other_writers(path: Path | str, timeout=120):
     lock_file = path.parent / (path.name + '.lock')
 
     lock = FileLock(lock_file, timeout=timeout)
+
+    if lock.is_locked:
+        logger.info(
+            "Parquet file %s locked for writing, waiting %f seconds",
+            path,
+            timeout,
+        )
+
     with lock:
         yield
