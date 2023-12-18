@@ -13,10 +13,11 @@ import os
 import tempfile
 import time
 import warnings
+from abc import abstractmethod, ABC
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Final, Optional, Set, Union, Collection, Dict, Tuple
+from typing import Final, Optional, Union, Collection, Dict
 
 import pandas as pd
 
@@ -107,8 +108,14 @@ def _retry_corrupted_parquet_fetch(method):
     return impl
 
 
-class BaseClient:
+class BaseClient(ABC):
     """Base class for all real and test mocks clients."""
+
+    # TODO: Move to its own module, add rest of the methods
+
+    @abstractmethod
+    def clear_caches(self, fname: str | None):
+        pass
 
 
 class Client(BaseClient):

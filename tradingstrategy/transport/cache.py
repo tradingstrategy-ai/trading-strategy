@@ -1,6 +1,7 @@
 """A HTTP API transport that offers optional local caching of the results."""
 
 import datetime
+import enum
 import hashlib
 import os
 import pathlib
@@ -8,7 +9,7 @@ import platform
 import re
 from contextlib import contextmanager
 from importlib.metadata import version
-from typing import Optional, Callable, Set, Union, Collection, Dict, Literal
+from typing import Optional, Callable, Set, Union, Collection, Dict, Literal, Tuple
 import shutil
 import logging
 from pathlib import Path
@@ -45,6 +46,17 @@ class DataNotAvailable(APIError):
 
     Wraps 404 error from the dataset server.local
     """
+
+
+class CacheStatus(enum.Enum):
+    """When reading cached files, report to the caller about the caching status."""
+    cached = "cached"
+    cached_with_timestamped_name = "cached_with_timestamped_name"
+    missing = "missing"
+    expired = "expired"
+
+    def is_readable(self):
+        return self in (CacheStatus.cached, CacheStatus.cached_with_timestamped_name)
 
 
 class CachedHTTPTransport:
@@ -187,6 +199,38 @@ class CachedHTTPTransport:
 
         return f
 
+    def get_cached_item_with_status(
+            self,
+            fname: Union[str, pathlib.Path]
+    ) -> Tuple[pathlib.Path | None, CacheStatus]:
+        """Get a cached file.
+
+        - Return ``None`` if the cache has expired
+
+        - The cache timeout is coded in the file modified
+          timestamp (mtime)
+        """
+
+        path = self.get_cached_file_path(fname)
+        if not os.path.exists(path):
+            # Cached item not yet created
+            return None, CacheStatus.missing
+
+        f = pathlib.Path(path)
+
+        # For some datasets, we encode the end-tie in the fname
+        end_time_pattern = r"-to_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}"
+        if re.search(end_time_pattern, str(fname)):
+            # Candle files with an end time never expire, as the history does not change
+            return f, CacheStatus.cached_with_timestamped_name
+
+        mtime = datetime.datetime.fromtimestamp(f.stat().st_mtime)
+        if datetime.datetime.now() - mtime > self.cache_period:
+            # File cache expired
+            return None, CacheStatus.expired
+
+        return f, CacheStatus.cached
+
     def _generate_cache_name(
         self,
         pair_ids: Set[id],
@@ -326,7 +370,9 @@ class CachedHTTPTransport:
                 "lending-reserve-universe",
                 human_readable_hint="Downloading lending reserve dataset"
             )
-            return self.get_cached_item(fname)
+            path, status = self.get_cached_item_with_status(fname)
+            assert status.is_readable(), f"Got status {status} for path"
+            return path
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         """Load candles and return a cached file where they are stored.
@@ -338,9 +384,9 @@ class CachedHTTPTransport:
         """
         assert isinstance(bucket, TimeBucket)
         fname = f"candles-{bucket.value}.parquet"
-        path = self.get_cached_file_path(fname)
+        cached_path = self.get_cached_file_path(fname)
 
-        with wait_other_writers(path):
+        with wait_other_writers(cached_path):
 
             cached = self.get_cached_item(fname)
             if cached:
@@ -349,14 +395,15 @@ class CachedHTTPTransport:
 
             # Download save the file
             params = {"bucket": bucket.value}
-            self.save_response(path, "candles-all", params, human_readable_hint=f"Downloading OHLCV data for {bucket.value} time bucket")
+            self.save_response(cached_path, "candles-all", params, human_readable_hint=f"Downloading OHLCV data for {bucket.value} time bucket")
             logger.info(
                 "Saved %s as with params %s, down",
-                path,
+                cached_path,
                 params
             )
-            saved = self.get_cached_item(path)
-            assert saved is not None, f"None save_response() generated for {path}, download_func is {self.download_func}"
+            saved, status = self.get_cached_item_with_status(fname)
+            # Troubleshoot multiple test workers race condition
+            assert status.is_readable(), f"Cache status {status} with save_response() generated for {fname}, cached path is {cached_path}, download_func is {self.download_func}"
             return saved
 
     def fetch_liquidity_all_time(self, bucket: TimeBucket) -> pathlib.Path:
@@ -391,8 +438,8 @@ class CachedHTTPTransport:
                 human_readable_hint="Downloading Aave v3 reserve dataset",
             )
             assert os.path.exists(path)
-            item = self.get_cached_item(path)
-            assert os.path.exists(item)
+            item, status = self.get_cached_item_with_status(path)
+            assert status.is_readable(), f"File not readable after save cached:{cached} fname:{fname} path:{path}"
             return item
 
     
