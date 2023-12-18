@@ -164,11 +164,13 @@ class CachedHTTPTransport:
 
         - Return ``None`` if the cache has expired
 
-        - The cache timeout is coded in the filename
+        - The cache timeout is coded in the file modified
+          timestamp (mtime)
         """
 
         path = self.get_cached_file_path(fname)
         if not os.path.exists(path):
+            # Cached item not yet created
             return None
 
         f = pathlib.Path(path)
@@ -178,7 +180,7 @@ class CachedHTTPTransport:
             # Candle files with an end time never expire, as the history does not change
             return f
 
-        mtime = naive_utcfromtimestamp(f.stat().st_mtime)
+        mtime = datetime.datetime.fromtimestamp(f.stat().st_mtime)
         if datetime.datetime.now() - mtime > self.cache_period:
             # File cache expired
             return None
@@ -349,11 +351,13 @@ class CachedHTTPTransport:
             params = {"bucket": bucket.value}
             self.save_response(path, "candles-all", params, human_readable_hint=f"Downloading OHLCV data for {bucket.value} time bucket")
             logger.info(
-                "Saved %s as with params %s",
+                "Saved %s as with params %s, down",
                 path,
                 params
             )
-            return self.get_cached_item(path)
+            saved = self.get_cached_item(path)
+            assert saved is not None, f"None save_response() generated for {path}, download_func is {self.download_func}"
+            return saved
 
     def fetch_liquidity_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         fname = f"liquidity-samples-{bucket.value}.parquet"
@@ -386,7 +390,11 @@ class CachedHTTPTransport:
                 "aave-v3-all",
                 human_readable_hint="Downloading Aave v3 reserve dataset",
             )
-            return self.get_cached_item(path)
+            assert os.path.exists(path)
+            item = self.get_cached_item(path)
+            assert os.path.exists(item)
+            return item
+
     
     def fetch_lending_candles_by_reserve_id(
         self,

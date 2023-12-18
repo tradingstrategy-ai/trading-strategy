@@ -96,11 +96,13 @@ def _retry_corrupted_parquet_fetch(method):
                     )
                     time.sleep(RETRY_DELAY)
                 else:
-                    logger.warning(
+                    logger.error(
                         f"Exhausted all {MAX_ATTEMPTS} attempts, fetching parquet data failed."
                     )
                     self.clear_caches(filename=path_to_remove)
                     raise
+
+        raise AssertionError(f"Should not be reached. Download issue on {self}, {attempts} / {MAX_ATTEMPTS}, {method_args}, {method_kwargs}")
 
     return impl
 
@@ -197,6 +199,7 @@ class Client(BaseClient):
         If the download seems to be corrupted, it will be attempted 3 times.
         """
         path = self.transport.fetch_candles_all_time(bucket)
+        assert path is not None, "fetch_candles_all_time() returned None"
         return read_parquet(path)
 
     def fetch_candles_by_pair_ids(self,
@@ -498,6 +501,8 @@ class Client(BaseClient):
         If the download seems to be corrupted, it will be attempted 3 times.
         """
         path = self.transport.fetch_lending_reserves_all_time()
+        assert path
+        assert os.path.exists(path)
         return read_parquet(path)
 
     def fetch_chain_status(self, chain_id: ChainId) -> dict:
