@@ -359,6 +359,9 @@ class Client(BaseClient):
         :return:
             Lending candles dataframe
         """
+        if bucket.to_pandas_timedelta() < pd.Timedelta("1h"):
+            bucket = TimeBucket.h1
+
         return self.transport.fetch_lending_candles_by_reserve_id(
             reserve_id,
             bucket,
@@ -456,6 +459,9 @@ class Client(BaseClient):
                         )
 
                     progress_bar.update()
+
+                if len(bits) == 0:
+                    raise DataNotAvailable("No data available for any of the reserves. Check the logs for details.")
 
                 data = pd.concat(bits)
 
