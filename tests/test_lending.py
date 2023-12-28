@@ -162,7 +162,7 @@ def test_client_fetch_lending_candles_for_lending_universe(persistent_test_clien
     universe = client.fetch_lending_reserve_universe()
 
     usdt_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDT")
-    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC.e")
 
     limited_universe = universe.limit([usdt_desc, usdc_desc])
 
@@ -213,7 +213,7 @@ def test_get_rates_by_reserve(persistent_test_client: Client):
     universe = client.fetch_lending_reserve_universe()
 
     usdt_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDT")
-    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC.e")
 
     limited_universe = universe.limit([usdt_desc, usdc_desc])
 
@@ -226,7 +226,7 @@ def test_get_rates_by_reserve(persistent_test_client: Client):
 
     universe = LendingCandleUniverse(lending_candle_type_map, universe)
     usdc_variable_borrow = universe.variable_borrow_apr.get_rates_by_reserve(
-        (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+        usdc_desc,
     )
 
     # See above
@@ -283,7 +283,7 @@ def test_get_single_rate(persistent_test_client: Client):
     lending_reserves = client.fetch_lending_reserve_universe()
 
     usdt_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDT")
-    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC.e")
 
     lending_reserves = lending_reserves.limit([usdt_desc, usdc_desc])
 
@@ -317,7 +317,7 @@ def test_get_estimate_interest(persistent_test_client: Client):
     client = persistent_test_client
     lending_reserves = client.fetch_lending_reserve_universe()
 
-    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC.e")
 
     lending_reserves = lending_reserves.limit([usdc_desc])
 
@@ -352,7 +352,7 @@ def test_estimate_interest_bad_timeframe(persistent_test_client: Client):
     client = persistent_test_client
     lending_reserves = client.fetch_lending_reserve_universe()
 
-    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+    usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC.e")
 
     lending_reserves = lending_reserves.limit([usdc_desc])
 
