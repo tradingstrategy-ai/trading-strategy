@@ -190,10 +190,11 @@ class LendingReserve:
 #:
 #: - Chain id
 #: - Lending protocol type
-#: - Reserve token symbol
-#: - (Optional) smart contract address
+#: - Reserve token symbol or smart contract address
 #:
-#: Example: `(ChainId.polygon, LendingProtocolType.aave_v3, "USDC")`
+#: Examples:
+#: - `(ChainId.polygon, LendingProtocolType.aave_v3, "USDC.e")`
+#: - `(ChainId.polygon, LendingProtocolType.aave_v3, "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174")`
 #:
 #: If there are multiple reserves with the same token, the fourth
 #: parameter is a smart contract address that distinguishes these.
@@ -203,9 +204,10 @@ class LendingReserve:
 #: only smart contract addresses stay stable.
 #:
 LendingReserveDescription: TypeAlias = Tuple[ChainId, LendingProtocolType, TokenSymbol] | \
+                                       Tuple[ChainId, LendingProtocolType, NonChecksummedAddress] | \
                                        Tuple[ChainId, LendingProtocolType, TokenSymbol, NonChecksummedAddress]
 
-
+# TODO: Check if the third form of above is used anywhere
 
 @dataclass_json
 @dataclass
@@ -402,11 +404,22 @@ class LendingReserveUniverse:
 
         assert not optional, "Unsupported"
 
-        for reserve in self.reserves.values():
-            if reserve.chain_id == chain_id and \
-                    reserve.protocol_slug == slug and \
-                    reserve.asset_symbol == symbol:
-                return reserve
+        if symbol.startswith("0x"):
+            address = symbol.lower()
+
+            for reserve in self.reserves.values():
+                if reserve.chain_id == chain_id and \
+                        reserve.protocol_slug == slug and \
+                        reserve.asset_address.lower() == address:
+                    return reserve
+
+        else:
+
+            for reserve in self.reserves.values():
+                if reserve.chain_id == chain_id and \
+                        reserve.protocol_slug == slug and \
+                        reserve.asset_symbol == symbol:
+                    return reserve
 
         raise UnknownLendingReserve(f"Could not find lending reserve {reserve_decription}. We have {len(self.reserves)} reserves loaded.")
 
