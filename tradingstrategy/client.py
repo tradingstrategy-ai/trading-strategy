@@ -260,6 +260,8 @@ class Client(BaseClient):
         if isinstance(end_time, pd.Timestamp):
             end_time = end_time.to_pydatetime()
 
+        assert len(pair_ids) > 0
+
         return self.transport.fetch_candles_by_pair_ids(
             pair_ids,
             bucket,

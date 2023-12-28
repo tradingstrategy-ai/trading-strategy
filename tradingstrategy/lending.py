@@ -319,8 +319,10 @@ class LendingReserveUniverse:
 
         assert isinstance(chain_id, ChainId), f"Got: {chain_id}"
 
+        asset_address = asset_address.lower()
+
         for reserve in self.reserves.values():
-            if reserve.asset_address == asset_address and reserve.chain_id == chain_id:
+            if reserve.asset_address.lower() == asset_address and reserve.chain_id == chain_id:
                 return reserve
 
         raise UnknownLendingReserve(f"Could not find lending reserve on chain {chain_id.get_name()}, reserve token address {asset_address}. We have {len(self.reserves)} reserves loaded.")
@@ -345,12 +347,18 @@ class LendingReserveUniverse:
         new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.chain_id == chain_id}
         return LendingReserveUniverse(new_reserves)
 
-    def limit_to_assets(self, assets: Set[TokenSymbol]) -> "LendingReserveUniverse":
+    def limit_to_assets(self, assets: Set[TokenSymbol | NonChecksummedAddress]) -> "LendingReserveUniverse":
         """Drop all lending reserves except listed tokens."""
         for a in assets:
             assert type(a) == str
-        new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.asset_symbol in assets}
 
+        new_reserves = {}
+        for r in self.reserves.values():
+            for a in assets:
+                if (a.startswith("0x") and r.asset_address.lower() == a.lower()) or (r.asset_symbol == a):
+                    new_reserves[r.reserve_id] = r
+
+        # new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.asset_symbol in assets}
         assert len(assets) == len(new_reserves), f"Could not resolve all assets: {assets}"
 
         return LendingReserveUniverse(new_reserves)

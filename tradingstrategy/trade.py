@@ -10,7 +10,7 @@ class Trade:
 
     - Dataset contains all supported DEX trade across supported blockchains
 
-    - Based on events
+    - Based on emitted Solidity events
 
     - Data can be cross-referenced to blockchain transactions and log indexed
 
