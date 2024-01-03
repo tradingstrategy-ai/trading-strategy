@@ -369,12 +369,12 @@ class BinanceDownloader:
                 raise BinanceDataFetchError(
                     f"No data found for {asset_symbol} between {start_at} and {end_at}. Check your symbol matches with valid symbols in method description. \nResponse: {response.status_code} {response.text}"
                 )
-
+        
         dates = []
         interest_rates = []
         for data in response_data:
             dates.append(pd.to_datetime(data["timestamp"], unit="ms"))
-            interest_rates.append(float(data["dailyInterestRate"]))
+            interest_rates.append(float(data["dailyInterestRate"]) * 100 * 365) # convert daily to annual and multiply by 100
 
         unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
 
@@ -563,6 +563,7 @@ class BinanceDownloader:
                     "reserve_id": reserve_id,
                     "lending_data": lending_data_for_asset,
                     "supply_data": supply_data_for_asset,
+                    "asset_symbol": asset_symbol,
                 }
             )
 

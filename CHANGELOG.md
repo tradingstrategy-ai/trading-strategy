@@ -1,3 +1,7 @@
+# 0.22.7
+
+- Fix for Binance lending data, change daily rates to annual
+
 # 0.22.6
 
 - Add `PairNotFound(description)` to have better error messages on pair look-up failures

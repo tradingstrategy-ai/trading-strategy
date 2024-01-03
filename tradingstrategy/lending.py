@@ -863,6 +863,7 @@ def convert_interest_rates_to_lending_candle_type_map(*args) -> Dict[LendingCand
         1. reserve_id: reserve id
         2. lending_data: pandas Series of lending rates
         3. supply_data: pandas Series of suppy rates
+        4. asset_symbol: symbol of the asset
 
         Note that lending_data and supply_data should start and end at the same dates.
 
@@ -871,11 +872,12 @@ def convert_interest_rates_to_lending_candle_type_map(*args) -> Dict[LendingCand
 
     data = []
     for dictionary in args:
-        assert set(dictionary.keys()) == {"reserve_id", "lending_data", "supply_data"}
+        assert set(dictionary.keys()) == {"reserve_id", "lending_data", "supply_data", "asset_symbol"}
 
         reserve_id = dictionary["reserve_id"]
         _lending_data = dictionary["lending_data"]
         _supply_data = dictionary["supply_data"]
+        asset_symbol = dictionary["asset_symbol"]
 
         assert isinstance(reserve_id, int), "reserve_id must be an integer"
         assert type(_lending_data) == type(_supply_data) == pd.Series, "Lending data and supply data must be pandas Series"
@@ -883,7 +885,7 @@ def convert_interest_rates_to_lending_candle_type_map(*args) -> Dict[LendingCand
         assert isinstance(_lending_data.index, pd.DatetimeIndex), "Index must be a DatetimeIndex"
         assert _lending_data.index.equals(_supply_data.index), "Lending data and supply data must have the same index"
 
-        data.extend(zip(dictionary["lending_data"], dictionary["supply_data"], [reserve_id] * len(_lending_data), _lending_data.index))
+        data.extend(zip(_lending_data, _supply_data, [reserve_id] * len(_lending_data), _lending_data.index, [asset_symbol] * len(_lending_data)))
 
     lending_candle_type_map = {
         LendingCandleType.variable_borrow_apr: pd.DataFrame({
@@ -893,6 +895,7 @@ def convert_interest_rates_to_lending_candle_type_map(*args) -> Dict[LendingCand
             "low": [_data[0] for _data in data],
             "timestamp": [_data[3] for _data in data],
             "reserve_id": [_data[2] for _data in data],
+            "asset_symbol": [_data[4] for _data in data],
         }),
         LendingCandleType.supply_apr: pd.DataFrame({
             "open": [_data[1] for _data in data],
@@ -901,6 +904,7 @@ def convert_interest_rates_to_lending_candle_type_map(*args) -> Dict[LendingCand
             "low": [_data[1] for _data in data],
             "timestamp": [_data[3] for _data in data],
             "reserve_id": [_data[2] for _data in data],
+            "asset_symbol": [_data[4] for _data in data],
         }),
     }
 
