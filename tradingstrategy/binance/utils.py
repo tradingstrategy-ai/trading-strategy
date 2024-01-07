@@ -29,13 +29,14 @@ from tradingstrategy.pair import DEXPair
 
 def generate_pairs_for_binance(
     symbols: list[str],
+    fee: float,
 ) -> list[DEXPair]:
     """Generate trading pair identifiers for Binance data.
 
     :param symbols: List of symbols to generate pairs for
     :return: List of trading pair identifiers
     """
-    return [generate_pair_for_binance(symbol) for symbol in symbols]
+    return [generate_pair_for_binance(symbol, fee) for symbol in symbols]
 
 
 def generate_pair_for_binance(
