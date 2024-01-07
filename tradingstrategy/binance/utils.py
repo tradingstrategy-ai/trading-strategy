@@ -29,7 +29,7 @@ from tradingstrategy.pair import DEXPair
 
 def generate_pairs_for_binance(
     symbols: list[str],
-    fee: float,
+    fee: float = BINANCE_FEE,
 ) -> list[DEXPair]:
     """Generate trading pair identifiers for Binance data.
 
