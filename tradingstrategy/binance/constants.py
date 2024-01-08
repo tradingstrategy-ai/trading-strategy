@@ -1,3 +1,4 @@
+from typing import Tuple
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
 from tradingstrategy.utils.format import string_to_eth_address
@@ -15,7 +16,7 @@ BINANCE_SUPPORTED_QUOTE_TOKENS = ("USDT", "BUSD", "USDC")
 DAYS_IN_YEAR = 365
 
 
-def split_binance_symbol(symbol) -> tuple(str, str):
+def split_binance_symbol(symbol) -> Tuple[str, str]:
     """Split a binance symbol into a base and quote token.
 
     :param s: E.g. `ETHUSDT`
