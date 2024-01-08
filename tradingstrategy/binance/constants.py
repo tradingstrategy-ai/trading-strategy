@@ -12,8 +12,10 @@ BINANCE_FEE = 0.0005  # TODO: get correct fee
 
 BINANCE_SUPPORTED_QUOTE_TOKENS = ("USDT", "BUSD", "USDC")
 
+DAYS_IN_YEAR = 365
 
-def split_binance_symbol(symbol) -> (str, str):
+
+def split_binance_symbol(symbol) -> tuple(str, str):
     """Split a binance symbol into a base and quote token.
 
     :param s: E.g. `ETHUSDT`
