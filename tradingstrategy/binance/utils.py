@@ -34,7 +34,7 @@ def generate_pairs_for_binance(
     """Generate trading pair identifiers for Binance data.
 
     :param symbols: List of symbols to generate pairs for
-    :param fee: fee for the trading pairs in float form
+    :param fee: fee override for the trading pairs in float form, to make trading cost the same as DEX
     :return: List of trading pair identifiers
     """
     return [generate_pair_for_binance(symbol, fee) for symbol in symbols]
