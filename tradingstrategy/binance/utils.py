@@ -34,6 +34,7 @@ def generate_pairs_for_binance(
     """Generate trading pair identifiers for Binance data.
 
     :param symbols: List of symbols to generate pairs for
+    :param fee: fee for the trading pairs in float form
     :return: List of trading pair identifiers
     """
     return [generate_pair_for_binance(symbol, fee) for symbol in symbols]
@@ -54,6 +55,9 @@ def generate_pair_for_binance(
 
 
     :param symbol: E.g. `ETHUSDT`
+    :param fee: fee for the pair in float form
+    :param base_token_decimals: decimals for the base token
+    :param quote_token_decimals: decimals for the quote token
     :return: Trading pair identifier
     """
     assert 0 < fee < 1, f"Bad fee {fee}. Must be 0..1"
