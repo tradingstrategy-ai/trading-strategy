@@ -27,7 +27,7 @@ from tradingstrategy.lending import (
 )
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.lending import convert_interest_rates_to_lending_candle_type_map
-from tradingstrategy.binance.constants import BINANCE_SUPPORTED_QUOTE_TOKENS, split_binance_symbol
+from tradingstrategy.binance.constants import BINANCE_SUPPORTED_QUOTE_TOKENS, split_binance_symbol, DAYS_IN_YEAR
 
 
 logger = logging.getLogger(__name__)
@@ -374,7 +374,7 @@ class BinanceDownloader:
         interest_rates = []
         for data in response_data:
             dates.append(pd.to_datetime(data["timestamp"], unit="ms"))
-            interest_rates.append(float(data["dailyInterestRate"]) * 100 * 365) # convert daily to annual and multiply by 100
+            interest_rates.append(float(data["dailyInterestRate"]) * 100 * DAYS_IN_YEAR) # convert daily to annual and multiply by 100
 
         unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
 

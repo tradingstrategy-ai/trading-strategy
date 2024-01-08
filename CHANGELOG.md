@@ -1,3 +1,7 @@
+# 0.22.8
+
+- Add fee argument to `generate_pairs_for_binance()`
+
 # 0.22.7
 
 - Fix for Binance lending data, change daily rates to annual
