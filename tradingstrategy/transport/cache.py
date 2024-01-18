@@ -419,6 +419,17 @@ class CachedHTTPTransport:
             self.save_response(path, "liquidity-all", params={"bucket": bucket.value}, human_readable_hint=f"Downloading liquidity data for {bucket.value} time bucket")
             return self.get_cached_item(path)
 
+    def fetch_all_trades() -> pathlib.Path:
+        fname = f"uniswap-trades.parquet"
+        path = self.get_cached_file_path(fname)
+
+        with wait_other_writers(path):
+            cached = self.get_cached_item(fname)
+            if cached:
+                return cached
+            self.save_response(path, "uniswap-trades", human_readable_hint=f"Downloading Uniswap trades")
+            return self.get_cached_item(path)
+
     def fetch_lending_reserves_all_time(self) -> pathlib.Path:
         fname = "lending-reserves-all.parquet"
 

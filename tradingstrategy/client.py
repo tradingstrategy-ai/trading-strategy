@@ -327,9 +327,27 @@ class Client(BaseClient):
 
         Do not attempt to decode the Parquet file to the memory,
         but instead of return raw
+
+        :return:
+            A locally downloaded and Cached Parquet file
         """
         path = self.transport.fetch_candles_all_time(bucket)
         return path
+    
+    def fetch_trades_dataset(self, bucket: TimeBucket) -> Path:
+        """Fetch all trades dataset.
+
+        .. warning ::
+            
+            This file will be a hundred gigabytes or so.
+
+        :return:
+            A locally downloaded and Cached Parquet file
+
+        """
+        path = self.transport.fetch_all_trades()
+        return path
+        
     
     def fetch_lending_candles_by_reserve_id(
         self,
