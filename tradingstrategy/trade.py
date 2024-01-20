@@ -1,8 +1,14 @@
 """Individual DEX trade data."""
 import datetime
+from collections import Counter
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Collection
 
 import pyarrow as pa
+import pyarrow.dataset as ds
+import pyarrow.parquet as pq
+import pyarrow.compute as pc
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.types import PrimaryKey, BlockNumber
@@ -119,5 +125,86 @@ class Trade:
             ("sender_address", pa.binary(20)),
             ("exchange_id", pa.uint32()),
         ])
+
+    @staticmethod
+    def get_partitioning() -> :
+        part = ds.partitioning(
+            pa.schema([("c", pa.int16())]), flavor="hive"
+        )
+        return
+
+
+def _extract_chain_trades(source: Path, target: Path):
+    """Read all trades of the chain to a memory, sort them out."""
+
+    chain_table = pa.table(schema=Trade.to_pyarrow_schema())
+
+
+def split_trades_parquet(
+    source: Path,
+    destination_folder: Path,
+    chains: Collection[ChainId] = {ChainId.arbitrum, ChainId.polygon, ChainId.bsc, ChainId.ethereum, ChainId.avalanche},
+):
+    """Preprocess the large monolithic trades dataset to more useable parts.
+
+    - The monolithic Parquet file is ~100 GB, and most computers cannot process this in RAM.
+
+    - Create a Parquet dataset that is sharded by a chain and more processable
+    """
+
+    assert source.is_file()
+    assert destination_folder.is_dir(), f"Not a direction: {destination_folder}"
+
+    for chain in chains:
+        destination = destination_folder / f"trades-{chain.get_slug()}.parquet"
+        _extract_chain_trades(source, destination)
+
+
+def extract_unit_test_sample(
+    source: Path,
+    destination: Path,
+    max_batches_per_chain=8,
+    chains: Collection[ChainId] = {ChainId.arbitrum, ChainId.polygon},
+):
+    """Extract some data from the large trades file for unit testing.
+
+    Then the unit testing sample is then stored with the source tree.
+
+    :param source:
+        uniswap-trades.parquet.
+
+        The large 100 GB version.
+
+    :param destination:
+        unit-test-uniswap-trades.parquet
+
+        Few megabytes version.
+    """
+
+    batches_per_chain = Counter[ChainId]()
+    out = pq.ParquetWriter(
+        destination,
+        compression="zstd"
+    )
+    inp = pq.ParquetFile(source)
+    for batch in inp.iter_batches():
+        matched = False
+        for chain in chains:
+            if pc.any(pc.equal(batch["chain_id"], chain.value)):
+                if batches_per_chain[chain] < max_batches_per_chain:
+                    matched = True
+                    batches_per_chain[chain] += 1
+
+        if matched:
+            out.write(batch)
+
+    out.close()
+
+
+
+
+
+
+
 
 
