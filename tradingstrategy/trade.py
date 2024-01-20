@@ -184,6 +184,7 @@ def extract_unit_test_sample(
     batches_per_chain = Counter[ChainId]()
     out = pq.ParquetWriter(
         destination,
+        schema=Trade.to_pyarrow_schema(),
         compression="zstd"
     )
     inp = pq.ParquetFile(source)
