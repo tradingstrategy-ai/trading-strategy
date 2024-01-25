@@ -68,6 +68,7 @@ class PairGroupedUniverse:
                  index_automatically=True,
                  fix_wick_threshold: tuple | None = (0.1, 1.9),
                  primary_key_column="pair_id",
+                 remove_zero_candles: bool = True,
                  ):
         """Set up new candle universe where data is grouped by trading pair.
 
@@ -95,6 +96,9 @@ class PairGroupedUniverse:
 
         :param primary_key_column:
             The pair/reserve id column name in the dataframe.
+            
+        :param remove_zero_candles:
+            Remove candles with zero values for OHLC
         """
         self.index_automatically = index_automatically
         assert isinstance(df, pd.DataFrame)
@@ -111,7 +115,10 @@ class PairGroupedUniverse:
 
         if fix_wick_threshold:
             self.df = fix_bad_wicks(self.df, fix_wick_threshold)
-
+            
+        if remove_zero_candles:
+            self.df = remove_zero_candles(self.df)
+        
         self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
 
         self.timestamp_column = timestamp_column
