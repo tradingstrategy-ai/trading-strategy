@@ -63,12 +63,12 @@ class PairGroupedUniverse:
 
     def __init__(self,
                  df: pd.DataFrame,
-                 time_bucket=TimeBucket.d1,
-                 timestamp_column="timestamp",
-                 index_automatically=True,
+                 time_bucket:TimeBucket=TimeBucket.d1,
+                 timestamp_column:str="timestamp",
+                 index_automatically:bool=True,
                  fix_wick_threshold: tuple | None = (0.1, 1.9),
-                 primary_key_column="pair_id",
-                 remove_zero_candles: bool = True,
+                 primary_key_column:str="pair_id",
+                 remove_candles_with_zero:bool=True,
                  ):
         """Set up new candle universe where data is grouped by trading pair.
 
@@ -116,7 +116,7 @@ class PairGroupedUniverse:
         if fix_wick_threshold:
             self.df = fix_bad_wicks(self.df, fix_wick_threshold)
             
-        if remove_zero_candles:
+        if remove_candles_with_zero:
             self.df = remove_zero_candles(self.df)
         
         self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
