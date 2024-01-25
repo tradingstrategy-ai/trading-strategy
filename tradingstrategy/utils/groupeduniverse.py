@@ -891,5 +891,5 @@ def remove_zero_candles(
     :param df: Dataframe that may contain zero candles
     :return: pd.Dataframe
     """
-    filtered_df = df[(df['Open'] != 0) & (df['High'] != 0) & (df['Low'] != 0) & (df['Close'] != 0)]
+    filtered_df = df[(df['open'] != 0) & (df['high'] != 0) & (df['low'] != 0) & (df['close'] != 0)]
     return filtered_df

@@ -71,10 +71,10 @@ def test_filter_wick():
 def test_remove_zero_candles():
     data = {
         'Date': ['2021-01-01', '2021-01-02', '2021-01-03', '2021-01-04'],
-        'Open': [100, 0, 105, 99],
-        'High': [110, 115, 0, 100],
-        'Low': [95, 0, 100, 95],
-        'Close': [105, 110, 0, 96],
+        'open': [100, 0, 105, 99],
+        'high': [110, 115, 0, 100],
+        'low': [95, 0, 100, 95],
+        'close': [105, 110, 0, 96],
     }
     
     df = pd.DataFrame(data).set_index('Date')
@@ -86,10 +86,10 @@ def test_remove_zero_candles():
     _new_df = pd.DataFrame(
         data = {
             'Date': ['2021-01-01', '2021-01-04'],
-            'Open': [100, 99],
-            'High': [110, 100],
-            'Low': [95, 95],
-            'Close': [105, 96],
+            'open': [100, 99],
+            'high': [110, 100],
+            'low': [95, 95],
+            'close': [105, 96],
         },
     ).set_index('Date')
     
