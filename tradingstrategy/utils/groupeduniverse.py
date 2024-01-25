@@ -875,3 +875,14 @@ def filter_bad_wicks(df: pd.DataFrame, threshold=(0.1, 1.9)) -> pd.DataFrame:
     ]
 
     return df_matches
+
+def remove_zero_candles(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Remove any candle that has a zero value for OHLC
+    
+    :param df: Dataframe that may contain zero candles
+    :return: pd.Dataframe
+    """
+    filtered_df = df[(df['Open'] != 0) & (df['High'] != 0) & (df['Low'] != 0) & (df['Close'] != 0)]
+    return filtered_df
