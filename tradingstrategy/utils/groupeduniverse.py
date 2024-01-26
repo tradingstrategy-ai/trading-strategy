@@ -63,11 +63,12 @@ class PairGroupedUniverse:
 
     def __init__(self,
                  df: pd.DataFrame,
-                 time_bucket=TimeBucket.d1,
-                 timestamp_column="timestamp",
-                 index_automatically=True,
+                 time_bucket:TimeBucket=TimeBucket.d1,
+                 timestamp_column:str="timestamp",
+                 index_automatically:bool=True,
                  fix_wick_threshold: tuple | None = (0.1, 1.9),
-                 primary_key_column="pair_id",
+                 primary_key_column:str="pair_id",
+                 remove_candles_with_zero:bool=True,
                  ):
         """Set up new candle universe where data is grouped by trading pair.
 
@@ -95,6 +96,9 @@ class PairGroupedUniverse:
 
         :param primary_key_column:
             The pair/reserve id column name in the dataframe.
+            
+        :param remove_zero_candles:
+            Remove candles with zero values for OHLC
         """
         self.index_automatically = index_automatically
         assert isinstance(df, pd.DataFrame)
@@ -111,7 +115,10 @@ class PairGroupedUniverse:
 
         if fix_wick_threshold:
             self.df = fix_bad_wicks(self.df, fix_wick_threshold)
-
+            
+        if remove_candles_with_zero:
+            self.df = remove_zero_candles(self.df)
+        
         self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
 
         self.timestamp_column = timestamp_column
@@ -875,3 +882,14 @@ def filter_bad_wicks(df: pd.DataFrame, threshold=(0.1, 1.9)) -> pd.DataFrame:
     ]
 
     return df_matches
+
+def remove_zero_candles(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Remove any candle that has a zero value for OHLC
+    
+    :param df: Dataframe that may contain zero candles
+    :return: pd.Dataframe
+    """
+    filtered_df = df[(df['open'] != 0) & (df['high'] != 0) & (df['low'] != 0) & (df['close'] != 0)]
+    return filtered_df

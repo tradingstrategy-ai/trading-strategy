@@ -1,3 +1,7 @@
+# 0.22.9
+
+- Add `remove_zero_candles()` function
+
 # 0.22.8
 
 - Add fee argument to `generate_pairs_for_binance()`

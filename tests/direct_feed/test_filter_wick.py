@@ -8,7 +8,7 @@ from tradingstrategy.direct_feed.candle_feed import CandleFeed, prepare_raw_cand
 from eth_defi.event_reader.reorganisation_monitor import MockChainAndReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.timeframe import Timeframe
-from tradingstrategy.utils.groupeduniverse import filter_bad_wicks, fix_bad_wicks
+from tradingstrategy.utils.groupeduniverse import filter_bad_wicks, fix_bad_wicks, remove_zero_candles
 
 
 def test_filter_wick():
@@ -66,3 +66,31 @@ def test_filter_wick():
     wicked = filter_bad_wicks(candles)
     assert len(wicked) == 0
     assert len(candles) == 201
+
+
+def test_remove_zero_candles():
+    data = {
+        'Date': ['2021-01-01', '2021-01-02', '2021-01-03', '2021-01-04'],
+        'open': [100, 0, 105, 99],
+        'high': [110, 115, 0, 100],
+        'low': [95, 0, 100, 95],
+        'close': [105, 110, 0, 96],
+    }
+    
+    df = pd.DataFrame(data).set_index('Date')
+    assert len(df) == 4
+
+    new_df = remove_zero_candles(df)
+    assert len(new_df) == 2
+    
+    _new_df = pd.DataFrame(
+        data = {
+            'Date': ['2021-01-01', '2021-01-04'],
+            'open': [100, 99],
+            'high': [110, 100],
+            'low': [95, 95],
+            'close': [105, 96],
+        },
+    ).set_index('Date')
+    
+    assert new_df.equals(_new_df)
