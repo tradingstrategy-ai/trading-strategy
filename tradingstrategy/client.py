@@ -26,7 +26,7 @@ from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.jupyter import is_pyodide
-from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType
+from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType, LendingCandleResult
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
 from tqdm import TqdmExperimentalWarning
@@ -381,7 +381,7 @@ class Client(BaseClient):
         end_time: datetime.datetime | pd.Timestamp = None,
         construct_timestamp_column=True,
         progress_bar_description: str | None=None,
-    ) -> Dict[LendingCandleType, pd.DataFrame]:
+    ) -> LendingCandleResult:
         """Load lending reservers for several assets as once.
 
         - Display a progress bar during download

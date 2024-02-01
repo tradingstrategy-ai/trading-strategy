@@ -139,7 +139,11 @@ class PairGroupedUniverse:
         return len(self.df)
 
     def get_pair_count(self) -> int:
-        """Return the number of pairs in this dataset"""
+        """Return the number of pairs in this dataset.
+
+        TODO: Rename. Also used by lending reserves, and this then
+        refers to count of reserves, not pairs.
+        """
         return len(self.pairs.groups)
 
     def get_samples_by_pair(self, pair_id: PrimaryKey) -> pd.DataFrame:

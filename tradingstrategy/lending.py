@@ -48,6 +48,17 @@ class NoLendingData(Exception):
     """
 
 
+#: Server results multiple lending candles at a single fetch.
+#:
+#: Unlike price candles, with only single type,  we have OHLC columns
+#: for different ypes of candles.
+#:
+#: These lending candles are not in the same data frame,
+#: but split by the type.
+#:
+LendingCandleResult: TypeAlias = Dict[LendingCandleType, pd.DataFrame]
+
+
 @dataclass_json
 @dataclass
 class LendingReserveAdditionalDetails:
@@ -493,7 +504,10 @@ class LendingCandle:
 
     @classmethod
     def convert_web_candles_to_dataframe(cls, web_candles: list[dict]) -> pd.DataFrame:
-        """Return Pandas dataframe presenting candle data."""
+        """Return Pandas dataframe presenting candle data.
+
+        Convert JSONL data to Pandas.
+        """
 
         df = pd.DataFrame(web_candles)
         df = df.rename(columns={
@@ -539,7 +553,7 @@ class LendingMetricUniverse(PairGroupedUniverse):
     def __init__(self, df: pd.DataFrame, reserves: LendingReserveUniverse):
         """
         :param df:
-            Output from client lending reserve dat aload
+            Output from client lending reserve data
 
         :param reserves:
             Map of reserve metadata that helps us to resolve symbolic information.
@@ -824,7 +838,7 @@ class LendingCandleUniverse:
     variable_borrow_apr: LendingMetricUniverse | None = None
     supply_apr: LendingMetricUniverse | None = None
 
-    def __init__(self, candle_type_dfs: Dict[LendingCandleType, pd.DataFrame], lending_reserve_universe: LendingReserveUniverse):
+    def __init__(self, candle_type_dfs: LendingCandleResult, lending_reserve_universe: LendingReserveUniverse):
         """Create the lending candles universe.
 
         :param candle_type_dfs:
