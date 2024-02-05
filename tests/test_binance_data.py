@@ -365,3 +365,22 @@ def test_generate_lending_reserve():
         "ETH", "0x4b2d72c1cb89c0b2b320c43bb67ff79f562f5ff4", 1
     )
     assert reserve.chain_id == ChainId.centralised_exchange
+
+
+def test_fetch_binance_price_data_multipair():
+    """Check that pair data for multipair looks correct.
+
+    - Download both BTC and ETH data and check it looks sane
+    """
+
+    downloader = BinanceDownloader()
+    df = downloader.fetch_candlestick_data(
+        ["BTCUSDT", "ETHUSDT"],
+        TimeBucket.d1,
+        datetime.datetime(2020, 1, 1),
+        datetime.datetime(2021, 1, 1),
+    )
+
+    # Recorded 2/2024
+    assert df.iloc[0].to_json() == '{"open":7195.24,"high":7255.0,"low":7175.15,"close":7200.85,"volume":16792.388165,"pair_id":"BTCUSDT"}'
+    assert df.iloc[-1].to_json() == '{"open":2281.87,"high":2352.37,"low":2265.24,"close":2352.04,"volume":216702.6914,"pair_id":"ETHUSDT"}'

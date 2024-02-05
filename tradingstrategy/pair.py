@@ -431,13 +431,14 @@ class DEXPair:
             return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name} on {chain_name}>"
         else:
             # Centralised exchange side loaded data
-            return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name}>"
+            return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} at exchange {exchange_name}>"
 
     def __eq__(self, other: "DEXPair"):
         """Trade positions are unique by opening timestamp and pair id.]
 
         We assume there cannot be a position opened for the same asset at the same time twice.
         """
+        assert self.pair_id is not None
         return self.pair_id == other.pair_id
 
     def __hash__(self):
