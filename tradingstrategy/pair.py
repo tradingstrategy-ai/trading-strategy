@@ -425,9 +425,13 @@ class DEXPair:
     exchange_name: Optional[str] = None
 
     def __repr__(self):
-        chain_name = self.chain_id.get_slug()
         exchange_name = self.exchange_name if self.exchange_name else f"{self.exchange_id}"
-        return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name} on {chain_name}>"
+        if self.chain_id not in (ChainId.unknown, ChainId.centralised_exchange):
+            chain_name = self.chain_id.get_slug()
+            return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name} on {chain_name}>"
+        else:
+            # Centralised exchange side loaded data
+            return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name}>"
 
     def __eq__(self, other: "DEXPair"):
         """Trade positions are unique by opening timestamp and pair id.]

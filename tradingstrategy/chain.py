@@ -156,6 +156,12 @@ class ChainId(enum.IntEnum):
     #: Chain id not known
     unknown = 0
 
+    #: Special chain id set for side-loaded data.
+    #:
+    #: Symbolise this data is from a centralised exchange.
+    #:
+    centralised_exchange = -1
+
     #: Osmosis on Cosmos
     #: Does not have chain registry entry,
     #: beacuse Cosmos maintains its own registry
@@ -333,6 +339,18 @@ _CHAIN_DATA_OVERRIDES = {
         "active": False,
         "dataless": True,
     },
+
+    #
+    # Centralised exchange placeholder
+    #
+    ChainId.centralised_exchange.value: {
+        "name": "Centralised exchange",
+        "slug": "centralised-exchange",
+        "svg_icon": None,
+        "active": False,
+        "dataless": True,
+    },
+
 
 }
 
