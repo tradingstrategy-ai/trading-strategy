@@ -367,6 +367,7 @@ def test_generate_lending_reserve():
     assert reserve.chain_id == ChainId.centralised_exchange
 
 
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Github US servers are blocked by Binance with HTTP 451")
 def test_fetch_binance_price_data_multipair():
     """Check that pair data for multipair looks correct.
 
