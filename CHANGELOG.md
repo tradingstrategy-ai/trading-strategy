@@ -1,6 +1,8 @@
 # 0.22.9
 
 - Add `remove_zero_candles()` function
+- Add `DEXPair.exchange_name` is set if `PandasPairUniverse(exchange_universe)` is given
+- Add `ChainId.centralised_exchange = -1` id that is used now for Binance loaded data
 
 # 0.22.8
 

@@ -3,7 +3,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
 from tradingstrategy.utils.format import string_to_eth_address
 
-BINANCE_CHAIN_ID = ChainId.unknown
+BINANCE_CHAIN_ID = ChainId.centralised_exchange
 BINANCE_CHAIN_SLUG = ChainId(BINANCE_CHAIN_ID)
 BINANCE_EXCHANGE_ADDRESS = string_to_eth_address("binance")
 BINANCE_EXCHANGE_SLUG = "binance"
