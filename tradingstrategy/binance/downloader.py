@@ -38,7 +38,10 @@ class BinanceDataFetchError(ValueError):
 
 
 class BinanceDownloader:
-    """Class for downloading Binance candlestick OHLCV data."""
+    """Class for downloading Binance candlestick OHLCV data.
+
+    Cache loaded data locally, so that subsequent runs do not refetch the data from Binance.
+    """
 
     def __init__(self, cache_directory: Path = Path("/tmp/binance_data")):
         """Initialize BinanceCandleDownloader and create folder for cached data if it does not exist."""
@@ -56,7 +59,10 @@ class BinanceDownloader:
     ) -> pd.DataFrame:
         """Get clean candlestick price and volume data from Binance. If saved, use saved version, else create saved version.
 
-        Note, if you want to use this data in our framework, you will need to add informational columns to the dataframe and overwrite it. See code below.
+        Download is cached.
+
+        .. note ::
+            If you want to use this data in our framework, you will need to add informational columns to the dataframe and overwrite it. See code below.
 
         .. code-block:: python
             symbol = "ETHUSDT"
@@ -119,7 +125,12 @@ class BinanceDownloader:
     ) -> pd.DataFrame:
         """Fetch candlestick data for a single pair.
 
+        Downlad is cached.
+
         Using this function directly will not include progress bars. Use `fetch_candlestick_data` instead.
+
+        :param force_download:
+            Ignore cache
         """
         if not force_download:
             try:
