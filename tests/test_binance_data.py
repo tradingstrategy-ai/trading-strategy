@@ -364,4 +364,4 @@ def test_generate_lending_reserve():
     reserve = generate_lending_reserve_for_binance(
         "ETH", "0x4b2d72c1cb89c0b2b320c43bb67ff79f562f5ff4", 1
     )
-    assert reserve.chain_id == ChainId.unknown
+    assert reserve.chain_id == ChainId.centralised_exchange
