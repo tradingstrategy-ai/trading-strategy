@@ -603,7 +603,11 @@ class BinanceDownloader:
         """
 
         # https://binance-docs.github.io/apidocs/spot/en/#exchange-information
-        resp = requests.get(f"https://{self.api_server}/api/v3/exchangeInfo")
+        url = f"https://{self.api_server}/api/v3/exchangeInfo"
+        resp = requests.get(url)
+
+        assert resp.status_code == 200, f"Binance URL {url} replied:\n{resp.status_code}: {resp.text}"
+
         data = resp.json()
 
         assert "symbols" in data, f"exchangeInfo did not contain symbols. Resp: {resp.status_code}. Keys: {data.keys()}"
