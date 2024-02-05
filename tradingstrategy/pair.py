@@ -418,9 +418,16 @@ class DEXPair:
     #: See :ref:`token-tax` for details.
     sell_tax: Optional[float] = None
 
+    #: Exchange name.
+    #:
+    #: Not part of the datasets. Added during the instance construction.
+    #:
+    exchange_name: Optional[str] = None
+
     def __repr__(self):
         chain_name = self.chain_id.get_slug()
-        return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange #{self.exchange_id} on {chain_name}>"
+        exchange_name = self.exchange_name if self.exchange_name else f"{self.exchange_id}"
+        return f"<Pair #{self.pair_id} {self.base_token_symbol} - {self.quote_token_symbol} ({self.address}) at exchange {exchange_name} on {chain_name}>"
 
     def __eq__(self, other: "DEXPair"):
         """Trade positions are unique by opening timestamp and pair id.]
@@ -827,7 +834,7 @@ class PandasPairUniverse:
                 # as we do not know what pairs a strategy might access.
                 data = self.pair_map.get(pair_id)
 
-                obj = _convert_to_dex_pair(data)
+                obj = _convert_to_dex_pair(data, self.exchange_universe)
 
                 self.dex_pair_obj_cache[pair_id] = obj
             return obj
@@ -844,7 +851,7 @@ class PandasPairUniverse:
 
         if len(pairs) == 1:
             data = next(iter(pairs.to_dict("index").values()))
-            obj = _convert_to_dex_pair(data)
+            obj = _convert_to_dex_pair(data, self.exchange_universe)
             return obj
 
         raise PairNotFoundError(pair_id=pair_id)
@@ -1014,7 +1021,7 @@ class PandasPairUniverse:
         data = next(iter(self.pair_map.values()))
 
         # See https://github.com/tradingstrategy-ai/trading-strategy/issues/104
-        obj =_convert_to_dex_pair(data)
+        obj =_convert_to_dex_pair(data, self.exchange_universe)
         self.single_pair_cache = obj
         return self.single_pair_cache
 
@@ -1164,11 +1171,11 @@ class PandasPairUniverse:
             # Sort by trade volume and pick the highest one
             pairs = pairs.sort_values(by=["fee", "buy_volume_all_time"], ascending=[True, False])
             data = next(iter(pairs.to_dict("index").values()))
-            return _convert_to_dex_pair(data)
+            return _convert_to_dex_pair(data, self.exchange_universe)
 
         if len(pairs) == 1:
             data = next(iter(pairs.to_dict("index").values()))
-            return _convert_to_dex_pair(data)
+            return _convert_to_dex_pair(data, self.exchange_universe)
 
         raise PairNotFoundError(base_token=base_token, quote_token=quote_token, fee_tier=fee_tier, exchange_id=exchange_id)
 
@@ -2237,16 +2244,31 @@ def _preprocess_loaded_pair_data(data: dict) -> dict:
     return result
 
 
-def _convert_to_dex_pair(data: dict) -> DEXPair:
+def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=None) -> DEXPair:
     """Convert trading pai0r data from dict to object.
 
     - Correctly handle serialisation quirks
 
     - Give user friendly error reports
+
+    :param exchange_universe:
+        If given assign exchange labels on the trading pairs.
+
+    :return:
+        Constructed DEXPair instance
     """
+
+    exchange_name = None
+    if exchange_universe is not None:
+        exchange_id = data["exchange_id"]
+        exchange = exchange_universe.get_by_id(exchange_id)
+        if exchange is not None:
+            exchange_name = exchange.exchange_slug
+
     data = _preprocess_loaded_pair_data(data)
     try:
         obj = DEXPair.from_dict(data)
+        obj.exchange_name = exchange_name
     except Exception as e:
         pretty = pprint.pformat(data)
         raise DataDecodeFailed(f"Could not decode trading pair data:\n{pretty}") from e
