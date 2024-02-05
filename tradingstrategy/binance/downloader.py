@@ -606,6 +606,7 @@ class BinanceDownloader:
         url = f"https://{self.api_server}/api/v3/exchangeInfo"
         resp = requests.get(url)
 
+        # HTTP 451 Unavailable For Legal Reasons
         assert resp.status_code == 200, f"Binance URL {url} replied:\n{resp.status_code}: {resp.text}"
 
         data = resp.json()
