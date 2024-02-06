@@ -1,4 +1,6 @@
 import datetime
+import tempfile
+
 import pytest
 import pandas as pd
 import os
@@ -234,27 +236,34 @@ def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
     assert df.isna().values.any() == False
 
 
-def test_purge_cache(candle_downloader: BinanceDownloader):
+def test_purge_cache():
     """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
 
-    Checks that deleting cached data works correctly.
+    - Checks that deleting cached data works correctly.
+    - Must run in its isolated directory so that it does not delete data from other tests
     """
-    candle_path = candle_downloader.get_parquet_path(
-        CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
-    )
-    assert candle_path.exists() == True
-    candle_downloader.purge_cached_file(path=candle_path)
-    assert candle_path.exists() == False
 
-    lending_path = candle_downloader.get_parquet_path(
-        LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
-    )
-    assert lending_path.exists() == True
-    candle_downloader.purge_cached_file(path=lending_path)
-    assert lending_path.exists() == False
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        candle_downloader = BinanceDownloader(Path(tmpdirname))
 
-    candle_downloader.purge_all_cached_data()
-    assert len(list(candle_downloader.cache_directory.iterdir())) == 0
+        candle_path = candle_downloader.get_parquet_path(
+            CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
+        )
+        candle_path.open("wt").write("foo")
+        assert candle_path.exists() == True, f"Did not exist {candle_path}"
+        candle_downloader.purge_cached_file(path=candle_path)
+        assert candle_path.exists() == False
+
+        lending_path = candle_downloader.get_parquet_path(
+            LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
+        )
+        lending_path.open("wt").write("foo")
+        assert lending_path.exists() == True, f"Did not exist: {lending_path}"
+        candle_downloader.purge_cached_file(path=lending_path)
+        assert lending_path.exists() == False
+
+        candle_downloader.purge_all_cached_data()
+        assert len(list(candle_downloader.cache_directory.iterdir())) == 0
 
 
 @pytest.mark.skipif(
