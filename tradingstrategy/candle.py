@@ -311,15 +311,34 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """Return the dataset size - how many candles total"""
         return self.get_sample_count()
 
-    def get_candles_by_pair(self, pair: "PrimaryKey | tradingstrategy.pair.DEXPair") -> Optional[pd.DataFrame]:
-        """Get candles for a single pair.
+    def get_candles_by_pair(
+            self,
+            pair: "PrimaryKey | tradingstrategy.pair.DEXPair"
+    ) -> Optional[pd.DataFrame]:
+        """Get all price candles for a single trading pair.
+
+        Example in a trading strategy that uses multiple pairs:
+
+        .. code-block:: python
+
+            pair_description = (ChainId.centralised_exchange, "binance", "BTC", "USDT")
+            pair = strategy_universe.data_universe.pairs.get_by_human_description(pair_description)
+            candles_df = strategy_universe.data_universe.candles.get_candles_by_pair(pair)
+
+            first_close = candles_df.iloc[0]["close"]
+            first_close_at = candles_df.index[0]
+            print(f"Pair {pair} first close price {first_close} at {first_close_at}")
+
+        This method returns candles data and not timestamp cropped like :py:meth:`get_closest_price`,
+        which is more suited for strategy decision cycle like workflows.
 
         :param pair:
-            Pair internal id or ``DEXPair`` instance of a trading pair.
+            Trading pair internal id or `DEXPair` instance
 
         :return:
             Pandas dataframe object with the following columns.
 
+            Pandas DataFrame generated with :py:class:`pandas.core.groupby.DataFrameGroupBy`.
             Return ``None`` if there is no candle data for this ``pair_id``.
 
             - timestamp
@@ -337,6 +356,8 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             pair_id = pair.pair_id
         else:
             pair_id = pair
+
+        assert type(pair_id) == int
 
         if pair_id not in self.candles_cache:
             try:

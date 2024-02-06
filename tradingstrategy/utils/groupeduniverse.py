@@ -164,13 +164,17 @@ class PairGroupedUniverse:
         return pair
 
     def get_last_entries_by_pair_and_timestamp(self,
-            pair_id: PrimaryKey,
+            pair: DEXPair | PrimaryKey,
             timestamp: pd.Timestamp,
             small_time=pd.Timedelta(seconds=1),
         ) -> pd.DataFrame:
         """Get samples for a single pair before a timestamp.
 
         Return a DataFrame slice containing all datapoints before the timestamp.
+
+        We assume `timestamp` is current decision frame.
+        E.g. for daily close data return the previous day close
+        to prevent any lookahead bias.
 
         :param pair_id:
             Integer id for a trading pair
@@ -186,6 +190,12 @@ class PairGroupedUniverse:
         :raise KeyError:
             If we do not have data for pair_id
         """
+
+        if isinstance(pair, DEXPair):
+            pair_id = pair.pair_id
+        else:
+            pair_id = pair
+
         pair_candles = self.get_samples_by_pair(pair_id)
         # Watch out for inclusive timestamp
         # https://stackoverflow.com/questions/49962417/why-does-loc-have-inclusive-behavior-for-slices

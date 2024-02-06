@@ -1,4 +1,6 @@
 import datetime
+import tempfile
+
 import pytest
 import pandas as pd
 import os
@@ -234,27 +236,34 @@ def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
     assert df.isna().values.any() == False
 
 
-def test_purge_cache(candle_downloader: BinanceDownloader):
+def test_purge_cache():
     """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
 
-    Checks that deleting cached data works correctly.
+    - Checks that deleting cached data works correctly.
+    - Must run in its isolated directory so that it does not delete data from other tests
     """
-    candle_path = candle_downloader.get_parquet_path(
-        CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
-    )
-    assert candle_path.exists() == True
-    candle_downloader.purge_cached_file(path=candle_path)
-    assert candle_path.exists() == False
 
-    lending_path = candle_downloader.get_parquet_path(
-        LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
-    )
-    assert lending_path.exists() == True
-    candle_downloader.purge_cached_file(path=lending_path)
-    assert lending_path.exists() == False
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        candle_downloader = BinanceDownloader(Path(tmpdirname))
 
-    candle_downloader.purge_all_cached_data()
-    assert len(list(candle_downloader.cache_directory.iterdir())) == 0
+        candle_path = candle_downloader.get_parquet_path(
+            CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
+        )
+        candle_path.open("wt").write("foo")
+        assert candle_path.exists() == True, f"Did not exist {candle_path}"
+        candle_downloader.purge_cached_file(path=candle_path)
+        assert candle_path.exists() == False
+
+        lending_path = candle_downloader.get_parquet_path(
+            LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
+        )
+        lending_path.open("wt").write("foo")
+        assert lending_path.exists() == True, f"Did not exist: {lending_path}"
+        candle_downloader.purge_cached_file(path=lending_path)
+        assert lending_path.exists() == False
+
+        candle_downloader.purge_all_cached_data()
+        assert len(list(candle_downloader.cache_directory.iterdir())) == 0
 
 
 @pytest.mark.skipif(
@@ -365,3 +374,23 @@ def test_generate_lending_reserve():
         "ETH", "0x4b2d72c1cb89c0b2b320c43bb67ff79f562f5ff4", 1
     )
     assert reserve.chain_id == ChainId.centralised_exchange
+
+
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Github US servers are blocked by Binance with HTTP 451")
+def test_fetch_binance_price_data_multipair():
+    """Check that pair data for multipair looks correct.
+
+    - Download both BTC and ETH data and check it looks sane
+    """
+
+    downloader = BinanceDownloader()
+    df = downloader.fetch_candlestick_data(
+        ["BTCUSDT", "ETHUSDT"],
+        TimeBucket.d1,
+        datetime.datetime(2020, 1, 1),
+        datetime.datetime(2021, 1, 1),
+    )
+
+    # Recorded 2/2024
+    assert df.iloc[0].to_json() == '{"open":7195.24,"high":7255.0,"low":7175.15,"close":7200.85,"volume":16792.388165,"pair_id":"BTCUSDT"}'
+    assert df.iloc[-1].to_json() == '{"open":736.42,"high":749.0,"low":714.29,"close":728.91,"volume":675114.09329,"pair_id":"ETHUSDT"}'

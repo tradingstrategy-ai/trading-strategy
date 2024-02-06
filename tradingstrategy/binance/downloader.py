@@ -38,7 +38,10 @@ class BinanceDataFetchError(ValueError):
 
 
 class BinanceDownloader:
-    """Class for downloading Binance candlestick OHLCV data."""
+    """Class for downloading Binance candlestick OHLCV data.
+
+    Cache loaded data locally, so that subsequent runs do not refetch the data from Binance.
+    """
 
     def __init__(self, cache_directory: Path = Path("/tmp/binance_data")):
         """Initialize BinanceCandleDownloader and create folder for cached data if it does not exist."""
@@ -56,7 +59,10 @@ class BinanceDownloader:
     ) -> pd.DataFrame:
         """Get clean candlestick price and volume data from Binance. If saved, use saved version, else create saved version.
 
-        Note, if you want to use this data in our framework, you will need to add informational columns to the dataframe and overwrite it. See code below.
+        Download is cached.
+
+        .. note ::
+            If you want to use this data in our framework, you will need to add informational columns to the dataframe and overwrite it. See code below.
 
         .. code-block:: python
             symbol = "ETHUSDT"
@@ -119,7 +125,12 @@ class BinanceDownloader:
     ) -> pd.DataFrame:
         """Fetch candlestick data for a single pair.
 
+        Downlad is cached.
+
         Using this function directly will not include progress bars. Use `fetch_candlestick_data` instead.
+
+        :param force_download:
+            Ignore cache
         """
         if not force_download:
             try:
@@ -367,14 +378,18 @@ class BinanceDownloader:
                     response_data.extend(data)
             else:
                 raise BinanceDataFetchError(
-                    f"No data found for {asset_symbol} between {start_at} and {end_at}. Check your symbol matches with valid symbols in method description. \nResponse: {response.status_code} {response.text}"
+                    f"Binance API error {response.status_code}. No data found for {asset_symbol} between {start_at} and {end_at}.\n"
+                    f"- Check Binance Futures API is allowed in your country.\n"
+                    f"- Check symbol matches with valid symbols in method description.\n"
+                    f"\n"
+                    f"Response: {response.status_code} {response.text}"
                 )
         
         dates = []
         interest_rates = []
         for data in response_data:
             dates.append(pd.to_datetime(data["timestamp"], unit="ms"))
-            interest_rates.append(float(data["dailyInterestRate"]) * 100 * DAYS_IN_YEAR) # convert daily to annual and multiply by 100
+            interest_rates.append(float(data["dailyInterestRate"]) * 100 * DAYS_IN_YEAR)  # convert daily to annual and multiply by 100
 
         unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
 
@@ -588,8 +603,16 @@ class BinanceDownloader:
         """
 
         # https://binance-docs.github.io/apidocs/spot/en/#exchange-information
-        resp = requests.get(f"https://{self.api_server}/api/v3/exchangeInfo")
+        url = f"https://{self.api_server}/api/v3/exchangeInfo"
+        resp = requests.get(url)
+
+        # HTTP 451 Unavailable For Legal Reasons
+        assert resp.status_code == 200, f"Binance URL {url} replied:\n{resp.status_code}: {resp.text}"
+
         data = resp.json()
+
+        assert "symbols" in data, f"exchangeInfo did not contain symbols. Resp: {resp.status_code}. Keys: {data.keys()}"
+
         symbols = data["symbols"]
         for s in symbols:
             if market:
