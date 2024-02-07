@@ -193,8 +193,10 @@ class PairGroupedUniverse:
 
         if isinstance(pair, DEXPair):
             pair_id = pair.pair_id
-        else:
+        elif type(pair) == int:
             pair_id = pair
+        else:
+            raise AssertionError(f"Unknown pair id {type(pair)}: {pair} passed to get_last_entries_by_pair_and_timestamp(). Make sure you use pair.internal_id integer if unsure.")
 
         pair_candles = self.get_samples_by_pair(pair_id)
         # Watch out for inclusive timestamp
