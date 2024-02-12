@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Trade:
-    """Individual trade.
+    """Individual Uniswap trade.
 
     Describe the data structure used for individual trades in DEX trades dataset.
 
@@ -27,5 +27,11 @@ class Trade:
 
     - Dataset is sorted for the best file compression - trades
       are not guaranteed to be ordered by time
+
+    .. note::
+
+        Column descriptions not available yet and this module is a placeholder/
+        Open the Parquet file for the descriptions.
+        `See this blog post for more information <https://tradingstrategy.ai/blog/announcing-uniswap-dex-trade-datasets/>`__.
     """
 

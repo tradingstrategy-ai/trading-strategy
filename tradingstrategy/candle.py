@@ -23,7 +23,7 @@ import pyarrow as pa
 from dataclasses_json import dataclass_json
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import DEXPair
+from tradingstrategy.pair import DEXPair, HumanReadableTradingPairDescription
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey, NonChecksummedAddress
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
@@ -313,7 +313,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
     def get_candles_by_pair(
             self,
-            pair: "PrimaryKey | tradingstrategy.pair.DEXPair"
+            pair: "PrimaryKey | tradingstrategy.pair.DEXPair",
     ) -> Optional[pd.DataFrame]:
         """Get all price candles for a single trading pair.
 
