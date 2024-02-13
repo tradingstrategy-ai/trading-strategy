@@ -13,6 +13,7 @@ from types import NoneType
 from typing import Dict, Literal, Iterable
 from tqdm.auto import tqdm
 
+from eth_defi.utils import to_unix_timestamp
 from tradingstrategy.timebucket import TimeBucket
 from pathlib import Path
 from tradingstrategy.utils.time import (
@@ -199,7 +200,8 @@ class BinanceDownloader:
                 dates.append(end_at)
                 current_date = end_at
 
-        timestamps = [int(date.timestamp() * 1000) for date in dates]
+        timestamps = [int(to_unix_timestamp(date) * 1000) for date in dates]
+
         open_prices, high_prices, low_prices, close_prices, volume, dates = (
             [],
             [],

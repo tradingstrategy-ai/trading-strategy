@@ -165,7 +165,7 @@ class PairGroupedUniverse:
 
     def get_last_entries_by_pair_and_timestamp(self,
             pair: DEXPair | PrimaryKey,
-            timestamp: pd.Timestamp,
+            timestamp: pd.Timestamp | datetime.datetime,
             small_time=pd.Timedelta(seconds=1),
         ) -> pd.DataFrame:
         """Get samples for a single pair before a timestamp.
@@ -190,6 +190,9 @@ class PairGroupedUniverse:
         :raise KeyError:
             If we do not have data for pair_id
         """
+
+        if type(timestamp) == datetime.datetime:
+            timestamp = pd.Timestamp(timestamp)
 
         if isinstance(pair, DEXPair):
             pair_id = pair.pair_id
@@ -781,31 +784,50 @@ def resample_candles(
     :param df:
         DataFrame of price, liquidity or lending rate candles.
 
+        Must contain candles only for a single trading pair.
+
         Supported columns: open, high, low, close.
         Optional: pair_id, volume.
 
+        Any other columns in DataFrame are destroyed in the resampling process.
+
     :param resample_freq:
-        Resample frequency
+        Resample frequency.
+
+        E.g.`pd.Timedelta(days=1)` create daily candles from hourly candles.
 
     :param shift:
         Before resampling, shift candles to left or right.
 
+        The shift is measured in number of candles, not time.
+        Make sure the DataFrame is forward filled first,
+        see :py:func:`forward_fill`.
+
         Set to `1` to shift candles one step right,
         `-1` to shift candles one step left.
 
+        There might not be enough rows to shift. E.g. shift=-1 or shift=1 and len(df) == 1.
+        In this case, an empty data frame is returned.
+
+
     :return:
-        Candles in the new time frame.
+        Resampled candles in a new DataFrame.
 
         Contains an added `timestamp` column that is also the index.
+
+        If the input DataFrame is zero-length, then return it as is.
 
     """
     
     assert isinstance(resample_freq, pd.Timedelta), f"We got {resample_freq}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
 
+    if len(df) == 0:
+        return df
+
     # Sanity check we don't try to resample mixed data of multiple pairs
     if "pair_id" in df.columns:
         pair_ids = df["pair_id"].unique()
-        assert len(pair_ids) == 1, f"Must have single pair_id only"
+        assert len(pair_ids) == 1, f"Must have single pair_id only. We got {len(pair_ids)} pair ids: {pair_ids}, columns: {df.columns}"
         pair_id = pair_ids[0]
     else:
         pair_id = None
@@ -833,7 +855,7 @@ def resample_candles(
         f"We got columns: {df.columns.tolist()}"
 
     if shift:
-        df = df.shift(shift)
+        df = df.shift(shift).dropna()
 
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
     candles = df.resample(resample_freq).agg(ohlc_dict)
