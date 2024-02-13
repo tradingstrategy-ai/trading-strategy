@@ -756,7 +756,11 @@ def resample_series(series: pd.Series, new_timedelta: pd.Timedelta, forward_fill
     return candles
 
 
-def resample_candles(df: pd.DataFrame, resample_freq: pd.Timedelta) -> pd.DataFrame:
+def resample_candles(
+    df: pd.DataFrame,
+    resample_freq: pd.Timedelta,
+    shift: int | None=None,
+) -> pd.DataFrame:
     """Downsample or upsample OHLCV candles or liquidity samples.
 
     E.g. upsample 1h candles to 1d candles.
@@ -783,6 +787,12 @@ def resample_candles(df: pd.DataFrame, resample_freq: pd.Timedelta) -> pd.DataFr
     :param resample_freq:
         Resample frequency
 
+    :param shift:
+        Before resampling, shift candles to left or right.
+
+        Set to `1` to shift candles one step right,
+        `-1` to shift candles one step left.
+
     :return:
         Candles in the new time frame.
 
@@ -800,12 +810,19 @@ def resample_candles(df: pd.DataFrame, resample_freq: pd.Timedelta) -> pd.DataFr
     else:
         pair_id = None
 
-    ohlc_dict = {
-        'open': 'first',
-        'high': 'max',
-        'low': 'min',
-        'close': 'last',
-    }
+    ohlc_dict = {}
+
+    if "open" in df.columns:
+        ohlc_dict["open"] = "first"
+
+    if "high" in df.columns:
+        ohlc_dict["high"] = "max"
+
+    if "low" in df.columns:
+        ohlc_dict["low"] = "min"
+
+    if "close" in df.columns:
+        ohlc_dict["close"] = "last"
 
     if "volume" in df.columns:
         ohlc_dict["volume"] = "sum"
@@ -814,6 +831,9 @@ def resample_candles(df: pd.DataFrame, resample_freq: pd.Timedelta) -> pd.DataFr
     assert all(item in columns for item in list(ohlc_dict.keys())), \
         f"{list(ohlc_dict.keys())} needs to be in the column names\n" \
         f"We got columns: {df.columns.tolist()}"
+
+    if shift:
+        df = df.shift(shift)
 
     # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
     candles = df.resample(resample_freq).agg(ohlc_dict)

@@ -42,6 +42,9 @@ class TimeBucket(enum.Enum):
     #: Four hour candles
     h4 = "4h"
 
+    #: Eight  hour candles
+    h8 = "8h"
+
     #: Daily candles
     d1 = "1d"
 
@@ -110,6 +113,7 @@ _DELTAS = {
     TimeBucket.m15: datetime.timedelta(minutes=15),
     TimeBucket.h1: datetime.timedelta(hours=1),
     TimeBucket.h4: datetime.timedelta(hours=4),
+    TimeBucket.h8: datetime.timedelta(hours=8),
     TimeBucket.d1: datetime.timedelta(days=1),
     TimeBucket.d7: datetime.timedelta(days=7),
     TimeBucket.d30: datetime.timedelta(days=30),

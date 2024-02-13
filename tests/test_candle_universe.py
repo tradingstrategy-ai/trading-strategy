@@ -5,6 +5,8 @@ import datetime
 import pandas
 import pandas as pd
 import pytest
+from pandas import Timestamp
+
 from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
@@ -291,32 +293,59 @@ def test_candle_upsample(persistent_test_client: Client):
     assert len(monthly_candles) <= len(single_pair_candles) / 4
 
 
-def test_candle_resample():
+def test_candle_resample_and_shift():
+    """Resample candles to a higher time frame and shift at the same time."""
     data = {
-        'open': [100, 102, 101],
-        'high': [105, 103, 104],
-        'low': [95, 97, 96],
-        'close': [101, 99, 100],
-        'volume': [150, 120, 130]
+
+        'open': [
+            100, 100, 100, 100, 100, 100,
+            105, 105, 105, 105, 105, 105,
+            110, 110, 110, 110, 110, 110,
+        ],
+
+        'close': [
+            100, 100, 100, 100, 100, 100,
+            105, 105, 105, 105, 105, 105,
+            110, 110, 110, 110, 110, 110,
+        ],
     }
-    index = pd.to_datetime(['2023-01-01 09:00', '2023-01-01 09:30', '2023-01-01 10:00'])
+    index = pd.to_datetime([
+        '2023-01-01 00:00',
+        '2023-01-01 04:00',
+        '2023-01-01 08:00',
+        '2023-01-01 12:00',
+        '2023-01-01 16:00',
+        '2023-01-01 20:00',
+        #
+        '2023-01-02 00:00',
+        '2023-01-02 04:00',
+        '2023-01-02 08:00',
+        '2023-01-02 12:00',
+        '2023-01-02 16:00',
+        '2023-01-02 20:00',
+        #
+        '2023-01-03 00:00',
+        '2023-01-03 04:00',
+        '2023-01-03 08:00',
+        '2023-01-03 12:00',
+        '2023-01-03 16:00',
+        '2023-01-03 20:00',
+    ])
     df = pd.DataFrame(data, index=index)
+    daily_candles = resample_candles(df, pd.Timedelta(days=1))
+    #                open  close  timestamp
+    #    2023-01-01   100    100 2023-01-01
+    #    2023-01-02   105    105 2023-01-02
+    #    2023-01-03   110    110 2023-01-03
 
-    expected_data = {
-        'open': [100, 101],  # first 'open' value
-        'high': [max(105, 103, 104), 104],  # max 'high' value
-        'low': [min(95, 97, 96), 96],  # min 'low' value
-        'close': [99, 100],  # last 'close' value
-        'volume': [150 + 120, 130],  # sum of 'volume'
-        'timestamp': [pd.Timestamp('2023-01-01 09:00:00'), pd.Timestamp('2023-01-01 10:00:00')]  # first and last timestamp
-    }
-    expected_df = pd.DataFrame(expected_data, index=pd.to_datetime(['2023-01-01 09:00', '2023-01-01 10:00']))
+    daily_candles_shifted_1 = resample_candles(df, pd.Timedelta(days=1), shift=-1)
+    #                 open  close  timestamp
+    #    2023-01-01  100.0  105.0 2023-01-01
+    #    2023-01-02  105.0  110.0 2023-01-02
+    #    2023-01-03  110.0  110.0 2023-01-03
 
-    # Step 3: Resample and Apply Correct Aggregation
-    new_timedelta = pd.Timedelta(hours=1)
-    resampled_df = resample_candles(df, new_timedelta)
-
-    assert expected_df.equals(resampled_df)
+    assert daily_candles.to_dict() == {'open': {Timestamp('2023-01-01 00:00:00', freq='D'): 100, Timestamp('2023-01-02 00:00:00', freq='D'): 105, Timestamp('2023-01-03 00:00:00', freq='D'): 110}, 'close': {Timestamp('2023-01-01 00:00:00', freq='D'): 100, Timestamp('2023-01-02 00:00:00', freq='D'): 105, Timestamp('2023-01-03 00:00:00', freq='D'): 110}, 'timestamp': {Timestamp('2023-01-01 00:00:00', freq='D'): Timestamp('2023-01-01 00:00:00'), Timestamp('2023-01-02 00:00:00', freq='D'): Timestamp('2023-01-02 00:00:00'), Timestamp('2023-01-03 00:00:00', freq='D'): Timestamp('2023-01-03 00:00:00')}}
+    assert daily_candles_shifted_1.to_dict() == {'open': {Timestamp('2023-01-01 00:00:00', freq='D'): 100.0, Timestamp('2023-01-02 00:00:00', freq='D'): 105.0, Timestamp('2023-01-03 00:00:00', freq='D'): 110.0}, 'close': {Timestamp('2023-01-01 00:00:00', freq='D'): 105.0, Timestamp('2023-01-02 00:00:00', freq='D'): 110.0, Timestamp('2023-01-03 00:00:00', freq='D'): 110.0}, 'timestamp': {Timestamp('2023-01-01 00:00:00', freq='D'): Timestamp('2023-01-01 00:00:00'), Timestamp('2023-01-02 00:00:00', freq='D'): Timestamp('2023-01-02 00:00:00'), Timestamp('2023-01-03 00:00:00', freq='D'): Timestamp('2023-01-03 00:00:00')}}
 
 
 def test_candle_get_last_entries(persistent_test_client: Client):

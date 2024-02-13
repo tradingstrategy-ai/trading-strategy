@@ -1,3 +1,7 @@
+# Current
+
+- Add `resample_candles(shift)` argument
+
 # 0.22.9
 
 - Add `remove_zero_candles()` function
