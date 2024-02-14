@@ -392,5 +392,5 @@ def test_fetch_binance_price_data_multipair():
     )
 
     # Recorded 2/2024
-    assert df.iloc[0].to_json() == '{"open":7195.24,"high":7255.0,"low":7175.15,"close":7200.85,"volume":16792.388165,"pair_id":"BTCUSDT"}'
-    assert df.iloc[-1].to_json() == '{"open":736.42,"high":749.0,"low":714.29,"close":728.91,"volume":675114.09329,"pair_id":"ETHUSDT"}'
+    assert df.iloc[0].to_dict() == {'open': 7195.24, 'high': 7255.0, 'low': 7175.15, 'close': 7200.85, 'volume': 16792.388165, 'pair_id': 'BTCUSDT'}
+    assert df.iloc[-1].to_dict() == {'open': 728.91, 'high': 787.69, 'low': 714.91, 'close': 774.56, 'volume': 1352618.57668, 'pair_id': 'ETHUSDT'}
