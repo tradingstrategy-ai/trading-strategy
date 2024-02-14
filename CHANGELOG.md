@@ -1,6 +1,8 @@
 # Current
 
 - Add `resample_candles(shift)` argument
+- Fix Binance data using local timezone
+- Fix Binance multipair data resampling not working correctly
 
 # 0.22.9
 
