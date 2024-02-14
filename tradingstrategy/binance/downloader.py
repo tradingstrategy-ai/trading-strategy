@@ -13,6 +13,7 @@ from types import NoneType
 from typing import Dict, Literal, Iterable
 from tqdm.auto import tqdm
 
+from eth_defi.utils import to_unix_timestamp
 from tradingstrategy.timebucket import TimeBucket
 from pathlib import Path
 from tradingstrategy.utils.time import (
@@ -141,8 +142,6 @@ class BinanceDownloader:
         if symbol not in self.fetch_all_spot_symbols():
             raise BinanceDataFetchError(f"Symbol {symbol} is not a valid spot symbol")
 
-        # to include the end date, we need to add one day
-        end_at = end_at + datetime.timedelta(days=1)
         df = self._fetch_candlestick_data(
             symbol,
             time_bucket,
@@ -152,7 +151,6 @@ class BinanceDownloader:
         df["pair_id"] = symbol
 
         # write to parquet
-        end_at = end_at - datetime.timedelta(days=1)
         path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
         df.to_parquet(path)
 
@@ -165,7 +163,15 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
     ) -> pd.DataFrame:
-        """Private function to fetch candlestick data from Binance. This function does will always download data from Binance"""
+        """Private function to fetch candlestick data from Binance. This function does will always download data from Binance.
+
+        :param start_at:
+            Inclusive
+
+        :param end_at:
+            Inclusive
+
+        """
         interval = get_binance_interval(time_bucket)
 
         params_str = f"symbol={symbol}&interval={interval}"
@@ -178,8 +184,8 @@ class BinanceDownloader:
             assert isinstance(
                 end_at, datetime.datetime
             ), "end_at must be a datetime.datetime object"
-            start_timestamp = int(start_at.timestamp() * 1000)
-            end_timestamp = int(end_at.timestamp() * 1000)
+            start_timestamp = int(to_unix_timestamp(start_at) * 1000)
+            end_timestamp = int(to_unix_timestamp(end_at) * 1000)
         else:
             start_at = self.fetch_approx_asset_trading_start_date(symbol)
 
@@ -199,7 +205,8 @@ class BinanceDownloader:
                 dates.append(end_at)
                 current_date = end_at
 
-        timestamps = [int(date.timestamp() * 1000) for date in dates]
+        timestamps = [int(to_unix_timestamp(date) * 1000) for date in dates]
+
         open_prices, high_prices, low_prices, close_prices, volume, dates = (
             [],
             [],
