@@ -42,3 +42,5 @@ jobs:
         poetry run pytest --tb=native -n 6
       env:
         TRADING_STRATEGY_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}
+        BASE_BINANCE_API_URL: ${{ secrets.BASE_BINANCE_API_URL }}
+        BASE_BINANCE_MARGIN_API_URL: ${{ secrets.BASE_BINANCE_MARGIN_API_URL }}
