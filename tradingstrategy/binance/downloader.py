@@ -34,6 +34,10 @@ from tradingstrategy.binance.constants import BINANCE_SUPPORTED_QUOTE_TOKENS, sp
 logger = logging.getLogger(__name__)
 
 
+BASE_BINANCE_API_URL = os.getenv("BASE_BINANCE_API_URL", "https://api.binance.com")
+BASE_BINANCE_MARGIN_API_URL = os.getenv("BASE_BINANCE_MARGIN_API_URL", "https://www.binance.com/bapi/margin")
+
+
 class BinanceDataFetchError(ValueError):
     """Something wrong with Binance."""
 
@@ -48,7 +52,8 @@ class BinanceDownloader:
         """Initialize BinanceCandleDownloader and create folder for cached data if it does not exist."""
         cache_directory.mkdir(parents=True, exist_ok=True)
         self.cache_directory = cache_directory
-        self.api_server = "api.binance.com"
+        self.base_api_url = BASE_BINANCE_API_URL
+        self.base_margin_api_url = BASE_BINANCE_MARGIN_API_URL
 
     def fetch_candlestick_data(
         self,
@@ -222,7 +227,7 @@ class BinanceDownloader:
             full_params_str = (
                 f"{params_str}&startTime={start_timestamp}&endTime={end_timestamp}"
             )
-            url = f"https://api.binance.com/api/v3/klines?{full_params_str}&limit=1000"
+            url = f"{self.base_api_url}/api/v3/klines?{full_params_str}&limit=1000"
             response = requests.get(url)
             if response.status_code == 200:
                 json_data = response.json()
@@ -376,7 +381,7 @@ class BinanceDownloader:
         for i in range(len(monthly_timestamps) - 1):
             start_timestamp = monthly_timestamps[i] * 1000
             end_timestamp = monthly_timestamps[i + 1] * 1000
-            url = f"https://www.binance.com/bapi/margin/v1/public/margin/vip/spec/history-interest-rate?asset={asset_symbol}&vipLevel=0&size=90&startTime={start_timestamp}&endTime={end_timestamp}"
+            url = f"{self.base_margin_api_url}/v1/public/margin/vip/spec/history-interest-rate?asset={asset_symbol}&vipLevel=0&size=90&startTime={start_timestamp}&endTime={end_timestamp}"
             response = requests.get(url)
             if response.status_code == 200:
                 json_data = response.json()
@@ -610,7 +615,7 @@ class BinanceDownloader:
         """
 
         # https://binance-docs.github.io/apidocs/spot/en/#exchange-information
-        url = f"https://{self.api_server}/api/v3/exchangeInfo"
+        url = f"{self.base_api_url}/api/v3/exchangeInfo"
         resp = requests.get(url)
 
         # HTTP 451 Unavailable For Legal Reasons
