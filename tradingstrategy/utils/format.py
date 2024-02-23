@@ -7,9 +7,18 @@ from web3 import Web3
 import pandas as pd
 
 
-def format_price(v: float) -> str:
-    """Crypto prices in dollars may have significant decimals up to 6 decimal points"""
-    return f"${v:,.6f}"
+def format_price(v: float, decimals=6) -> str:
+    """Crypto prices in dollars may have significant decimals up to 6 decimal points.
+
+    :return:
+        Price as $ prefixed string.
+    """
+
+    if decimals == 0:
+        return f"${v:,.0f}"
+
+    format_str = f"${{v:,.{decimals}f}}"
+    return format_str.format(v=v)
 
 
 def format_value(v: float) -> str:

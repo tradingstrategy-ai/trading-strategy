@@ -1,6 +1,7 @@
 # Current
 
 - Add `resample_candles(shift)` argument
+- Add `format_price(decimals)` argument
 - Fix Binance data using local timezone
 - Fix Binance multipair data resampling not working correctly
 
