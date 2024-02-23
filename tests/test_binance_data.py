@@ -266,10 +266,6 @@ def test_purge_cache():
         assert len(list(candle_downloader.cache_directory.iterdir())) == 0
 
 
-@pytest.mark.skipif(
-    os.environ.get("GITHUB_ACTIONS", None) == "true",
-    reason="Github US servers are blocked by Binance",
-)
 def test_starting_date(candle_downloader: BinanceDownloader):
     """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
 
@@ -288,10 +284,6 @@ def test_starting_date(candle_downloader: BinanceDownloader):
     assert curve_starting_date == datetime.datetime(2020, 8, 1, 0, 0)
 
 
-@pytest.mark.skipif(
-    os.environ.get("GITHUB_ACTIONS", None) == "true",
-    reason="Github US servers are blocked by Binance",
-)
 def test_starting_date_unknown(candle_downloader: BinanceDownloader):
     """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
 
@@ -303,10 +295,6 @@ def test_starting_date_unknown(candle_downloader: BinanceDownloader):
         candle_downloader.fetch_approx_asset_trading_start_date("FOOBAR")
 
 
-@pytest.mark.skipif(
-    os.environ.get("GITHUB_ACTIONS", None) == "true",
-    reason="Github US servers are blocked by Binance",
-)
 def test_fetch_assets(candle_downloader: BinanceDownloader):
     """Get available tradeable assets on Binance."""
     assets = list(candle_downloader.fetch_assets())
@@ -376,7 +364,6 @@ def test_generate_lending_reserve():
     assert reserve.chain_id == ChainId.centralised_exchange
 
 
-@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Github US servers are blocked by Binance with HTTP 451")
 def test_fetch_binance_price_data_multipair():
     """Check that pair data for multipair looks correct.
 
