@@ -1,7 +1,9 @@
 # Current
 
+- Add `get_prior_timestamp(series: pd.Series, ts: pd.Timestamp)` as a separate utility function
 - Add `resample_candles(shift)` argument
 - Add `format_price(decimals)` argument
+- Add `Universe.get_default_chain()` method
 - Fix Binance data using local timezone
 - Fix Binance multipair data resampling not working correctly
 

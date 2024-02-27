@@ -14,6 +14,11 @@ from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 
 
+
+class MultipleChains(Exception):
+    """Universe contains multiple chains when one was assumed"""
+
+
 @dataclass
 class Universe:
     """Trading universe description.
@@ -134,6 +139,22 @@ class Universe:
         if self.lending_candles is not None:
             return self.lending_candles.lending_reserves
         return None
+
+    def get_default_chain(self) -> ChainId:
+        """Get the chain for which this universe is.
+
+        - Only works for single chain universes
+
+        :raise MultipleChains:
+            We have more than one chain configured
+
+        :return:
+            The chain this universe is configured for
+        """
+        if len(self.chains) != 1:
+            raise MultipleChains(f"We have multiple chains configured: {self.chains}")
+
+        return next(iter(self.chains)) # set
 
     def get_candle_availability(self) -> Tuple[pd.Timestamp, pd.Timestamp]:
         """Get the time range for which we have candle data.

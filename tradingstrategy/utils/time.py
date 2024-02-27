@@ -80,3 +80,19 @@ def naive_utcfromtimestamp(timestamp: float | int) -> datetime.datetime:
     - https://blog.miguelgrinberg.com/post/it-s-time-for-a-change-datetime-utcnow-is-now-deprecated
     """
     return datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc).replace(tzinfo=None)
+
+
+def get_prior_timestamp(series: pd.Series, ts: pd.Timestamp) -> pd.Timestamp | None:
+    """Get the first timestamp in the index that is before the given timestamp.
+
+    :return:
+        Any timestamp from the index that is before or at the same time of the given timestamp.
+
+        Return ``None`` if there are no earlier timestamps.
+    """
+    index = series.index
+
+    try:
+        return index[index < ts][-1]
+    except IndexError:
+        return None
