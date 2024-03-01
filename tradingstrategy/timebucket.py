@@ -66,6 +66,10 @@ class TimeBucket(enum.Enum):
     #: is not a favorable choice for some reason.
     not_applicable = "not_applicable"
 
+    def to_hours(self) -> float:
+        """The length of this bucket as hours."""
+        return self.to_timedelta() / datetime.timedelta(hours=1)
+
     def to_timedelta(self) -> datetime.timedelta:
         """Get delta object for a TimeBucket definition.
 

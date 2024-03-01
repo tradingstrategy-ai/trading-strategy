@@ -742,7 +742,7 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
 def resample_series(series: pd.Series, new_timedelta: pd.Timedelta, forward_fill: bool = False):
     """Downsample or upsample liquidity series. If upsamping, use forward_fill = True to fill in the missing values.
     
-    Note, this does not apply to OHLCV candles, use resample_candles() for that.
+    Note, this does not apply to OHLCV candles, use :y:func:`resample_candle` and :py:func:`resample_price_series` for that.
 
     :param series: Series to resample
     :param new_timedelta: New timedelta to resample to
@@ -767,6 +767,8 @@ def resample_candles(
     """Downsample or upsample OHLCV candles or liquidity samples.
 
     E.g. upsample 1h candles to 1d candles.
+
+    See also: py:func:`resample_price_series`.
 
     Example:
 
@@ -868,6 +870,65 @@ def resample_candles(
         candles["pair_id"] = pair_id
 
     return candles
+
+
+def resample_price_series(
+    series: pd.Series,
+    resample_freq: pd.Timedelta,
+    shift: int | None=None,
+    price_series_type="close"
+) -> pd.Series:
+    """Resample a price series to a lower frequency.
+
+    :param series:
+        Price series, e.g. close series.
+
+    :param resample_freq:
+        Resample frequency.
+
+        E.g.`pd.Timedelta(days=1)` create daily candles from hourly candles.
+
+    :param shift:
+        Before resampling, shift candles to left or right.
+
+        The shift is measured in number of candles, not time.
+        Make sure the DataFrame is forward filled first,
+        see :py:func:`forward_fill`.
+
+        Set to `1` to shift candles one step right,
+        `-1` to shift candles one step left.
+
+        There might not be enough rows to shift. E.g. shift=-1 or shift=1 and len(df) == 1.
+        In this case, an empty data frame is returned.
+
+    :param price_series_type:
+        One of "open", "close", "high", "low"
+    """
+    assert isinstance(series, pd.Series)
+    assert isinstance(resample_freq, pd.Timedelta), f"We got {resample_freq}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
+    if shift is not None:
+        assert type(shift) == int
+
+    match price_series_type:
+        case "close":
+            func = "last"
+        case "open":
+            func = "first"
+        case "high":
+            func = "high"
+        case "low":
+            func = "low"
+        case _:
+            raise NotImplementedError(f"Unknown price series type: {price_series_type}")
+
+    if len(series) == 0:
+        return series
+
+    if shift:
+        series = series.shift(shift).dropna()
+
+    series = series.resample(resample_freq).agg(func)
+    return series
 
 
 def fix_bad_wicks(

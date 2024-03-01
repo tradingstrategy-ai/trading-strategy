@@ -4,6 +4,7 @@
 - Add `resample_candles(shift)` argument
 - Add `format_price(decimals)` argument
 - Add `Universe.get_default_chain()` method
+- Add `resample_price_series()` function
 - Fix Binance data using local timezone
 - Fix Binance multipair data resampling not working correctly
 
