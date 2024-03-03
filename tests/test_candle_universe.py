@@ -10,11 +10,11 @@ from pandas import Timestamp
 from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
+from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
-from tradingstrategy.utils.groupeduniverse import resample_candles, resample_series, resample_price_series
+from tradingstrategy.utils.groupeduniverse import resample_candles, resample_price_series
 
 
 def test_grouped_candles(persistent_test_client: Client):

@@ -904,7 +904,7 @@ def resample_price_series(
     :param price_series_type:
         One of "open", "close", "high", "low"
     """
-    assert isinstance(series, pd.Series)
+    assert isinstance(series, pd.Series), f"Expected pandas.Series, got {type(series)}"
     assert isinstance(resample_freq, pd.Timedelta), f"We got {resample_freq}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
     if shift is not None:
         assert type(shift) == int
