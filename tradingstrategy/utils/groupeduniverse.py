@@ -880,6 +880,9 @@ def resample_price_series(
 ) -> pd.Series:
     """Resample a price series to a lower frequency.
 
+    See `test_price_series_resample_and_shift_binance` for some example output how shift works.
+    Shift -1 means that any strategy decision is 1h delayed (close price is chosen 1h later).
+
     :param series:
         Price series, e.g. close series.
 
@@ -920,7 +923,7 @@ def resample_price_series(
             func = "low"
         case _:
             raise NotImplementedError(f"Unknown price series type: {price_series_type}")
-
+±
     if len(series) == 0:
         return series
 
