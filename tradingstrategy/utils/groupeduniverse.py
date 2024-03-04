@@ -739,6 +739,7 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
     ]
     return our_pairs
 
+
 def resample_series(series: pd.Series, new_timedelta: pd.Timedelta, forward_fill: bool = False):
     """Downsample or upsample liquidity series. If upsamping, use forward_fill = True to fill in the missing values.
     
@@ -883,6 +884,10 @@ def resample_price_series(
     See `test_price_series_resample_and_shift_binance` for some example output how shift works.
     Shift -1 means that any strategy decision is 1h delayed (close price is chosen 1h later).
 
+    See also :py:func:`resample_candles`.
+
+    TODO: Add forward-fill.
+
     :param series:
         Price series, e.g. close series.
 
@@ -923,7 +928,7 @@ def resample_price_series(
             func = "low"
         case _:
             raise NotImplementedError(f"Unknown price series type: {price_series_type}")
-±
+
     if len(series) == 0:
         return series
 
