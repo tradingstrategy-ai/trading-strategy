@@ -463,7 +463,6 @@ class PairGroupedUniverse:
         pair_count = self.get_pair_count()
         assert pair_count == 1, f"This function only works for single pair univese, we have {pair_count} pairs"
         df = self.df
-        start = self.df.iloc[0]["timestamp"]
 
         # Get all df content before our timestamp
         if timestamp:
