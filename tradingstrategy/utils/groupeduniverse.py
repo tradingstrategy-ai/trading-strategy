@@ -489,6 +489,8 @@ class PairGroupedUniverse:
                                       f"The result was {len(df)} candles. The trading pair or the time period does not have enough data.\n"
                                       f"The total loaded candle data is {len(self.df)} candles at range {start_at} - {end_at}.\n"
                                       f"\n"
+                                      f"Make sure the strategy does not require data prior to {start_at}\n"
+                                      f"\n"
                                       f"You cannot ask data for the current candle (same as the timestamp) unless you set allow_current=True.\n"
                                       f"\n"
                                       f"The current timestamp is ignored byt default protect against accidental testing of future data.\n"
