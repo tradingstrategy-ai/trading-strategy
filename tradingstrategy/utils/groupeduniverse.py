@@ -463,6 +463,7 @@ class PairGroupedUniverse:
         pair_count = self.get_pair_count()
         assert pair_count == 1, f"This function only works for single pair univese, we have {pair_count} pairs"
         df = self.df
+        start = self.df.iloc[0]["timestamp"]
 
         # Get all df content before our timestamp
         if timestamp:
@@ -488,6 +489,8 @@ class PairGroupedUniverse:
                                       f"\n"
                                       f"The result was {len(df)} candles. The trading pair or the time period does not have enough data.\n"
                                       f"The total loaded candle data is {len(self.df)} candles at range {start_at} - {end_at}.\n"
+                                      f"\n"
+                                      f"Make sure the strategy does not require data prior to {start_at}\n"
                                       f"\n"
                                       f"You cannot ask data for the current candle (same as the timestamp) unless you set allow_current=True.\n"
                                       f"\n"
