@@ -8,10 +8,10 @@ import numpy as np
 import logging
 import shutil
 import os
-from pathlib import Path
+
 from types import NoneType
 from typing import Dict, Literal, Iterable
-from tqdm.auto import tqdm
+from tqdm_loggable.auto import tqdm
 
 from eth_defi.utils import to_unix_timestamp
 from tradingstrategy.timebucket import TimeBucket
