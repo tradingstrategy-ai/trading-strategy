@@ -48,7 +48,7 @@ class BinanceDownloader:
     Cache loaded data locally, so that subsequent runs do not refetch the data from Binance.
     """
 
-    def __init__(self, cache_directory: Path = Path("/tmp/binance_data")):
+    def __init__(self, cache_directory: Path = Path(os.path.expanduser("~/.cache/trading-strategy/binance-datasets"))):
         """Initialize BinanceCandleDownloader and create folder for cached data if it does not exist."""
         cache_directory.mkdir(parents=True, exist_ok=True)
         self.cache_directory = cache_directory
