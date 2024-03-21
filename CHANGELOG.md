@@ -1,5 +1,7 @@
 # Current
 
+- Add `GroupedCandleUniverse(forward_fill)` option to the constructor
+- Add `PandasPairUniverse.iterate_tokens()`
 - Add `get_prior_timestamp(series: pd.Series, ts: pd.Timestamp)` as a separate utility function
 - Add `resample_candles(shift)` argument
 - Add `format_price(decimals)` argument

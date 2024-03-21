@@ -26,6 +26,7 @@ from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.forward_fill import forward_fill
+from tradingstrategy.utils.forward_fill import forward_fill as _forward_fill
 from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA, naive_utcnow
 
 logger = logging.getLogger(__name__)
@@ -61,15 +62,17 @@ class PairGroupedUniverse:
     - :py:mod:`tradingstrategy.liquidity`
     """
 
-    def __init__(self,
-                 df: pd.DataFrame,
-                 time_bucket:TimeBucket=TimeBucket.d1,
-                 timestamp_column:str="timestamp",
-                 index_automatically:bool=True,
-                 fix_wick_threshold: tuple | None = (0.1, 1.9),
-                 primary_key_column:str="pair_id",
-                 remove_candles_with_zero:bool=True,
-                 ):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        time_bucket:TimeBucket=TimeBucket.d1,
+        timestamp_column: str="timestamp",
+        index_automatically: bool=True,
+        fix_wick_threshold: tuple | None = (0.1, 1.9),
+        primary_key_column: str="pair_id",
+        remove_candles_with_zero: bool = True,
+        forward_fill: bool = False,
+    ):
         """Set up new candle universe where data is grouped by trading pair.
 
         :param df:
@@ -98,11 +101,20 @@ class PairGroupedUniverse:
             The pair/reserve id column name in the dataframe.
             
         :param remove_zero_candles:
-            Remove candles with zero values for OHLC
+            Remove candles with zero values for OHLC.
+
+            To deal with abnormal data.
+
+        :param forward_fill:
+            Forward-will gaps in the data.
+
+            See :term:`forward fill` and :ref:`forward filling data` for more information.
         """
         self.index_automatically = index_automatically
         assert isinstance(df, pd.DataFrame)
 
+        self.timestamp_column = timestamp_column
+        self.time_bucket = time_bucket
         self.primary_key_column = primary_key_column
 
         if index_automatically:
@@ -121,8 +133,11 @@ class PairGroupedUniverse:
         
         self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
 
-        self.timestamp_column = timestamp_column
-        self.time_bucket = time_bucket
+        if forward_fill:
+            self.pairs = _forward_fill(
+                self.pairs,
+                freq=self.time_bucket.to_frequency(),
+            )
 
         self.candles_cache: dict[int, pd.DataFrame] = {}
 
@@ -813,7 +828,6 @@ def resample_candles(
 
         There might not be enough rows to shift. E.g. shift=-1 or shift=1 and len(df) == 1.
         In this case, an empty data frame is returned.
-
 
     :return:
         Resampled candles in a new DataFrame.

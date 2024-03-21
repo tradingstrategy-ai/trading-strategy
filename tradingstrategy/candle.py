@@ -582,7 +582,6 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         # TODO: Do we need to cache the indexer... does it has its own storage?
         ffill_indexer = timestamp_index.get_indexer([when], method="ffill")
-
         before_match_iloc = ffill_indexer[0]
 
         if before_match_iloc < 0:

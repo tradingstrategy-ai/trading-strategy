@@ -778,6 +778,21 @@ class PandasPairUniverse:
         for pair_id in self.pair_map.keys():
             yield self.get_pair_by_id(pair_id)
 
+    def iterate_tokens(self) -> Iterable[Token]:
+        """Iterate over all tokens in this universe."""
+
+        already_iterated = set()
+
+        for pair in self.iterate_pairs():
+            token_a = pair.get_base_token()
+            if token_a not in already_iterated:
+                yield token_a
+            already_iterated.add(token_a)
+            token_b = pair.get_quote_token()
+            if token_b not in already_iterated:
+                yield token_b
+                already_iterated.add(token_b)
+
     def build_index(self):
         """Create pair_id -> data mapping.
 

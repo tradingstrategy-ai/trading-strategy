@@ -25,7 +25,7 @@ from pandas.core.groupby import DataFrameGroupBy
 def forward_fill(
     df: pd.DataFrame | DataFrameGroupBy,
     freq: pd.DateOffset,
-    columns: Collection[str] = ("open", "close"),
+    columns: Collection[str] = ("open", "close", "high", "low"),
     drop_other_columns=True,
 ):
     """Forward-fill OHLCV data for multiple trading pairs.
@@ -40,6 +40,12 @@ def forward_fill(
 
         `timestamp` and `pair_id` columns will be deleted in this process
          - do not use these columns, but corresponding indexes instead.
+
+    See also
+
+    - :py:func:`tradingstrategy.utils.groupeduniverse.resample_candles`
+
+    - :py:func:`tradingstrategy.utils.groupeduniverse.resample_series`
 
     Example:
 

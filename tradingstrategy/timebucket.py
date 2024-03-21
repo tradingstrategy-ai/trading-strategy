@@ -80,7 +80,7 @@ class TimeBucket(enum.Enum):
     def to_pandas_timedelta(self) -> pd.Timedelta:
         """Get pandas delta object for a TimeBucket definition.
 
-        You can use this to construct arbitrary timespans or iterate candle data.
+        You can use this to construct aregime-filter.ipynbrbitrary timespans or iterate candle data.
         """
         return pd.Timedelta(_DELTAS[self])
 
