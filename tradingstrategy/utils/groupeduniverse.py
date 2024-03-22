@@ -21,6 +21,7 @@ from typing import Optional, Tuple, Iterable, cast
 
 import numpy as np
 import pandas as pd
+from pandas import MultiIndex
 
 from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
@@ -757,19 +758,19 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
     return our_pairs
 
 
-def resample_series(series: pd.Series, new_timedelta: pd.Timedelta, forward_fill: bool = False):
+def resample_series(series: pd.Series, freq: pd.Timedelta, forward_fill: bool = False):
     """Downsample or upsample liquidity series. If upsamping, use forward_fill = True to fill in the missing values.
     
     Note, this does not apply to OHLCV candles, use :y:func:`resample_candle` and :py:func:`resample_price_series` for that.
 
     :param series: Series to resample
-    :param new_timedelta: New timedelta to resample to
+    :param freq: New timedelta to resample to
     :param forward_fill: Forward fill missing values if upsampling
     """
     
     series = series.astype(float)
 
-    candles = series.resample(new_timedelta).mean(numeric_only=True) 
+    candles = series.resample(freq).mean(numeric_only=True)
 
     if forward_fill:
         candles = candles.fillna(method="ffill")
@@ -907,6 +908,8 @@ def resample_price_series(
     :param series:
         Price series, e.g. close series.
 
+        If the `series.index` is multi-index, assume it is (pair id, timestamp) for a single pair.
+
     :param resample_freq:
         Resample frequency.
 
@@ -932,6 +935,15 @@ def resample_price_series(
     assert isinstance(resample_freq, pd.Timedelta), f"We got {resample_freq}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
     if shift is not None:
         assert type(shift) == int
+
+    # Deal with data that is in a grouped data frame
+    if isinstance(series.index, pd.MultiIndex):
+        # pair_id, timestamp tuples
+        #MultiIndex([(2854973, '2021-12-21 19:00:00'),
+        #            (2854973, '2021-12-21 20:00:00'),
+        #            (2854973, '2021-12-21 21:00:00'),
+        series = pd.Series(data=series.values, index=series.index.get_level_values(1))
+        assert isinstance(series.index, pd.DatetimeIndex)
 
     match price_series_type:
         case "close":
