@@ -25,7 +25,7 @@ from pandas.core.groupby import DataFrameGroupBy
 def forward_fill(
     df: pd.DataFrame | DataFrameGroupBy,
     freq: pd.DateOffset,
-    columns: Collection[str] = ("open", "close", "high", "low"),
+    columns: Collection[str] = ("open", "close", "high", "low", "timestamp"),
     drop_other_columns=True,
 ):
     """Forward-fill OHLCV data for multiple trading pairs.
@@ -124,7 +124,9 @@ def forward_fill(
         Usually `open` and `close` are enough and also filled
         by default.
 
-        To get all OHLC data set this to ``("open", "high", "low", "close")``.
+        To get all OHLC data set this to `("open", "high", "low", "close")`.
+
+        If the data has `timestamp` column we fill it with the first value.
 
     :param drop_other_columns:
         Remove other columns before forward-fill to save memory.
@@ -143,6 +145,8 @@ def forward_fill(
     assert isinstance(df, (pd.DataFrame, DataFrameGroupBy))
     assert isinstance(freq, pd.DateOffset)
 
+    source = df
+
     grouped = isinstance(df, DataFrameGroupBy)
 
     # https://www.statology.org/pandas-drop-all-columns-except/
@@ -156,7 +160,7 @@ def forward_fill(
     columns = set(columns)
 
     # We always need to ffill close first
-    for column in ("close", "open", "high", "low", "volume"):
+    for column in ("close", "open", "high", "low", "volume", "timestamp"):
         if column in columns:
             columns.remove(column)
 
@@ -170,6 +174,17 @@ def forward_fill(
                 case "open" | "high" | "low":
                     # Fill open, high, low from the ffill'ed close.
                     df[column] = df[column].fillna(df["close"])
+                case "timestamp":
+                    if isinstance(df.index, pd.MultiIndex):
+                        if "timestamp" in source.obj.columns:
+                            # pair_id, timestamp index
+                            df["timestamp"] = df.index.get_level_values(1)
+                    elif isinstance(df.index, pd.DatetimeIndex):
+                        if "timestamp" in source.columns:
+                            # timestamp index
+                            df["timestamp"] = df.index
+                    else:
+                        raise NotImplementedError()
 
     if columns:
         # Unprocessable columns left
