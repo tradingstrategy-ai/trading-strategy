@@ -152,7 +152,7 @@ def test_forward_fill_single_pair():
     ]
 
     df = pd.DataFrame(data, columns=Candle.DATAFRAME_FIELDS)
-    df = df.set_index("timestamp")
+    df = df.set_index("timestamp", drop=False)
 
     assert len(df) == 4
 
