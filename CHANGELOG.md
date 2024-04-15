@@ -1,5 +1,6 @@
 # Current
 
+- Change `pyarrow` schemas of `Candle` and `XYLiquidity`to use double precision (float64) instead of float32
 - Add `GroupedCandleUniverse(forward_fill)` option to the constructor
 - Add `PandasPairUniverse.iterate_tokens()`
 - Add `get_prior_timestamp(series: pd.Series, ts: pd.Timestamp)` as a separate utility function
