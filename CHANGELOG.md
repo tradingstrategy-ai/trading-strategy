@@ -1,4 +1,4 @@
-# Current
+# 0.22.10
 
 - Change `pyarrow` schemas of `Candle` and `XYLiquidity`to use double precision (float64) instead of float32
 - Add `GroupedCandleUniverse(forward_fill)` option to the constructor

@@ -183,9 +183,7 @@ class BinanceDownloader:
 
         if start_at:
             assert end_at, "If you specify a start_at, you must also specify an end_at"
-            assert isinstance(
-                start_at, datetime.datetime
-            ), "start_at must be a datetime.datetime object"
+            assert isinstance(start_at, datetime.datetime), f"start_at must be a datetime.datetime object, got {type(start_at)}"
             assert isinstance(
                 end_at, datetime.datetime
             ), "end_at must be a datetime.datetime object"
