@@ -90,7 +90,16 @@ def get_prior_timestamp(series: pd.Series, ts: pd.Timestamp) -> pd.Timestamp | N
 
         Return ``None`` if there are no earlier timestamps.
     """
+
     index = series.index
+
+    # The original data is in grouped DF
+    if isinstance(index, pd.MultiIndex):
+        # AssertionError: Got index: MultiIndex([(2854997, '2024-04-04 21:00:00'),
+        #        (2854997, '2024-04-04 22:00:00'),
+        index = index.get_level_values(1)
+
+    assert isinstance(index, pd.DatetimeIndex), f"Got index: {index}"
 
     try:
         return index[index < ts][-1]
