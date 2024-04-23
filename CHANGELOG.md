@@ -1,3 +1,7 @@
+# 0.22.11
+
+- Add support for Aave v2 dataset
+
 # 0.22.10
 
 - Change `pyarrow` schemas of `Candle` and `XYLiquidity`to use double precision (float64) instead of float32
