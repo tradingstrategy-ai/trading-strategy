@@ -80,9 +80,11 @@ def test_resolve_lending_reserve(persistent_test_client):
     universe = client.fetch_lending_reserve_universe()
 
     usdt_reserve = universe.resolve_lending_reserve(
-        (ChainId.polygon,
-        LendingProtocolType.aave_v3,
-        "USDT")
+        (
+            ChainId.polygon,
+            LendingProtocolType.aave_v3,
+            "USDT",
+        )
     )
     assert isinstance(usdt_reserve, LendingReserve)
     assert usdt_reserve.asset_address == '0xc2132d05d31c914a87c6611c10748aeb04b58e8f'
@@ -95,6 +97,25 @@ def test_resolve_lending_reserve(persistent_test_client):
     assert usdt_reserve.vtoken_decimals == 6
     assert 0 < usdt_reserve.additional_details.ltv < 1
     assert 0 < usdt_reserve.additional_details.liquidation_threshold < 1
+
+    weth_reserve = universe.resolve_lending_reserve(
+        (
+            ChainId.ethereum,
+            LendingProtocolType.aave_v2,
+            "WETH",
+        )
+    )
+    assert isinstance(weth_reserve, LendingReserve)
+    assert weth_reserve.asset_address == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+    assert weth_reserve.asset_symbol == "WETH"
+    assert weth_reserve.asset_name == "Wrapped Ether"
+    assert weth_reserve.asset_decimals == 18
+    assert weth_reserve.atoken_symbol == "aWETH"
+    assert weth_reserve.atoken_decimals == 18
+    assert weth_reserve.vtoken_symbol == "variableDebtWETH"
+    assert weth_reserve.vtoken_decimals == 18
+    assert 0 < weth_reserve.additional_details.ltv < 1
+    assert 0 < weth_reserve.additional_details.liquidation_threshold < 1
 
 
 def test_lending_reserve_equal(persistent_test_client):
@@ -140,10 +161,11 @@ def test_limit_lending_reserve_universe(persistent_test_client):
 
     limited_universe = universe.limit([
         (ChainId.polygon, LendingProtocolType.aave_v3, "USDT"),
-        (ChainId.polygon, LendingProtocolType.aave_v3, "USDC")
+        (ChainId.polygon, LendingProtocolType.aave_v3, "USDC"),
+        (ChainId.ethereum, LendingProtocolType.aave_v2, "USDT"),
     ])
 
-    assert limited_universe.get_count() == 2
+    assert limited_universe.get_count() == 3
 
 
 def test_client_fetch_lending_candles_for_lending_universe(persistent_test_client: Client):

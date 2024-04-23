@@ -27,6 +27,7 @@ from eth_defi.aave_v3.rates import SECONDS_PER_YEAR
 
 class LendingProtocolType(str, Enum):
     """Supported lending protocols."""
+    aave_v2 = "aave_v2"
     aave_v3 = "aave_v3"
 
 
