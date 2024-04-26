@@ -1,3 +1,7 @@
+# 0.22.12
+
+- Update `fetch_all_spot_symbols` API call to Binance
+
 # 0.22.11
 
 - Add support for Aave v2 dataset
