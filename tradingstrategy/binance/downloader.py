@@ -624,8 +624,12 @@ class BinanceDownloader:
         assert "symbols" in data, f"exchangeInfo did not contain symbols. Resp: {resp.status_code}. Keys: {data.keys()}"
 
         symbols = data["symbols"]
+
         for s in symbols:
             if market:
+                for _list in s["permissionSets"]:
+                    s["permissions"].extend(_list)
+
                 if market not in s["permissions"]:
                     continue
 
