@@ -86,11 +86,18 @@ def test_calculate_price_impact_from_dataset(persistent_test_client: Client):
         trade_size,
         max_distance=pd.Timedelta(days=7))
 
+
+    #
+    # TODO: Change in data for 2024/04 because of float32 -> 64 migration
+    #
+
+    assert impact.available_liquidity == pytest.approx(259395991.1263243)
+
     # we get ~4.5 bps slippage
-    assert impact.price_impact == pytest.approx(0.00017106449851134187)
+    assert impact.price_impact == pytest.approx(2.3060735154456502e-05)
 
     # We get 5984 USD worth of SUSHI
-    assert impact.delivered == pytest.approx(5983.023307830095)
+    assert impact.delivered == pytest.approx(5981.862050682306)
 
     # We pay 18 USD in fees
     assert impact.lp_fees_paid == pytest.approx(15.0)
@@ -99,7 +106,7 @@ def test_calculate_price_impact_from_dataset(persistent_test_client: Client):
     assert impact.protocol_fees_paid == pytest.approx(3)
 
     # The cost of trade is smaller than the fees paid
-    assert impact.cost_of_trade == pytest.approx(16.97669216990471)
+    assert impact.cost_of_trade == pytest.approx(18.13794931769371)
 
 
 def test_unknown_pair(persistent_test_client: Client):
