@@ -626,7 +626,7 @@ class BinanceDownloader:
         symbols = data["symbols"]
         for s in symbols:
             if market:
-                if market not in s["permissions"]:
+                if market not in s["permissions"] + s["permissionSets"][0]:
                     continue
 
             yield s["symbol"]
