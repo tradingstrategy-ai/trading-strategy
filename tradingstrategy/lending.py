@@ -361,6 +361,16 @@ class LendingReserveUniverse:
         assert isinstance(chain_id, ChainId)
         new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.chain_id == chain_id}
         return LendingReserveUniverse(new_reserves)
+    
+    def limit_to_protocol(self, lending_protocol: LendingProtocolType) -> "LendingReserveUniverse":
+        """Drop all lending reserves except ones on a specific protocol."""
+        assert isinstance(lending_protocol, LendingProtocolType)
+        new_reserves = {
+            r.reserve_id: r 
+            for r in self.reserves.values() 
+            if r.protocol_slug.lower() == lending_protocol.value.lower()
+        }
+        return LendingReserveUniverse(new_reserves)
 
     def limit_to_assets(self, assets: Set[TokenSymbol | NonChecksummedAddress]) -> "LendingReserveUniverse":
         """Drop all lending reserves except listed tokens."""
@@ -368,13 +378,14 @@ class LendingReserveUniverse:
             assert type(a) == str
 
         new_reserves = {}
+        assets_in_reserves = set()
         for r in self.reserves.values():
             for a in assets:
                 if (a.startswith("0x") and r.asset_address.lower() == a.lower()) or (r.asset_symbol == a):
                     new_reserves[r.reserve_id] = r
+                    assets_in_reserves.add(a.lower())
 
-        # new_reserves = {r.reserve_id: r for r in self.reserves.values() if r.asset_symbol in assets}
-        assert len(assets) == len(new_reserves), f"Could not resolve all assets: {assets}"
+        assert len(assets) == len(assets_in_reserves), f"Could not resolve all assets: {assets}, got: {assets_in_reserves}"
 
         return LendingReserveUniverse(new_reserves)
 

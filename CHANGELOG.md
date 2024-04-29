@@ -1,6 +1,7 @@
 # 0.22.12
 
 - Update `fetch_all_spot_symbols` API call to Binance
+- Add: `LendingReserveUniverse.limit_to_protocol()`
 
 # 0.22.11
 
