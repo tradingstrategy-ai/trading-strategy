@@ -62,6 +62,7 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
         force_download=False,
+        desc="Downloading Binance data",
     ) -> pd.DataFrame:
         """Get clean candlestick price and volume data from Binance. If saved, use saved version, else create saved version.
 
