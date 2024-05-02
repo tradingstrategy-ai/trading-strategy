@@ -758,14 +758,25 @@ def filter_for_single_pair(samples: pd.DataFrame, pair: DEXPair) -> pd.DataFrame
     return our_pairs
 
 
-def resample_series(series: pd.Series, freq: pd.Timedelta, forward_fill: bool = False):
+def resample_series(
+    series: pd.Series,
+    freq: pd.Timedelta,
+    forward_fill: bool = False,
+    backwards_fill: bool = False,
+):
     """Downsample or upsample liquidity series. If upsamping, use forward_fill = True to fill in the missing values.
     
     Note, this does not apply to OHLCV candles, use :y:func:`resample_candle` and :py:func:`resample_price_series` for that.
 
     :param series: Series to resample
+
     :param freq: New timedelta to resample to
-    :param forward_fill: Forward fill missing values if upsampling
+
+    :param forward_fill:
+        Forward fill missing values if upsampling
+
+    :param backwards_fill:
+        Backwards fill.
     """
     
     series = series.astype(float)
@@ -774,6 +785,9 @@ def resample_series(series: pd.Series, freq: pd.Timedelta, forward_fill: bool = 
 
     if forward_fill:
         candles = candles.fillna(method="ffill")
+
+    if backwards_fill:
+        candles = candles.fillna(method="bfill")
 
     return candles
 

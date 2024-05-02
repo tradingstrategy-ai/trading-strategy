@@ -88,8 +88,9 @@ class JupyterEnvironment(Environment):
 
     def save_configuration(self, config: Configuration):
         spath = self.get_settings_path()
-
         os.makedirs(spath, exist_ok=True)
+
+        assert config, "API key not configured. Re-run the notebook to restart the API key configuration process."
 
         with open(os.path.join(spath, "settings.json"), "wt") as out:
             data = config.to_json()
