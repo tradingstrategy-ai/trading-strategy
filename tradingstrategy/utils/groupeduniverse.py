@@ -135,6 +135,7 @@ class PairGroupedUniverse:
         self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
 
         if forward_fill:
+            old_pairs = self.pairs
             self.pairs = _forward_fill(
                 self.pairs,
                 freq=self.time_bucket.to_frequency(),

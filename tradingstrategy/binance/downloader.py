@@ -1,4 +1,5 @@
 """Get candlestick price and volume data from Binance.
+
 """
 
 import requests
@@ -34,12 +35,23 @@ from tradingstrategy.binance.constants import BINANCE_SUPPORTED_QUOTE_TOKENS, sp
 logger = logging.getLogger(__name__)
 
 
+#: Binance API
+#:
+#: Use env vars to set a proxy to work around country restrictions
+#:
 BASE_BINANCE_API_URL = os.getenv("BASE_BINANCE_API_URL", "https://api.binance.com")
+
+#: Binance margin API
+#:
+#: Use env vars to set a proxy to work around country restrictions
+#:
 BASE_BINANCE_MARGIN_API_URL = os.getenv("BASE_BINANCE_MARGIN_API_URL", "https://www.binance.com/bapi/margin")
 
 
 class BinanceDataFetchError(ValueError):
-    """Something wrong with Binance."""
+    """Something wrong with Binance.
+
+    """
 
 
 class BinanceDownloader:
@@ -102,7 +114,7 @@ class BinanceDownloader:
         dataframes = []
         total_size = 0
 
-        with tqdm(total=len(symbols)) as progress_bar:
+        with tqdm(total=len(symbols), desc=desc) as progress_bar:
             for symbol in symbols:
                 df = self.fetch_candlestick_data_single_pair(
                     symbol, time_bucket, start_at, end_at, force_download
@@ -392,6 +404,10 @@ class BinanceDownloader:
                     f"Binance API error {response.status_code}. No data found for {asset_symbol} between {start_at} and {end_at}.\n"
                     f"- Check Binance Futures API is allowed in your country.\n"
                     f"- Check symbol matches with valid symbols in method description.\n"
+                    f"\n"
+                    f"You can override Binance margin API URL to a HTTP proxy with:"
+                    f""
+                    f"""export BASE_BINANCE_MARGIN_API_URL="https://user:pass@proxy.example.com/bapi/margin" """
                     f"\n"
                     f"Response: {response.status_code} {response.text}"
                 )
