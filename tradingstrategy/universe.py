@@ -91,6 +91,14 @@ class Universe:
     #: TODO: Do not use this - will be be deprecated in the favour of :py:attr:`exchange_universe`
     exchanges: Optional[Set[Exchange]] = None
 
+    #: Was candle data for this universe forward filled.
+    #:
+    #: See `TradingStrategyUniverse.create_from_dataset()`.
+    #:
+    #: `None` if unknown (legacy code).
+    #:
+    forward_filled: bool | None = None
+
     def __post_init__(self):
         """Check that the constructor was called correctly.
 
