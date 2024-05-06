@@ -18,6 +18,7 @@ import plotly.graph_objects as go
 import pandas as pd
 from plotly.subplots import make_subplots
 
+from tradingstrategy.utils.df_index import get_timestamp_index
 
 logger = logging.getLogger(__name__)
 
@@ -159,20 +160,20 @@ def make_candle_labels(
 
 
 def visualise_ohlcv(
-        candles: pd.DataFrame,
-        chart_name: Optional[str] = None,
-        y_axis_name: Optional[str] = "Price USD",
-        volume_axis_name: Optional[str] = "Volume USD",
-        height: int = 800,
-        theme: str = "plotly_white",
-        volume_bar_colour: str = "rgba(128,128,128,0.5)",
-        volume_bar_mode = VolumeBarMode.overlay,
-        labels: Optional[pd.Series] = None,
-        num_detached_indicators: Optional[int] = 0,
-        vertical_spacing: Optional[float] = 0.05,
-        relative_sizing: Optional[list[float]]  = None,
-        subplot_names: Optional[list[str]] = None,
-        subplot_font_size: int = 11,
+    candles: pd.DataFrame,
+    chart_name: Optional[str] = None,
+    y_axis_name: Optional[str] = "Price USD",
+    volume_axis_name: Optional[str] = "Volume USD",
+    height: int = 800,
+    theme: str = "plotly_white",
+    volume_bar_colour: str = "rgba(128,128,128,0.5)",
+    volume_bar_mode = VolumeBarMode.overlay,
+    labels: Optional[pd.Series] = None,
+    num_detached_indicators: Optional[int] = 0,
+    vertical_spacing: Optional[float] = 0.05,
+    relative_sizing: Optional[list[float]]  = None,
+    subplot_names: Optional[list[str]] = None,
+    subplot_font_size: int = 11,
 ) -> go.Figure:
     """Draw a candlestick chart.
 
@@ -254,7 +255,7 @@ def visualise_ohlcv(
         text = ["Change: " + f"{percentage_changes.iloc[i]:.2f}%" for i in range(len(percentage_changes))]
 
     candlesticks = go.Candlestick(
-        x=candles.index,
+        x=get_timestamp_index(candles),
         open=candles['open'],
         high=candles['high'],
         low=candles['low'],

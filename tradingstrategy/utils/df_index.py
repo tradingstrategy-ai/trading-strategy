@@ -1,0 +1,55 @@
+"""DataFrame index utilities.
+
+- Deal with mismatch of having :term:`OHLCV` data is :py:class:`pd.DateTimeIndex` and :py:class:`pd.MultiIndex` format
+
+"""
+import pandas as pd
+
+
+def flatten_dataframe_datetime_index(df: pd.DataFrame) -> pd.DataFrame:
+    """Make sure we have a datetime index as the index for the DataFrame.
+
+    - Multipair data sources may have (pair_id, timestamp) index
+      instead of (timestamp) index
+
+    :return:
+        DataFrame copy with a timestamp-only index
+    """
+
+    if isinstance(df.index, pd.DatetimeIndex):
+        return df
+
+    assert isinstance(df.index, pd.MultiIndex), f"Got wrong index: {type(df.index)}"
+
+    # (pair id, timestamp) tuples
+    assert df.index.levels[0].dtype == "int64"
+    assert isinstance(df.index.levels[1], pd.DatetimeIndex)
+
+    new_index = df.index.get_level_values(1)  # assume pair id, timestamp tuples
+    assert isinstance(new_index, pd.DatetimeIndex)
+    df2 = df.copy()
+    df2.index = new_index
+    return df2
+
+
+def get_timestamp_index(df: pd.DataFrame) -> pd.DatetimeIndex:
+    """Get DateTimeIndex for pair OHCLV data.
+    
+    See :py:func:`flatten_dataframe_datetime_index` for comments,
+
+    - Return `df.index` or extract timestamp component from `MultiIndex`
+
+    :return:
+        DataFrame copy with a timestamp-only index
+    """
+
+    if isinstance(df.index, pd.DatetimeIndex):
+        return df.index
+
+    assert isinstance(df.index, pd.MultiIndex), f"Got wrong index: {type(df.index)}"
+
+    # (pair id, timestamp) tuples
+    assert df.index.levels[0].dtype == "int64"
+    assert isinstance(df.index.levels[1], pd.DatetimeIndex)
+
+    return df.index.get_level_values(1)
