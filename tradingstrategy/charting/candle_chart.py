@@ -46,12 +46,16 @@ def validate_ohclv_dataframe(candles: pd.DataFrame):
 
     required_columns = ["open", "close", "high", "low"]
 
-    if not isinstance(candles.index, pd.DatetimeIndex):
+    if isinstance(candles.index, pd.MultiIndex):
+        levels = candles.index.levels
+        # (pair_id, timestamp) index - sharing index for multiple pairs in the same dataframe
+        assert levels[0].dtype == "int64" and isinstance(levels[1], pd.DatetimeIndex), f"Bad OHLCV MultiIndex - not (pair, timestamp) data: {levels[0]} and {levels[1]}"
+    elif not isinstance(candles.index, pd.DatetimeIndex):
         if (
             candles.index.name not in {"date", "timestamp"} and \
             not ({"date", "timestamp"}).issubset(candles.columns)
         ):
-            raise BadOHLCVData("OHLCV DataFrame lacks date/timestamp index or column")
+            raise BadOHLCVData(f"OHLCV DataFrame lacks date/timestamp index or column.\nAvailable columns:{candles.columns}, index is {type(candles.index)}")
 
     for r in required_columns:
         if r not in candles.columns:

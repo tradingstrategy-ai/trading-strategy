@@ -155,7 +155,7 @@ def forward_fill(
 
     # Fill missing timestamps with NaN
     # https://stackoverflow.com/a/45620300/315168
-    df = df.resample(freq).mean()
+    df = df.resample(freq).mean(numeric_only=True)
 
     columns = set(columns)
 
