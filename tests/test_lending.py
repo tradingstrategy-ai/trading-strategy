@@ -114,8 +114,9 @@ def test_resolve_lending_reserve(persistent_test_client):
     assert weth_reserve.atoken_decimals == 18
     assert weth_reserve.vtoken_symbol == "variableDebtWETH"
     assert weth_reserve.vtoken_decimals == 18
-    assert 0 < weth_reserve.additional_details.ltv < 1
-    assert 0 < weth_reserve.additional_details.liquidation_threshold < 1
+    # we don't have this info for v2 yet
+    # assert 0 < weth_reserve.additional_details.ltv < 1
+    # assert 0 < weth_reserve.additional_details.liquidation_threshold < 1
 
 
 def test_lending_reserve_equal(persistent_test_client):
