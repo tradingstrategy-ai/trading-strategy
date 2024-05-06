@@ -771,6 +771,7 @@ class PandasPairUniverse:
 
         self.exchange_universe = exchange_universe
 
+        #: A hack used in a single trading pair univerwse
         self.single_pair_cache: DEXPair = None
 
     def iterate_pairs(self) -> Iterable[DEXPair]:
@@ -2293,3 +2294,8 @@ def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=
         pretty = pprint.pformat(data)
         raise DataDecodeFailed(f"Could not decode trading pair data:\n{pretty}") from e
     return obj
+
+
+
+
+

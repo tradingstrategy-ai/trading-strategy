@@ -37,6 +37,10 @@ class NoDataAvailable(Exception):
     """Raises when the user is asking data that is empty."""
 
 
+class PairCandlesMissing(KeyError):
+    """Raises when the user is asking data for a pair that has no OHLCV feed."""
+
+
 class PairGroupedUniverse:
     """A base class for manipulating columnar price/liquidity data by a pair.
 
@@ -177,7 +181,7 @@ class PairGroupedUniverse:
         try:
             pair = self.pairs.get_group(pair_id)
         except KeyError as e:
-            raise KeyError(f"No OHLC samples for pair id {pair_id} in {self}") from e
+            raise PairCandlesMissing(f"No OHLC samples for pair id {pair_id} in {self}") from e
         return pair
 
     def get_last_entries_by_pair_and_timestamp(self,
