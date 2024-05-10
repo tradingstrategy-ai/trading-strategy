@@ -122,7 +122,11 @@ class PairGroupedUniverse:
         self.time_bucket = time_bucket
         self.primary_key_column = primary_key_column
 
-        if index_automatically and not isinstance(df.index, pd.DatetimeIndex):
+        # TODO: sometimes we crop data, but not index
+        # e.g. if we check for good index here test_visualise_strategy_state_overriden_pairs
+        # stops working, as the visualisation figure expects timestamp column
+        # and not isinstance(df.index, pd.DatetimeIndex)
+        if index_automatically:
             # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_index.html
             self.df = df \
                 .set_index(timestamp_column, drop=False)\
