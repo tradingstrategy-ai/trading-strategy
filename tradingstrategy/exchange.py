@@ -325,3 +325,13 @@ class ExchangeUniverse:
         assert self.get_exchange_count() == 1
         return next(iter(self.exchanges.values()))
 
+    def limit_to_chains(self, chain_ids: set[ChainId]) -> "ExchangeUniverse":
+        """Remove all but named exchanges from the set."""
+        assert type(chain_ids) in (tuple, set, list)
+        return ExchangeUniverse({k: v for k, v in self.exchanges.items() if v.chain_id in chain_ids})
+
+    def limit_to_slugs(self, slugs: set[str]) -> "ExchangeUniverse":
+        """Remove all but named exchanges from the """
+        assert type(slugs) in (tuple, set, list)
+        return ExchangeUniverse({k: v for k, v in self.exchanges.items() if v.exchange_slug in slugs})
+

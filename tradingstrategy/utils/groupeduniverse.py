@@ -122,11 +122,11 @@ class PairGroupedUniverse:
         self.time_bucket = time_bucket
         self.primary_key_column = primary_key_column
 
-        if index_automatically:
+        if index_automatically and not isinstance(df.index, pd.DatetimeIndex):
+            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_index.html
             self.df = df \
                 .set_index(timestamp_column, drop=False)\
                 .sort_index(inplace=False)
-            # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_index.html
         else:
             self.df = df
 
