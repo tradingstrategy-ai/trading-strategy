@@ -356,7 +356,7 @@ class CachedHTTPTransport:
 
             # Quick fix to avoid getting hit by API key errors here.
             # TODO: Clean this up properly
-            with path.open("rt", encoding="utf-8") as inp:
+            with open(path, "rt", encoding="utf-8") as inp:
                 data = json.load(inp)
                 if "error" in data:
                     # API key error, do not save JSON data
