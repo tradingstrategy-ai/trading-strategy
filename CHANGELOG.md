@@ -2,6 +2,7 @@
 
 - Update `fetch_all_spot_symbols` API call to Binance
 - Add: `LendingReserveUniverse.limit_to_protocol()`
+- Fix: If there is an API key error when saving exchange universe, abort the operation with an exception
 
 # 0.22.11
 

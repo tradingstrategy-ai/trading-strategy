@@ -3,6 +3,7 @@
 import datetime
 import enum
 import hashlib
+import json
 import os
 import pathlib
 import platform
@@ -23,6 +24,7 @@ from requests.adapters import HTTPAdapter
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
+from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey
@@ -351,6 +353,16 @@ class CachedHTTPTransport:
                 return cached
 
             self.save_response(path, "exchange-universe", human_readable_hint="Downloading exchange dataset")
+
+            # Quick fix to avoid getting hit by API key errors here.
+            # TODO: Clean this up properly
+            with path.open("rt", encoding="utf-8") as inp:
+                data = json.load(inp)
+                if "error" in data:
+                    # API key error, do not save JSON data
+                    os.remove(path)
+                    raise RuntimeError(f"Exchange universe download failed: {data}")
+
             return self.get_cached_item(fname)
     
     def fetch_lending_reserve_universe(self) -> pathlib.Path:
