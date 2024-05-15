@@ -499,7 +499,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             Timestamp to query
 
         :param kind:
-            One of OHLC data points: "open", "close", "low", "high"
+            One of OHLC data points: "open", "close", "low", "high", "volume"
 
         :param tolerance:
             If there is no liquidity sample available at the exact timepoint,
@@ -525,7 +525,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         """
 
-        assert kind in ("open", "close", "high", "low"), f"Got kind: {kind}"
+        assert kind in ("open", "close", "high", "low", "volume"), f"Got kind: {kind}"
 
         if isinstance(when, datetime.datetime):
             when = pd.Timestamp(when)
