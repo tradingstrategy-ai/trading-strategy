@@ -25,7 +25,7 @@ from pandas.core.groupby import DataFrameGroupBy
 def forward_fill(
     df: pd.DataFrame | DataFrameGroupBy,
     freq: pd.DateOffset,
-    columns: Collection[str] = ("open", "close", "high", "low", "timestamp"),
+    columns: Collection[str] = ("open", "close", "high", "low", "volume", "timestamp"),
     drop_other_columns=True,
 ):
     """Forward-fill OHLCV data for multiple trading pairs.
