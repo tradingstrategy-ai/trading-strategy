@@ -50,7 +50,7 @@ def validate_ohclv_dataframe(candles: pd.DataFrame):
     if isinstance(candles.index, pd.MultiIndex):
         levels = candles.index.levels
         # (pair_id, timestamp) index - sharing index for multiple pairs in the same dataframe
-        assert levels[0].dtype == "int64" and isinstance(levels[1], pd.DatetimeIndex), f"Bad OHLCV MultiIndex - not (pair, timestamp) data: {levels[0]} and {levels[1]}"
+        assert pd.api.types.is_integer_dtype(levels[0]) and isinstance(levels[1], pd.DatetimeIndex), f"Bad OHLCV MultiIndex - not (pair, timestamp) data: {levels[0]} and {levels[1]}"
     elif not isinstance(candles.index, pd.DatetimeIndex):
         if (
             candles.index.name not in {"date", "timestamp"} and \

@@ -22,7 +22,7 @@ def flatten_dataframe_datetime_index(df: pd.DataFrame) -> pd.DataFrame:
     assert isinstance(df.index, pd.MultiIndex), f"Got wrong index: {type(df.index)}"
 
     # (pair id, timestamp) tuples
-    assert df.index.levels[0].dtype == "int64"
+    assert pd.api.types.is_integer_dtype(df.index.levels[0])
     assert isinstance(df.index.levels[1], pd.DatetimeIndex)
 
     new_index = df.index.get_level_values(1)  # assume pair id, timestamp tuples
@@ -49,7 +49,7 @@ def get_timestamp_index(df: pd.DataFrame) -> pd.DatetimeIndex:
     assert isinstance(df.index, pd.MultiIndex), f"Got wrong index: {type(df.index)}"
 
     # (pair id, timestamp) tuples
-    assert df.index.levels[0].dtype == "int64"
+    assert pd.api.types.is_integer_dtype(df.index.levels[0])
     assert isinstance(df.index.levels[1], pd.DatetimeIndex)
 
     return df.index.get_level_values(1)
