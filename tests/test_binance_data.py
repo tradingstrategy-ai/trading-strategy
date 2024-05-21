@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 import os
 from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 from tradingstrategy.binance.downloader import BinanceDownloader, BinanceDataFetchError
 from tradingstrategy.binance.utils import (
