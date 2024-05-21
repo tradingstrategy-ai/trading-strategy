@@ -509,8 +509,13 @@ class PairGroupedUniverse:
             if (sample_count is None and len(df) == 0) or (sample_count is not None and len(df) < sample_count):
                 start_at = self.df["timestamp"].min()
                 end_at = self.df["timestamp"].max()
-                raise NoDataAvailable(f"Tried to ask candle data for timestamp {timestamp}. Truncating data after {after}. Minimum sample count needed is set to {sample_count}.\n"
-                                      f"\n"
+                raise NoDataAvailable(f"Tried to ask for {sample_count} candles before timestamp {timestamp}, due to the sample count you specified of {sample_count}, but you only loaded candles from {start_at}. Truncating data after {after}. \n"\
+                                      "\n\n"
+                                      f"You have a few options in order of recommendation:\n"
+                                      f"1. Try to increase the loaded data range when you create the universe, so that the backtest can start with past data ready.\n"
+                                      f"2. Make the backtest start at least {sample_count} candles later\n"
+                                      f"3. If you don't mind not having full past data for the first {sample_count} trade cycles, set `raise_on_not_enough_data=False in `get_single_pair_data`\n"
+                                      f"\n\n"
                                       f"The result was {len(df)} candles. The trading pair or the time period does not have enough data.\n"
                                       f"The total loaded candle data is {len(self.df)} candles at range {start_at} - {end_at}.\n"
                                       f"\n"
