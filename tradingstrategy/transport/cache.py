@@ -355,17 +355,7 @@ class CachedHTTPTransport:
 
             self.save_response(path, "exchange-universe", human_readable_hint="Downloading exchange dataset")
 
-            # Quick fix to avoid getting hit by API key errors here.
-            # TODO: Clean this up properly
-            with open(path, "rt", encoding="utf-8") as inp:
-                try:
-                    data = json.load(inp)
-                except JSONDecodeError as e:
-                    raise RuntimeError(f"Invalid exchange universe data: {data}") from e
-                if "error" in data:
-                    # API key error, do not save JSON data
-                    os.remove(path)
-                    raise RuntimeError(f"Exchange universe download failed: {data}")
+            _check_good_json(path, "fetch_exchange_universe() failed")
 
             return self.get_cached_item(fname)
     
@@ -387,6 +377,9 @@ class CachedHTTPTransport:
                 human_readable_hint="Downloading lending reserve dataset"
             )
             path, status = self.get_cached_item_with_status(fname)
+
+            _check_good_json(path, "fetch_lending_reserve_universe() failed")
+
             assert status.is_readable(), f"Got status {status} for path"
             return path
 
@@ -763,3 +756,28 @@ def wait_other_writers(path: Path | str, timeout=120):
 
     with lock:
         yield
+
+
+def _check_good_json(path: Path, exception_message: str):
+    """Check that server gave us good JSON file.
+
+    - 404, 500, API key errors
+
+    """
+    broken_data = False
+
+    # Quick fix to avoid getting hit by API key errors here.
+    # TODO: Clean this up properly
+    with open(path, "rt", encoding="utf-8") as inp:
+        data = inp.read()
+        try:
+            data = json.loads(data)
+            if "error" in data:
+                broken_data = True
+        except JSONDecodeError as e:
+            broken_data = True
+
+    if broken_data:
+        os.remove(path)
+        raise RuntimeError(f"{exception_message}\nJSON data is: {data}")
+
