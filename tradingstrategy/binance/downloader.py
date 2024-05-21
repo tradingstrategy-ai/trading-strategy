@@ -114,10 +114,12 @@ class BinanceDownloader:
         dataframes = []
         total_size = 0
 
+        binance_spot_symbols = self.fetch_all_spot_symbols()
+
         with tqdm(total=len(symbols), desc=desc) as progress_bar:
             for symbol in symbols:
                 df = self.fetch_candlestick_data_single_pair(
-                    symbol, time_bucket, start_at, end_at, force_download
+                    symbol, time_bucket, start_at, end_at, force_download, binance_spot_symbols
                 )
                 dataframes.append(df)
 
@@ -141,6 +143,7 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
         force_download=False,
+        binance_spot_symbols=None,
     ) -> pd.DataFrame:
         """Fetch candlestick data for a single pair.
 
@@ -157,7 +160,9 @@ class BinanceDownloader:
             except:
                 pass
 
-        if symbol not in self.fetch_all_spot_symbols():
+        assert binance_spot_symbols, "binance_spot_symbols must be provided"
+
+        if symbol not in binance_spot_symbols:
             raise BinanceDataFetchError(f"Symbol {symbol} is not a valid spot symbol")
 
         df = self._fetch_candlestick_data(
