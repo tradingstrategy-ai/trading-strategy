@@ -26,6 +26,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import DEXPair, HumanReadableTradingPairDescription
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey, NonChecksummedAddress
+from tradingstrategy.utils.df_index import flatten_dataframe_datetime_index
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 from tradingstrategy.utils.time import ZERO_TIMEDELTA
 
@@ -361,7 +362,11 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         if pair_id not in self.candles_cache:
             try:
-                self.candles_cache[pair_id] = self.get_samples_by_pair(pair_id)
+                candles = self.get_samples_by_pair(pair_id)
+                # Fix pd.MultiIndex issues that would slow down
+                # get_price_with_tolerance()
+                candles = flatten_dataframe_datetime_index(candles)
+                self.candles_cache[pair_id] = candles
             except KeyError:
                 return None
         

@@ -25,6 +25,10 @@ START_AT = datetime.datetime(2021, 1, 1)
 END_AT = datetime.datetime(2021, 1, 2)
 
 
+# Because of geoblocks, only run tests with we enable Binance Margin API specifically
+pytestmark = pytest.mark.skipif(not os.environ.get("BASE_BINANCE_MARGIN_API_URL"), reason="SEt BASE_BINANCE_MARGIN_API_URL to run these tests to a proxy server or https://www.binance.com/bapi/margin")
+
+
 @pytest.fixture(scope="module")
 def candle_downloader():
     return BinanceDownloader()

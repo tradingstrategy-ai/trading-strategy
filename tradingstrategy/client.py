@@ -187,10 +187,11 @@ class Client(BaseClient):
         """
         path = self.transport.fetch_exchange_universe()
         with path.open("rt", encoding="utf-8") as inp:
+            data = inp.read()
             try:
-                return ExchangeUniverse.from_json(inp.read())
+                return ExchangeUniverse.from_json(data)
             except JSONDecodeError as e:
-                raise RuntimeError(f"Could not read JSON file {path}") from e
+                raise RuntimeError(f"Could not read ExchangeUniverse JSON file {path}\nData is {data}") from e
 
     @_retry_corrupted_parquet_fetch
     def fetch_all_candles(self, bucket: TimeBucket) -> pyarrow.Table:

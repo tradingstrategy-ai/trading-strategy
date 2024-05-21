@@ -10,6 +10,7 @@ import platform
 import re
 from contextlib import contextmanager
 from importlib.metadata import version
+from json import JSONDecodeError
 from typing import Optional, Callable, Set, Union, Collection, Dict, Literal, Tuple
 import shutil
 import logging
@@ -357,7 +358,10 @@ class CachedHTTPTransport:
             # Quick fix to avoid getting hit by API key errors here.
             # TODO: Clean this up properly
             with open(path, "rt", encoding="utf-8") as inp:
-                data = json.load(inp)
+                try:
+                    data = json.load(inp)
+                except JSONDecodeError as e:
+                    raise RuntimeError(f"Invalid exchange universe data: {data}") from e
                 if "error" in data:
                     # API key error, do not save JSON data
                     os.remove(path)
