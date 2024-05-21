@@ -1,3 +1,7 @@
+# Current
+
+- Update: Having pd.MultiIndex instead of per-pair pd.DateTimeIndex on candles slows down price access on backtesting considerably
+
 # 0.22.12
 
 - Update `fetch_all_spot_symbols` API call to Binance

@@ -568,8 +568,6 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         except KeyError:
             pass
 
-        import ipdb ; ipdb.set_trace()
-
         #
         # No direct hit. Either sparse data or data not available before this.
         # Lookup just got complicated,
