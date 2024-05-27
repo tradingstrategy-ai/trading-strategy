@@ -114,23 +114,33 @@ class BinanceDownloader:
         dataframes = []
         total_size = 0
 
-        binance_spot_symbols = self.fetch_all_spot_symbols()
+        binance_spot_symbols = list(self.fetch_all_spot_symbols())
 
-        with tqdm(total=len(symbols), desc=desc) as progress_bar:
-            for symbol in symbols:
-                df = self.fetch_candlestick_data_single_pair(
-                    symbol, time_bucket, start_at, end_at, force_download, binance_spot_symbols
-                )
-                dataframes.append(df)
+        if len(symbols) <= 5:
+            progress_bar = None
+            show_individual_progress = True
+        else:
+            progress_bar = tqdm(desc=desc, total=len(symbols))
+            show_individual_progress = False
+        
+        for symbol in symbols:
+            df = self.fetch_candlestick_data_single_pair(
+                symbol, time_bucket, start_at, end_at, force_download, binance_spot_symbols, show_individual_progress,
+            )
+            dataframes.append(df)
 
-                # Count the cached file size
-                path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
-                total_size += os.path.getsize(path)
+            # Count the cached file size
+            path = self.get_parquet_path(symbol, time_bucket, start_at, end_at)
+            total_size += os.path.getsize(path)
 
+            if progress_bar:
                 progress_bar.set_postfix(
                     {"pair": symbol, "total_size (MBytes)": total_size / (1024**2)}
                 )
                 progress_bar.update()
+        
+        if progress_bar:
+            progress_bar.close()
 
         combined_dataframe = pd.concat(dataframes, axis=0)
 
@@ -144,10 +154,11 @@ class BinanceDownloader:
         end_at: datetime.datetime,
         force_download=False,
         binance_spot_symbols=None,
+        show_individual_progress=False,
     ) -> pd.DataFrame:
         """Fetch candlestick data for a single pair.
 
-        Downlad is cached.
+        Download is cached.
 
         Using this function directly will not include progress bars. Use `fetch_candlestick_data` instead.
 
@@ -156,11 +167,17 @@ class BinanceDownloader:
         """
         if not force_download:
             try:
-                return self.get_data_parquet(symbol, time_bucket, start_at, end_at)
+                data_parquet = self.get_data_parquet(symbol, time_bucket, start_at, end_at)
+                if show_individual_progress:
+                    progress_bar = tqdm(total=1, desc=f"Loaded candlestick data for {symbol} from cache")
+                    progress_bar.update(1)
+                    progress_bar.close()
+                return data_parquet
             except:
                 pass
 
-        assert binance_spot_symbols, "binance_spot_symbols must be provided"
+        if not binance_spot_symbols:
+            binance_spot_symbols = list(self.fetch_all_spot_symbols())
 
         if symbol not in binance_spot_symbols:
             raise BinanceDataFetchError(f"Symbol {symbol} is not a valid spot symbol")
@@ -170,6 +187,7 @@ class BinanceDownloader:
             time_bucket,
             start_at,
             end_at,
+            show_individual_progress,
         )
         df["pair_id"] = symbol
 
@@ -185,6 +203,7 @@ class BinanceDownloader:
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
+        show_individual_progress: bool,
     ) -> pd.DataFrame:
         """Private function to fetch candlestick data from Binance. This function does will always download data from Binance.
 
@@ -237,6 +256,9 @@ class BinanceDownloader:
             [],
         )
 
+        progress_bar = tqdm(total=len(timestamps) - 1, unit='iteration', desc=f'Downloading candlestick data for {symbol}') if show_individual_progress else None
+
+        total_size = 0
         for i in range(0, len(timestamps) - 1):
             start_timestamp = timestamps[i]
             end_timestamp = timestamps[i + 1]
@@ -260,7 +282,20 @@ class BinanceDownloader:
                 raise BinanceDataFetchError(
                     f"Error fetching data between {start_timestamp} and {end_timestamp}. \nResponse: {response.status_code} {response.text} \nMake sure you are using valid pair symbol e.g. `ETHUSDC`, not just ETH"
                 )
+            
+            total_size += len(json_data)
+            
+            if progress_bar:
+                progress_bar.set_postfix(
+                    {
+                        "downloaded (MBytes)": total_size / (1024**2),
+                    }
+                )
+                progress_bar.update()
 
+        if progress_bar:
+            progress_bar.close()
+        
         df = pd.DataFrame(
             {
                 "open": open_prices,
@@ -311,26 +346,35 @@ class BinanceDownloader:
         dataframes = []
         total_size = 0
 
-        with tqdm(total=len(asset_symbols)) as progress_bar:
-            for asset_symbol in asset_symbols:
-                df = self.fetch_lending_rates_single_pair(
-                    asset_symbol, time_bucket, start_at, end_at, force_download
-                )
-                dataframes.append(df)
+        if len(asset_symbols) <= 5:
+            progress_bar = None
+            show_individual_progress = True
+        else:
+            progress_bar = tqdm(desc="Downloading lending data", total=len(asset_symbols))
+            show_individual_progress = False
 
-                # Count the cached file size
-                path = self.get_parquet_path(
-                    asset_symbol, time_bucket, start_at, end_at, is_lending=True
-                )
-                total_size += os.path.getsize(path)
+        lending_symbols = list(self.fetch_all_lending_symbols())
 
+        for asset_symbol in asset_symbols:
+            df = self.fetch_lending_rates_single_pair(
+                asset_symbol, time_bucket, start_at, end_at, force_download, show_individual_progress, lending_symbols
+            )
+            dataframes.append(df)
+
+            # Count the cached file size
+            path = self.get_parquet_path(
+                asset_symbol, time_bucket, start_at, end_at, is_lending=True
+            )
+            total_size += os.path.getsize(path)
+
+            if progress_bar:
                 progress_bar.set_postfix(
-                    {
-                        "pair": asset_symbol,
-                        "total_size (MBytes)": total_size / (1024**2),
-                    }
+                    {"pair": asset_symbol, "total_size (MBytes)": total_size / (1024**2)}
                 )
                 progress_bar.update()
+        
+        if progress_bar:
+            progress_bar.close()
 
         combined_dataframe = pd.concat(dataframes, axis=0)
 
@@ -343,23 +387,34 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
         force_download=False,
+        show_individual_progress:bool=False,
+        lending_symbols: set[str] = None,
     ) -> pd.DataFrame:
         """Fetch lending rates for a single asset.
 
         Using this function directly will not include progress bars. Use `fetch_lending_rates` instead.
         """
+        if not lending_symbols:
+            lending_symbols = list(self.fetch_all_lending_symbols())
+
         if not force_download:
             try:
-                return self.get_data_parquet(
+                data_parquet = self.get_data_parquet(
                     asset_symbol, time_bucket, start_at, end_at, is_lending=True
                 )
+                if show_individual_progress:
+                    progress_bar = tqdm(total=1, desc=f"Loaded lending data for {asset_symbol} from cache")
+                    progress_bar.update(1)
+                    progress_bar.close()
+
+                return data_parquet
             except:
                 pass
         
-        if asset_symbol not in self.fetch_all_lending_symbols():
+        if asset_symbol not in lending_symbols:
             raise BinanceDataFetchError(f"Symbol {asset_symbol} is not a valid lending symbol")
 
-        series = self._fetch_lending_rates(asset_symbol, start_at, end_at, time_bucket)
+        series = self._fetch_lending_rates(asset_symbol, start_at, end_at, time_bucket, show_individual_progress)
 
         path = self.get_parquet_path(
             asset_symbol, time_bucket, start_at, end_at, is_lending=True
@@ -377,6 +432,7 @@ class BinanceDownloader:
         start_at: datetime.datetime,
         end_at: datetime.datetime,
         time_bucket: TimeBucket,
+        show_individual_progress: bool,
     ) -> pd.Series:
         assert type(asset_symbol) == str, "asset_symbol must be a string"
         assert (
@@ -393,7 +449,12 @@ class BinanceDownloader:
         monthly_timestamps = generate_monthly_timestamps(start_at, end_at)
         response_data = []
 
-        # API calls to get the data
+        if show_individual_progress:
+            progress_bar = tqdm(desc=f"Downloading lending data for {asset_symbol}", total=len(monthly_timestamps)-1)
+        else:
+            progress_bar = None
+
+        total_size = 0
         for i in range(len(monthly_timestamps) - 1):
             start_timestamp = monthly_timestamps[i] * 1000
             end_timestamp = monthly_timestamps[i + 1] * 1000
@@ -415,7 +476,21 @@ class BinanceDownloader:
                     f"""export BASE_BINANCE_MARGIN_API_URL="https://user:pass@proxy.example.com/bapi/margin" """
                     f"\n"
                     f"Response: {response.status_code} {response.text}"
+                    f"Reason: {response.reason}"
                 )
+            
+            total_size += len(json_data)
+            
+            if progress_bar: 
+                progress_bar.set_postfix(
+                    {
+                        "downloaded (MBytes)": total_size / (1024**2),
+                    }
+                )
+                progress_bar.update()
+
+        if progress_bar:
+            progress_bar.close()
         
         dates = []
         interest_rates = []
@@ -588,7 +663,7 @@ class BinanceDownloader:
         data = []
 
         lending_data = self.fetch_lending_rates(
-            list(asset_symbols_dict.values()),
+            set(asset_symbols_dict.values()),
             time_bucket,
             start_at,
             end_at,

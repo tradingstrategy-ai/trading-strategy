@@ -1,6 +1,7 @@
-# Current
+# 0.22.13
 
 - Update: Having pd.MultiIndex instead of per-pair pd.DateTimeIndex on candles slows down price access on backtesting considerably
+- Update: Binance progress bar now shows individual progress for each pair when there are less than 5 pairs
 
 # 0.22.12
 
