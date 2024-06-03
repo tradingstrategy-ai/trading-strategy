@@ -1,3 +1,8 @@
+# 0.22.14
+
+- Update: Allow basic authentication for downloading Binance data
+- Fix: Add one day to date range for downloading lending data
+
 # 0.22.13
 
 - Update: Having pd.MultiIndex instead of per-pair pd.DateTimeIndex on candles slows down price access on backtesting considerably
