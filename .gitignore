@@ -11,3 +11,5 @@ dist
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/trading-strategy.iml
 /.idea/vcs.xml
+
+.env
