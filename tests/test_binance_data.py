@@ -183,10 +183,10 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
     correct_df = pd.DataFrame(
         {
             "lending_rates": {
-                pd.Timestamp("2020-12-31 00:00:00"): 0.00025,
-                pd.Timestamp("2021-01-01 00:00:00"): 0.00025,
+                pd.Timestamp("2020-12-31 00:00:00"): 9.125,
+                pd.Timestamp("2021-01-01 00:00:00"): 9.125,
             },
-            "asset_symbol": {
+            "pair_id": {
                 pd.Timestamp("2020-12-31 00:00:00"): "ETH",
                 pd.Timestamp("2021-01-01 00:00:00"): "ETH",
             },
@@ -220,6 +220,7 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
             force_download=True,
         )
 
+    assert df.equals(correct_df)
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 2
     assert df.isna().sum().sum() == 0
