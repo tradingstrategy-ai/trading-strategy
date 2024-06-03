@@ -1,6 +1,6 @@
 # 0.22.14
 
-- Fix: Add one day to date range for downloading lending data
+- Fix: Fix for inconcistencies in lending data downloads
 
 # 0.22.13
 
