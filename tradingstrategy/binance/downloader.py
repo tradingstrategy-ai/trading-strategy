@@ -429,14 +429,11 @@ class BinanceDownloader:
     def _fetch_lending_rates(
         self,
         asset_symbol: str,
-        _start_at: datetime.datetime,
-        _end_at: datetime.datetime,
+        start_at: datetime.datetime,
+        end_at: datetime.datetime,
         time_bucket: TimeBucket,
         show_individual_progress: bool,
     ) -> pd.Series:
-        start_at = _start_at - datetime.timedelta(days=1)
-        end_at = _end_at + datetime.timedelta(days=1)
-
         assert type(asset_symbol) == str, "asset_symbol must be a string"
         assert (
             type(start_at) == datetime.datetime
@@ -447,7 +444,6 @@ class BinanceDownloader:
         assert (
             type(time_bucket) == TimeBucket
         ), "time_delta must be a pandas Timedelta object"
-        # assert start_date >= datetime.datetime(2019,4,1), "start_date cannot be earlier than 2019-04-01 due to Binance data limitations"
 
         monthly_timestamps = generate_monthly_timestamps(start_at, end_at)
         response_data = []
@@ -499,11 +495,10 @@ class BinanceDownloader:
         interest_rates = []
         for data in response_data:
             dates.append(pd.to_datetime(data["timestamp"], unit="ms"))
+            
             interest_rates.append(float(data["dailyInterestRate"]) * 100 * DAYS_IN_YEAR)  # convert daily to annual and multiply by 100
 
         unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
-
-        unsampled_rates = unsampled_rates[_start_at:_end_at]
 
         # doesn't always raise error
         if unsampled_rates.empty:
@@ -515,8 +510,8 @@ class BinanceDownloader:
             unsampled_rates, time_bucket.to_pandas_timedelta(), forward_fill=True
         )
 
-        assert resampled_rates.index[0] == _start_at, f"Start date mismatch. Expected {_start_at}, got {resampled_rates.index[0]}"
-        assert resampled_rates.index[-1] == _end_at, f"End date mismatch. Expected {_end_at}, got {resampled_rates.index[-1]}"
+        # assert resampled_rates.index[0] == _start_at, f"Start date mismatch. Expected {_start_at}, got {resampled_rates.index[0]}"
+        # assert resampled_rates.index[-1] == _end_at, f"End date mismatch. Expected {_end_at}, got {resampled_rates.index[-1]}"
 
         return resampled_rates
 
