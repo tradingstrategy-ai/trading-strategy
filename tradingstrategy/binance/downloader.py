@@ -30,6 +30,7 @@ from tradingstrategy.lending import (
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.lending import convert_interest_rates_to_lending_candle_type_map
 from tradingstrategy.binance.constants import BINANCE_SUPPORTED_QUOTE_TOKENS, split_binance_symbol, DAYS_IN_YEAR
+from requests.auth import HTTPBasicAuth
 
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,9 @@ BASE_BINANCE_API_URL = os.getenv("BASE_BINANCE_API_URL", "https://api.binance.co
 #: Use env vars to set a proxy to work around country restrictions
 #:
 BASE_BINANCE_MARGIN_API_URL = os.getenv("BASE_BINANCE_MARGIN_API_URL", "https://www.binance.com/bapi/margin")
+
+BASE_BINANCE_USERNAME = os.getenv("BASE_BINANCE_USERNAME", "")
+BASE_BINANCE_PASSWORD = os.getenv("BASE_BINANCE_PASSWORD", "")
 
 
 class BinanceDataFetchError(ValueError):
@@ -459,7 +463,12 @@ class BinanceDownloader:
             start_timestamp = monthly_timestamps[i] * 1000
             end_timestamp = monthly_timestamps[i + 1] * 1000
             url = f"{self.base_margin_api_url}/v1/public/margin/vip/spec/history-interest-rate?asset={asset_symbol}&vipLevel=0&size=90&startTime={start_timestamp}&endTime={end_timestamp}"
-            response = requests.get(url)
+
+            if BASE_BINANCE_USERNAME and BASE_BINANCE_PASSWORD:
+                response = requests.get(url, auth=HTTPBasicAuth(BASE_BINANCE_USERNAME, BASE_BINANCE_PASSWORD))
+            else:
+                response = requests.get(url)
+                
             if response.status_code == 200:
                 json_data = response.json()
                 data = json_data["data"]
@@ -475,7 +484,7 @@ class BinanceDownloader:
                     f""
                     f"""export BASE_BINANCE_MARGIN_API_URL="https://user:pass@proxy.example.com/bapi/margin" """
                     f"\n"
-                    f"Response: {response.status_code} {response.text}"
+                    f"Response: {response.status_code}\n"
                     f"Reason: {response.reason}"
                 )
             
