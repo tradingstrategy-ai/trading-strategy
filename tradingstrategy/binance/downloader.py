@@ -448,7 +448,7 @@ class BinanceDownloader:
 
         end_at = _end_at + datetime.timedelta(days=1) # add one day to include the end date
 
-        assert datetime.datetime.fromtimestamp(start_at).day <= 28, f"to use binance lending data, start_at day must be before the 28th of the month, got {start_at.day} for start_at: {start_at}, due to how monthly timestamps are generated"
+        assert start_at.day <= 28, f"to use binance lending data, start_at day must be before the 28th of the month, got {start_at.day} for start_at: {start_at}, due to how monthly timestamps are generated"
 
         monthly_timestamps = generate_monthly_timestamps(start_at, end_at)
         response_data = []
@@ -504,7 +504,7 @@ class BinanceDownloader:
             interest_rates.append(float(data["dailyInterestRate"]) * 100 * DAYS_IN_YEAR)  # convert daily to annual and multiply by 100
 
         _unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
-        unsampled_rates = _unsampled_rates[start_at:end_at]
+        unsampled_rates = _unsampled_rates[start_at:_end_at]
 
         # doesn't always raise error
         if unsampled_rates.empty:
@@ -517,7 +517,7 @@ class BinanceDownloader:
         )
 
         assert resampled_rates.index[0] == start_at, f"Start date mismatch. Expected {start_at}, got {resampled_rates.index[0]}"
-        assert resampled_rates.index[-1] == end_at, f"End date mismatch. Expected {end_at}, got {resampled_rates.index[-1]}"
+        assert resampled_rates.index[-1] == _end_at, f"End date mismatch. Expected {_end_at}, got {resampled_rates.index[-1]}"
 
         return resampled_rates
 
