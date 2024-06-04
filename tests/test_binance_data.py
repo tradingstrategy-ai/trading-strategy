@@ -229,6 +229,23 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
     assert df.index[0].to_pydatetime() == START_AT
     assert df.index[-1].to_pydatetime() == END_AT
 
+
+def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
+    """Test reading cached candle data. Must be run after test_read_fresh_lending_data.
+
+    Checks that the cache is working correctly
+    """
+    df = candle_downloader.get_data_parquet(
+        LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
+    )
+
+    assert len(df) == 2
+    assert df.isna().sum().sum() == 0
+    assert df.isna().values.any() == False
+    assert df.index[0].to_pydatetime() == START_AT
+    assert df.index[-1].to_pydatetime() == END_AT
+
+
 @pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Only run locally")
 def test_url_reponse():
     """Check that binance data doesn't change or return errors."""
@@ -297,19 +314,6 @@ def test_read_fresh_lending_data_local_only(request, candle_downloader: BinanceD
     assert df.index[0] == pd.Timestamp("2024-01-01 00:00:00")
     assert df.index[-1] == pd.Timestamp("2024-05-02 00:00:00")
 
-
-def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
-    """Test reading cached candle data. Must be run after test_read_fresh_lending_data.
-
-    Checks that the cache is working correctly
-    """
-    df = candle_downloader.get_data_parquet(
-        LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
-    )
-
-    assert len(df) == 2
-    assert df.isna().sum().sum() == 0
-    assert df.isna().values.any() == False
 
 
 def test_purge_cache():
