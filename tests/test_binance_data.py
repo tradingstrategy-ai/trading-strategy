@@ -1,6 +1,6 @@
 import datetime
 import tempfile
-
+import requests
 import pytest
 import pandas as pd
 import os
@@ -26,7 +26,7 @@ END_AT = datetime.datetime(2021, 1, 2)
 
 
 # Because of geoblocks, only run tests with we enable Binance Margin API specifically
-pytestmark = pytest.mark.skipif(not os.environ.get("BASE_BINANCE_MARGIN_API_URL"), reason="SEt BASE_BINANCE_MARGIN_API_URL to run these tests to a proxy server or https://www.binance.com/bapi/margin")
+pytestmark = pytest.mark.skipif(not os.environ.get("BASE_BINANCE_MARGIN_API_URL"), reason="Set BASE_BINANCE_MARGIN_API_URL to run these tests to a proxy server or https://www.binance.com/bapi/margin")
 
 
 @pytest.fixture(scope="module")
@@ -226,27 +226,76 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
     assert df.isna().sum().sum() == 0
     assert df.isna().values.any() == False
 
-    ## check that binance api doesn't change
-    'https://admin:tradingstrategy@bapi-binance.tradingstrategy.ai/bapi/margin/v1/public/margin/vip/spec/history-interest-rate?asset=BTC&vipLevel=0&size=90&startTime=1640988000000&endTime=1643666400000'
+    assert df.index[0].to_pydatetime() == START_AT
+    assert df.index[-1].to_pydatetime() == END_AT
 
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Only run locally")
+def test_url_reponse():
+    """Check that binance data doesn't change or return errors."""
+    base_url = os.environ.get("BASE_BINANCE_MARGIN_API_URL")
+    url = f'{base_url}/v1/public/margin/vip/spec/history-interest-rate?asset=BTC&vipLevel=0&size=90&startTime=1640988000000&endTime=1643666400000'
 
+    response = requests.get(url)
+    json_data = response.json()
+
+    assert json_data['success'] == True
+    assert json_data['code'] == '000000'
+    assert json_data['message'] == None
+    assert json_data['messageDetail'] == None
+    assert json_data['data'] == [
+    {'asset': 'BTC', 'timestamp': '1643587200000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1643500800000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1643414400000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1643328000000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1643241600000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1643155200000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1643068800000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642982400000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642896000000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642809600000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642723200000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642636800000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642550400000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642464000000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642377600000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642291200000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642204800000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642118400000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1642032000000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641945600000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641859200000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641772800000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641686400000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641600000000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641513600000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641427200000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641340800000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641254400000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641168000000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1641081600000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1640995200000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'},
+    {'asset': 'BTC', 'timestamp': '1640908800000', 'dailyInterestRate': '0.00020000', 'vipLevel': '0'}
+]
+
+    
+
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="Only run locally")
 def test_read_fresh_lending_data_local_only(request, candle_downloader: BinanceDownloader):
-    if not os.environ.get("GITHUB_ACTIONS", None):
-        df = candle_downloader.fetch_lending_rates(
-            {'USDT', 'BTC'},
-            TimeBucket.h1,
-            datetime.datetime(2024, 1, 1),
-            datetime.datetime(2024, 5, 2),
-            force_download=True,
-        )
-        assert isinstance(df, pd.DataFrame)
-        assert len(df) == 5858
-        assert df.isna().sum().sum() == 0
-        assert df.isna().values.any() == False
+    df = candle_downloader.fetch_lending_rates(
+        {'USDT', 'BTC'},
+        TimeBucket.h1,
+        datetime.datetime(2024, 1, 1),
+        datetime.datetime(2024, 5, 2),
+        force_download=True,
+    )
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 5858
+    assert df.isna().sum().sum() == 0
+    assert df.isna().values.any() == False
 
 
-        assert df.index[0] == pd.Timestamp("2024-01-01 00:00:00")
-        assert df.index[-1] == pd.Timestamp("2024-05-02 00:00:00")
+    assert df.index[0] == pd.Timestamp("2024-01-01 00:00:00")
+    assert df.index[-1] == pd.Timestamp("2024-05-02 00:00:00")
 
 
 def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
