@@ -183,12 +183,12 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
     correct_df = pd.DataFrame(
         {
             "lending_rates": {
-                pd.Timestamp("2020-12-31 00:00:00"): 9.125,
                 pd.Timestamp("2021-01-01 00:00:00"): 9.125,
+                pd.Timestamp("2021-01-02 00:00:00"): 9.125,
             },
             "pair_id": {
-                pd.Timestamp("2020-12-31 00:00:00"): "ETH",
                 pd.Timestamp("2021-01-01 00:00:00"): "ETH",
+                pd.Timestamp("2021-01-02 00:00:00"): "ETH",
             },
         }
     )
@@ -225,6 +225,28 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
     assert len(df) == 2
     assert df.isna().sum().sum() == 0
     assert df.isna().values.any() == False
+
+    ## check that binance api doesn't change
+    'https://admin:tradingstrategy@bapi-binance.tradingstrategy.ai/bapi/margin/v1/public/margin/vip/spec/history-interest-rate?asset=BTC&vipLevel=0&size=90&startTime=1640988000000&endTime=1643666400000'
+
+
+def test_read_fresh_lending_data_local_only(request, candle_downloader: BinanceDownloader):
+    if not os.environ.get("GITHUB_ACTIONS", None):
+        df = candle_downloader.fetch_lending_rates(
+            {'USDT', 'BTC'},
+            TimeBucket.h1,
+            datetime.datetime(2024, 1, 1),
+            datetime.datetime(2024, 5, 2),
+            force_download=True,
+        )
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 5858
+        assert df.isna().sum().sum() == 0
+        assert df.isna().values.any() == False
+
+
+        assert df.index[0] == pd.Timestamp("2024-01-01 00:00:00")
+        assert df.index[-1] == pd.Timestamp("2024-05-02 00:00:00")
 
 
 def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
