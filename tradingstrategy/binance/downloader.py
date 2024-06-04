@@ -314,7 +314,7 @@ class BinanceDownloader:
 
     def fetch_lending_rates(
         self,
-        asset_symbols: list[str] | str,
+        asset_symbols: list[str] | str | set[str],
         time_bucket: TimeBucket,
         start_at: datetime.datetime,
         end_at: datetime.datetime,
@@ -430,21 +430,25 @@ class BinanceDownloader:
         self,
         asset_symbol: str,
         start_at: datetime.datetime,
-        end_at: datetime.datetime,
+        _end_at: datetime.datetime,
         time_bucket: TimeBucket,
         show_individual_progress: bool,
     ) -> pd.Series:
+        """Due to how binance lending data api works, we need to add one day to the end date to include the end date in the data."""
         assert type(asset_symbol) == str, "asset_symbol must be a string"
         assert (
             type(start_at) == datetime.datetime
         ), "start_date must be a datetime.datetime object"
         assert (
-            type(end_at) == datetime.datetime
+            type(_end_at) == datetime.datetime
         ), "end_date must be a datetime.datetime object"
         assert (
             type(time_bucket) == TimeBucket
         ), "time_delta must be a pandas Timedelta object"
-        # assert start_date >= datetime.datetime(2019,4,1), "start_date cannot be earlier than 2019-04-01 due to Binance data limitations"
+
+        end_at = _end_at + datetime.timedelta(days=1) # add one day to include the end date
+
+        assert start_at.day <= 28, f"to use binance lending data, start_at day must be before the 28th of the month, got {start_at.day} for start_at: {start_at}, due to how monthly timestamps are generated"
 
         monthly_timestamps = generate_monthly_timestamps(start_at, end_at)
         response_data = []
@@ -496,9 +500,11 @@ class BinanceDownloader:
         interest_rates = []
         for data in response_data:
             dates.append(pd.to_datetime(data["timestamp"], unit="ms"))
+            
             interest_rates.append(float(data["dailyInterestRate"]) * 100 * DAYS_IN_YEAR)  # convert daily to annual and multiply by 100
 
-        unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
+        _unsampled_rates = pd.Series(data=interest_rates, index=dates).sort_index()
+        unsampled_rates = _unsampled_rates[start_at:_end_at]
 
         # doesn't always raise error
         if unsampled_rates.empty:
@@ -509,6 +515,9 @@ class BinanceDownloader:
         resampled_rates = resample_series(
             unsampled_rates, time_bucket.to_pandas_timedelta(), forward_fill=True
         )
+
+        assert resampled_rates.index[0] == start_at, f"Start date mismatch. Expected {start_at}, got {resampled_rates.index[0]}"
+        assert resampled_rates.index[-1] == _end_at, f"End date mismatch. Expected {_end_at}, got {resampled_rates.index[-1]}"
 
         return resampled_rates
 

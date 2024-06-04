@@ -1,3 +1,7 @@
+# 0.22.14
+
+- Fix: Fix for inconcistencies in lending data downloads
+
 # 0.22.13
 
 - Update: Having pd.MultiIndex instead of per-pair pd.DateTimeIndex on candles slows down price access on backtesting considerably

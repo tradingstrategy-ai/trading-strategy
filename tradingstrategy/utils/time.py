@@ -44,6 +44,7 @@ def generate_monthly_timestamps(start: datetime.datetime, end: datetime.datetime
 
     :return: List of timestamps
     """
+
     # TODO: ensure index has no missing dates i.e. evenly spaced intervals throughout the period
     timestamps = []
     current_date = start
