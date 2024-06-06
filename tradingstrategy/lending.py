@@ -769,17 +769,17 @@ class LendingMetricUniverse(PairGroupedUniverse):
             # We just use the last APR.
             ffill_indexer = df.index.get_indexer([start], method="ffill")
             before_match_iloc = ffill_indexer[0]
-            avg_apr = Decimal(df["close"][before_match_iloc])
+            avg_apr = df["close"][before_match_iloc]
 
         else:
             # Calculate interest rate estimate based on the data
-
             # get average APR from high and low
             avg = candles[["high", "low"]].mean(axis=1)
-            avg_apr = Decimal(avg.mean() / 100)
+            avg_apr = avg.mean()
 
+        avg_apr_pct = Decimal(avg_apr / 100)  # raw APR to percentage
         duration = Decimal((end - start).total_seconds())
-        accrued_interest_estimation = 1 + (1 * avg_apr) * duration / SECONDS_PER_YEAR  # Use Aave v3 seconds per year
+        accrued_interest_estimation = 1 + avg_apr_pct * duration / SECONDS_PER_YEAR  # Use Aave v3 seconds per year
 
         assert accrued_interest_estimation >= 1, f"Aave interest cannot be negative: {accrued_interest_estimation}"
 
