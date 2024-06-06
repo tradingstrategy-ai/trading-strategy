@@ -331,18 +331,42 @@ def test_get_single_rate(persistent_test_client: Client):
     assert lag == ZERO_TIMEDELTA
 
 
-def test_get_estimate_interest(persistent_test_client: Client):
-    """Estimate how much profit we make with USDC credit.
-
-    Estimate borrow cost and supply profit for a year.
-    """
+@pytest.mark.parametrize(
+    "start, end, interest_type, expected_multiplier",
+    (
+        (
+            pd.Timestamp("2022-09-01"),
+            pd.Timestamp("2023-09-01"),
+            "variable_borrow_apr",
+            Decimal("1.028597760665127969909038441"),
+        ),
+        (
+            pd.Timestamp("2022-09-01"),
+            pd.Timestamp("2023-09-01"),
+            "supply_apr",
+            Decimal("1.017786465640168974688961612"),
+        ),
+        (
+            pd.Timestamp("2023-08-03 10:00:00"),
+            pd.Timestamp("2023-08-03 10:20:00"),
+            "supply_apr",
+            Decimal("1.000001990000776199338106284"),
+        ),
+    ),
+)
+def test_get_estimate_interest(
+    persistent_test_client: Client, 
+    start, 
+    end, 
+    interest_type, 
+    expected_multiplier,
+):
+    """Estimate how much profit we make with USDC credit."""
 
     client = persistent_test_client
-    lending_reserves = client.fetch_lending_reserve_universe()
 
     usdc_desc = (ChainId.polygon, LendingProtocolType.aave_v3, "USDC.e")
-
-    lending_reserves = lending_reserves.limit([usdc_desc])
+    lending_reserves = client.fetch_lending_reserve_universe().limit([usdc_desc])
 
     lending_candle_type_map = client.fetch_lending_candles_for_universe(
         lending_reserves,
@@ -352,21 +376,12 @@ def test_get_estimate_interest(persistent_test_client: Client):
     )
     lending_candles = LendingCandleUniverse(lending_candle_type_map, lending_reserves)
 
-    # Estimate borrow cost
-    borrow_interest_multiplier = lending_candles.variable_borrow_apr.estimate_accrued_interest(
+    interest_multiplier = getattr(lending_candles, interest_type).estimate_accrued_interest(
         usdc_desc,
-        start=pd.Timestamp("2022-09-01"),
-        end=pd.Timestamp("2023-09-01"),
+        start=start,
+        end=end,
     )
-    assert borrow_interest_multiplier == pytest.approx(Decimal('1.028597760665127969909038441'))
-
-    # Estimate borrow cost
-    supply_interest_multiplier = lending_candles.supply_apr.estimate_accrued_interest(
-        usdc_desc,
-        start=pd.Timestamp("2022-09-01"),
-        end=pd.Timestamp("2023-09-01"),
-    )
-    assert supply_interest_multiplier == pytest.approx(Decimal('1.017786465640168974688961612'))
+    assert interest_multiplier == pytest.approx(expected_multiplier)
 
 
 def test_estimate_interest_bad_timeframe(persistent_test_client: Client):
