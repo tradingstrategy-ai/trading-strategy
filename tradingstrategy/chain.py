@@ -135,6 +135,12 @@ class ChainId(enum.IntEnum):
     #: Arbitrum One id
     arbitrum = 42161
 
+    #: Base
+    base = 8453
+
+    #: Mantle
+    mantle = 5000
+
     #: Ethereum Classic chain id.
     #:
     #: This is also the value used by EthereumTester in unit tests.
@@ -293,7 +299,25 @@ _CHAIN_DATA_OVERRIDES = {
     ChainId.arbitrum.value: {
         "name": "Arbitrum One",
         "slug": "arbitrum",
-        "svg_icon": "https://offchainlabs.com/wp-content/themes/offchain/images/home/arbitrum/arbirtum_logo.svg",
+        "svg_icon": "https://cryptologos.cc/logos/arbitrum-arb-logo.svg",
+    },
+
+    # 
+    # Base
+    #
+    ChainId.base.value: {
+        "name": "Base",
+        "slug": "base",
+        "svg_icon": "https://raw.githubusercontent.com/base-org/brand-kit/main/logo/in-product/Base_Network_Logo.svg",
+    },
+
+    # 
+    # Mantle
+    #
+    ChainId.mantle.value: {
+        "name": "Mantle",
+        "slug": "mantle",
+        "svg_icon": "https://cryptologos.cc/logos/mantle-mnt-logo.svg",
     },
 
     #
