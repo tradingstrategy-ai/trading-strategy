@@ -80,7 +80,7 @@ class TimeBucket(enum.Enum):
     def to_pandas_timedelta(self) -> pd.Timedelta:
         """Get pandas delta object for a TimeBucket definition.
 
-        You can use this to construct aregime-filter.ipynbrbitrary timespans or iterate candle data.
+        You can use this to construct aregime-filter.ipynbrbitrary timespans or iterate candle data, or to compare with two timebuckets.
         """
         return pd.Timedelta(_DELTAS[self])
 
@@ -108,6 +108,22 @@ class TimeBucket(enum.Enum):
             if python_dt == v:
                 return k
         raise NoMatchingBucket(f"Could not map: {td}")
+    
+    def __lt__(self, other: "TimeBucket") -> bool:
+        """Compare two time buckets."""
+        return self.to_timedelta() < other.to_timedelta()
+
+    def __le__(self, other: "TimeBucket") -> bool:
+        """Compare two time buckets."""
+        return self.to_timedelta() <= other.to_timedelta()
+
+    def __gt__(self, other: "TimeBucket") -> bool:
+        """Compare two time buckets."""
+        return self.to_timedelta() > other.to_timedelta()
+
+    def __ge__(self, other: "TimeBucket") -> bool:
+        """Compare two time buckets."""
+        return self.to_timedelta() >= other.to_timedelta()
 
 
 # datetime.timedelta equivalents of different time buckets
