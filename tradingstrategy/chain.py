@@ -58,7 +58,7 @@ def _ensure_chain_data_lazy_init():
 
                 data_file = os.path.join(path, f"eip155-{chain_id}.json")
                 if not os.path.exists(data_file):
-                    raise ChainDataDoesNotExist(f"Chain data does not exist: {data_file}")
+                    raise ChainDataDoesNotExist(f"Chain data for {ChainId(chain_id)} with id {chain_id} does not exist at data file location: {data_file}")
 
                 with open(data_file, "rt") as inp:
                     _chain_data[chain_id] = json.load(inp)
