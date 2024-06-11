@@ -358,7 +358,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         else:
             pair_id = pair
 
-        assert type(pair_id) == int
+        assert type(pair_id) == int, f"Expected pair argument to be integer. Did you mean get_candles_by_pair(pair.internal_id)?"
 
         if pair_id not in self.candles_cache:
             try:
