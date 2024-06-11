@@ -15,7 +15,7 @@ from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
-from tradingstrategy.utils.groupeduniverse import resample_candles, resample_price_series
+from tradingstrategy.utils.groupeduniverse import resample_candles, resample_dataframe, resample_price_series
 
 
 def test_grouped_candles(persistent_test_client: Client):
@@ -390,6 +390,44 @@ def test_price_series_resample_and_shift():
     series = pd.Series(close_price, index=index)
     daily_open = resample_price_series(series, pd.Timedelta(days=1), shift=-1, price_series_type="open")
     assert daily_open.to_dict() == {Timestamp('2023-01-01 00:00:00'): 100, Timestamp('2023-01-02 00:00:00'): 105, Timestamp('2023-01-03 00:00:00'): 110}
+
+
+def test_resample_dataframe_and_shift():
+    BBU = [
+        100, 100, 100, 100, 100, 100,
+        105, 105, 105, 105, 105, 105,
+        110, 110, 110, 110, 110, 110,
+    ]
+    index = pd.to_datetime([
+        '2023-01-01 00:00',
+        '2023-01-01 04:00',
+        '2023-01-01 08:00',
+        '2023-01-01 12:00',
+        '2023-01-01 16:00',
+        '2023-01-01 20:00',
+        #
+        '2023-01-02 00:00',
+        '2023-01-02 04:00',
+        '2023-01-02 08:00',
+        '2023-01-02 12:00',
+        '2023-01-02 16:00',
+        '2023-01-02 20:00',
+        #
+        '2023-01-03 00:00',
+        '2023-01-03 04:00',
+        '2023-01-03 08:00',
+        '2023-01-03 12:00',
+        '2023-01-03 16:00',
+        '2023-01-03 20:00',
+    ])
+    df = pd.DataFrame({'BBU': BBU}, index=index)
+    df['BBM'] = df['BBU'] - 5
+    df['BBL'] = df['BBM'] - 5  
+
+    bb_bands_1d=resample_dataframe(df, pd.Timedelta(days=1))
+
+    assert all(bb_bands_1d.columns == df.columns)
+    assert(bb_bands_1d.index.freq.delta == pd.Timedelta(days=1))
 
 
 def test_candle_get_last_entries(persistent_test_client: Client):

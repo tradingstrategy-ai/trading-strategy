@@ -1,3 +1,7 @@
+# current
+
+- Add: `resample_dataframe` utility function. Useful for resampling dataframes with multiple columns that are not candlestick data
+
 # 0.22.14
 
 - Fix: Fix for inconcistencies in lending data downloads
