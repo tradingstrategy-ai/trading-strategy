@@ -15,7 +15,7 @@ from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
-from tradingstrategy.utils.groupeduniverse import resample_candles, resample_price_series
+from tradingstrategy.utils.groupeduniverse import resample_candles, resample_dataframe, resample_price_series
 
 
 def test_grouped_candles(persistent_test_client: Client):
@@ -390,6 +390,46 @@ def test_price_series_resample_and_shift():
     series = pd.Series(close_price, index=index)
     daily_open = resample_price_series(series, pd.Timedelta(days=1), shift=-1, price_series_type="open")
     assert daily_open.to_dict() == {Timestamp('2023-01-01 00:00:00'): 100, Timestamp('2023-01-02 00:00:00'): 105, Timestamp('2023-01-03 00:00:00'): 110}
+
+
+def test_resample_dataframe_and_shift():
+    BBU = [
+        100, 100, 100, 100, 100, 100,
+        105, 105, 105, 105, 105, 105,
+        110, 110, 110, 110, 110, 110,
+    ]
+    index = pd.to_datetime([
+        '2023-01-01 00:00',
+        '2023-01-01 04:00',
+        '2023-01-01 08:00',
+        '2023-01-01 12:00',
+        '2023-01-01 16:00',
+        '2023-01-01 20:00',
+        #
+        '2023-01-02 00:00',
+        '2023-01-02 04:00',
+        '2023-01-02 08:00',
+        '2023-01-02 12:00',
+        '2023-01-02 16:00',
+        '2023-01-02 20:00',
+        #
+        '2023-01-03 00:00',
+        '2023-01-03 04:00',
+        '2023-01-03 08:00',
+        '2023-01-03 12:00',
+        '2023-01-03 16:00',
+        '2023-01-03 20:00',
+    ])
+    # Create DataFrame
+    df = pd.DataFrame({'BBU': BBU}, index=index)
+    
+    # Define dummy calculation for BBL and BBM for demonstration purposes
+    df['BBM'] = df['BBU'] - 5  # Midpoint is arbitrarily chosen as BBU - 5 for this example
+    df['BBL'] = df['BBM'] - 5  # Lower band is arbitrarily chosen as BBM - 5 for this example
+
+    resample_dataframe(df, pd.Timedelta(days=1))
+
+    pass
 
 
 def test_candle_get_last_entries(persistent_test_client: Client):

@@ -918,6 +918,26 @@ def resample_candles(
     return candles
 
 
+def resample_dataframe(
+    df: pd.DataFrame,
+    resample_freq: pd.Timedelta,
+    shift: int | None=None,
+):
+    """Resample a DataFrame to a lower frequency. Use this when your dataframe is not OHLCV candles.
+    e.g. when using pandas_ta.bbands, your returned columns could be BBU_5_2.0, BBM_5_2.0, BBL_5_2.0, clearly not candlestick data
+
+    :param df: DataFrame to resample
+    :param resample_freq: Resample frequency
+    :param shift: Shift the resampled data by a certain number of candles
+    :return: Resampled DataFrame
+    """
+
+    def resample_wrapper(series: pd.Series):
+        return resample_series(series, resample_freq, shift=shift)
+    
+    return df.apply(resample_wrapper)
+
+
 def resample_price_series(
     series: pd.Series,
     resample_freq: pd.Timedelta,
