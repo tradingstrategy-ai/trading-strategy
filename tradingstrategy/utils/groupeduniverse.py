@@ -933,7 +933,7 @@ def resample_dataframe(
     """
 
     def resample_wrapper(series: pd.Series):
-        return resample_series(series, resample_freq, shift=shift)
+        return resample_price_series(series, resample_freq, shift=shift)
     
     return df.apply(resample_wrapper)
 

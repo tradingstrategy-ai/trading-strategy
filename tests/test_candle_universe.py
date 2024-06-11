@@ -393,7 +393,7 @@ def test_price_series_resample_and_shift():
 
 
 def test_resample_dataframe_and_shift():
-    BBU = [
+    close = [
         100, 100, 100, 100, 100, 100,
         105, 105, 105, 105, 105, 105,
         110, 110, 110, 110, 110, 110,
@@ -420,16 +420,13 @@ def test_resample_dataframe_and_shift():
         '2023-01-03 16:00',
         '2023-01-03 20:00',
     ])
-    # Create DataFrame
-    df = pd.DataFrame({'BBU': BBU}, index=index)
-    
-    # Define dummy calculation for BBL and BBM for demonstration purposes
-    df['BBM'] = df['BBU'] - 5  # Midpoint is arbitrarily chosen as BBU - 5 for this example
-    df['BBL'] = df['BBM'] - 5  # Lower band is arbitrarily chosen as BBM - 5 for this example
+    from pandas_ta import bbands
 
-    resample_dataframe(df, pd.Timedelta(days=1))
+    bbands_4h = bbands(pd.Series(close, index=index), length=5, std=2)
+    bb_bands_1d=resample_dataframe(bbands_4h, pd.Timedelta(days=1))
 
-    pass
+    assert all(bb_bands_1d.columns == bbands_4h.columns)
+    assert(bb_bands_1d.index.freq.delta == pd.Timedelta(days=1))
 
 
 def test_candle_get_last_entries(persistent_test_client: Client):
