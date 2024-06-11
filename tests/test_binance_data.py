@@ -174,6 +174,9 @@ def test_read_cached_candle_data(candle_downloader: BinanceDownloader):
     assert df.isna().sum().sum() == 0
     assert df.isna().values.any() == False
 
+    assert df.index[0].to_pydatetime() == START_AT
+    assert df.index[-1].to_pydatetime() == END_AT
+
 
 def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
     """Test reading fresh lending data. Will be downloaded from Binance API.
