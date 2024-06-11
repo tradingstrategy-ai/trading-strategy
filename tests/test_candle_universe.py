@@ -393,7 +393,7 @@ def test_price_series_resample_and_shift():
 
 
 def test_resample_dataframe_and_shift():
-    close = [
+    BBU = [
         100, 100, 100, 100, 100, 100,
         105, 105, 105, 105, 105, 105,
         110, 110, 110, 110, 110, 110,
@@ -420,12 +420,13 @@ def test_resample_dataframe_and_shift():
         '2023-01-03 16:00',
         '2023-01-03 20:00',
     ])
-    from pandas_ta import bbands
+    df = pd.DataFrame({'BBU': BBU}, index=index)
+    df['BBM'] = df['BBU'] - 5
+    df['BBL'] = df['BBM'] - 5  
 
-    bbands_4h = bbands(pd.Series(close, index=index), length=5, std=2)
-    bb_bands_1d=resample_dataframe(bbands_4h, pd.Timedelta(days=1))
+    bb_bands_1d=resample_dataframe(df, pd.Timedelta(days=1))
 
-    assert all(bb_bands_1d.columns == bbands_4h.columns)
+    assert all(bb_bands_1d.columns == df.columns)
     assert(bb_bands_1d.index.freq.delta == pd.Timedelta(days=1))
 
 
