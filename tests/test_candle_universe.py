@@ -420,16 +420,14 @@ def test_resample_dataframe_and_shift():
         '2023-01-03 16:00',
         '2023-01-03 20:00',
     ])
-    # Create DataFrame
     df = pd.DataFrame({'BBU': BBU}, index=index)
-    
-    # Define dummy calculation for BBL and BBM for demonstration purposes
-    df['BBM'] = df['BBU'] - 5  # Midpoint is arbitrarily chosen as BBU - 5 for this example
-    df['BBL'] = df['BBM'] - 5  # Lower band is arbitrarily chosen as BBM - 5 for this example
+    df['BBM'] = df['BBU'] - 5
+    df['BBL'] = df['BBM'] - 5  
 
-    resample_dataframe(df, pd.Timedelta(days=1))
+    bb_bands_1d=resample_dataframe(df, pd.Timedelta(days=1))
 
-    pass
+    assert all(bb_bands_1d.columns == df.columns)
+    assert(bb_bands_1d.index.freq.delta == pd.Timedelta(days=1))
 
 
 def test_candle_get_last_entries(persistent_test_client: Client):
