@@ -808,8 +808,9 @@ def resample_series(
 
 def resample_candles(
     df: pd.DataFrame,
-    resample_freq: pd.Timedelta,
+    resample_freq: pd.Timedelta | str,
     shift: int | None=None,
+    origin: str | None=None,
 ) -> pd.DataFrame:
     """Downsample or upsample OHLCV candles or liquidity samples.
 
@@ -843,6 +844,8 @@ def resample_candles(
     :param resample_freq:
         Resample frequency.
 
+        Timedelta or Pandas alias string e.g. "D".
+
         E.g.`pd.Timedelta(days=1)` create daily candles from hourly candles.
 
     :param shift:
@@ -858,6 +861,11 @@ def resample_candles(
         There might not be enough rows to shift. E.g. shift=-1 or shift=1 and len(df) == 1.
         In this case, an empty data frame is returned.
 
+    :param origin:
+        For daily resample, the starting hour.
+
+        Use `origin="end"` for a rolling resample.
+
     :return:
         Resampled candles in a new DataFrame.
 
@@ -866,8 +874,9 @@ def resample_candles(
         If the input DataFrame is zero-length, then return it as is.
 
     """
-    
-    assert isinstance(resample_freq, pd.Timedelta), f"We got {resample_freq}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
+
+    if not type(resample_freq) == str:
+        assert isinstance(resample_freq, pd.Timedelta), f"We got {resample_freq}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
 
     if len(df) == 0:
         return df
@@ -905,8 +914,11 @@ def resample_candles(
     if shift:
         df = df.shift(shift).dropna()
 
-    # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
-    candles = df.resample(resample_freq).agg(ohlc_dict)
+    if origin:
+        candles = df.resample(resample_freq, origin=origin).agg(ohlc_dict)
+    else:
+        # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
+        candles = df.resample(resample_freq).agg(ohlc_dict)
 
     # TODO: Figure out right way to preserve timestamp column,
     # resample seems to destroy it
@@ -936,6 +948,57 @@ def resample_dataframe(
         return resample_price_series(series, resample_freq, shift=shift)
     
     return df.apply(resample_wrapper)
+
+def _ohlcv_agg(window):
+    import ipdb ; ipdb.set_trace()
+    return pd.DataFrame({
+        'open': window['open'].iloc[0],
+        'high': window['high'].max(),
+        'low': window['low'].min(),
+        'close': window['close'].iloc[-1],
+        'volume': window['volume'].sum()
+    })
+
+
+def resample_rolling(df: pd.DataFrame, window:int = 24) -> pd.DataFrame:
+    """Resample OHLCV feed using a rolling window technique.
+
+    - OHLCV data is looked back from the current hour, not from the day boundary
+
+    - Needed to avoid lookahead bias workarounds
+
+    - Somewhat slow to compute, cache results on the disk
+
+    - Note that the result might not be directly applicable to techical analysis functions:
+      these might still expect you to downsaple the rolling window 1h data to daily,
+      this function will make the data just available in a convinient way to downsample
+      without lookahead bias
+
+    See https://stackoverflow.com/q/78036231/315168
+
+    :param df:
+        DataFrame with columns "open", "high", "low", "close", "volume"
+
+    :param window:
+        How many samples per one OHLCV window.
+
+        E.g. set to `24` to sample hourly to rolling daily.
+
+    :return:
+        DataFrame with a rolling OHCLV values as the candles form, without peeking to the future.
+
+        Returns `pd.NA` values for the early entries where the rolling window is not yet full.
+
+    """
+    return df.rolling(window=window).agg(
+        {
+            "open": lambda x: x.iloc[0],  # First value in the window
+            "high": "max",
+            "low": "min",
+            "close": lambda x: x.iloc[-1],  # Last value in the window
+            "volume": lambda x: x.sum()
+        }
+    )
 
 
 def resample_price_series(
