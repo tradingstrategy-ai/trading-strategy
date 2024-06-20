@@ -949,16 +949,6 @@ def resample_dataframe(
     
     return df.apply(resample_wrapper)
 
-def _ohlcv_agg(window):
-    import ipdb ; ipdb.set_trace()
-    return pd.DataFrame({
-        'open': window['open'].iloc[0],
-        'high': window['high'].max(),
-        'low': window['low'].min(),
-        'close': window['close'].iloc[-1],
-        'volume': window['volume'].sum()
-    })
-
 
 def resample_rolling(df: pd.DataFrame, window:int = 24) -> pd.DataFrame:
     """Resample OHLCV feed using a rolling window technique.
@@ -987,7 +977,8 @@ def resample_rolling(df: pd.DataFrame, window:int = 24) -> pd.DataFrame:
     :return:
         DataFrame with a rolling OHCLV values as the candles form, without peeking to the future.
 
-        Returns `pd.NA` values for the early entries where the rolling window is not yet full.
+        There are no NA values. On the first row open = high = low = close because
+        we sample over one value.
 
     """
     rolled = df.rolling(window=window, min_periods=1).agg(
