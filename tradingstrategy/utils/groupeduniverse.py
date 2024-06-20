@@ -990,7 +990,7 @@ def resample_rolling(df: pd.DataFrame, window:int = 24) -> pd.DataFrame:
         Returns `pd.NA` values for the early entries where the rolling window is not yet full.
 
     """
-    return df.rolling(window=window).agg(
+    rolled = df.rolling(window=window, min_periods=1).agg(
         {
             "open": lambda x: x.iloc[0],  # First value in the window
             "high": "max",
@@ -999,6 +999,7 @@ def resample_rolling(df: pd.DataFrame, window:int = 24) -> pd.DataFrame:
             "volume": lambda x: x.sum()
         }
     )
+    return rolled
 
 
 def resample_price_series(
