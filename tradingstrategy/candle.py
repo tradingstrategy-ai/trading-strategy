@@ -365,7 +365,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                 candles = self.get_samples_by_pair(pair_id)
                 # Fix pd.MultiIndex issues that would slow down
                 # get_price_with_tolerance()
-                candles = flatten_dataframe_datetime_index(candles)
+                candles = flatten_dataframe_datetime_index(candles)                
                 self.candles_cache[pair_id] = candles
             except KeyError:
                 return None
