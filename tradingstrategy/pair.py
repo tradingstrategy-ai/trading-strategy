@@ -77,7 +77,7 @@ from numpy import isnan
 from tradingstrategy.chain import ChainId
 from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType, ExchangeNotFoundError
-from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
+from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE, is_derivative
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent, \
     USDollarAmount, Slug, URL, TokenSymbol
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
@@ -1974,6 +1974,30 @@ def filter_for_stablecoins(pairs: pd.DataFrame, mode: StablecoinFilteringMode) -
             ~(pairs['token0_symbol'].isin(ALL_STABLECOIN_LIKE) & pairs['token1_symbol'].isin(ALL_STABLECOIN_LIKE))
         ]
     return our_pairs
+
+
+def filter_for_derivatives(pairs: pd.DataFrame, derivatives=False) -> pd.DataFrame:
+    """Detect derivative token.
+
+    - These tokens do not present underlying trading pair, but derive their value
+      from some other token e.g. `stETH` in `stETH/ETH`
+
+    - They behave as stable/stable pairs
+
+    :param derivatives:
+        Set false to exclude derivative token, True to have only them.
+    """
+
+    assert isinstance(pairs, pd.DataFrame)
+
+    def row_filter(row):
+        if derivatives:
+            return is_derivative(row["token0_symbol"]) or is_derivative(row["token1_symbol"])
+        else:
+            return (not is_derivative(row["token0_symbol"])) and (not is_derivative(row["token1_symbol"]))
+
+    df =  pairs[pairs.apply(row_filter, axis=1)]
+    return df
 
 
 def filter_for_chain(
