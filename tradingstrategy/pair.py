@@ -1979,6 +1979,31 @@ def filter_for_blacklisted_tokens(
     return pairs[~blacklisted_mask]
 
 
+def filter_for_nonascii_tokens(
+    pairs: pd.DataFrame,
+) -> pd.DataFrame:
+    """Remove tokens with unprintable characters
+
+    - Emojis
+
+    - Some crap tokens like 20SML025��������
+
+    - There should be no legit tokens with non-ASCII names
+
+    :return:
+        DataFrame with trading pairs filtered to match quote token condition
+    """
+    def has_non_ascii(text):
+        return any(ord(char) > 127 for char in text)
+    
+    def my_filter(row):
+        return has_non_ascii(row.token0_symbol) or has_non_ascii(row.token1_symbol)
+    
+    blacklisted_mask = pairs.apply(my_filter, axis=1)
+
+    return pairs[~blacklisted_mask]
+
+
 class StablecoinFilteringMode(enum.Enum):
     """How to filter pairs in stablecoin filtering.
 
