@@ -17,6 +17,7 @@ See also
 import datetime
 import logging
 import warnings
+from itertools import islice
 from typing import Optional, Tuple, Iterable, cast
 
 import numpy as np
@@ -77,6 +78,7 @@ class PairGroupedUniverse:
         primary_key_column: str="pair_id",
         remove_candles_with_zero: bool = True,
         forward_fill: bool = False,
+        bad_open_close_threshold: float | None=3.0,
     ):
         """Set up new candle universe where data is grouped by trading pair.
 
@@ -100,7 +102,10 @@ class PairGroupedUniverse:
             Percent value of maximum allowed high/low wick relative to close.
             By default fix values where low is 90% lower than close and high is 90% higher than close.
 
-            See :py:func:`tradingstrategy.utils.groupeduniverse.fix_bad_wicks` for more information.
+            See :py:func:`~tradingstrategy.utils.groupeduniverse.fix_bad_wicks` for more information.
+
+        :param bad_open_close_threshold:
+            See :py:func:`fix_bad_wicks`.
 
         :param primary_key_column:
             The pair/reserve id column name in the dataframe.
@@ -134,8 +139,12 @@ class PairGroupedUniverse:
         else:
             self.df = df
 
-        if fix_wick_threshold:
-            self.df = fix_bad_wicks(self.df, fix_wick_threshold)
+        if fix_wick_threshold or bad_open_close_threshold:
+            self.df = fix_bad_wicks(
+                self.df,
+                fix_wick_threshold,
+                bad_open_close_threshold=bad_open_close_threshold,
+            )
             
         if remove_candles_with_zero:
             self.df = remove_zero_candles(self.df)
@@ -1071,11 +1080,15 @@ def resample_price_series(
 
 
 def fix_bad_wicks(
-        df: pd.DataFrame,
-        threshold=(0.1, 1.9),
-        too_slow_threshold=15,
+    df: pd.DataFrame,
+    threshold=(0.1, 1.9),
+    too_slow_threshold=15,
+    verbose=False,
+    bad_open_close_threshold: float | None=3.0,
 ) -> pd.DataFrame:
     """Correct out bad high/low values in OHLC data.
+
+    Applicable for both :term:`OHLCV` price feeds and liquidity feeds.
 
     On :term:`Uniswap` v2 and compatibles, Bad wicks are caused by e.g. very large flash loan, oracle price manipulation attacks,
     and misbheaving bots.
@@ -1091,6 +1104,18 @@ def fix_bad_wicks(
 
     :param too_slow_threshold:
         Complain if this takes too long
+
+    :param bad_open_close_threshold:
+        How many X open must be above the high to be considered a broken data point.
+
+        The open price will be replaced with high price.
+
+        Do not set for liquidity processing.
+
+
+    :param verbose:
+        Make some debug logging when using the function for manual data diagnostics.
+
     """
 
     start = naive_utcnow()
@@ -1102,6 +1127,28 @@ def fix_bad_wicks(
     # https://stackoverflow.com/a/65729035/315168
     df["high"] = np.where(df["high"] > df["close"] * threshold[1], df["close"], df["high"])
     df["low"] = np.where(df["low"] < df["close"] * threshold[0], df["close"], df["low"])
+
+    # For manual diagnostics tracking down bad trading pair data
+    if verbose and bad_open_close_threshold:
+        bad_opens = df[df["open"] > df["high"] * bad_open_close_threshold]
+        for idx, row in islice(bad_opens.iterrows(), 10):
+            logger.warning(
+                "Pair id %d, timestamp: %s, open: %s, high: %s, buy volume: %s sell volume: %s, volume: %s",
+                row.pair_id,
+                row.timestamp,
+                row.open,
+                row.high,
+                row.get("buy_volume"),
+                row.get("sell_volume"),
+                row.get("volume"),
+            )
+        logger.warn("Total %d bad open price entries detected", len(bad_opens))
+
+    # Issues in open price values with data point - open cannot be higher than high.
+    # Not strickly "wicks" but we fix all data while we are at it.
+    if bad_open_close_threshold:
+        df["open"] = np.where(df["open"] > df["high"] * bad_open_close_threshold, df["high"], df["open"])
+        df["close"] = np.where(df["close"] > df["high"] * bad_open_close_threshold, df["high"], df["close"])
 
     duration = naive_utcnow() - start
 
