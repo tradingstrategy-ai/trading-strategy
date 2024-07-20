@@ -1904,6 +1904,81 @@ def filter_for_quote_tokens(
     return our_pairs
 
 
+def filter_for_blacklisted_tokens(
+    pairs: pd.DataFrame,
+    blacklisted_tokens: List[str] | Set[str]
+) -> pd.DataFrame:
+    """Remove blacklisted tokens from the trading pair set.
+
+    Useful as a preprocess step for creating trading pairs that cause issues in open-ended strategies.
+    Example:
+
+    .. code-block:: python
+
+        avoid_backtesting_tokens = {
+
+            # MKR market is created and pulled out,
+            # leaving us no good price source in the dataset
+            # https://tradingstrategy.ai/trading-view/ethereum/uniswap-v3/mkr-usdc-fee-5#7d
+            "MKR",
+
+            # Not sure what's going on with this token,
+            # price action and TVL not normal though 100k liquidity
+            # https://tradingstrategy.ai/trading-view/ethereum/uniswap-v3/sbio-usdc-fee-30#1d
+            "SBIO",
+
+            # Same problems as MKR,
+            # it has historical TVL that then gets pulled down to zero
+            # https://tradingstrategy.ai/trading-view/ethereum/uniswap-v3/ldo-usdc-fee-30
+            "LDO",
+
+            # Trading jsut stops (though there is liq left)
+            # https://tradingstrategy.ai/trading-view/ethereum/uniswap-v3/id-usdc-fee-30
+            "ID",
+
+            # Disappearing market, as above
+            "DMT", 
+            "XCHF",
+            "FLC",
+            "GF",
+            "CVX",
+            "MERC",
+            "ICHI",
+            "DOVU",
+            "DOVU[eth]",
+            "DHT",
+            "EWIT",
+
+            # Abnormal price during the rebalance
+            # adjust_position() does not have good price checks /
+            # how to recover in the case price goes hayware after opening the position
+            "MAP",
+            "TRX",
+            "LAI",
+        }
+        tradeable_pairs_df = client.fetch_pair_universe().to_pandas()
+        tradeable_pairs_df = filter_for_blacklisted_tokens(tradeable_pairs_df, avoid_backtesting_tokens)
+        print("Pairs without blacklisted base token", len(tradeable_pairs_df))
+
+    :param blacklisted_tokens:
+        Blacklisted token symbols or addresses.
+
+    :return:
+        DataFrame with trading pairs filtered to match quote token condition
+    """
+    assert type(blacklisted_tokens) in (list, set), f"Received: {type(blacklisted_tokens)}: {blacklisted_tokens}"
+
+    blacklisted_tokens = [t.lower() for t in blacklisted_tokens]
+
+    blacklisted_mask = \
+        pairs['token0_address'].isin(blacklisted_tokens) | \
+        pairs['token0_symbol'].str.lower().isin(blacklisted_tokens) | \
+        pairs['token1_address'].isin(blacklisted_tokens) | \
+        pairs['token1_symbol'].str.lower().isin(blacklisted_tokens)
+
+    return pairs[~blacklisted_mask]
+
+
 class StablecoinFilteringMode(enum.Enum):
     """How to filter pairs in stablecoin filtering.
 

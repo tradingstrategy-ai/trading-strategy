@@ -183,7 +183,13 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
                  time_bucket=TimeBucket.d1,
                  timestamp_column="timestamp",
                  index_automatically=True):
-        super().__init__(df, time_bucket, timestamp_column, index_automatically)
+        super().__init__(
+            df,
+            time_bucket,
+            timestamp_column,
+            index_automatically,
+            bad_open_close_threshold=None,
+        )
 
         # For fast liquidity lookup
         self.indexer_cache: Dict[PrimaryKey, int] = {}
