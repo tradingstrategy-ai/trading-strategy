@@ -1904,6 +1904,56 @@ def filter_for_quote_tokens(
     return our_pairs
 
 
+def filter_for_blacklisted_tokens(
+    pairs: pd.DataFrame,
+    blacklisted_tokens: List[str] | Set[str]
+) -> pd.DataFrame:
+    """Remove blacklisted tokens from the trading pair set.
+
+    Useful as a preprocess step for creating trading pairs that cause issues in open-ended strategie.
+
+    You might, for example, want to construct a trading universe where you have only BUSD pairs.
+
+    Example:
+
+    .. code-block:: python
+
+        exchange_universe = client.fetch_exchange_universe()
+
+        quote_tokens = {
+            "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",  # USDC polygon
+            "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",  # USDT polygon
+        }
+
+        pairs_df = client.fetch_pair_universe().to_pandas()
+
+        # Find out all volatile pairs traded against USDC and USDT on Polygon
+        pairs_df = filter_for_chain(pairs_df, ChainId.polygon)
+        pairs_df = filter_for_stablecoins(pairs_df, StablecoinFilteringMode.only_volatile_pairs)
+        pairs_df = filter_for_quote_tokens(pairs_df, quote_tokens)
+
+        pairs_df = filter_for_quote_tokens(pairs_df, lending_reserves.get_asset_addresses())
+        pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    :param blacklisted_tokens:
+        Blacklisted token symbols or addresses.
+
+    :return:
+        DataFrame with trading pairs filtered to match quote token condition
+    """
+    assert type(blacklisted_tokens) in (list, set), f"Received: {type(blacklisted_tokens)}: {blacklisted_tokens}"
+
+    blacklisted_tokens = [t.lower() for t in blacklisted_tokens]
+
+    blacklisted_mask = \
+        pairs['token0_address'].isin(blacklisted_tokens) | \
+        pairs['token0_symbol'].str.lower().isin(blacklisted_tokens) | \
+        pairs['token1_address'].isin(blacklisted_tokens) | \
+        pairs['token1_symbol'].str.lower().isin(blacklisted_tokens)
+
+    return pairs[~blacklisted_mask]
+
+
 class StablecoinFilteringMode(enum.Enum):
     """How to filter pairs in stablecoin filtering.
 
