@@ -1910,30 +1910,55 @@ def filter_for_blacklisted_tokens(
 ) -> pd.DataFrame:
     """Remove blacklisted tokens from the trading pair set.
 
-    Useful as a preprocess step for creating trading pairs that cause issues in open-ended strategie.
-
-    You might, for example, want to construct a trading universe where you have only BUSD pairs.
-
+    Useful as a preprocess step for creating trading pairs that cause issues in open-ended strategies.
     Example:
 
     .. code-block:: python
 
-        exchange_universe = client.fetch_exchange_universe()
+        avoid_backtesting_tokens = {
 
-        quote_tokens = {
-            "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",  # USDC polygon
-            "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",  # USDT polygon
+            # MKR market is created and pulled out,
+            # leaving us no good price source in the dataset
+            # https://tradingstrategy.ai/trading-view/ethereum/uniswap-v3/mkr-usdc-fee-5#7d
+            "MKR",
+
+            # Not sure what's going on with this token,
+            # price action and TVL not normal though 100k liquidity
+            # https://tradingstrategy.ai/trading-view/ethereum/uniswap-v3/sbio-usdc-fee-30#1d
+            "SBIO",
+
+            # Same problems as MKR,
+            # it has historical TVL that then gets pulled down to zero
+            # https://tradingstrategy.ai/trading-view/ethereum/uniswap-v3/ldo-usdc-fee-30
+            "LDO",
+
+            # Trading jsut stops (though there is liq left)
+            # https://tradingstrategy.ai/trading-view/ethereum/uniswap-v3/id-usdc-fee-30
+            "ID",
+
+            # Disappearing market, as above
+            "DMT", 
+            "XCHF",
+            "FLC",
+            "GF",
+            "CVX",
+            "MERC",
+            "ICHI",
+            "DOVU",
+            "DOVU[eth]",
+            "DHT",
+            "EWIT",
+
+            # Abnormal price during the rebalance
+            # adjust_position() does not have good price checks /
+            # how to recover in the case price goes hayware after opening the position
+            "MAP",
+            "TRX",
+            "LAI",
         }
-
-        pairs_df = client.fetch_pair_universe().to_pandas()
-
-        # Find out all volatile pairs traded against USDC and USDT on Polygon
-        pairs_df = filter_for_chain(pairs_df, ChainId.polygon)
-        pairs_df = filter_for_stablecoins(pairs_df, StablecoinFilteringMode.only_volatile_pairs)
-        pairs_df = filter_for_quote_tokens(pairs_df, quote_tokens)
-
-        pairs_df = filter_for_quote_tokens(pairs_df, lending_reserves.get_asset_addresses())
-        pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+        tradeable_pairs_df = client.fetch_pair_universe().to_pandas()
+        tradeable_pairs_df = filter_for_blacklisted_tokens(tradeable_pairs_df, avoid_backtesting_tokens)
+        print("Pairs without blacklisted base token", len(tradeable_pairs_df))
 
     :param blacklisted_tokens:
         Blacklisted token symbols or addresses.
