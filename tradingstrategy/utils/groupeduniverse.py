@@ -1123,10 +1123,12 @@ def fix_bad_wicks(
     if len(df) == 0:
         return df
 
+
     # Optimised with np.where()
     # https://stackoverflow.com/a/65729035/315168
-    df["high"] = np.where(df["high"] > df["close"] * threshold[1], df["close"], df["high"])
-    df["low"] = np.where(df["low"] < df["close"] * threshold[0], df["close"], df["low"])
+    if threshold is not None:
+        df["high"] = np.where(df["high"] > df["close"] * threshold[1], df["close"], df["high"])
+        df["low"] = np.where(df["low"] < df["close"] * threshold[0], df["close"], df["low"])
 
     # For manual diagnostics tracking down bad trading pair data
     if verbose and bad_open_close_threshold:
