@@ -109,7 +109,7 @@ class CachedHTTPTransport:
         if cache_path:
             self.cache_path = cache_path
         else:
-            self.cache_path = os.path.expanduser("~/.cache/trading-strategy")
+            self.cache_path = os.path.expanduser("~/.cache/tradingstrategy")
 
         self.requests = self.create_requests_client(
             api_key=api_key,
