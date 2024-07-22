@@ -71,8 +71,8 @@ class BinanceDownloader:
         self,
         symbols: list[str] | str,
         time_bucket: TimeBucket,
-        start_at: datetime.datetime,
-        end_at: datetime.datetime,
+        start_at: datetime.datetime=None,
+        end_at: datetime.datetime=None,
         force_download=False,
         desc="Downloading Binance data",
     ) -> pd.DataFrame:
@@ -111,6 +111,9 @@ class BinanceDownloader:
         if isinstance(symbols, str):
             symbols = [symbols]
 
+        if end_at is None:
+            end_at = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+
         dataframes = []
         total_size = 0
 
@@ -124,6 +127,9 @@ class BinanceDownloader:
             show_individual_progress = False
         
         for symbol in symbols:
+            if start_at is None:
+                start_at = self.fetch_approx_asset_trading_start_date(symbol)
+
             df = self.fetch_candlestick_data_single_pair(
                 symbol, time_bucket, start_at, end_at, force_download, binance_spot_symbols, show_individual_progress,
             )
