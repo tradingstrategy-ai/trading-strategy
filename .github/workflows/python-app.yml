@@ -11,7 +11,7 @@ on:
 
 jobs:
   automated-tests:
-    runs-on: [selfhosted, TRADINGSTRATEGY]
+    runs-on: [self-hosted, TRADINGSTRATEGY]
     steps:
     - uses: actions/checkout@v3
       with:
