@@ -11,7 +11,7 @@ on:
 jobs:
   check-pip-install:
 
-    runs-on: ubuntu-latest
+    runs-on: [selfhosted, TRADINGSTRATEGY]
 
     steps:
     - uses: actions/checkout@v2
