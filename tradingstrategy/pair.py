@@ -1064,7 +1064,7 @@ class PandasPairUniverse:
             quotes.add((p.chain_id, p.quote_token_address))
 
         tokens = [self.get_token(q[1]) for q in quotes]
-        assert len(tokens) == 1, f"We have multiple qutoe tokens: {tokens}"
+        assert len(tokens) == 1, f"We have multiple quote tokens: {tokens}"
         return tokens[0]
 
     def get_by_symbols(self, base_token_symbol: str, quote_token_symbol: str) -> Optional[DEXPair]:
