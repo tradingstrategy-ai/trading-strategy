@@ -194,7 +194,8 @@ class PairGroupedUniverse:
         try:
             pair = self.pairs.get_group(pair_id)
         except KeyError as e:
-            raise PairCandlesMissing(f"No OHLC samples for pair id {pair_id} in {self}") from e
+            all_groups = list(self.pairs.groups.keys())
+            raise PairCandlesMissing(f"No OHLC samples for pair id {pair_id} in {self}.\nWe have internal ids: {all_groups}") from e
         return pair
 
     def get_last_entries_by_pair_and_timestamp(self,
@@ -893,7 +894,7 @@ def resample_candles(
     # Sanity check we don't try to resample mixed data of multiple pairs
     if "pair_id" in df.columns:
         pair_ids = df["pair_id"].unique()
-        assert len(pair_ids) == 1, f"Must have single pair_id only. We got {len(pair_ids)} pair ids: {pair_ids}, columns: {df.columns}"
+        assert len(pair_ids) == 1, f"resample_candles() can do only a single pair. Data must have single pair_id only. We got {len(pair_ids)} pair ids: {pair_ids}, columns: {df.columns}"
         pair_id = pair_ids[0]
     else:
         pair_id = None

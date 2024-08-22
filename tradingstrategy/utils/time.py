@@ -106,3 +106,13 @@ def get_prior_timestamp(series: pd.Series, ts: pd.Timestamp) -> pd.Timestamp | N
         return index[index < ts][-1]
     except IndexError:
         return None
+
+
+def floor_pandas_week(ts: pd.Timestamp) -> pd.Timestamp:
+    """Round Pandas timestamp to a start of a week."""
+    return ts.to_period("W").start_time
+
+
+def floor_pandas_month(ts: pd.Timestamp) -> pd.Timestamp:
+    """Round Pandas timestamp to a start of a month."""
+    return ts.to_period("M").start_time

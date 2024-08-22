@@ -5,6 +5,8 @@ import enum
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
+from tradingstrategy.utils.time import floor_pandas_week, floor_pandas_month
+
 
 class NoMatchingBucket(Exception):
     """Cannot map timestamp to any available bucket."""
@@ -94,6 +96,19 @@ class TimeBucket(enum.Enum):
 
         delta = self.to_timedelta()
         return to_offset(delta)
+
+    def floor(self, timestamp: pd.Timestamp) -> pd.Timestamp:
+        """Floor the time bucket to the nearest value.
+
+        - Handle business week as d7
+        """
+        if self == TimeBucket.d7:
+            # Floor down to the business week start
+            return floor_pandas_week(timestamp)
+        elif self == TimeBucket.d30:
+            return floor_pandas_month(timestamp)
+
+        return timestamp.floor(self.to_frequency())
 
     @staticmethod
     def from_pandas_timedelta(td: pd.Timedelta) -> "TimeBucket":
