@@ -27,7 +27,7 @@ def forward_fill(
     freq: pd.DateOffset,
     columns: Collection[str] = ("open", "high", "low", "close", "volume", "timestamp"),
     drop_other_columns=True,
-):
+) -> pd.DataFrame:
     """Forward-fill OHLCV data for multiple trading pairs.
 
     :py:term:`Forward fill` certain candle columns.
