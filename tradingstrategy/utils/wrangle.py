@@ -161,6 +161,50 @@ def fix_dex_price_data(
 
     - Fix broken open/high/low/close value so that they are less likely to cause problems for algorithms
 
+    - Wrangle is a process where we massage incoming price/liquidity data for the isseus we may have encountered during the data collection
+
+    - Common DEX data issues are absurd price high/low spikes due to MEV trades
+
+    - We also have some open/close values that are "broken" in a sense that they do not reflect the market price you would be able to trade,
+      again likely due to MEV
+
+    Example:
+
+    .. code-block:: python
+
+          # After we know pair ids that fill the liquidity criteria,
+          # we can build OHLCV dataset for these pairs
+          print(f"Downloading/opening OHLCV dataset {time_bucket}")
+          price_df = client.fetch_all_candles(time_bucket).to_pandas()
+          print(f"Filtering out {len(top_liquid_pair_ids)} pairs")
+          price_df = price_df.loc[price_df.pair_id.isin(top_liquid_pair_ids)]
+
+          print("Wrangling DEX price data")
+          price_df = price_df.set_index("timestamp", drop=False).groupby("pair_id")
+          price_df = fix_dex_price_data(
+              price_df,
+              freq=time_bucket.to_frequency(),
+              forward_fill=True,
+          )
+
+          print(f"Retrofitting OHLCV columns for human readability")
+          price_df = price_df.obj
+          price_df["pair_id"] = price_df.index.get_level_values(0)
+          price_df["ticker"] = price_df.apply(lambda row: make_full_ticker(pair_metadata[row.pair_id]), axis=1)
+          price_df["link"] = price_df.apply(lambda row: make_link(pair_metadata[row.pair_id]), axis=1)
+
+          # Export data, make sure we got columns in an order we want
+          print(f"Writing OHLCV CSV")
+          del price_df["timestamp"]
+          del price_df["pair_id"]
+          price_df = price_df.reset_index()
+          column_order = ('ticker', 'timestamp', 'open', 'high', 'low', 'close', 'volume', 'link', 'pair_id',)
+          price_df = price_df.reindex(columns=column_order)  # Sort columns in a specific order
+          price_df.to_csv(
+            price_output_fname,
+          )
+          print(f"Wrote {price_output_fname}, {price_output_fname.stat().st_size:,} bytes")
+
     :param df:
         Price dataframe with OHLCV data.
 
