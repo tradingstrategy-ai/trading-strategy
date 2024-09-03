@@ -11,7 +11,10 @@
 
 """
 import logging
+import datetime
+
 import pandas as pd
+from pandas.core.groupby import DataFrameGroupBy
 import numpy as np
 
 from .time import naive_utcnow
@@ -147,7 +150,7 @@ def remove_zero_candles(
 
 
 def fix_dex_price_data(
-    df: pd.DataFrame,
+    df: pd.DataFrame | DataFrameGroupBy,
     freq: pd.DateOffset | str | None = None,
     forward_fill: bool = True,
     bad_open_close_threshold: float | None = 3.0,
@@ -162,6 +165,8 @@ def fix_dex_price_data(
         Price dataframe with OHLCV data.
 
         May contain columns named open, close, high, low, volume and timestamp.
+
+        For multipair data this must be `DataFrameGroupBy`.
 
     :param freq:
         The incoming Pandas frequency of the data, e.g. "d" for daily.
@@ -190,26 +195,36 @@ def fix_dex_price_data(
     :param forward_fill:
         Forward-will gaps in the data.
 
+        Forward-filling data will delete any unknown columns,
+        see :py:func:`tradingstrategy.utils.forward_fill.forward_fill` details.
+
     :return:
         Fixed data frame.
 
         If forward fill is used, all other columns outside OHLCV are dropped.
     """
 
-    assert isinstance(df, pd.DataFrame)
+    assert isinstance(df, (pd.DataFrame, DataFrameGroupBy)), f"Got: {df.__class__}"
+
+    if isinstance(df, DataFrameGroupBy):
+        raw_df = df.obj
+    else:
+        raw_df = df
 
     if fix_wick_threshold or bad_open_close_threshold:
-        df = fix_bad_wicks(
-            df,
+        raw_df = fix_bad_wicks(
+            raw_df,
             fix_wick_threshold,
             bad_open_close_threshold=bad_open_close_threshold,
         )
 
     if remove_candles_with_zero:
-        df = remove_zero_candles(df)
+        raw_df = remove_zero_candles(raw_df)
 
     if forward_fill:
         assert freq, "freq argument must be given if forward_fill=True"
         df = _forward_fill(df, freq)
+        return df
+    else:
+        return raw_df
 
-    return df
