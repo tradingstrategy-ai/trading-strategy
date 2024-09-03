@@ -1,5 +1,6 @@
-# Cyrrent
+# Current
 
+- Add: `fix_dex_price_data` for wrangling DEX price feeds and separate reusable `wrangle` module
 - Add: `resample_dataframe` utility function. Useful for resampling dataframes with multiple columns that are not candlestick data 
 - Add: `fix_bad_wicks(bad_open_close_threshold)` to massage the data - There are ~60 broken open price data points for U/ni v3 price feeds, cause unknown
 - Add: `filter_for_blacklisted_tokens`

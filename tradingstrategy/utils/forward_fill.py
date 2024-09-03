@@ -24,10 +24,10 @@ from pandas.core.groupby import DataFrameGroupBy
 
 def forward_fill(
     df: pd.DataFrame | DataFrameGroupBy,
-    freq: pd.DateOffset,
+    freq: pd.DateOffset | str,
     columns: Collection[str] = ("open", "high", "low", "close", "volume", "timestamp"),
     drop_other_columns=True,
-):
+) -> pd.DataFrame:
     """Forward-fill OHLCV data for multiple trading pairs.
 
     :py:term:`Forward fill` certain candle columns.
@@ -143,7 +143,7 @@ def forward_fill(
     """
 
     assert isinstance(df, (pd.DataFrame, DataFrameGroupBy))
-    assert isinstance(freq, pd.DateOffset)
+    assert isinstance(freq, (pd.DateOffset, str)), f"Expected pd.DateOffset, got: {freq}"
 
     source = df
 
