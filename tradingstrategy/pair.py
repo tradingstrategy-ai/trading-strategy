@@ -604,6 +604,26 @@ class DEXPair:
         return create_pyarrow_schema_for_dataclass(cls, hints=hints)
 
     @classmethod
+    def from_series(cls, pair_id: int, series: pd.Series) -> "DEXPair":
+        """Create a DEXPair instance from Pandas Series.
+
+        - Series in this case is one row in pairs.parquet data
+
+        :param pair_id:
+            Pair id.
+
+            Not part of the row because it iss index.
+
+        :param series:
+            Pair data as a Pandas row.
+
+        """
+        assert isinstance(series, pd.Series)
+        data = series.replace(np.nan, None).to_dict()
+        data["pair_id"] = pair_id
+        return DEXPair.from_dict(data)
+
+    @classmethod
     def convert_to_pyarrow_table(cls, pairs: List["DEXPair"], check_schema=False) -> pa.Table:
         """Convert a list of DEXPair instances to a Pyarrow table.
 
