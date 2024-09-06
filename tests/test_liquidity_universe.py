@@ -194,6 +194,8 @@ def test_build_liquidity_summary(persistent_test_client: Client):
     )
 
     liquidity_df = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
-    historical_max, today_max = build_liquidity_summary(liquidity_df, pairs_df["pair_id"])
+    historical_max, today = build_liquidity_summary(liquidity_df, pairs_df["pair_id"])
     assert len(historical_max) > 100
     print(historical_max.most_common(10))
+    for pair_id, liquidity_usd in historical_max.most_common(10):
+        assert liquidity_usd > 0, f"Got zero liquidity for pair {pair_id}"

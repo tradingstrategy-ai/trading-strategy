@@ -509,6 +509,7 @@ def filter_pairs_default(
         assert type(max_trading_pair_fee_bps) == int, f"max_trading_pair_fee_bps must be int"
 
     tradeable_pairs_df = pairs_df
+    verbose_print(f"Pairs in the input dataset", len(tradeable_pairs_df))
 
     if chain_id:
         tradeable_pairs_df = filter_for_chain(pairs_df, chain_id)

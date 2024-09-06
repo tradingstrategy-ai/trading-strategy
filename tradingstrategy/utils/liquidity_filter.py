@@ -37,8 +37,9 @@ def get_somewhat_realistic_max_liquidity(
     """
 
     try:
-        liquidity_samples = liquidity_df.obj.loc[pair_id]["close"]
+        liquidity_samples = liquidity_df.obj.loc[pair_id]["close"].nlargest(samples)
         sample = min(liquidity_samples)
+        import ipdb ; ipdb.set_trace()
         if sample > broken_liquidity:
             # Filter out bad data
             return 0
@@ -87,7 +88,7 @@ def build_liquidity_summary(
     :param liquidity_df:
         Liquidity data. **MUST BE forward filled for no gaps and timestamp indexed.**
 
-        Must be daily timeframe to include TVL data.
+        Must be daily/weekly timeframe to include TVL data and match our lookup functions.
 
     :param pair_ids:
         Pairs we are interested in
@@ -100,6 +101,9 @@ def build_liquidity_summary(
     :return:
         Two counters of historical max liquidity, liquidity today
     """
+
+    assert isinstance(liquidity_df, (pd.DataFrame, DataFrameGroupBy))
+    assert len(pair_ids) > 0
 
     if not isinstance(liquidity_df, DataFrameGroupBy):
         liquidity_df = liquidity_df.set_index("timestamp").groupby("pair_id")
