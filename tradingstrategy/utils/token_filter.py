@@ -375,9 +375,9 @@ def filter_for_rebases(pairs: pd.DataFrame, rebase=False) -> pd.DataFrame:
 
     def row_filter(row):
         if rebase:
-            return is_derivative(row["token0_symbol"]) or is_rebase(row["token1_symbol"])
+            return is_rebase(row["token0_symbol"]) or is_rebase(row["token1_symbol"])
         else:
-            return (not is_derivative(row["token0_symbol"])) and (not is_rebase(row["token1_symbol"]))
+            return (not is_rebase(row["token0_symbol"])) and (not is_rebase(row["token1_symbol"]))
 
     df =  pairs[pairs.apply(row_filter, axis=1)]
     return df
