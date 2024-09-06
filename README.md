@@ -11,6 +11,14 @@
 # Trading Strategy framework for Python
 
 Trading Strategy framework is a Python framework for algorithmic trading on decentralised exchanges. 
+
+- Download decentralised finance market data sets
+- Develop and backtest trading strategies in Jupyter Notebook
+- Live trade execution for onchain trading
+- Smart contract vault support for turning your trading strategy to a third-party investable vault
+
+The `trading-strategy` library provides data fetching for backtesting and live trading.
+
 It is using [backtesting data](https://tradingstrategy.ai/trading-view/backtesting) and [real-time price feeds](https://tradingstrategy.ai/trading-view)
 from [Trading Strategy Protocol](https://tradingstrategy.ai/). 
 
