@@ -35,18 +35,16 @@ def get_somewhat_realistic_max_liquidity(
         Cannot have more than 100M USD
 
     """
-
     try:
         liquidity_samples = liquidity_df.obj.loc[pair_id]["close"].nlargest(samples)
         sample = min(liquidity_samples)
-        import ipdb ; ipdb.set_trace()
         if sample > broken_liquidity:
             # Filter out bad data
-            return 0
+            return -1
         return sample
     except KeyError:
         # Pair not available, because liquidity data is not there, or zero, or broken
-        return 0
+        return -1
 
 
 def get_liquidity_today(
@@ -71,7 +69,7 @@ def get_liquidity_today(
         return sample
     except KeyError:
         # Pair not available, because liquidity data is not there, or zero, or broken
-        return 0
+        return -1
 
 
 def build_liquidity_summary(
@@ -99,7 +97,11 @@ def build_liquidity_summary(
         Ensure the data is indexed by the time we run this code.
 
     :return:
-        Two counters of historical max liquidity, liquidity today
+        Two counters of historical max liquidity, liquidity today.
+
+        All in USD.
+
+        Pair liquidity value is set to `-1` if the lookup failed (data not available, data contains inrealistic values, etc.)
     """
 
     assert isinstance(liquidity_df, (pd.DataFrame, DataFrameGroupBy))

@@ -6,6 +6,7 @@ from tradingstrategy.client import Client
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, LiquidityDataUnavailable
 from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.liquidity_filter import build_liquidity_summary
 from tradingstrategy.utils.token_filter import filter_pairs_default
 
@@ -194,6 +195,9 @@ def test_build_liquidity_summary(persistent_test_client: Client):
     )
 
     liquidity_df = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
+    liquidity_df = liquidity_df.loc[liquidity_df["pair_id"].isin(pairs_df["pair_id"])]  # Filter to our pair set before forward fill
+    liquidity_df = liquidity_df.set_index("timestamp").groupby("pair_id")
+    liquidity_df = forward_fill(liquidity_df, TimeBucket.d7.to_frequency(), columns=("close",))
     historical_max, today = build_liquidity_summary(liquidity_df, pairs_df["pair_id"])
     assert len(historical_max) > 100
     print(historical_max.most_common(10))
