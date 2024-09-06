@@ -65,25 +65,25 @@ import warnings
 from collections import Counter
 from dataclasses import dataclass
 from types import NoneType
-from typing import Optional, List, Iterable, Dict, Union, Set, Tuple, TypeAlias, Collection
+from typing import Optional, Iterable, Dict, TypeAlias
 
-import pandas as pd
 import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
 from dataclasses_json import dataclass_json
 from numpy import isnan
 
-from tradingstrategy.chain import ChainId
 from tradingstrategy.token import Token
-from tradingstrategy.exchange import ExchangeUniverse, Exchange, ExchangeType, ExchangeNotFoundError
-from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE, is_derivative
+from tradingstrategy.exchange import ExchangeUniverse, ExchangeType, ExchangeNotFoundError
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent, \
-    USDollarAmount, Slug, URL, TokenSymbol
+    USDollarAmount, URL
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
     append_to_columnar_work_buffer
 from tradingstrategy.exceptions import DataNotFoundError
+
+# Legacy compatibility
+from tradingstrategy.utils.token_filter import *
 
 
 logger = logging.getLogger(__name__)
@@ -1773,40 +1773,6 @@ class LegacyPairUniverse:
     def get_inactive_pairs(self) -> Iterable["DEXPair"]:
         """Filter for pairs that have not see a trade for the last 30 days"""
         return filter(lambda p: p.flag_inactive, self.pairs.values())
-
-
-def filter_for_exchanges(pairs: pd.DataFrame, exchanges: Collection[Exchange]) -> pd.DataFrame:
-    """Filter dataset so that it only contains data for the trading pairs from a certain exchange.
-
-    Useful as a preprocess step for creating :py:class:`tradingstrategy.candle.GroupedCandleUniverse`
-    or :py:class:`tradingstrategy.liquidity.GroupedLiquidityUniverse`.
-    """
-    exchange_ids = [e.exchange_id for e in exchanges]
-    our_pairs: pd.DataFrame = pairs.loc[
-        (pairs['exchange_id'].isin(exchange_ids))
-    ]
-    return our_pairs
-
-
-def filter_for_trading_fee(pairs: pd.DataFrame, fee: Percent) -> pd.DataFrame:
-    """Select only pairs with a specific trading fee.
-
-    Filter pairs based on :py:term:`AMM` :py:term:`swap` fee.
-
-    :param fee:
-        Fee as the floating point.
-
-        For example ``0.0005`` for :term:`Uniswap` 5 BPS fee tier.
-    """
-
-    assert 0 < fee < 1, f"Got fee: {fee}"
-
-    int_fee = int(fee * 10_000)
-
-    our_pairs: pd.DataFrame = pairs.loc[
-        (pairs['fee'] == int_fee)
-    ]
-    return our_pairs
 
 
 def resolve_pairs_based_on_ticker(

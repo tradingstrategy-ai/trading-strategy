@@ -1,4 +1,6 @@
-"""Filter out tokens and trading pairs.
+"""Tokens and trading pair dataset filtering.
+
+- Used to build a tradeable universe for all Uniswap pairs
 
 - Works mainly on trading pairs dataframe - see :py:mod:`tradingstrategy.pairs`
 
@@ -7,6 +9,46 @@
 - For easy filtering "give me tradeable trading pairs universe from these pairs" see :py:func:`filter_default`
 
 """
+
+import enum
+from typing import List, Set, Tuple, Collection
+
+import pandas as pd
+
+from tradeexecutor.state.types import BPS, IntBPS, PairInternalId
+from tradingstrategy.chain import ChainId
+from tradingstrategy.exchange import Exchange
+from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
+from tradingstrategy.types import Slug, TokenSymbol, Percent
+
+#: The pair must be quoted in one of these tokens
+#:
+#: We know can route trades for these tokens
+DEFAULT_GOOD_QUOTE_TOKENS = (
+    "USDC",
+    "USDT",
+    "WETH",
+    "WMATIC",
+    "WAVAX",
+    "WBNB",
+    "WARB",
+)
+
+
+#: List of DEXes we know are not scams and can be routed
+DEFAULT_GOOD_EXCHANGES = ("uniswap-v2", "uniswap-v3", "trader-joe", "sushi", "pancakeswap-2",)
+
+
+#: Tokens that are somehow wrapped/liquid staking/etc. and derive value from some other underlying token
+#:
+DERIVATIVE_TOKEN_PREFIXES = ["wst", "os", "3Crv", "gOHM", "st", "bl"]
+
+
+#: Tokens that are known to rebase
+#:
+REBASE_TOKENS = ["OHM", "KLIMA"]
+
+
 
 def filter_for_base_tokens(
     pairs: pd.DataFrame,
@@ -319,6 +361,29 @@ def filter_for_derivatives(pairs: pd.DataFrame, derivatives=False) -> pd.DataFra
     return df
 
 
+def filter_for_rebases(pairs: pd.DataFrame, rebase=False) -> pd.DataFrame:
+    """Detect rebase token.
+
+    - These tokens have dynamic balance and cannot be traded as is
+
+    - Example: `OHM`, `KLIMA`
+
+    :param rebase:
+        Set false to exclude derivative token, True to have only them.
+    """
+
+    assert isinstance(pairs, pd.DataFrame)
+
+    def row_filter(row):
+        if rebase:
+            return is_derivative(row["token0_symbol"]) or is_derivative(row["token1_symbol"])
+        else:
+            return (not is_derivative(row["token0_symbol"])) and (not is_derivative(row["token1_symbol"]))
+
+    df =  pairs[pairs.apply(row_filter, axis=1)]
+    return df
+
+
 def filter_for_chain(
     pairs: pd.DataFrame,
     chain_id: ChainId,
@@ -358,14 +423,146 @@ def filter_for_exchange(
         raise AssertionError(f"Unsupported exchange slug filter: {exchange_slug.__class__}")
 
 
+def filter_for_exchanges(pairs: pd.DataFrame, exchanges: Collection[Exchange]) -> pd.DataFrame:
+    """Filter dataset so that it only contains data for the trading pairs from a certain exchange.
+
+    Useful as a preprocess step for creating :py:class:`tradingstrategy.candle.GroupedCandleUniverse`
+    or :py:class:`tradingstrategy.liquidity.GroupedLiquidityUniverse`.
+    """
+    exchange_ids = [e.exchange_id for e in exchanges]
+    our_pairs: pd.DataFrame = pairs.loc[
+        (pairs['exchange_id'].isin(exchange_ids))
+    ]
+    return our_pairs
+
+
+def filter_for_trading_fee(pairs: pd.DataFrame, fee: Percent) -> pd.DataFrame:
+    """Select only pairs with a specific trading fee.
+
+    Filter pairs based on :py:term:`AMM` :py:term:`swap` fee.
+
+    :param fee:
+        Fee as the floating point.
+
+        For example ``0.0005`` for :term:`Uniswap` 5 BPS fee tier.
+    """
+
+    assert 0 < fee < 1, f"Got fee: {fee}"
+
+    int_fee = int(fee * 10_000)
+
+    our_pairs: pd.DataFrame = pairs.loc[
+        (pairs['fee'] == int_fee)
+    ]
+    return our_pairs
+
+
 def filter_pairs_default(
-    pairs: pd.DataFrame,
-):
+    pairs_df: pd.DataFrame,
+    verbose_print=lambda x, y: print(x, y),
+    max_trading_pair_fee_bps: IntBPS | None = 100,
+    blacklisted_token_symbols: Collection[TokenSymbol] | None = None,
+    good_quote_tokes: Collection[TokenSymbol] = DEFAULT_GOOD_QUOTE_TOKENS,
+    exchanges: Collection[Exchange] | None = None,
+    pair_ids_in_candles: Collection[PairInternalId] | pd.Series | None = None,
+) -> pd.DataFrame:
     """Filter out pairs that are not interested for trading.
+
+    - Does not perform liquidity filtering you need to perform separately
 
     This includes
 
     - Non-volatile pairs (stETH/ETH) - :py:func:`filter_for_stablecoins`
 
     - Derivate pairs (stETH/ETH) - :py:func:`filter_for_derivatives`
+
+    - Rebasing tokens
+
+    :param max_trading_pair_fee_bps:
+        Limit to pairs with less pool fee than this
+
+    :param verbose_print:
+        Output function to print out information about narroving the dataset
+
+    :param good_quote_tokes:
+        Only allow trading pairs that trade against these tokens.
+
+    :param blacklisted_token_symbols:
+        Avoid these base tokens for some reason or another
+
+    :param exchange_slugs:
+        Limit trading pairs to these dexes
+
+    :param pair_ids_in_candles:
+        Filter based on loaded candle data.
+
+        Remove trading pairs that do not appear in the candle data.
+
+    :return:
+        DataFrame for trading pairs
     """
+
+    if max_trading_pair_fee_bps:
+        assert type(max_trading_pair_fee_bps) == int, f"max_trading_pair_fee_bps must be int"
+
+    tradeable_pairs_df = pairs_df
+
+    # Remove pairs with expensive 1% fee tier
+    # Remove stable-stable pairs
+    if max_trading_pair_fee_bps:
+        tradeable_pairs_df = pairs_df.loc[pairs_df["fee"] <= max_trading_pair_fee_bps]
+        verbose_print("Pairs having a good fee", len(tradeable_pairs_df))
+
+    if pair_ids_in_candles:
+        tradeable_pairs_df = tradeable_pairs_df.loc[tradeable_pairs_df["pair_id"].isin(pair_ids_in_candles)]
+        verbose_print("Pairs with candle data", len(tradeable_pairs_df))
+
+    if exchanges:
+        tradeable_pairs_df = filter_for_exchanges(tradeable_pairs_df, exchanges)
+        verbose_print("Pairs matching exchange", len(tradeable_pairs_df))
+
+    tradeable_pairs_df = filter_for_stablecoins(tradeable_pairs_df, StablecoinFilteringMode.only_volatile_pairs)
+    verbose_print("Pairs that are not stable-stable", len(tradeable_pairs_df))
+    tradeable_pairs_df = filter_for_derivatives(tradeable_pairs_df)
+    verbose_print("Pairs that are not derivative tokens", len(tradeable_pairs_df))
+
+    tradeable_pairs_df = filter_for_rebases(tradeable_pairs_df)
+    verbose_print("Pairs that are not rebase tokens", len(tradeable_pairs_df))
+
+    tradeable_pairs_df = tradeable_pairs_df.loc[tradeable_pairs_df["quote_token_symbol"].isin(good_quote_tokes)]
+    verbose_print("Pairs with good quote token", len(tradeable_pairs_df))
+
+    if blacklisted_token_symbols:
+        tradeable_pairs_df = filter_for_blacklisted_tokens(tradeable_pairs_df, blacklisted_token_symbols)
+        verbose_print("Pairs without blacklisted base token", len(tradeable_pairs_df))
+    tradeable_pairs_df = filter_for_nonascii_tokens(tradeable_pairs_df)
+    verbose_print("Pairs with clean ASCII token name", len(tradeable_pairs_df))
+
+    return tradeable_pairs_df
+
+
+def is_derivative(token_symbol: TokenSymbol) -> bool:
+    """Identify common derivate tokens.
+
+    - They will have the same base value e.g. wstETH and ETH
+
+    :return:
+        True if token symbol matches a common known derivative token symbol pattern
+    """
+    assert isinstance(token_symbol, str), f"We got {token_symbol}"
+    return any(token_symbol.startswith(prefix) for prefix in DERIVATIVE_TOKEN_PREFIXES)
+
+
+def is_rebase(token_symbol: TokenSymbol) -> bool:
+    """Identify common rebase tokens.
+
+    - They will have dynamic balance and not suitable for trading as is
+
+    - E.g. `OHM`
+
+    :return:
+        True if token symbol matches a common known derivative token symbol pattern
+    """
+    assert isinstance(token_symbol, str), f"We got {token_symbol}"
+    return token_symbol in REBASE_TOKENS
+
