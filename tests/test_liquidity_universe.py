@@ -6,6 +6,8 @@ from tradingstrategy.client import Client
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, LiquidityDataUnavailable
 from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.utils.liquidity_filter import build_liquidity_summary
+from tradingstrategy.utils.token_filter import filter_pairs_default
 
 
 def test_grouped_liquidity(persistent_test_client: Client):
@@ -171,3 +173,26 @@ def test_merge_liquidity_samples(persistent_test_client: Client):
 def test_empty_liquididty_universe():
     universe = GroupedLiquidityUniverse.create_empty()
     assert universe.get_sample_count() == 0
+
+
+def test_build_liquidity_summary(persistent_test_client: Client):
+    """See we can put together historical liquidity for backtest filtering.
+
+    - Get liquidity summary for all Uniswap v3 pairs on Etheruem
+    """
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v3")
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    pairs_df = filter_pairs_default(
+        pairs_df,
+        chain_id=ChainId.ethereum,
+        exchanges={exchange},
+    )
+
+    liquidity_df = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
+    historical_max, today_max = build_liquidity_summary(liquidity_df, pairs_df["pair_id"])
+    assert len(historical_max) > 100

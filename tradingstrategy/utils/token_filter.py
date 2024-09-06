@@ -15,11 +15,10 @@ from typing import List, Set, Tuple, Collection
 
 import pandas as pd
 
-from tradeexecutor.state.types import BPS, IntBPS, PairInternalId
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
-from tradingstrategy.types import Slug, TokenSymbol, Percent
+from tradingstrategy.types import Slug, TokenSymbol, Percent, IntBasisPoint, PrimaryKey
 
 #: The pair must be quoted in one of these tokens
 #:
@@ -460,11 +459,12 @@ def filter_for_trading_fee(pairs: pd.DataFrame, fee: Percent) -> pd.DataFrame:
 def filter_pairs_default(
     pairs_df: pd.DataFrame,
     verbose_print=lambda x, y: print(x, y),
-    max_trading_pair_fee_bps: IntBPS | None = 100,
+    max_trading_pair_fee_bps: IntBasisPoint | None = 100,
     blacklisted_token_symbols: Collection[TokenSymbol] | None = None,
     good_quote_tokes: Collection[TokenSymbol] = DEFAULT_GOOD_QUOTE_TOKENS,
     exchanges: Collection[Exchange] | None = None,
-    pair_ids_in_candles: Collection[PairInternalId] | pd.Series | None = None,
+    pair_ids_in_candles: Collection[PrimaryKey] | pd.Series | None = None,
+    chain_id: ChainId | None = None,
 ) -> pd.DataFrame:
     """Filter out pairs that are not interested for trading.
 
@@ -498,6 +498,9 @@ def filter_pairs_default(
 
         Remove trading pairs that do not appear in the candle data.
 
+    :param chain_ids:
+        Take trading pairs only on these chains
+
     :return:
         DataFrame for trading pairs
     """
@@ -507,10 +510,14 @@ def filter_pairs_default(
 
     tradeable_pairs_df = pairs_df
 
+    if chain_id:
+        tradeable_pairs_df = filter_for_chain(pairs_df, chain_id)
+        verbose_print(f"Pairs on chain {chain_id.get_slug()}", len(tradeable_pairs_df))
+
     # Remove pairs with expensive 1% fee tier
     # Remove stable-stable pairs
     if max_trading_pair_fee_bps:
-        tradeable_pairs_df = pairs_df.loc[pairs_df["fee"] <= max_trading_pair_fee_bps]
+        tradeable_pairs_df = tradeable_pairs_df.loc[pairs_df["fee"] <= max_trading_pair_fee_bps]
         verbose_print("Pairs having a good fee", len(tradeable_pairs_df))
 
     if pair_ids_in_candles:
