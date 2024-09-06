@@ -38,8 +38,7 @@ from [Trading Strategy Protocol](https://tradingstrategy.ai/).
 
 # Getting started 
 
-See [the Getting Started tutorial](https://tradingstrategy.ai/docs/programming/code-examples/getting-started.html) and the rest of the [Trading Strategy documentation](https://tradingstrategy.ai/docs/).
-The easiest way to get started is ready [Dev Container for Visual Studio Code](https://tradingstrategy.ai/docs/programming/setting-up-development-environment/dev-container/visual-studio-code-docker-dev-container-for-jupyter-notebooks.html).
+See [the Getting Started repository](https://github.com/tradingstrategy-ai/getting-started) and the rest of the [Trading Strategy documentation](https://tradingstrategy.ai/docs/).
 
 # Prerequisites
 
