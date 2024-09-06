@@ -7,6 +7,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.exchange import ExchangeType, ExchangeNotFoundError
 from tradingstrategy.pair import PandasPairUniverse, resolve_pairs_based_on_ticker, PairNotFoundError, DEXPair, generate_address_columns, TokenNotFound, MultipleTokensWithSymbol
+from tradingstrategy.utils.token_filter import filter_pairs_default
 
 
 @pytest.fixture
@@ -440,4 +441,12 @@ def test_create_two_pair_universe_with_fee(persistent_test_client: Client):
         )
     assert pair_universe.get_count() == 2
 
+
+def test_pair_universe_default_filter(persistent_test_client: Client):
+    """Test default filtering"""
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    filtered_pairs_df = filter_pairs_default(pairs_df)
+    print("All pairs ({len(pairs)}, filtered pairs {len(filtered_pairs_}")
+    assert len(filtered_pairs_df) > 100
 

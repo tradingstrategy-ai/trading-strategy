@@ -6,6 +6,9 @@ from tradingstrategy.client import Client
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, LiquidityDataUnavailable
 from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.utils.forward_fill import forward_fill
+from tradingstrategy.utils.liquidity_filter import build_liquidity_summary
+from tradingstrategy.utils.token_filter import filter_pairs_default
 
 
 def test_grouped_liquidity(persistent_test_client: Client):
@@ -171,3 +174,33 @@ def test_merge_liquidity_samples(persistent_test_client: Client):
 def test_empty_liquididty_universe():
     universe = GroupedLiquidityUniverse.create_empty()
     assert universe.get_sample_count() == 0
+
+
+def test_build_liquidity_summary(persistent_test_client: Client):
+    """See we can put together historical liquidity for backtest filtering.
+
+    - Get liquidity summary for all Uniswap v3 pairs on Etheruem
+    """
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v3")
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    pairs_df = filter_pairs_default(
+        pairs_df,
+        chain_id=ChainId.ethereum,
+        exchanges={exchange},
+        verbose_print=lambda x, y: x,  # Mute
+    )
+
+    liquidity_df = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
+    liquidity_df = liquidity_df.loc[liquidity_df["pair_id"].isin(pairs_df["pair_id"])]  # Filter to our pair set before forward fill
+    liquidity_df = liquidity_df.set_index("timestamp").groupby("pair_id")
+    liquidity_df = forward_fill(liquidity_df, TimeBucket.d7.to_frequency(), columns=("close",))
+    historical_max, today = build_liquidity_summary(liquidity_df, pairs_df["pair_id"])
+    assert len(historical_max) > 100
+    print(historical_max.most_common(10))
+    for pair_id, liquidity_usd in historical_max.most_common(10):
+        assert liquidity_usd > 0, f"Got zero liquidity for pair {pair_id}"

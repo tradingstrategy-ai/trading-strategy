@@ -1,11 +1,14 @@
-# Current
+# 0.23
 
 - Add: `fix_dex_price_data` for wrangling DEX price feeds and separate reusable `wrangle` module
 - Add: `resample_dataframe` utility function. Useful for resampling dataframes with multiple columns that are not candlestick data 
 - Add: `fix_bad_wicks(bad_open_close_threshold)` to massage the data - There are ~60 broken open price data points for U/ni v3 price feeds, cause unknown
 - Add: `filter_for_blacklisted_tokens`
 - Add: `DEXPair.from_series` helper
-- 
+- Add: `filter_pairs_default()` that will remove known bad tokens from the trading pair universe with multiple heurestics rules
+- Add: `build_liquidity_summary()` for creating trading universes based on the available liquidity
+- Internal change: Move trading pair filtering logic to its own module
+
 # 0.22.14
 
 - Fix: Fix for inconcistencies in lending data downloads

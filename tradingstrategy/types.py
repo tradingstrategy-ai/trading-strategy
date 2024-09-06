@@ -52,6 +52,9 @@ BlockNumber: TypeAlias = int
 #: Multiplier as 1/10000 or 0.01%
 BasisPoint: TypeAlias = int
 
+#: Multiplier as 1/10000 or 0.01%
+IntBasisPoint: TypeAlias = BasisPoint
+
 #: Chain id that is not a wrapped enum.
 #:
 #: See :py:class:`tradingstategy.chain.ChainId` for details
