@@ -192,6 +192,7 @@ def test_build_liquidity_summary(persistent_test_client: Client):
         pairs_df,
         chain_id=ChainId.ethereum,
         exchanges={exchange},
+        verbose_print=lambda x, y: x,  # Mute
     )
 
     liquidity_df = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()

@@ -375,9 +375,9 @@ def filter_for_rebases(pairs: pd.DataFrame, rebase=False) -> pd.DataFrame:
 
     def row_filter(row):
         if rebase:
-            return is_derivative(row["token0_symbol"]) or is_derivative(row["token1_symbol"])
+            return is_derivative(row["token0_symbol"]) or is_rebase(row["token1_symbol"])
         else:
-            return (not is_derivative(row["token0_symbol"])) and (not is_derivative(row["token1_symbol"]))
+            return (not is_derivative(row["token0_symbol"])) and (not is_rebase(row["token1_symbol"]))
 
     df =  pairs[pairs.apply(row_filter, axis=1)]
     return df
@@ -435,6 +435,17 @@ def filter_for_exchanges(pairs: pd.DataFrame, exchanges: Collection[Exchange]) -
     return our_pairs
 
 
+def filter_for_exchange_ids(pairs: pd.DataFrame, exchange_ids: Collection[PrimaryKey]) -> pd.DataFrame:
+    """Filter dataset so that it only contains data for the trading pairs from a certain exchange.
+
+    Use primary keys for filtering.
+    """
+    our_pairs: pd.DataFrame = pairs.loc[
+        (pairs['exchange_id'].isin(exchange_ids))
+    ]
+    return our_pairs
+
+
 def filter_for_trading_fee(pairs: pd.DataFrame, fee: Percent) -> pd.DataFrame:
     """Select only pairs with a specific trading fee.
 
@@ -463,6 +474,7 @@ def filter_pairs_default(
     blacklisted_token_symbols: Collection[TokenSymbol] | None = None,
     good_quote_tokes: Collection[TokenSymbol] = DEFAULT_GOOD_QUOTE_TOKENS,
     exchanges: Collection[Exchange] | None = None,
+    exchange_ids: Collection[PrimaryKey] | None = None,
     pair_ids_in_candles: Collection[PrimaryKey] | pd.Series | None = None,
     chain_id: ChainId | None = None,
 ) -> pd.DataFrame:
@@ -476,7 +488,7 @@ def filter_pairs_default(
 
     - Derivate pairs (stETH/ETH) - :py:func:`filter_for_derivatives`
 
-    - Rebasing tokens
+    - Rebasing tokens (OHM, Klima)
 
     :param max_trading_pair_fee_bps:
         Limit to pairs with less pool fee than this
@@ -490,8 +502,15 @@ def filter_pairs_default(
     :param blacklisted_token_symbols:
         Avoid these base tokens for some reason or another
 
-    :param exchange_slugs:
-        Limit trading pairs to these dexes
+    :param exchanges:
+        Limit trading pairs to these dexes.
+
+        Use Exchange objects.
+
+    :param exchange_ids:
+        Limit trading pairs to these dexes.
+
+        Use Exchange primary keys.
 
     :param pair_ids_in_candles:
         Filter based on loaded candle data.
@@ -527,6 +546,10 @@ def filter_pairs_default(
 
     if exchanges:
         tradeable_pairs_df = filter_for_exchanges(tradeable_pairs_df, exchanges)
+        verbose_print("Pairs matching exchange", len(tradeable_pairs_df))
+
+    if exchange_ids:
+        tradeable_pairs_df = filter_for_exchange_ids(tradeable_pairs_df, exchange_ids)
         verbose_print("Pairs matching exchange", len(tradeable_pairs_df))
 
     tradeable_pairs_df = filter_for_stablecoins(tradeable_pairs_df, StablecoinFilteringMode.only_volatile_pairs)
@@ -572,5 +595,5 @@ def is_rebase(token_symbol: TokenSymbol) -> bool:
         True if token symbol matches a common known derivative token symbol pattern
     """
     assert isinstance(token_symbol, str), f"We got {token_symbol}"
-    return token_symbol in REBASE_TOKENS
+    return token_symbol.upper() in REBASE_TOKENS
 
