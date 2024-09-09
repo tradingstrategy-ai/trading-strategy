@@ -5,22 +5,16 @@
 - See :py:func:`aggregate_ohlcv` for usage
 
 """
-import functools
+
 from collections import defaultdict
 from dataclasses import dataclass
-from functools import lru_cache
 from typing import TypeAlias
 
-import ipdb
 import pandas as pd
 import numpy as np
 from pandas.core.groupby import DataFrameGroupBy
-from pandas.core.interchange.dataframe_protocol import DataFrame
 
 from tradingstrategy.pair import DEXPair, PandasPairUniverse
-
-#: (chain id)-(base token symbol)-(quote token symbol)-(base token address)-(quote token address)
-AggregateId: TypeAlias = str
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,11 +71,7 @@ def build_aggregate_map(
     return aggregates, reverse_aggregates
 
 
-def build_aggregation_source_dataframe_for_asset(price_df: DataFrameGroupBy, pair_ids: set[int]) -> pd.DataFrame:
-    """Get all trading pairs to a single dataframe with a single index."""
-
-
-def calculate_volume_weighted_ohlc(df: pd.DataFrame) -> pd.DataFrame:
+def calculate_volume_weighted_ohlcv(df: pd.DataFrame) -> pd.DataFrame:
     """Calculate volume weighted average prices (vwap) on OHLCV.
 
     - Assume input has multiple entries for each timestamp (index) separated by column "pair_id"
@@ -104,7 +94,10 @@ def calculate_volume_weighted_ohlc(df: pd.DataFrame) -> pd.DataFrame:
 
 
     :param df:
-        Must have MultiIndex (pair, timestamp)
+        Must have columns pair_id, timestamp, open, high, low, close, volume and optionally liquidity
+
+    :return:
+        Aggregated open, high, low, close, volume, liquidity
     """
 
     assert isinstance(df.index, pd.DatetimeIndex)
@@ -127,7 +120,8 @@ def calculate_volume_weighted_ohlc(df: pd.DataFrame) -> pd.DataFrame:
     result_df["low"] = grouped_2["low_weighted"].sum()
     result_df["close"] = grouped_2["close_weighted"].sum()
     result_df["volume"] = grouped_2["volume"].sum()
-    result_df["liquidity"] = grouped_2["liquidity"].sum()
+    if "liquidity" in df.columns:
+        result_df["liquidity"] = grouped_2["liquidity"].sum()
     return result_df
 
 
@@ -144,7 +138,51 @@ def aggregate_ohlcv_across_pairs(
 
     - Currently supports same-chain pairs only
 
-    :param pairs_df:
+    Example:
+
+    .. code-block:: python
+
+        from tradingstrategy.utils.aggregate_ohlcv import aggregate_ohlcv_across_pairs
+
+        client = persistent_test_client
+        exchange_universe = client.fetch_exchange_universe()
+        pairs_df = client.fetch_pair_universe().to_pandas()
+
+        # Create filtered exchange and pair data
+        exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v3")
+
+        pair_universe = PandasPairUniverse.create_pair_universe(
+                pairs_df,
+                [
+                    (exchange.chain_id, exchange.exchange_slug, "WETH", "USDC", 0.0005),
+                    (exchange.chain_id, exchange.exchange_slug, "WETH", "USDC", 0.0030),
+                    (exchange.chain_id, exchange.exchange_slug, "WETH", "USDC", 0.0100)
+                ],
+            )
+        pair_ids = {p.pair_id for p in pair_universe.iterate_pairs()}
+        candles_df = client.fetch_candles_by_pair_ids(
+            pair_ids,
+            TimeBucket.d7,
+            start_time=datetime.datetime(2024, 1, 1),
+            end_time=datetime.datetime(2024, 3, 1)
+        )
+        candles_df = candles_df.groupby("pair_id")
+        candles_df = forward_fill(candles_df, "W")
+
+        # fetch_all_liquidity_samples() unnecessary heavy here
+        # TODO: Change to dynamic fetch method in the future
+        liquidity_df = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
+        liquidity_df = liquidity_df.loc[liquidity_df["pair_id"].isin(pair_ids)]
+        liquidity_df = liquidity_df.set_index("timestamp").groupby("pair_id")
+        liquidity_df = forward_fill(liquidity_df, "W", columns=("close",))  # Only close liquidity column needd
+
+        aggregated_df = aggregate_ohlcv_across_pairs(
+            pair_universe,
+            candles_df,
+            liquidity_df["close"],
+        )
+
+    :param pair_universe:
         Pair metadata
 
     :param price_df:
@@ -210,7 +248,7 @@ def aggregate_ohlcv_across_pairs(
             selected_rows["liquidity"] = liquidity_rows
 
         selected_rows = selected_rows.set_index("timestamp")
-        aggregated_rows = calculate_volume_weighted_ohlc(selected_rows)
+        aggregated_rows = calculate_volume_weighted_ohlcv(selected_rows)
         aggregated_rows["aggregate_id"] = str(agg_id)
         aggregated_rows["base"] = agg_id.base_token_symbol
         aggregated_rows["quote"] = agg_id.quote_token_symbol

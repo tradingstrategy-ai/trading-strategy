@@ -3,12 +3,11 @@ import datetime
 
 import pandas as pd
 import pytest
-from pandas.core.groupby import DataFrameGroupBy
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.utils.aggregate_ohlcv import calculate_volume_weighted_ohlc, aggregate_ohlcv_across_pairs
+from tradingstrategy.utils.aggregate_ohlcv import calculate_volume_weighted_ohlcv, aggregate_ohlcv_across_pairs
 from tradingstrategy.utils.forward_fill import forward_fill
 
 # pair_id, timestamp, open, high, low, close, liquidity
@@ -31,7 +30,7 @@ def pair_timestamp_df() -> pd.DataFrame:
 
 
 def test_calculate_volume_weighted_ohlc(pair_timestamp_df: pd.DataFrame):
-    aggregate_ohlcvl = calculate_volume_weighted_ohlc(pair_timestamp_df)
+    aggregate_ohlcvl = calculate_volume_weighted_ohlcv(pair_timestamp_df)
 
     #                   open        high         low       close  volume  liquidity
     # timestamp
