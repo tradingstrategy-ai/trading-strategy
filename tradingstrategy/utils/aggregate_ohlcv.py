@@ -33,7 +33,7 @@ class AggregateId:
     quote_token_address: str
 
     def __repr__(self):
-        return f"{self.chain_id.value}-{self.base_token_symbol}-{self.quote_token_symbol}-{self.base_token_address}-{self.quote_token_address}"
+        return f"{self.chain_id}-{self.base_token_symbol}-{self.quote_token_symbol}-{self.base_token_address}-{self.quote_token_address}"
 
 
 #: trading pair -> underlying  aggregated pair ids map
@@ -70,10 +70,10 @@ def build_aggregate_map(
     aggregates: dict[AggregateId, set[int]]
     aggregates = defaultdict(set)
     reverse_aggregates: ReverseAggregateMap = {}
-    for pair_id, pair in pair_universe.iterate_pairs():
+    for pair in pair_universe.iterate_pairs():
         agg_id = make_aggregate_id(pair)
         aggregates[agg_id].add(pair.pair_id)
-        reverse_aggregates[pair_id] = agg_id
+        reverse_aggregates[pair.pair_id] = agg_id
     return aggregates, reverse_aggregates
 
 
@@ -131,10 +131,10 @@ def calculate_volume_weighted_ohlc(df: pd.DataFrame) -> pd.DataFrame:
     return result_df
 
 
-def aggregate_ohlcv(
+def aggregate_ohlcv_across_pairs(
     pair_universe: PandasPairUniverse,
-    price_df: DataFrameGroupBy,
-    liquidity_df: pd.DataFrame | None = None,
+    price_df: pd.DataFrame,
+    liquidity_df: DataFrameGroupBy | None = None,
 ) -> pd.DataFrame:
     """Builds an aggregates dataframe for trading data.
 
@@ -162,7 +162,9 @@ def aggregate_ohlcv(
     :return:
         DataFrame with following colmuns
 
-        - base_token_symbol
+        - aggregate_id
+        - base
+        - quote
         - open
         - low
         - high
@@ -175,15 +177,49 @@ def aggregate_ohlcv(
     """
 
     assert isinstance(pair_universe, PandasPairUniverse)
-    assert isinstance(price_df, DataFrameGroupBy)
+    # assert isinstance(price_df, pd.DataFrame)
 
     aggregates, reverse_aggregates =  build_aggregate_map(
         pair_universe,
     )
 
-    # Aggregate each trading pair individually
+    assert "timestamp" in price_df.obj.columns  # TODO: Generate from index if not present as a column
+    price_indexed_pair_df = price_df.obj.droplevel("timestamp")
+
+    price_df_raw = price_df.obj
+    if liquidity_df is not None:
+        liquidity_df_raw = liquidity_df.obj
+    else:
+        liquidity_df_raw = None
+
+    # result_df = pd.DataFrame()
+    chunks = []
+
+    # Aggregate each asset by its underlying trading pairs
     for agg_id, pair_ids in aggregates.items():
-        df = build_aggregation_source_dataframe_for_asset(price_df, pair_ids)
+        # Select all candle data where trading pair belongs to this aggregate
+        selected_rows = price_df_raw.loc[price_df_raw.index.get_level_values(0).isin(pair_ids)]
+        selected_rows["pair_id"] = selected_rows.index.get_level_values(0)
 
+        if liquidity_df_raw is not None:
+            # pair_id  timestamp
+            # 2697585  2023-07-02    2.654539e+07
+            #          2023-07-09    1.086443e+07
 
-    raise NotImplementedError()
+            liquidity_rows = liquidity_df_raw.loc[liquidity_df_raw.index.get_level_values(0).isin(pair_ids)]
+            selected_rows["liquidity"] = liquidity_rows
+
+        selected_rows = selected_rows.set_index("timestamp")
+        aggregated_rows = calculate_volume_weighted_ohlc(selected_rows)
+        aggregated_rows["aggregate_id"] = str(agg_id)
+        aggregated_rows["base"] = agg_id.base_token_symbol
+        aggregated_rows["quote"] = agg_id.quote_token_symbol
+
+        # https://stackoverflow.com/a/71977912/315168
+        q = np.array([1,], dtype=object)   # dummy array, note the dtype
+        q[0] = list(pair_ids)                      # squeeze the list into single cell
+        aggregated_rows["pair_ids"] = np.tile(q, aggregated_rows.shape[0])  # tile and assign
+
+        chunks.append(aggregated_rows)
+
+    return pd.concat(chunks)
