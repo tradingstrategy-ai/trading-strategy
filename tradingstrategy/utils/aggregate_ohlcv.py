@@ -259,10 +259,7 @@ def aggregate_ohlcv_across_pairs(
         aggregated_rows["aggregate_id"] = str(agg_id)
         aggregated_rows["base"] = agg_id.base_token_symbol
         aggregated_rows["quote"] = agg_id.quote_token_symbol
-        
-        # if agg_id.base_token_symbol == "UMA":
-        # import ipdb ; ipdb.set_trace()
-
+    
         # https://stackoverflow.com/a/71977912/315168
         q = np.array([1,], dtype=object)   # dummy array, note the dtype
         q[0] = list(pair_ids)                      # squeeze the list into single cell
@@ -270,5 +267,4 @@ def aggregate_ohlcv_across_pairs(
 
         chunks.append(aggregated_rows)
 
-    # import ipdb ; ipdb.set_trace()
     return pd.concat(chunks)
