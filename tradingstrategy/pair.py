@@ -813,6 +813,18 @@ class PandasPairUniverse:
             if token_b not in already_iterated:
                 yield token_b
                 already_iterated.add(token_b)
+                
+    def limit_to_pairs(self, pair_ids: Collection[PrimaryKey]) -> "PandasPairUniverse":
+        """Create a reduced pair universe with 
+        
+        :param pair_ids:
+            Only leave these pairs.
+            
+        :return:
+            New pair universe only with selected pairs
+        """
+        limited_df = self.df.loc[list(pair_ids)]
+        return PandasPairUniverse(limited_df, exchange_universe=self.exchange_universe)
 
     def build_index(self):
         """Create pair_id -> data mapping.

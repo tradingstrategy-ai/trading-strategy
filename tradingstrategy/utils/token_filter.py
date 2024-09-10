@@ -40,7 +40,7 @@ DEFAULT_GOOD_EXCHANGES = ("uniswap-v2", "uniswap-v3", "trader-joe", "sushi", "pa
 
 #: Tokens that are somehow wrapped/liquid staking/etc. and derive value from some other underlying token
 #:
-DERIVATIVE_TOKEN_PREFIXES = ["wst", "os", "3Crv", "gOHM", "st", "bl"]
+DERIVATIVE_TOKEN_PREFIXES = ["wst", "os", "3Crv", "gOHM", "st", "bl", "ETH2x"]
 
 
 #: Tokens that are known to rebase

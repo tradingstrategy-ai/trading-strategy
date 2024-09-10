@@ -20,7 +20,7 @@ import numpy as np
 
 from .time import naive_utcnow
 from .forward_fill import forward_fill as _forward_fill
-
+from ..pair import PandasPairUniverse
 
 logger = logging.getLogger(__name__)
 
@@ -275,4 +275,42 @@ def fix_dex_price_data(
         return df
     else:
         return raw_df
+
+
+def examine_anomalies(
+    pair_universe: PandasPairUniverse | None,
+    price_df: pd.DataFrame,
+    printer=lambda x: print(x),
+    max_print=5,
+    pair_id_column="pair_id",
+    open_close_max_diff=0.99,
+):
+    """Check the price dataframe for data issues.
+
+    - Print out to consoles bad rows in the OHLCV candle price data
+
+    TODO: This is a work in progress helper.
+    """
+
+    issues_found = False
+
+    # Find zero prices
+    zero_prices = price_df.loc[price_df["open"] <= 0]
+    zero_prices = zero_prices.drop_duplicates(subset=pair_id_column, keep='first')
+
+    for zero_price_entry in zero_prices.iloc[0:max_print].iterrows():
+        printer(f"Found zero price entry {zero_price_entry}")
+        issues_found = True
+
+    open_close_mask = (((price_df["close"] - price_df["open"]) / price_df["open"]).abs() >= open_close_max_diff)
+    open_close_gap = price_df.loc[open_close_mask]
+    for open_close_entry in open_close_gap.iloc[0:max_print].iterrows():
+        diff = open_close_entry["close"] / open_close_entry["open"]
+        printer(f"Found open/close diff {diff} at\n{open_close_entry}")
+        issues_found = True
+
+    if not issues_found:
+        printer(f"No data issues found, {len(price_df)} rows analysed")
+
+    return issues_found
 

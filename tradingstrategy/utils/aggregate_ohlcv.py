@@ -106,8 +106,14 @@ def calculate_volume_weighted_ohlcv(df: pd.DataFrame) -> pd.DataFrame:
 
     # Calculate 0..1 weight for each (pair_id, timestamp) combo
     df["total_volume_in_timestamp"] = timestamp_agg.agg("volume").sum()
-    df["weight"] = df["volume"] / df["total_volume_in_timestamp"]
-
+    
+    # Some days may see zero trading volume 
+    # esp. if the blockchain was halted.
+    # In this case we do equal weight    
+    # TODO: Need to have smarter logic here for multipair scenarios
+    placeholder_volume = 1.0
+    df["weight"] = df["volume"].replace(0, placeholder_volume) / df["total_volume_in_timestamp"].replace(0, placeholder_volume)
+    
     result_df = pd.DataFrame()
     df["open_weighted"] = (df["open"] * df["weight"])
     df["high_weighted"] = (df["high"] * df["weight"])
@@ -237,6 +243,7 @@ def aggregate_ohlcv_across_pairs(
     for agg_id, pair_ids in aggregates.items():
         # Select all candle data where trading pair belongs to this aggregate
         selected_rows = price_df_raw.loc[price_df_raw.index.get_level_values(0).isin(pair_ids)]
+        selected_rows = selected_rows.copy()  # Need to add to these DF
         selected_rows["pair_id"] = selected_rows.index.get_level_values(0)
 
         if liquidity_df_raw is not None:
@@ -252,6 +259,9 @@ def aggregate_ohlcv_across_pairs(
         aggregated_rows["aggregate_id"] = str(agg_id)
         aggregated_rows["base"] = agg_id.base_token_symbol
         aggregated_rows["quote"] = agg_id.quote_token_symbol
+        
+        # if agg_id.base_token_symbol == "UMA":
+        # import ipdb ; ipdb.set_trace()
 
         # https://stackoverflow.com/a/71977912/315168
         q = np.array([1,], dtype=object)   # dummy array, note the dtype
@@ -260,4 +270,5 @@ def aggregate_ohlcv_across_pairs(
 
         chunks.append(aggregated_rows)
 
+    # import ipdb ; ipdb.set_trace()
     return pd.concat(chunks)
