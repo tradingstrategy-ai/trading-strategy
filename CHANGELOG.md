@@ -1,3 +1,7 @@
+# Current
+
+- Add `aggregate_ohlcv_across_pairs`: Aggregate volumen-weighted open/high/low/close/volume/liquidity across multiple trading pairs to create unified view of volume and liquidity for a single base token
+
 # 0.23
 
 - Add: `fix_dex_price_data` for wrangling DEX price feeds and separate reusable `wrangle` module

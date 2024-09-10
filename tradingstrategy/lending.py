@@ -797,7 +797,7 @@ class LendingCandleUniverse:
 
     Example:
 
-    .. code-block:: python
+    .. code-block: python
 
         universe = client.fetch_lending_reserve_universe()
 

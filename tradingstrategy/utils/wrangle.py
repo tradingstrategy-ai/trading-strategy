@@ -12,6 +12,7 @@
 """
 import logging
 import datetime
+from itertools import islice
 
 import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
@@ -19,7 +20,7 @@ import numpy as np
 
 from .time import naive_utcnow
 from .forward_fill import forward_fill as _forward_fill
-
+from ..pair import PandasPairUniverse
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +257,7 @@ def fix_dex_price_data(
         raw_df = df
 
     if fix_wick_threshold or bad_open_close_threshold:
+        logger.info("Fixing bad wicks")
         raw_df = fix_bad_wicks(
             raw_df,
             fix_wick_threshold,
@@ -263,12 +265,73 @@ def fix_dex_price_data(
         )
 
     if remove_candles_with_zero:
+        logger.info("Fixing zero volume candles")
         raw_df = remove_zero_candles(raw_df)
 
     if forward_fill:
+        logger.info("Forward filling price data")
         assert freq, "freq argument must be given if forward_fill=True"
         df = _forward_fill(df, freq)
         return df
     else:
         return raw_df
+
+
+def examine_anomalies(
+    pair_universe: PandasPairUniverse | None,
+    price_df: pd.DataFrame,
+    printer=lambda x: print(x),
+    max_print=2,
+    pair_id_column: str | None="pair_id",
+    open_close_max_diff=5.00,
+    open_close_min_diff=-0.99,
+):
+    """Check the price dataframe for data issues.
+
+    - Print out to consoles bad rows in the OHLCV candle price data
+
+    TODO: This is a work in progress helper.
+
+    :param open_close_max_diff:
+        Abnormal price increase X
+
+    :param open_close_min_diff:
+        Abnormal price decrease X
+    """
+
+    issues_found = False
+
+    # Find zero prices
+    zero_prices = price_df.loc[price_df["open"] <= 0]
+
+    if pair_id_column:
+        zero_prices = zero_prices.drop_duplicates(subset=pair_id_column, keep='first')
+
+    if len(zero_prices) > 0:
+        printer(f"Total {len(zero_prices)} rows with zero price entry gap")
+
+    for zero_price_entry in zero_prices.iloc[0:max_print].iterrows():
+        printer(f"Found zero price entry {zero_price_entry}")
+        issues_found = True
+
+    # Find abnormal price jumps within intraday
+    open_close_mask = ((price_df["close"] - price_df["open"]) / price_df["open"]) >= open_close_max_diff
+    open_close_mask = open_close_mask | (((price_df["close"] - price_df["open"]) / price_df["open"]) <= open_close_min_diff)
+
+    open_close_gap = price_df.loc[open_close_mask]
+
+    if len(open_close_gap) > 0:
+        printer(f"Total {len(open_close_gap)} rows with open/close price gap")
+
+    if pair_id_column:
+        open_close_gap = open_close_gap.drop_duplicates(subset=pair_id_column, keep='first')
+    for idx, open_close_entry in open_close_gap.iloc[0:max_print].iterrows():
+        diff = (open_close_entry["close"] - open_close_entry["open"]) / open_close_entry["open"]
+        printer(f"Found abnormal open/close price diff {diff} at\n{open_close_entry}")
+        issues_found = True
+
+    if not issues_found:
+        printer(f"No data issues found, {len(price_df)} rows analysed")
+
+    return issues_found
 

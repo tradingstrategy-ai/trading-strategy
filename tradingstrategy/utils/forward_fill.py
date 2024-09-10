@@ -184,7 +184,7 @@ def forward_fill(
                             # timestamp index
                             df["timestamp"] = df.index
                     else:
-                        raise NotImplementedError()
+                        raise NotImplementedError(f"Unknown column: {column} - forward_fill() does not know how to handle")
 
     if columns:
         # Unprocessable columns left
