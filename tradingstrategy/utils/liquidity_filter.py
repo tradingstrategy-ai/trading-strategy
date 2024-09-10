@@ -6,11 +6,12 @@
 
 """
 from collections import Counter
-from typing import Collection
+from typing import Collection, Iterable, Tuple
 
 import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
+from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.types import USDollarAmount, PrimaryKey
 from tradingstrategy.utils.time import floor_pandas_week
 
@@ -208,3 +209,34 @@ def build_liquidity_summary(
         pair_liquidity_max_historical[pair_id] = get_somewhat_realistic_max_liquidity(liquidity_df, pair_id)
         pair_liquidity_today[pair_id] = get_liquidity_today(liquidity_df, pair_id, delay=delay)
     return pair_liquidity_max_historical, pair_liquidity_today
+
+
+def get_top_liquidity_pairs_by_base_token(
+    pair_universe: PandasPairUniverse,
+    pair_liquidity_map: Counter,
+    good_base_tokens: list[str],
+    count: int,
+) -> Iterable[Tuple[PrimaryKey, USDollarAmount]]:
+    """Get the top liquidity for pairs.
+
+    :param good_base_token:
+        Process pairs in the order of this list, one base token add a time.
+    """
+
+    # Then get all pairs with this base token
+    result_set = []
+
+    assert len(good_base_tokens) > 0
+    assert good_base_tokens[0].startswith("0x")
+
+    #
+    for base_token_address in good_base_tokens:
+        for pair_id,  liquidity in pair_liquidity_map.items():
+            pair_metadata = pair_universe.get_pair_by_id(pair_id)
+            if pair_metadata.base_token_address == base_token_address:
+                result_set.append((pair_id, liquidity))
+
+        if len(result_set) >= count:
+            break
+
+    return result_set

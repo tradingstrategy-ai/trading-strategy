@@ -12,6 +12,7 @@
 """
 import logging
 import datetime
+from itertools import islice
 
 import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
@@ -256,6 +257,7 @@ def fix_dex_price_data(
         raw_df = df
 
     if fix_wick_threshold or bad_open_close_threshold:
+        logger.info("Fixing bad wicks")
         raw_df = fix_bad_wicks(
             raw_df,
             fix_wick_threshold,
@@ -263,9 +265,11 @@ def fix_dex_price_data(
         )
 
     if remove_candles_with_zero:
+        logger.info("Fixing zero volume candles")
         raw_df = remove_zero_candles(raw_df)
 
     if forward_fill:
+        logger.info("Forward filling price data")
         assert freq, "freq argument must be given if forward_fill=True"
         df = _forward_fill(df, freq)
         return df
