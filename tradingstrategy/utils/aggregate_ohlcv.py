@@ -22,12 +22,10 @@ class AggregateId:
 
     chain_id: int
     base_token_symbol: str
-    quote_token_symbol: str
     base_token_address: str
-    quote_token_address: str
 
     def __repr__(self):
-        return f"{self.chain_id}-{self.base_token_symbol}-{self.quote_token_symbol}-{self.base_token_address}-{self.quote_token_address}"
+        return f"{self.chain_id}-{self.base_token_symbol}-{self.base_token_address}"
 
 
 #: trading pair -> underlying  aggregated pair ids map
@@ -42,14 +40,12 @@ def make_aggregate_id(pair: DEXPair) -> AggregateId:
     - Add both human readable symbols and addresses to a string slug
 
     :return:
-        (chain id)-(base token symbol)-(quote token symbol)-(base token address)-(quote token address)
+        (chain id)-(base token symbol)-(base token address)
     """
     return AggregateId(
         pair.chain_id.value,
         pair.base_token_symbol,
-        pair.quote_token_symbol,
         pair.base_token_address,
-        pair.quote_token_address
     )
 
 
@@ -258,8 +254,7 @@ def aggregate_ohlcv_across_pairs(
         aggregated_rows = calculate_volume_weighted_ohlcv(selected_rows)
         aggregated_rows["aggregate_id"] = str(agg_id)
         aggregated_rows["base"] = agg_id.base_token_symbol
-        aggregated_rows["quote"] = agg_id.quote_token_symbol
-    
+
         # https://stackoverflow.com/a/71977912/315168
         q = np.array([1,], dtype=object)   # dummy array, note the dtype
         q[0] = list(pair_ids)                      # squeeze the list into single cell
