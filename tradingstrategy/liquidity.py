@@ -4,15 +4,12 @@ For more information about liquidity in automatic market making pools see :term:
 and :term:`XY liquidity model`.
 """
 
-import datetime
 from dataclasses import dataclass
-from typing import List, Optional, Iterable, Tuple, Dict
+from typing import List, Optional, Tuple, Dict
 
 import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
-from pandas.core.groupby import GroupBy, DataFrameGroupBy
-from pyasn1_modules.rfc3779 import id_pe_ipAddrBlocks
 
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
