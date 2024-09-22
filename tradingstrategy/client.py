@@ -24,7 +24,7 @@ import pandas as pd
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
-from tradingstrategy.types import PrimaryKey
+from tradingstrategy.types import PrimaryKey, AnyTimestamp
 from tradingstrategy.utils.jupyter import is_pyodide
 from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType, LendingCandleResult
 
@@ -269,6 +269,65 @@ class Client(BaseClient):
             start_time,
             end_time,
             max_bytes=max_bytes,
+            progress_bar_description=progress_bar_description,
+        )
+
+    def fetch_tvl_by_pair_ids(self,
+          pair_ids: Collection[PrimaryKey],
+          bucket: TimeBucket,
+          start_time: Optional[AnyTimestamp] = None,
+          end_time: Optional[AnyTimestamp] = None,
+          progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Fetch TVL candles for particular trading pairs.
+
+        This is right API to use if you want data only for a single
+        or few trading pairs. If the number
+        of trading pair is small, this download is much more lightweight
+        than Parquet dataset download.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+        :param time_bucket:
+            Candle time frame
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param max_bytes:
+            Limit the streaming response size
+
+        :param progress_bar_description:
+            Display on download progress bar.
+
+        :return:
+            Candles dataframe
+
+        :raise tradingstrategy.transport.jsonl.JSONLMaxResponseSizeExceeded:
+                If the max_bytes limit is breached
+        """
+
+        assert bucket >= TimeBucket.d1, f"It does not make sense to fetch TVL/liquidity data with higher frequency than a day,got {time_bucket}"
+
+        if isinstance(start_time, pd.Timestamp):
+            start_time = start_time.to_pydatetime()
+
+        if isinstance(end_time, pd.Timestamp):
+            end_time = end_time.to_pydatetime()
+
+        assert len(pair_ids) > 0
+
+        return self.transport.fetch_tvl_by_pair_ids(
+            pair_ids,
+            bucket,
+            start_time,
+            end_time,
             progress_bar_description=progress_bar_description,
         )
 

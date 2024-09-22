@@ -3,8 +3,10 @@
 Types aliases are used to give human-readable meaning for various arguments and return values.
 These are also used to hint :term:`Pyarrow` schemas to make :term:`Parquet` files more compact.
 """
+import datetime
+from typing import TypeAlias, Union
 
-from typing import TypeAlias
+import pandas as pd
 
 #: 64-bit integer based primary key.
 #:
@@ -90,3 +92,11 @@ TokenSymbol: TypeAlias = str
 #: URL as a string type
 #:
 URL: TypeAlias = str
+
+
+#: Take either Pandas timestamp or normal timestamp as argument.
+#:
+#: We don't want to be tied to Pandas, but passing datetime.datetime around
+#: and doing conversions will also slow down the code a bit.
+#:
+AnyTimestamp: TypeAlias = Union[datetime.datetime, pd.Timestamp]

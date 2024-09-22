@@ -1,5 +1,8 @@
+
+import datetime
 import pandas as pd
 import pytest
+
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
@@ -204,3 +207,34 @@ def test_build_liquidity_summary(persistent_test_client: Client):
     print(historical_max.most_common(10))
     for pair_id, liquidity_usd in historical_max.most_common(10):
         assert liquidity_usd > 0, f"Got zero liquidity for pair {pair_id}"
+
+
+def test_load_tvl_one_pair(persistent_test_client: Client):
+    """Load TVL data for a single pair."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    pair_universe = PandasPairUniverse(
+        pairs_df,
+        exchange_universe=exchange_universe,
+    )
+
+    pair = pair_universe.get_pair_by_human_description(
+        (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005)
+    )
+
+    start = datetime.datetime(2024, 1, 1)
+    end = datetime.datetime(2024, 2, 1)
+
+    liquidity_df = client.fetch_tvl_by_pair_ids(
+        [pair.pair_id],
+        TimeBucket.d1,
+        start_time=start,
+        end_time=end,
+    )
+
+    assert len(liquidity_df) == 32
+

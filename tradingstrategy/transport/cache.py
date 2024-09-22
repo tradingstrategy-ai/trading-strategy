@@ -561,7 +561,7 @@ class CachedHTTPTransport:
 
     def fetch_candles_by_pair_ids(
             self,
-            pair_ids: Set[id],
+            pair_ids: Collection[PrimaryKey],
             time_bucket: TimeBucket,
             start_time: Optional[datetime.datetime] = None,
             end_time: Optional[datetime.datetime] = None,
@@ -630,6 +630,69 @@ class CachedHTTPTransport:
 
             size = pathlib.Path(path).stat().st_size
             logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+            return df
+
+    def fetch_tvl_by_pair_ids(
+        self,
+        pair_ids: Collection[PrimaryKey],
+        time_bucket: TimeBucket,
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+        progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Load particular set of the TVL candles and cache the result.
+
+        For the candles format see :py:mod:`tradingstrategy.liquidity`.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+        :param time_bucket:
+            Candle time frame
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param max_bytes:
+            Limit the streaming response size
+
+        :param progress_bar_description:
+            Display on downlood progress bar
+
+        :return:
+            Candles dataframe
+        """
+        cache_fname = self._generate_cache_name(
+            pair_ids, time_bucket, start_time, end_time,
+            candle_type="tvl",
+        )
+
+        full_fname = self.get_cached_file_path(cache_fname)
+
+        with wait_other_writers(full_fname):
+
+            cached = self.get_cached_item(cache_fname)
+
+            if cached:
+                logger.debug("Using cached Parquet data file %s", full_fname)
+                return pandas.read_parquet(cached)
+
+            raise NotImplementedError()
+
+            # Update cache
+            path = self.get_cached_file_path(cache_fname)
+            df.to_parquet(path)
+
+            size = pathlib.Path(path).stat().st_size
+            logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+            df.attrs["cached"] = cached
 
             return df
 
