@@ -752,6 +752,35 @@ class PairGroupedUniverse:
         # Clear candle cache
         self.clear_cache()
 
+    @classmethod
+    def create_from_single_pair_dataframe(
+            cls,
+            df: pd.DataFrame,
+            bucket: TimeBucket | None = None,
+    ) -> "PairGroupedUniverse":
+        """Construct universe based on a single trading pair data.
+
+        Useful for synthetic data/testing.
+        """
+        assert "pair_id" in df.columns, f"Columns lack pair_id: {df.columns}"
+        return cls(df, time_bucket=bucket)
+
+    @classmethod
+    def create_from_multiple_candle_dataframes(
+        cls,
+        dfs: Iterable[pd.DataFrame]
+    ) -> "GroupedCandleUniverse":
+        """Construct universe based on multiple trading pairs.
+
+        Useful for synthetic data/testing.
+
+        :param dfs:
+            List of dataframes/series where each trading pair is as isolated
+            OHLCV data feed.
+        """
+        merged = pd.concat(dfs)
+        return cls(merged)
+
 
 def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs from a certain exchange.

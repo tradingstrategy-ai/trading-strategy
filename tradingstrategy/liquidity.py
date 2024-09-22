@@ -12,6 +12,7 @@ import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
 from pandas.core.groupby import GroupBy, DataFrameGroupBy
+from pyasn1_modules.rfc3779 import id_pe_ipAddrBlocks
 
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey
@@ -204,11 +205,13 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
         except KeyError:
             return None
 
-    def get_liquidity_with_tolerance(self,
-                          pair_id: PrimaryKey,
-                          when: pd.Timestamp,
-                          tolerance: pd.Timedelta,
-                          kind="close") -> Tuple[USDollarAmount, pd.Timedelta]:
+    def get_liquidity_with_tolerance(
+        self,
+        pair_id: PrimaryKey,
+        when: pd.Timestamp,
+        tolerance: pd.Timedelta,
+        kind="close"
+    ) -> Tuple[USDollarAmount, pd.Timedelta]:
         """Get the available liquidity for a trading pair at a specific time point/
 
         The liquidity is defined as one-sided as in :term:`XY liquidity model`.

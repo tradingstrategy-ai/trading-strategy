@@ -652,30 +652,6 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         """
         return GroupedCandleUniverse(df=Candle.to_qstrader_dataframe(), timestamp_column="Date", fix_wick_threshold=None)
 
-    @staticmethod
-    def create_from_single_pair_dataframe(
-            df: pd.DataFrame,
-            bucket: TimeBucket | None = None,
-    ) -> "GroupedCandleUniverse":
-        """Construct universe based on a single trading pair data.
-
-        Useful for synthetic data/testing.
-        """
-        assert "pair_id" in df.columns, f"Columns lack pair_id: {df.columns}"
-        return GroupedCandleUniverse(df, time_bucket=bucket)
-
-    @staticmethod
-    def create_from_multiple_candle_datafarames(dfs: Iterable[pd.DataFrame]) -> "GroupedCandleUniverse":
-        """Construct universe based on multiple trading pairs.
-
-        Useful for synthetic data/testing.
-
-        :param dfs:
-            List of dataframes/series where each trading pair is as isolated
-            OHLCV data feed.
-        """
-        merged = pd.concat(dfs)
-        return GroupedCandleUniverse(merged)
 
 
 class TradingPairDataAvailability(TypedDict):
