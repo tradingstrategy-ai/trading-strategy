@@ -273,18 +273,26 @@ class Client(BaseClient):
         )
 
     def fetch_tvl_by_pair_ids(self,
-          pair_ids: Collection[PrimaryKey],
-          bucket: TimeBucket,
-          start_time: Optional[AnyTimestamp] = None,
-          end_time: Optional[AnyTimestamp] = None,
-          progress_bar_description: Optional[str] = None,
+        pair_ids: Collection[PrimaryKey],
+        bucket: TimeBucket,
+        start_time: Optional[AnyTimestamp] = None,
+        end_time: Optional[AnyTimestamp] = None,
+        progress_bar_description: Optional[str] = None,
     ) -> pd.DataFrame:
-        """Fetch TVL candles for particular trading pairs.
+        """Fetch TVL/liquidity candles for particular trading pairs.
 
         This is right API to use if you want data only for a single
         or few trading pairs. If the number
         of trading pair is small, this download is much more lightweight
         than Parquet dataset download.
+
+        The returned TVL/liquidity data is converted to US dollars by the server.
+
+        .. note ::
+
+            TVL data is an estimation. Malicious tokens are known to manipulate
+            their TVL/liquidity/market depth, and it is not possible
+            to detect and eliminate all manipulations.
 
         Example:
 
@@ -320,7 +328,7 @@ class Client(BaseClient):
             Trading pairs internal ids we query data for.
             Get internal ids from pair dataset.
 
-        :param time_bucket:
+        :param bucket:
             Candle time frame.
 
             Ask `TimeBucker.d1` or higher. TVL data may not be indexed for
@@ -333,20 +341,20 @@ class Client(BaseClient):
         :param end_time:
             All candles before this
 
-        :param max_bytes:
-            Limit the streaming response size
-
         :param progress_bar_description:
-            Display on download progress bar.
+            Display a download progress bar using `tqdm_loggable` if given.
 
         :return:
-            Candles dataframe
+            TVL dataframe.
 
-        :raise tradingstrategy.transport.jsonl.JSONLMaxResponseSizeExceeded:
-                If the max_bytes limit is breached
+            Has columns "open", "high", "low", "close", "pair_id" presenting
+            TVL at the different points of time. The index is `DateTimeIndex`.
+
+            This data is not forward filled.
+
         """
 
-        assert bucket >= TimeBucket.d1, f"It does not make sense to fetch TVL/liquidity data with higher frequency than a day,got {time_bucket}"
+        assert bucket >= TimeBucket.d1, f"It does not make sense to fetch TVL/liquidity data with higher frequency than a day,got {bucket}"
 
         if isinstance(start_time, pd.Timestamp):
             start_time = start_time.to_pydatetime()
