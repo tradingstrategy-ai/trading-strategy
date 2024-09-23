@@ -238,3 +238,76 @@ def test_load_tvl_one_pair(persistent_test_client: Client):
 
     assert len(liquidity_df) == 32
 
+
+def test_load_tvl_one_pair_cache(persistent_test_client: Client):
+    """Load TVL data for a single pair, use cache."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    pair_universe = PandasPairUniverse(
+        pairs_df,
+        exchange_universe=exchange_universe,
+    )
+
+    pair = pair_universe.get_pair_by_human_description(
+        (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005)
+    )
+
+    start = datetime.datetime(2024, 1, 1)
+    end = datetime.datetime(2024, 2, 1)
+
+    _ = client.fetch_tvl_by_pair_ids(
+        [pair.pair_id],
+        TimeBucket.d1,
+        start_time=start,
+        end_time=end,
+    )
+
+    # Should do cached now, but
+    # we really do not check
+    liquidity_df = client.fetch_tvl_by_pair_ids(
+        [pair.pair_id],
+        TimeBucket.d1,
+        start_time=start,
+        end_time=end,
+    )
+
+    assert len(liquidity_df) == 32
+
+
+def test_load_tvl_two_pairs_mixed_exchange(persistent_test_client: Client):
+    """Load TVL data for two pairs using a different DEX rtype."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    pair_universe = PandasPairUniverse(
+        pairs_df,
+        exchange_universe=exchange_universe,
+    )
+
+    pair = pair_universe.get_pair_by_human_description(
+        (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005)
+    )
+
+    pair_2 = pair_universe.get_pair_by_human_description(
+        (ChainId.ethereum, "uniswap-v2", "WETH", "USDC")
+    )
+
+    start = datetime.datetime(2024, 1, 1)
+    end = datetime.datetime(2024, 2, 1)
+
+    liquidity_df = client.fetch_tvl_by_pair_ids(
+        [pair.pair_id, pair_2.pair_id],
+        TimeBucket.d1,
+        start_time=start,
+        end_time=end,
+    )
+
+    assert len(liquidity_df) == 64
+

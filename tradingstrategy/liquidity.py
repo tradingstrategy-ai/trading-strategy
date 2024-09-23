@@ -27,7 +27,12 @@ class LiquidityDataUnavailable(Exception):
 @dataclass_json
 @dataclass
 class XYLiquidity:
-    """Data structure that presents liquidity status in bonding curve pool.
+    """Data structure that presents TVL/liquidity status in a DEX pool.
+
+    .. note ::
+
+        The class name is misleading, as nowadays this class presents
+        both :term:`XY Liquidity` and :term:`TVL` in :term:`CLMM` DEX.
 
     This data structure is for naive x*y=k :term:`AMM` pool.
     Liquidity is not the part of the normal :term:`technical analysis`,
@@ -148,6 +153,47 @@ class XYLiquidity:
         ])
         df = pd.DataFrame(columns=fields.keys())
         return df.astype(fields)
+
+    @classmethod
+    def convert_web_candles_to_dataframe(cls, web_candles: list[dict]) -> pd.DataFrame:
+        """Return Pandas dataframe presenting TVL data fetched from JSON endpoint.
+
+        Convert JSON data to Pandas.
+
+        Uses `/candles` endpoint data format https://tradingstrategy.ai/api/explorer/#/Trading%20pair/web_candles
+        """
+
+        #: Schema definition for :py:class:`pd.DataFrame:
+        #:
+        #: Defines Pandas datatypes for columns in our candle data format.
+        #: Useful e.g. when we are manipulating JSON/hand-written data.
+        #:
+        WEB_DATAFRAME_FIELDS = dict([
+            ("timestamp", "datetime64[s]"),
+            ("open", "float"),
+            ("close", "float"),
+            ("high", "float"),
+            ("low", "float"),
+        ])
+
+        df = pd.DataFrame(web_candles)
+        df = df.rename(columns={
+            "ts": "timestamp",
+            "o": "open",
+            "h": "high",
+            "l": "low",
+            "c": "close",
+        })
+
+        df = df.astype(WEB_DATAFRAME_FIELDS)
+
+        # Convert unix timestamps to Pandas
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+        # Assume candles are always indexed by their timestamp
+        df = df.set_index("timestamp", drop=True)
+
+        return df
 
 
 @dataclass_json
@@ -493,3 +539,7 @@ class ResampledLiquidityUniverse:
             return samples.loc[rounded_ts]["value"]
         except KeyError:
             return 0.0
+
+
+
+
