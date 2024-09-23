@@ -286,12 +286,45 @@ class Client(BaseClient):
         of trading pair is small, this download is much more lightweight
         than Parquet dataset download.
 
+        Example:
+
+        .. code-block:: python
+
+            exchange_universe = client.fetch_exchange_universe()
+            pairs_df = client.fetch_pair_universe().to_pandas()
+
+            pair_universe = PandasPairUniverse(
+                pairs_df,
+                exchange_universe=exchange_universe,
+            )
+
+            pair = pair_universe.get_pair_by_human_description(
+                (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005)
+            )
+
+            pair_2 = pair_universe.get_pair_by_human_description(
+                (ChainId.ethereum, "uniswap-v2", "WETH", "USDC")
+            )
+
+            start = datetime.datetime(2024, 1, 1)
+            end = datetime.datetime(2024, 2, 1)
+
+            liquidity_df = client.fetch_tvl_by_pair_ids(
+                [pair.pair_id, pair_2.pair_id],
+                TimeBucket.d1,
+                start_time=start,
+                end_time=end,
+            )
+
         :param pair_ids:
             Trading pairs internal ids we query data for.
             Get internal ids from pair dataset.
 
         :param time_bucket:
-            Candle time frame
+            Candle time frame.
+
+            Ask `TimeBucker.d1` or higher. TVL data may not be indexed for
+            for lower timeframes.
 
         :param start_time:
             All candles after this.
