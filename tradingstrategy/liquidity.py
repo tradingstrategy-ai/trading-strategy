@@ -190,8 +190,9 @@ class XYLiquidity:
         # Convert unix timestamps to Pandas
         df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-        # Assume candles are always indexed by their timestamp
-        df = df.set_index("timestamp", drop=True)
+        # Set timestamp as the index, but also retain as a column
+        # TODO: In the future use (pair_id, timestamp) MultiIndex for everything
+        df = df.set_index("timestamp", drop=False)
 
         return df
 
@@ -222,26 +223,29 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
     raw liquidity sample.
     """
 
-    def __init__(self,
-                 df: pd.DataFrame,
-                 time_bucket=TimeBucket.d1,
-                 timestamp_column="timestamp",
-                 index_automatically=True):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        time_bucket=TimeBucket.d1,
+        timestamp_column="timestamp",
+        index_automatically=True,
+        forward_fill=False,
+    ):
         super().__init__(
             df,
             time_bucket,
             timestamp_column,
             index_automatically,
-            bad_open_close_threshold=None,
+            bad_open_close_threshold=None,  # Applicable to prices only
+            forward_fill=forward_fill,
         )
-
-        # For fast liquidity lookup
-        self.indexer_cache: Dict[PrimaryKey, int] = {}
 
     def get_liquidity_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
         """Get samples for a single pair.
 
-        If the pair does not exist return `None`.
+        :return:
+
+            If the pair does not exist return `None`.
         """
         try:
             return self.get_samples_by_pair(pair_id)

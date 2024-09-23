@@ -150,17 +150,28 @@ class PairGroupedUniverse:
             
         if remove_candles_with_zero:
             self.df = remove_zero_candles(self.df)
-        
+
+        #: This contains DataFrameGroupBy
+        #: by pair.
+        #: For the original ungrouped data use self.df
         self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
 
         if forward_fill:
-            old_pairs = self.pairs
+            if "volume" in self.df.columns:
+                # Price data data
+                ff_columns = ("open", "high", "low", "close", "volume", "timestamp")
+            else:
+                # Liqudity/TVL data
+                ff_columns = ("open", "high", "low", "close", "timestamp")
+
             self.pairs = _forward_fill(
                 self.pairs,
                 freq=self.time_bucket.to_frequency(),
+                columns=ff_columns,
             )
 
-        self.candles_cache: dict[int, pd.DataFrame] = {}
+        #: Grouped DataFrame cache for faster lookup
+        self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}
 
     def clear_cache(self):
         """Clear candles cached by pair."""

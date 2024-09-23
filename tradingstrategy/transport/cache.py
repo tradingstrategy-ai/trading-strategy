@@ -712,7 +712,7 @@ class CachedHTTPTransport:
                     df = XYLiquidity.convert_web_candles_to_dataframe(array)
                     # Fill in pair id,
                     # because /candles endpoint does not reflect it back
-                    df["pair_id"] = pair_id
+                    df["pair_id"] = int(pair_id)
 
                 # Update cache
                 df.to_parquet(path)
