@@ -5,7 +5,7 @@ and :term:`XY liquidity model`.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, cast
 
 import pandas as pd
 import pyarrow as pa
@@ -323,9 +323,20 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
 
         samples_per_kind = candles_per_pair[kind]
 
+        # The indexes we can have are
+        # - MultiIndex (pair id, timestamp) - if multiple trading pairs present
+        # - DatetimeIndex - if single trading pair present
+
+        if isinstance(candles_per_pair.index, pd.MultiIndex):
+            timestamp_index = cast(pd.DatetimeIndex, candles_per_pair.index.get_level_values(1))
+        elif isinstance(candles_per_pair.index, pd.DatetimeIndex):
+            timestamp_index = candles_per_pair.index
+        else:
+            raise NotImplementedError(f"Does not know how to handle index {candles_per_pair.index}")
+
         # https://pandas.pydata.org/docs/reference/api/pandas.Index.get_indexer.html
         # https://stackoverflow.com/questions/71027193/datetimeindex-get-loc-is-deprecated
-        indexer = candles_per_pair.index.get_indexer([when], method="pad")
+        indexer = timestamp_index.get_indexer([when], method="pad")
 
         if indexer[0] != -1:
             discrete_ts_idx = indexer[0]
@@ -333,7 +344,8 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
             first_sample = candles_per_pair.index[0]
             raise LiquidityDataUnavailable(f"Pair {pair_id} does not have data older data than {first_sample}. Tried to look up {when}.")
 
-        sample_timestamp = candles_per_pair.index[discrete_ts_idx]
+
+        sample_timestamp = timestamp_index[discrete_ts_idx]
 
         latest_value = candles_per_pair.iloc[discrete_ts_idx][kind]
 
