@@ -1,6 +1,7 @@
 # Current
 
-- Add `aggregate_ohlcv_across_pairs`: Aggregate volumen-weighted open/high/low/close/volume/liquidity across multiple trading pairs to create unified view of volume and liquidity for a single base token
+- Add `aggregate_ohlcv_across_pairs()`: Aggregate volumen-weighted open/high/low/close/volume/liquidity across multiple trading pairs to create unified view of volume and liquidity for a single base token
+- Add: `Client.fetch_tvl_by_pair_ids()` to allow TVL/liquidity data loading for selected trading pairs
 
 # 0.23
 

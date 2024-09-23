@@ -25,16 +25,26 @@ from requests.adapters import HTTPAdapter
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
-from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.lending import LendingCandle, LendingCandleType
 from urllib3 import Retry
 
-from tradingstrategy.utils.time import naive_utcfromtimestamp
+from tqdm_loggable.auto import tqdm
+
 
 logger = logging.getLogger(__name__)
+
+
+class OHLCVCandleType(enum.Enum):
+    """Candle types for /candles endpoint
+
+    See /candles as https://tradingstrategy.ai/api/explorer/#/Trading%20pair/web_candles
+    ."""
+    price = "price"
+    tvl = "tvl"
 
 
 class APIError(Exception):
@@ -236,7 +246,7 @@ class CachedHTTPTransport:
 
     def _generate_cache_name(
         self,
-        pair_ids: Set[id],
+        pair_ids: Collection[PrimaryKey],
         time_bucket: TimeBucket,
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
@@ -314,7 +324,9 @@ class CachedHTTPTransport:
 
     def get_json_response(self, api_path, params=None):
         url = f"{self.endpoint}/{api_path}"
+        logger.debug("get_json_response() %s, %s", url, params)
         response = self.requests.get(url, params=params)
+        assert 200 <= response.status_code <= 299
         return response.json()
 
     def post_json_response(self, api_path, params=None):
@@ -450,7 +462,6 @@ class CachedHTTPTransport:
             item, status = self.get_cached_item_with_status(path)
             assert status.is_readable(), f"File not readable after save cached:{cached} fname:{fname} path:{path}"
             return item
-
     
     def fetch_lending_candles_by_reserve_id(
         self,
@@ -560,13 +571,13 @@ class CachedHTTPTransport:
         return reply
 
     def fetch_candles_by_pair_ids(
-            self,
-            pair_ids: Set[id],
-            time_bucket: TimeBucket,
-            start_time: Optional[datetime.datetime] = None,
-            end_time: Optional[datetime.datetime] = None,
-            max_bytes: Optional[int] = None,
-            progress_bar_description: Optional[str] = None,
+        self,
+        pair_ids: Collection[PrimaryKey],
+        time_bucket: TimeBucket,
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+        max_bytes: Optional[int] = None,
+        progress_bar_description: Optional[str] = None,
     ) -> pd.DataFrame:
         """Load particular set of the candles and cache the result.
 
@@ -632,6 +643,167 @@ class CachedHTTPTransport:
             logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
 
             return df
+
+    def _fetch_tvl_by_pair_id(
+        self,
+        pair_id: PrimaryKey,
+        time_bucket: TimeBucket,
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+    ) -> pd.DataFrame:
+        """Internal hack to load TVL data for a single pair.
+
+        - See :py:meth:`fetch_tvl_by_pair_ids` for public API.
+
+        - TODO: Currently there is no JSONL endpoint to get liquidity data streaming.
+          Thus, we do this hack here. Also because of different data format for Uni v2 and Uni v3,
+          the server cannot handle fetching mixed pool types once.
+
+        - This function causes double caching and such.
+
+        - Will be replaced by a proper JSONL streaming in somepoint.
+
+        """
+
+        pair_ids = [pair_id]
+
+        cache_fname = self._generate_cache_name(
+            pair_ids,
+            time_bucket,
+            start_time,
+            end_time,
+            candle_type="tvl",
+        )
+
+        full_fname = self.get_cached_file_path(cache_fname)
+
+        with wait_other_writers(full_fname):
+
+            cached = self.get_cached_item(cache_fname)
+            path = self.get_cached_file_path(cache_fname)
+
+            if cached:
+                # We have a locally cached version
+                logger.debug("Using cached Parquet data file %s", full_fname)
+                df = pandas.read_parquet(cached)
+            else:
+                # Read from the server, store in the disk
+                params = {
+                    "time_bucket": time_bucket.value,
+                    # "pair_ids": ",".join([str(i) for i in pair_ids]),  # OpenAPI comma delimited array
+                    "pair_id": pair_ids[0],
+                }
+
+                if start_time:
+                    params["start"] = start_time.isoformat()
+
+                if end_time:
+                    params["end"] = end_time.isoformat()
+
+                params["candle_type"] = OHLCVCandleType.tvl.value
+
+                # Use /candles endpoint to load TVL data
+                pair_candle_map = self.get_json_response(
+                    "candles",
+                    params=params,
+                )
+
+                for pair_id, array in pair_candle_map.items():
+                    df = XYLiquidity.convert_web_candles_to_dataframe(array)
+                    # Fill in pair id,
+                    # because /candles endpoint does not reflect it back
+                    df["pair_id"] = pair_id
+
+                # Update cache
+                df.to_parquet(path)
+
+            size = pathlib.Path(path).stat().st_size
+            if not cached:
+                logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+            else:
+                logger.debug(f"Read {cache_fname}, disk size is {size:,}b")
+
+            # Expose if this reply was cached or not,
+            # for unit testing
+            df.attrs["cached"] = cached
+            df.attrs["disk_size"] = size
+
+        return df
+
+    def fetch_tvl_by_pair_ids(
+        self,
+        pair_ids: Collection[PrimaryKey],
+        time_bucket: TimeBucket,
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+        progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Load particular set of the TVL candles and cache the result.
+
+        For the candles format see :py:mod:`tradingstrategy.liquidity`.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+            We should be able to handle unlimited pair count,
+            as we do one request per pair.
+
+        :param time_bucket:
+            Candle time frame
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param progress_bar_description:
+            Display on downlood progress bar
+
+        :return:
+            Liquidity dataframe.
+
+            See :py:mod:`tradingstrategy.liquidity`.
+        """
+
+        #
+        # TODO: Currently there is no JSONL
+        # endpoint to get liquidity data streaming.
+        # Thus, we do this hack here.
+        # Also because of different data format for Uni v2 and Uni v3,
+        # the server cannot handle fetching mixed pool types
+        # once.
+        #
+
+        chunks = []
+
+        if progress_bar_description:
+            # The server does not know the reply size,
+            # so we cannot render a progress bar estimation
+            progress_bar = tqdm(desc=progress_bar_description, total=len(pair_ids))
+        else:
+            progress_bar = None
+
+        for pair_id in pair_ids:
+
+            df = self._fetch_tvl_by_pair_id(
+                pair_id,
+                time_bucket,
+                start_time,
+                end_time,
+            )
+
+            chunks.append(df)
+
+            if progress_bar:
+                progress_bar.update()
+
+        if progress_bar:
+            progress_bar.close()
+
+        return pd.concat(chunks)
 
     def fetch_trading_data_availability(self,
           pair_ids: Collection[PrimaryKey],

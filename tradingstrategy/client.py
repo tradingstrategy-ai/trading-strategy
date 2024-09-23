@@ -24,7 +24,7 @@ import pandas as pd
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
-from tradingstrategy.types import PrimaryKey
+from tradingstrategy.types import PrimaryKey, AnyTimestamp
 from tradingstrategy.utils.jupyter import is_pyodide
 from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType, LendingCandleResult
 
@@ -269,6 +269,106 @@ class Client(BaseClient):
             start_time,
             end_time,
             max_bytes=max_bytes,
+            progress_bar_description=progress_bar_description,
+        )
+
+    def fetch_tvl_by_pair_ids(self,
+        pair_ids: Collection[PrimaryKey],
+        bucket: TimeBucket,
+        start_time: Optional[AnyTimestamp] = None,
+        end_time: Optional[AnyTimestamp] = None,
+        progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Fetch TVL/liquidity candles for particular trading pairs.
+
+        This is right API to use if you want data only for a single
+        or few trading pairs. If the number
+        of trading pair is small, this download is much more lightweight
+        than Parquet dataset download.
+
+        The returned TVL/liquidity data is converted to US dollars by the server.
+
+        .. note ::
+
+            TVL data is an estimation. Malicious tokens are known to manipulate
+            their TVL/liquidity/market depth, and it is not possible
+            to detect and eliminate all manipulations.
+
+        Example:
+
+        .. code-block:: python
+
+            exchange_universe = client.fetch_exchange_universe()
+            pairs_df = client.fetch_pair_universe().to_pandas()
+
+            pair_universe = PandasPairUniverse(
+                pairs_df,
+                exchange_universe=exchange_universe,
+            )
+
+            pair = pair_universe.get_pair_by_human_description(
+                (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005)
+            )
+
+            pair_2 = pair_universe.get_pair_by_human_description(
+                (ChainId.ethereum, "uniswap-v2", "WETH", "USDC")
+            )
+
+            start = datetime.datetime(2024, 1, 1)
+            end = datetime.datetime(2024, 2, 1)
+
+            liquidity_df = client.fetch_tvl_by_pair_ids(
+                [pair.pair_id, pair_2.pair_id],
+                TimeBucket.d1,
+                start_time=start,
+                end_time=end,
+            )
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+        :param bucket:
+            Candle time frame.
+
+            Ask `TimeBucker.d1` or higher. TVL data may not be indexed for
+            for lower timeframes.
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param progress_bar_description:
+            Display a download progress bar using `tqdm_loggable` if given.
+
+        :return:
+            TVL dataframe.
+
+            Has columns "open", "high", "low", "close", "pair_id" presenting
+            TVL at the different points of time. The index is `DateTimeIndex`.
+
+            This data is not forward filled.
+
+        """
+
+        assert bucket >= TimeBucket.d1, f"It does not make sense to fetch TVL/liquidity data with higher frequency than a day,got {bucket}"
+
+        if isinstance(start_time, pd.Timestamp):
+            start_time = start_time.to_pydatetime()
+
+        if isinstance(end_time, pd.Timestamp):
+            end_time = end_time.to_pydatetime()
+
+        assert len(pair_ids) > 0
+
+        return self.transport.fetch_tvl_by_pair_ids(
+            pair_ids,
+            bucket,
+            start_time,
+            end_time,
             progress_bar_description=progress_bar_description,
         )
 
