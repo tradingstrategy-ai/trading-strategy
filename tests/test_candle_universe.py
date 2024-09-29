@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 from numpy.ma.core import anomalies
 from pandas import Timestamp
+from pandas.core.groupby import DataFrameGroupBy
 
 from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
 from tradingstrategy.chain import ChainId
@@ -17,7 +18,7 @@ from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles, resample_dataframe, resample_price_series
-from tradingstrategy.utils.wrangle import examine_anomalies, fix_prices_in_between_time_frames, examine_price_between_time_anomalies
+from tradingstrategy.utils.wrangle import examine_anomalies, fix_prices_in_between_time_frames, examine_price_between_time_anomalies, fix_dex_price_data
 
 
 def test_grouped_candles(persistent_test_client: Client):
@@ -753,3 +754,44 @@ def test_fix_prices_in_between_time_frames_broken_data(persistent_test_client: C
 
     assert healed[pd.Timestamp("2023-01-01")] == pytest.approx(3.164259)  # Don't replace first value with NaN
     assert healed[pd.Timestamp("2023-01-02")] == pytest.approx(3.179394)  # Healed value
+
+
+def test_fix_min_max_price(persistent_test_client: Client):
+    """Run remove_min_max_price().
+
+    - Fix one broken entry we create
+    """
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create filtered exchange and pair data
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+    pair_universe = PandasPairUniverse.create_pair_universe(
+            pairs_df,
+            [
+                (exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD"),
+                (exchange.chain_id, exchange.exchange_slug, "Cake", "BUSD")
+            ],
+        )
+
+    pairs = [pair.pair_id for pair in pair_universe.iterate_pairs()]
+    candles_df = client.fetch_candles_by_pair_ids(
+        pairs,
+        TimeBucket.d1,
+        start_time=datetime.datetime(2023, 1, 1),
+        end_time=datetime.datetime(2024, 1, 1)
+    )
+
+    candles_df = candles_df.set_index("timestamp", drop=False)
+    candles_dfgb = candles_df.groupby("pair_id")
+
+    # Calls remove_min_max_price() internally
+    df = fix_dex_price_data(
+        candles_dfgb,
+        freq="D",
+    )
+    # We have nothing to check ATM
+    # TODO: Manually inject a broken value
+    assert isinstance(df, DataFrameGroupBy)

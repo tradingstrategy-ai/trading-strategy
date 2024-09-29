@@ -26,6 +26,10 @@ from ..pair import PandasPairUniverse
 logger = logging.getLogger(__name__)
 
 
+#: Floating point danger zone for price values
+DEFAULT_MIN_MAX_RANGE = (0.00000001, 1_000_000.0)
+
+
 def fix_bad_wicks(
     df: pd.DataFrame,
     threshold=(0.1, 1.9),
@@ -151,6 +155,30 @@ def remove_zero_candles(
     return df
 
 
+def remove_min_max_price(
+    df: pd.DataFrame,
+    min_max_price: tuple = DEFAULT_MIN_MAX_RANGE,
+) -> pd.DataFrame:
+    """Remove candles where open value is outside the floating point range detector.
+
+    :param df:
+        Dataframe that may contain open or close values for too funny precision.
+
+    :param min_max_price:
+        Min and max price allowed for open/close before dropping.
+
+    :return: pd.Dataframe
+    """
+    if len(df) > 0:
+
+        mask = (df["open"] < min_max_price[0]) | (df["close"] < min_max_price[0]) | \
+               (df["open"] > min_max_price[1]) | (df["close"] < min_max_price[1])
+
+        filtered_df = df[~mask]
+        return filtered_df
+    return df
+
+
 def _replace_for_groups(group, replacement_dict):
     group_name = group.name
     if group_name in replacement_dict:
@@ -234,6 +262,7 @@ def fix_dex_price_data(
     bad_open_close_threshold: float | None = 3.0,
     fix_wick_threshold: tuple | None = (0.1, 1.9),
     fix_inbetween_threshold: tuple | None = (-0.99, 5.0),
+    min_max_price: tuple | None = DEFAULT_MIN_MAX_RANGE,
     remove_candles_with_zero: bool = True,
     pair_id_column="pair_id",
 ) -> pd.DataFrame:
@@ -308,13 +337,18 @@ def fix_dex_price_data(
     :param bad_open_close_threshold:
         See :py:func:`fix_bad_wicks`.
 
-    :param primary_key_column:
+    :param pair_id_column:
         The pair/reserve id column name in the dataframe.
 
-    :param remove_zero_candles:
+    :param remove_candles_with_zero:
         Remove candles with zero values for OHLC.
 
         To deal with abnormal data.
+
+    :param min_max_price:
+        Remove candles where open value is outside the floating point range detector.
+
+        See :py:func:`remove_min_max_price`.
 
     :param forward_fill:
         Forward-will gaps in the data.
@@ -335,8 +369,15 @@ def fix_dex_price_data(
     else:
         raw_df = df
 
+    if min_max_price:
+        logger.info("Removing open/close prices outside our min-max tolerance range: %s", min_max_price)
+        raw_df = remove_min_max_price(
+            raw_df,
+            min_max_price=min_max_price,
+        )
+
     if fix_wick_threshold or bad_open_close_threshold:
-        logger.info("Fixing bad wicks")
+        logger.info("Fixing bad wicks, fix_wick_threshold:%s, bad_open_close_threshold: %s", fix_wick_threshold, bad_open_close_threshold)
         raw_df = fix_bad_wicks(
             raw_df,
             fix_wick_threshold,
@@ -348,11 +389,15 @@ def fix_dex_price_data(
         raw_df = remove_zero_candles(raw_df)
 
     if fix_inbetween_threshold:
-        raw_df = fix_prices_in_between_time_frames(
-            raw_df,
-            fix_inbetween_threshold=fix_inbetween_threshold,
-            pair_id_column=pair_id_column,
-        )
+        logger.info("Fixing prices having bad open/close values between timeframes: %s", fix_inbetween_threshold)
+        if isinstance(raw_df, DataFrameGroupBy):
+            raw_df = fix_prices_in_between_time_frames(
+                raw_df,
+                fix_inbetween_threshold=fix_inbetween_threshold,
+                pair_id_column=pair_id_column,
+            )
+        else:
+            logger.warning("fix_prices_in_between_time_frames() only implemented for DataFrameGroupBy, got %s", raw_df.__class__)
 
     if forward_fill:
         logger.info("Forward filling price data")
