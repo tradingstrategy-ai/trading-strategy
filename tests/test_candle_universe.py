@@ -16,7 +16,7 @@ from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles, resample_dataframe, resample_price_series
-from tradingstrategy.utils.wrangle import examine_anomalies
+from tradingstrategy.utils.wrangle import examine_anomalies, fix_prices_in_between_time_frames
 
 
 def test_grouped_candles(persistent_test_client: Client):
@@ -649,6 +649,7 @@ def test_examine_anomalies_multi_pair(persistent_test_client: Client):
         start_time=datetime.datetime(2023, 1, 1),
         end_time=datetime.datetime(2024, 1, 1)
     )
+    assert len(candles_df["pair_id"].unique()) == 2
 
     issues_found = examine_anomalies(
         pair_universe,
@@ -657,3 +658,42 @@ def test_examine_anomalies_multi_pair(persistent_test_client: Client):
     assert not issues_found
 
 
+def test_fix_prices_in_between_time_frames_no_actions(persistent_test_client: Client):
+    """Run fix_prices_in_between_time_frames() - nothing should happen"""
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create filtered exchange and pair data
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+    pair_universe = PandasPairUniverse.create_pair_universe(
+            pairs_df,
+            [
+                (exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD"),
+                (exchange.chain_id, exchange.exchange_slug, "Cake", "BUSD")
+            ],
+        )
+
+    pairs = {pair.pair_id for pair in pair_universe.iterate_pairs()}
+    candles_df = client.fetch_candles_by_pair_ids(
+        pairs,
+        TimeBucket.d1,
+        start_time=datetime.datetime(2023, 1, 1),
+        end_time=datetime.datetime(2024, 1, 1)
+    )
+    assert len(candles_df["pair_id"].unique()) == 2
+
+    candles_df = candles_df.set_index("timestamp", drop=False)
+    candles_dfgb = candles_df.groupby("pair_id")
+
+    healed_candles_dfgb = fix_prices_in_between_time_frames(
+        candles_dfgb,
+    )
+
+    # No changes in open/close
+    for pair_id in candles_df["pair_id"].unique():
+        for column in ("open", "close"):
+            original = candles_dfgb.get_group(pair_id)[column]
+            healed = healed_candles_dfgb.get_group(pair_id)[column]
+            assert original.equals(healed)
