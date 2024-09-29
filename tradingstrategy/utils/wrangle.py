@@ -386,10 +386,9 @@ def examine_price_between_time_anomalies(
         A price between days cannot be lower than this multiplier.
 
     :param column:
-        Column name to check
+        Column name to check.
 
-    :param result_as_mask:
-        Return the mask
+        Only relevant if input is DataFrame.
 
     :param heal:
         IF set return the healed price data witih avg values replacing the outliers.
@@ -416,9 +415,6 @@ def examine_price_between_time_anomalies(
     df["price_after"] = df['price'].shift(-1)
     df['surrounding_avg'] = (df["price_after"] + df["price_before"]) / 2
 
-    # Can't have value at start and end
-    df = df.dropna(subset=["surrounding_avg"])
-
     # How much the current price is different from the surrounding avg price
     df["price_diff"] = ((df["surrounding_avg"] - df['price']) / df['price'])
 
@@ -428,14 +424,18 @@ def examine_price_between_time_anomalies(
     df["anomaly"] =  df["low_anomaly"] | df["high_anomaly"]
 
     if heal:
-        if df["anomaly"].sum() > 0:  # Count of True values
-            # Only execute if we need to heal
+        # Only execute if we have data to heal
+        if df["anomaly"].sum() > 0:  # Count of True values of anomalies
             df["fixed_price"] = np.where(df["anomaly"], df["surrounding_avg"], df["price"])
             return df["fixed_price"]
         else:
             return None
     else:
         # Get the rows that are anomalies
+        # Can't have value at start and end,
+        # drop NaNs
+        df = df.dropna(subset=["surrounding_avg"])
+
         return df.loc[df["anomaly"]]
 
 

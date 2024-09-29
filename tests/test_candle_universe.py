@@ -729,7 +729,7 @@ def test_fix_prices_in_between_time_frames_broken_data(persistent_test_client: C
     )
     assert len(candles_df["pair_id"].unique()) == 2
 
-    # Break one value
+    # Break one value in one pair at certain timestamp
     broken_pair_id = pairs[0]
     candles_df.loc[(candles_df["timestamp"] == pd.Timestamp("2023-01-02")) & (candles_df["pair_id"] == broken_pair_id), "open"] = 0.001
 
@@ -746,7 +746,7 @@ def test_fix_prices_in_between_time_frames_broken_data(persistent_test_client: C
         candles_dfgb,
     )
 
-    # One change spotted
+    # One healing change spotted in open price series
     original = candles_dfgb.get_group(broken_pair_id)["open"]
     healed = healed_candles_dfgb.get_group(broken_pair_id)["open"]
     assert not original.equals(healed)
