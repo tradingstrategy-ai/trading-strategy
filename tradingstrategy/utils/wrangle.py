@@ -170,9 +170,8 @@ def remove_min_max_price(
     :return: pd.Dataframe
     """
     if len(df) > 0:
-
         mask = (df["open"] < min_max_price[0]) | (df["close"] < min_max_price[0]) | \
-               (df["open"] > min_max_price[1]) | (df["close"] < min_max_price[1])
+               (df["open"] > min_max_price[1]) | (df["close"] > min_max_price[1])
 
         filtered_df = df[~mask]
         return filtered_df
@@ -388,21 +387,28 @@ def fix_dex_price_data(
         logger.info("Fixing zero volume candles")
         raw_df = remove_zero_candles(raw_df)
 
-    if fix_inbetween_threshold:
+    # For the further cleanup, need to regroup the DataFrame
+    if isinstance(df, DataFrameGroupBy):
+
         logger.info("Fixing prices having bad open/close values between timeframes: %s", fix_inbetween_threshold)
-        if isinstance(raw_df, DataFrameGroupBy):
-            raw_df = fix_prices_in_between_time_frames(
-                raw_df,
-                fix_inbetween_threshold=fix_inbetween_threshold,
-                pair_id_column=pair_id_column,
-            )
-        else:
-            logger.warning("fix_prices_in_between_time_frames() only implemented for DataFrameGroupBy, got %s", raw_df.__class__)
+
+        # Need to group here
+        regrouped = raw_df.set_index("timestamp", drop=False).groupby(pair_id_column)
+
+        ff_df = fix_prices_in_between_time_frames(
+            regrouped,
+            fix_inbetween_threshold=fix_inbetween_threshold,
+            pair_id_column=pair_id_column,
+        )
+
+    else:
+        assert not fix_inbetween_threshold, "fix_inbetween_threshold() only works for DataFrameGroupBy input. Set fix_inbetween_threshold == None if you really want to call this"
+        ff_df = raw_df
 
     if forward_fill:
         logger.info("Forward filling price data")
         assert freq, "freq argument must be given if forward_fill=True"
-        df = _forward_fill(df, freq)
+        df = _forward_fill(ff_df, freq)
         return df
     else:
         return raw_df
