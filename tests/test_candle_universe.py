@@ -6,6 +6,7 @@ import os
 import pandas
 import pandas as pd
 import pytest
+from numpy.ma.core import anomalies
 from pandas import Timestamp
 
 from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
@@ -16,7 +17,7 @@ from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles, resample_dataframe, resample_price_series
-from tradingstrategy.utils.wrangle import examine_anomalies, fix_prices_in_between_time_frames
+from tradingstrategy.utils.wrangle import examine_anomalies, fix_prices_in_between_time_frames, examine_price_between_time_anomalies
 
 
 def test_grouped_candles(persistent_test_client: Client):
@@ -697,3 +698,58 @@ def test_fix_prices_in_between_time_frames_no_actions(persistent_test_client: Cl
             original = candles_dfgb.get_group(pair_id)[column]
             healed = healed_candles_dfgb.get_group(pair_id)[column]
             assert original.equals(healed)
+
+
+def test_fix_prices_in_between_time_frames_broken_data(persistent_test_client: Client):
+    """Run fix_prices_in_between_time_frames().
+
+    - Fix one broken entry
+    """
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create filtered exchange and pair data
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+    pair_universe = PandasPairUniverse.create_pair_universe(
+            pairs_df,
+            [
+                (exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD"),
+                (exchange.chain_id, exchange.exchange_slug, "Cake", "BUSD")
+            ],
+        )
+
+    pairs = [pair.pair_id for pair in pair_universe.iterate_pairs()]
+    candles_df = client.fetch_candles_by_pair_ids(
+        pairs,
+        TimeBucket.d1,
+        start_time=datetime.datetime(2023, 1, 1),
+        end_time=datetime.datetime(2024, 1, 1)
+    )
+    assert len(candles_df["pair_id"].unique()) == 2
+
+    # Break one value
+    broken_pair_id = pairs[0]
+    candles_df.loc[(candles_df["timestamp"] == pd.Timestamp("2023-01-02")) & (candles_df["pair_id"] == broken_pair_id), "open"] = 0.001
+
+    candles_df = candles_df.set_index("timestamp", drop=False)
+    candles_dfgb = candles_df.groupby("pair_id")
+
+    # We check we have one broken value
+    anomalies = examine_price_between_time_anomalies(
+        candles_dfgb.get_group(broken_pair_id)["open"],
+    )
+    assert len(anomalies) == 1
+
+    healed_candles_dfgb = fix_prices_in_between_time_frames(
+        candles_dfgb,
+    )
+
+    # One change spotted
+    original = candles_dfgb.get_group(broken_pair_id)["open"]
+    healed = healed_candles_dfgb.get_group(broken_pair_id)["open"]
+    assert not original.equals(healed)
+
+    assert healed[pd.Timestamp("2023-01-01")] == pytest.approx(3.164259)  # Don't replace first value with NaN
+    assert healed[pd.Timestamp("2023-01-02")] == pytest.approx(3.179394)  # Healed value

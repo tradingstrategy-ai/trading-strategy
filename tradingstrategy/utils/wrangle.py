@@ -429,7 +429,6 @@ def examine_price_between_time_anomalies(
 
     if heal:
         if df["anomaly"].sum() > 0:  # Count of True values
-            import ipdb ; ipdb.set_trace()
             # Only execute if we need to heal
             df["fixed_price"] = np.where(df["anomaly"], df["surrounding_avg"], df["price"])
             return df["fixed_price"]
