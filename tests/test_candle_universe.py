@@ -703,7 +703,7 @@ def test_fix_prices_in_between_time_frames_no_actions(persistent_test_client: Cl
 def test_fix_prices_in_between_time_frames_broken_data(persistent_test_client: Client):
     """Run fix_prices_in_between_time_frames().
 
-    - Fix one broken entry
+    - Fix one broken entry we create
     """
 
     client = persistent_test_client
