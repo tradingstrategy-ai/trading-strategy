@@ -374,6 +374,7 @@ def fix_dex_price_data(
             raw_df,
             min_max_price=min_max_price,
         )
+        raw_df = raw_df.copy()  # Need to mutate in fix_bad_wicks(), cannot be view
 
     if fix_wick_threshold or bad_open_close_threshold:
         logger.info("Fixing bad wicks, fix_wick_threshold:%s, bad_open_close_threshold: %s", fix_wick_threshold, bad_open_close_threshold)
@@ -390,10 +391,13 @@ def fix_dex_price_data(
     # For the further cleanup, need to regroup the DataFrame
     if isinstance(df, DataFrameGroupBy):
 
-        logger.info("Fixing prices having bad open/close values between timeframes: %s", fix_inbetween_threshold)
+        logger.info("Regrouping fixed price data")
 
         # Need to group here
-        regrouped = raw_df.set_index("timestamp", drop=False).groupby(pair_id_column)
+        # TODO: Make this smarter, but how? Read index data in groupby instance?
+        regrouped = raw_df.set_index("timestamp", drop=False).groupby(pair_id_column, group_keys=True)
+
+        logger.info("Fixing prices having bad open/close values between timeframes: %s", fix_inbetween_threshold)
 
         ff_df = fix_prices_in_between_time_frames(
             regrouped,
