@@ -1,6 +1,6 @@
-"""Wrangle incoming data.
+"""Wrangle DEX market data to be better suitable for algorithmic trading.
 
-- Wrangle is a process where we massage incoming price/liquidity data for the isseus we may have encountered during the data collection
+- Wrangle is a process where we "massage" incoming price/liquidity data for the isseus we may have encountered during the data collection
 
 - Common DEX data issues are absurd price high/low spikes due to MEV trades
 
@@ -15,6 +15,7 @@ import datetime
 from itertools import islice
 
 import pandas as pd
+from IPython.testing.plugin.pytest_ipdoctest import ipdoctest_namespace
 from pandas.core.groupby import DataFrameGroupBy
 import numpy as np
 
@@ -277,6 +278,51 @@ def fix_dex_price_data(
         return raw_df
 
 
+def examine_price_between_time_anomalies(
+    price_series: pd.Series,
+    high_diff=5.00,
+    low_diff=-0.99,
+    column: str = "close",
+) -> pd.DataFrame:
+    """Find bad open/close prices where the open price is very different from the value of previous and next day.
+
+    - Must be done pair-by-pair
+
+    TODO: How to do this for all DataFrameGroupBy once
+
+    :return:
+        Diagnostics results as DataFrame
+    """
+    assert isinstance(price_series, (pd.Series, pd.DataFrame)), f"Got: {price_series.__class__}"
+
+    if isinstance(price_series, pd.Series):
+        df = pd.DataFrame({
+            "price": price_series,
+        })
+    else:
+        df = price_series
+        df["price"] = df[column]
+
+    df = df.copy()
+
+    # Calculate surrounding price
+    df["price_before"] = df['price'].shift(1)
+    df["price_after"] = df['price'].shift(-1)
+    df['surrounding_avg'] = (df["price_after"] + df["price_before"]) / 2
+
+    # Can't have value at start and end
+    df = df.dropna(subset=["surrounding_avg"])
+
+    # How much the current price is different from the surrounding avg price
+    df["price_diff"] = ((df["surrounding_avg"] - df['price']) / df['price'])
+
+    # Create mask for rows where we detect anomalies
+    df["high_anomaly"] = df["price_diff"] > high_diff
+    df["low_anomaly"] = df["price_diff"] < low_diff
+    df["anomaly"] =  df["low_anomaly"] | df["high_anomaly"]
+    return df.loc[df["anomaly"]]
+
+
 def examine_anomalies(
     pair_universe: PandasPairUniverse | None,
     price_df: pd.DataFrame,
@@ -285,12 +331,22 @@ def examine_anomalies(
     pair_id_column: str | None="pair_id",
     open_close_max_diff=5.00,
     open_close_min_diff=-0.99,
+    between_high_diff: float | None=5.00,
+    between_low_diff: float | None=-0.99,
 ):
     """Check the price dataframe for data issues.
 
     - Print out to consoles bad rows in the OHLCV candle price data
 
     TODO: This is a work in progress helper.
+
+    :param price_df:
+        OHLCV data for multiple trading pairs.
+
+        Can be grouped by `pair_id_column`.
+
+    :param pair_id_column:
+        Fix column identifies the pair name in the data.
 
     :param open_close_max_diff:
         Abnormal price increase X
@@ -314,7 +370,7 @@ def examine_anomalies(
         printer(f"Found zero price entry {zero_price_entry}")
         issues_found = True
 
-    # Find abnormal price jumps within intraday
+    # Find abnormal price jumps within intraday open->close is very different
     open_close_mask = ((price_df["close"] - price_df["open"]) / price_df["open"]) >= open_close_max_diff
     open_close_mask = open_close_mask | (((price_df["close"] - price_df["open"]) / price_df["open"]) <= open_close_min_diff)
 
@@ -325,10 +381,37 @@ def examine_anomalies(
 
     if pair_id_column:
         open_close_gap = open_close_gap.drop_duplicates(subset=pair_id_column, keep='first')
+
     for idx, open_close_entry in open_close_gap.iloc[0:max_print].iterrows():
         diff = (open_close_entry["close"] - open_close_entry["open"]) / open_close_entry["open"]
         printer(f"Found abnormal open/close price diff {diff} at\n{open_close_entry}")
         issues_found = True
+
+    if between_high_diff and between_low_diff:
+        grouped = price_df.groupby(pair_id_column)
+        anomalies = []
+
+        for pair, group in grouped:
+            for column in ("open", "close"):
+                between_anomalies = examine_price_between_time_anomalies(
+                    group,
+                    high_diff=between_high_diff,
+                    low_diff=between_low_diff,
+                    column=column,
+                )
+
+                # Only record last one per pair
+                if len(between_anomalies) > 0:
+                    row = between_anomalies.iloc[-1]
+                    row["pair"] = pair
+                    anomalies.append(row)
+
+        if anomalies:
+            for diagnostics_row in anomalies[0:max_print]:
+                pair = diagnostics_row[pair_id_column]
+                timestamp = diagnostics_row["timestamp"]
+                printer(f"Found abnormal between price on {pair} at {timestamp}:\n{diagnostics_row}")
+            issues_found = True
 
     if not issues_found:
         printer(f"No data issues found, {len(price_df)} rows analysed")

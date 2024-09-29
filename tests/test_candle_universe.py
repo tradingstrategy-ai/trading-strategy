@@ -594,7 +594,7 @@ def test_load_candles_using_json_historical(persistent_test_client: Client):
     assert len(candles_df) == 25  # 24 hours + 1 inclusive
 
 
-def test_examine_anomalies(persistent_test_client: Client):
+def test_examine_anomalies_single_pair(persistent_test_client: Client):
     """Run examine_anomalies() on candle data"""
 
     client = persistent_test_client
@@ -605,7 +605,9 @@ def test_examine_anomalies(persistent_test_client: Client):
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
     pair_universe = PandasPairUniverse.create_pair_universe(
             pairs_df,
-            [(exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")],
+            [
+                (exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD")
+            ],
         )
 
     pair = pair_universe.get_single()
@@ -621,4 +623,37 @@ def test_examine_anomalies(persistent_test_client: Client):
         candles_df,
     )
     assert not issues_found
+
+
+def test_examine_anomalies_multi_pair(persistent_test_client: Client):
+    """Run examine_anomalies() on candle data for multiple pairs"""
+
+    client = persistent_test_client
+    exchange_universe = client.fetch_exchange_universe()
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create filtered exchange and pair data
+    exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
+    pair_universe = PandasPairUniverse.create_pair_universe(
+            pairs_df,
+            [
+                (exchange.chain_id, exchange.exchange_slug, "WBNB", "BUSD"),
+                (exchange.chain_id, exchange.exchange_slug, "Cake", "BUSD")
+            ],
+        )
+
+    pairs = {pair.pair_id for pair in pair_universe.iterate_pairs()}
+    candles_df = client.fetch_candles_by_pair_ids(
+        pairs,
+        TimeBucket.d1,
+        start_time=datetime.datetime(2023, 1, 1),
+        end_time=datetime.datetime(2024, 1, 1)
+    )
+
+    issues_found = examine_anomalies(
+        pair_universe,
+        candles_df,
+    )
+    assert not issues_found
+
 

@@ -342,7 +342,7 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
             discrete_ts_idx = indexer[0]
         else:
             first_sample = candles_per_pair.index[0]
-            raise LiquidityDataUnavailable(f"Pair {pair_id} does not have data older data than {first_sample}. Tried to look up {when}.")
+            raise LiquidityDataUnavailable(f"Pair {pair_id} does not have liquidity/TVL data older data than {first_sample}. Tried to look up {when}.")
 
 
         sample_timestamp = timestamp_index[discrete_ts_idx]
