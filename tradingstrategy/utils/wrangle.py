@@ -1,6 +1,6 @@
-"""Wrangle incoming data.
+"""Wrangle DEX market data to be better suitable for algorithmic trading.
 
-- Wrangle is a process where we massage incoming price/liquidity data for the isseus we may have encountered during the data collection
+- Wrangle is a process where we "massage" incoming price/liquidity data for the isseus we may have encountered during the data collection
 
 - Common DEX data issues are absurd price high/low spikes due to MEV trades
 
@@ -15,6 +15,7 @@ import datetime
 from itertools import islice
 
 import pandas as pd
+from IPython.testing.plugin.pytest_ipdoctest import ipdoctest_namespace
 from pandas.core.groupby import DataFrameGroupBy
 import numpy as np
 
@@ -23,6 +24,10 @@ from .forward_fill import forward_fill as _forward_fill
 from ..pair import PandasPairUniverse
 
 logger = logging.getLogger(__name__)
+
+
+#: Floating point danger zone for price values
+DEFAULT_MIN_MAX_RANGE = (0.00000001, 1_000_000.0)
 
 
 def fix_bad_wicks(
@@ -150,13 +155,115 @@ def remove_zero_candles(
     return df
 
 
+def remove_min_max_price(
+    df: pd.DataFrame,
+    min_max_price: tuple = DEFAULT_MIN_MAX_RANGE,
+) -> pd.DataFrame:
+    """Remove candles where open value is outside the floating point range detector.
+
+    :param df:
+        Dataframe that may contain open or close values for too funny precision.
+
+    :param min_max_price:
+        Min and max price allowed for open/close before dropping.
+
+    :return: pd.Dataframe
+    """
+    if len(df) > 0:
+        mask = (df["open"] < min_max_price[0]) | (df["close"] < min_max_price[0]) | \
+               (df["open"] > min_max_price[1]) | (df["close"] > min_max_price[1])
+
+        filtered_df = df[~mask]
+        return filtered_df
+    return df
+
+
+def _replace_for_groups(group, replacement_dict):
+    group_name = group.name
+    if group_name in replacement_dict:
+        for col, value in replacement_dict[group_name].items():
+            group[col] = value
+    return group
+
+
+def fix_prices_in_between_time_frames(
+    dfgb: pd.DataFrame | DataFrameGroupBy,
+    fix_inbetween_threshold: tuple | None = (-0.99, 5.0),
+    pair_id_column="pair_id",
+):
+    """Fix MEV bots breaking open/price.
+
+    TODO: This needs to be later fixed at the data collection level, MEV transactions masked out.
+
+    Example daily candle with a broken open price:
+
+    .. code-block:: text
+
+        COMP-WETH on Uniswap v2 on Ethereum
+
+        2023-12-10 23:00:00	2023-12-10 23:00:00	56.253001	56.253001	55.948422	55.948422	348.915474	2373.049643	0.0	3.0	0.000000	348.915474	1015	18758972	18759006	NaN
+        2023-12-11 00:00:00	2023-12-11 00:00:00	0.363204	55.181369	0.354456	55.181369	180421.431179	2357.352148	1.0	6.0	90162.684736	90258.746443	1015	18759541	18759541	NaN
+        2023-12-11 02:00:00	2023-12-11 02:00:00	50.059992	50.612159	50.059992	50.612159	2859.011552	2241.581295	1.0	1.0	628.775186	2230.236366	1015	18759912	18760129	NaN
+
+    `Underlying MEV TX causing the issue <https://etherscan.io/tx/0x1106418384414ed56cd7cbb9fedc66a02d39b663d580abc618f2d387348354ab>`__, ChatGPT formatted:
+
+    .. code-block:: text
+
+        +--------------------------------------+-------------------------------------+-------------------+-------------+-------------------+-------------------------------------+-------------------+-------------+-------------+
+        |               Action                 |          Swap Amount (Token 1)      |   Value (Token 1)  |  Token 1    |    For (Token 2)   |          Swap Amount (Token 2)      |   Value (Token 2)  |  Token 2    |  Platform   |
+        +--------------------------------------+-------------------------------------+-------------------+-------------+-------------------+-------------------------------------+-------------------+-------------+-------------+
+        | Aggregated Swap of 3 Tokens           |                                     |                   |             |                   |                                     |                   |             |             |
+        | Swap                                 | 20,096.81048332570788104            | $956,407.21       | COMP        | ETH               | 38.247439949510380362              | $101,436.63       | ETH         | Uniswap V2  |
+        | Swap                                 | 65.583941528193262325               | $3,121.14         | COMP        | ETH               | 0.010044352430924858               | $26.64            | ETH         | Uniswap V2  |
+        | Swap                                 | 0.010044352430924858                | $26.64            | ETH         | DAI               | 23.587216376218824815              | $23.58            | DAI         | Uniswap V2  |
+        | Swap                                 | 65.780693352777842112               | $3,130.50         | COMP        | ETH               | 0.010014399362431825               | $26.56            | ETH         | Uniswap V2  |
+        | Swap                                 | 0.010014399362431825                | $26.56            | ETH         | DAI               | 23.516703895990702452              | $23.51            | DAI         | Uniswap V2  |
+        | Swap                                 | 65.978035432836175638               | $3,139.89         | COMP        | ETH               | 0.009984535616403163               | $26.48            | ETH         | Uniswap V2  |
+        | Swap                                 | 0.009984535616403163                | $26.48            | ETH         | DAI               | 23.446402724807108015              | $23.44            | DAI         | Uniswap V2  |
+        | Swap                                 | 66.175969539134684165               | $3,149.31         | COMP        | ETH               | 0.009954760926472085               | $26.40            | ETH         | Uniswap V2  |
+        | Swap                                 | 0.009954760926472085                | $26.40            | ETH         | DAI               | 23.376312226345838338              | $23.37            | DAI         | Uniswap V2  |
+        | Swap                                 | 5.013744524035853058                | $238.60           | COMP        | ETH               | 0.000751785040201655               | $1.99             | ETH         | Uniswap V2  |
+        | Swap                                 | 0.000751785040201655                | $1.99             | ETH         | DAI               | 1.765375649239336674               | $1.76             | DAI         | Uniswap V2  |
+        | Swap                                 | 38.247439949510380362               | $101,436.63       | ETH         | COMP              | 20,353.762314725950969279          | $968,635.55       | COMP        | Uniswap V2  |
+        | Swap                                 | 0.149285130679667947                | $395.92           | ETH         | COMP              | 4,200                              | $199,878.00       | COMP        | Sushiswap   |
+        +--------------------------------------+-------------------------------------+-------------------+-------------+-------------------+-------------------------------------+-------------------+-------------+-------------+
+
+    :param dfgb:
+        Assume grouped by pair_id and MultiLevel index (pair_id, timestamp).
+
+    """
+    assert isinstance(dfgb, DataFrameGroupBy), f"Currently only implemented for DataFrameGroupBy"
+
+    replacements = {}
+
+    for pair_id, price_df in dfgb:
+        for column in ("open", "close",):
+            price_series = price_df[column]
+            fixed_price_series = examine_price_between_time_anomalies(
+                price_series,
+                low_diff=fix_inbetween_threshold[0],
+                high_diff=fix_inbetween_threshold[1],
+                heal=True,
+            )
+            if fixed_price_series is not None:
+                replacements[pair_id] = replacements.get(pair_id, {})
+                replacements[pair_id][column] = fixed_price_series
+
+    healed = dfgb.apply(lambda x: _replace_for_groups(x, replacements))
+    healed = healed.set_index("timestamp", drop=False)
+    return healed.groupby(pair_id_column)
+
+
 def fix_dex_price_data(
     df: pd.DataFrame | DataFrameGroupBy,
     freq: pd.DateOffset | str | None = None,
     forward_fill: bool = True,
     bad_open_close_threshold: float | None = 3.0,
     fix_wick_threshold: tuple | None = (0.1, 1.9),
+    fix_inbetween_threshold: tuple | None = (-0.99, 5.0),
+    min_max_price: tuple | None = DEFAULT_MIN_MAX_RANGE,
     remove_candles_with_zero: bool = True,
+    pair_id_column="pair_id",
 ) -> pd.DataFrame:
     """Wrangle DEX price data for all known issues.
 
@@ -229,13 +336,18 @@ def fix_dex_price_data(
     :param bad_open_close_threshold:
         See :py:func:`fix_bad_wicks`.
 
-    :param primary_key_column:
+    :param pair_id_column:
         The pair/reserve id column name in the dataframe.
 
-    :param remove_zero_candles:
+    :param remove_candles_with_zero:
         Remove candles with zero values for OHLC.
 
         To deal with abnormal data.
+
+    :param min_max_price:
+        Remove candles where open value is outside the floating point range detector.
+
+        See :py:func:`remove_min_max_price`.
 
     :param forward_fill:
         Forward-will gaps in the data.
@@ -256,8 +368,16 @@ def fix_dex_price_data(
     else:
         raw_df = df
 
+    if min_max_price:
+        logger.info("Removing open/close prices outside our min-max tolerance range: %s", min_max_price)
+        raw_df = remove_min_max_price(
+            raw_df,
+            min_max_price=min_max_price,
+        )
+        raw_df = raw_df.copy()  # Need to mutate in fix_bad_wicks(), cannot be view
+
     if fix_wick_threshold or bad_open_close_threshold:
-        logger.info("Fixing bad wicks")
+        logger.info("Fixing bad wicks, fix_wick_threshold:%s, bad_open_close_threshold: %s", fix_wick_threshold, bad_open_close_threshold)
         raw_df = fix_bad_wicks(
             raw_df,
             fix_wick_threshold,
@@ -268,13 +388,110 @@ def fix_dex_price_data(
         logger.info("Fixing zero volume candles")
         raw_df = remove_zero_candles(raw_df)
 
+    # For the further cleanup, need to regroup the DataFrame
+    if isinstance(df, DataFrameGroupBy):
+
+        logger.info("Regrouping fixed price data")
+
+        # Need to group here
+        # TODO: Make this smarter, but how? Read index data in groupby instance?
+        regrouped = raw_df.set_index("timestamp", drop=False).groupby(pair_id_column, group_keys=True)
+
+        logger.info("Fixing prices having bad open/close values between timeframes: %s", fix_inbetween_threshold)
+
+        ff_df = fix_prices_in_between_time_frames(
+            regrouped,
+            fix_inbetween_threshold=fix_inbetween_threshold,
+            pair_id_column=pair_id_column,
+        )
+
+    else:
+        assert not fix_inbetween_threshold, "fix_inbetween_threshold() only works for DataFrameGroupBy input. Set fix_inbetween_threshold == None if you really want to call this"
+        ff_df = raw_df
+
     if forward_fill:
         logger.info("Forward filling price data")
         assert freq, "freq argument must be given if forward_fill=True"
-        df = _forward_fill(df, freq)
+        df = _forward_fill(ff_df, freq)
         return df
     else:
         return raw_df
+
+
+def examine_price_between_time_anomalies(
+    price_series: pd.Series,
+    high_diff=5.00,
+    low_diff=-0.99,
+    column: str = "close",
+    heal=False,
+) -> pd.DataFrame | pd.Series:
+    """Find bad open/close prices where the open price is very different from the value of previous and next day.
+
+    - Must be done pair-by-pair
+
+    TODO: Work in progress.
+
+    :param price_series:
+        Incoming OHLCV or single price series.
+
+    :param high_diff:
+        A price between days cannot be higher than this multiplier.
+
+    :param low_diff:
+        A price between days cannot be lower than this multiplier.
+
+    :param column:
+        Column name to check.
+
+        Only relevant if input is DataFrame.
+
+    :param heal:
+        IF set return the healed price data witih avg values replacing the outliers.
+
+    :return:
+        Diagnostics results as DataFrame.
+
+        If `heal` is set, return healed price data or None if no healing needed.
+    """
+    assert isinstance(price_series, (pd.Series, pd.DataFrame)), f"Got: {price_series.__class__}"
+
+    if isinstance(price_series, pd.Series):
+        df = pd.DataFrame({
+            "price": price_series,
+        })
+    else:
+        df = price_series
+        df["price"] = df[column]
+
+    df = df.copy()
+
+    # Calculate surrounding price
+    df["price_before"] = df['price'].shift(1)
+    df["price_after"] = df['price'].shift(-1)
+    df['surrounding_avg'] = (df["price_after"] + df["price_before"]) / 2
+
+    # How much the current price is different from the surrounding avg price
+    df["price_diff"] = ((df["surrounding_avg"] - df['price']) / df['price'])
+
+    # Create mask for rows where we detect anomalies
+    df["high_anomaly"] = df["price_diff"] > high_diff
+    df["low_anomaly"] = df["price_diff"] < low_diff
+    df["anomaly"] =  df["low_anomaly"] | df["high_anomaly"]
+
+    if heal:
+        # Only execute if we have data to heal
+        if df["anomaly"].sum() > 0:  # Count of True values of anomalies
+            df["fixed_price"] = np.where(df["anomaly"], df["surrounding_avg"], df["price"])
+            return df["fixed_price"]
+        else:
+            return None
+    else:
+        # Get the rows that are anomalies
+        # Can't have value at start and end,
+        # drop NaNs
+        df = df.dropna(subset=["surrounding_avg"])
+
+        return df.loc[df["anomaly"]]
 
 
 def examine_anomalies(
@@ -285,12 +502,35 @@ def examine_anomalies(
     pair_id_column: str | None="pair_id",
     open_close_max_diff=5.00,
     open_close_min_diff=-0.99,
+    between_high_diff: float | None=5.00,
+    between_low_diff: float | None=-0.99,
 ):
     """Check the price dataframe for data issues.
 
     - Print out to consoles bad rows in the OHLCV candle price data
 
+    Perform
+
+    - Open/close diff check
+
+    - In between timeframes diff check
+
     TODO: This is a work in progress helper.
+
+    See also:
+
+    - :py:func:`examine_price_between_time_anomalies`
+
+    :param price_df:
+        OHLCV data for multiple trading pairs.
+
+        Can be grouped by `pair_id_column`.
+
+    :param pair_id_column:
+        Fix column identifies the pair name in the data.
+
+    :param max_print:
+        How many entries print per each anomaly check
 
     :param open_close_max_diff:
         Abnormal price increase X
@@ -298,6 +538,8 @@ def examine_anomalies(
     :param open_close_min_diff:
         Abnormal price decrease X
     """
+
+    assert isinstance(price_df, pd.DataFrame)
 
     issues_found = False
 
@@ -314,7 +556,7 @@ def examine_anomalies(
         printer(f"Found zero price entry {zero_price_entry}")
         issues_found = True
 
-    # Find abnormal price jumps within intraday
+    # Find abnormal price jumps within intraday open->close is very different
     open_close_mask = ((price_df["close"] - price_df["open"]) / price_df["open"]) >= open_close_max_diff
     open_close_mask = open_close_mask | (((price_df["close"] - price_df["open"]) / price_df["open"]) <= open_close_min_diff)
 
@@ -325,10 +567,46 @@ def examine_anomalies(
 
     if pair_id_column:
         open_close_gap = open_close_gap.drop_duplicates(subset=pair_id_column, keep='first')
-    for idx, open_close_entry in open_close_gap.iloc[0:max_print].iterrows():
-        diff = (open_close_entry["close"] - open_close_entry["open"]) / open_close_entry["open"]
-        printer(f"Found abnormal open/close price diff {diff} at\n{open_close_entry}")
-        issues_found = True
+
+    if len(open_close_gap) > 0:
+        for idx, open_close_entry in open_close_gap.iloc[0:max_print].iterrows():
+            diff = (open_close_entry["close"] - open_close_entry["open"]) / open_close_entry["open"]
+            printer(f"Found abnormal open/close price diff {diff} at\n{open_close_entry}")
+            issues_found = True
+    else:
+        printer("No open/close price extreme diff anomalies found")
+
+
+    if between_high_diff and between_low_diff:
+        grouped = price_df.groupby(pair_id_column)
+        anomalies = []
+
+        between_anomaly_count = 0
+        for pair, group in grouped:
+            for column in ("open", "close"):
+                between_anomalies = examine_price_between_time_anomalies(
+                    group,
+                    high_diff=between_high_diff,
+                    low_diff=between_low_diff,
+                    column=column,
+                )
+
+                between_anomaly_count += len(between_anomalies)
+
+                # Only record last one per pair
+                if len(between_anomalies) > 0:
+                    row = between_anomalies.iloc[-1]
+                    anomalies.append((pair, row))
+
+        if anomalies:
+            print(f"Found {between_anomaly_count} price entries that greatly differ from one before and after")
+            for entry in anomalies[0:max_print]:
+                pair, diagnostics_row = entry
+                timestamp = diagnostics_row["timestamp"]
+                printer(f"Found abnormal between price on {pair} at {timestamp}:\n{diagnostics_row}")
+            issues_found = True
+        else:
+            printer("No price time frame in-between extreme diff anomalies found")
 
     if not issues_found:
         printer(f"No data issues found, {len(price_df)} rows analysed")
