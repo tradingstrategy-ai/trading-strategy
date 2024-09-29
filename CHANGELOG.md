@@ -2,7 +2,8 @@
 
 - Add `aggregate_ohlcv_across_pairs()`: Aggregate volumen-weighted open/high/low/close/volume/liquidity across multiple trading pairs to create unified view of volume and liquidity for a single base token
 - Add: `Client.fetch_tvl_by_pair_ids()` to allow TVL/liquidity data loading for selected trading pairs
-
+- Add: `examine_price_between_time_anomalies`- anomaly examination if open/close between days is a strange value
+- 
 # 0.23
 
 - Add: `fix_dex_price_data` for wrangling DEX price feeds and separate reusable `wrangle` module
