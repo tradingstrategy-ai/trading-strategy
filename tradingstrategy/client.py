@@ -379,7 +379,7 @@ class Client(BaseClient):
         end_time: Optional[AnyTimestamp] = None,
         progress_bar_description: Optional[str] = None,
     ) -> pd.DataFrame:
-        """Fetch CLMM liquidity provision candles..
+        """Fetch CLMM liquidity provision candles.
 
         Get Uniswap v3 liquidity provision data for liquidity provider position backtesting.
 
@@ -398,8 +398,7 @@ class Client(BaseClient):
         :param bucket:
             Candle time frame.
 
-            Ask `TimeBucker.d1` or higher. TVL data may not be indexed for
-            for lower timeframes.
+            Ask `TimeBucket.d1` or lower. `TimeBucket.m1` is most useful for LP backtesting.
 
         :param start_time:
             All candles after this.
