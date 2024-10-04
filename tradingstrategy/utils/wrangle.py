@@ -580,6 +580,7 @@ def examine_anomalies(
     if between_high_diff and between_low_diff:
         grouped = price_df.groupby(pair_id_column)
         anomalies = []
+        pair_added = set()
 
         between_anomaly_count = 0
         for pair, group in grouped:
@@ -595,8 +596,10 @@ def examine_anomalies(
 
                 # Only record last one per pair
                 if len(between_anomalies) > 0:
-                    row = between_anomalies.iloc[-1]
-                    anomalies.append((pair, row))
+                    if pair not in pair_added:
+                        row = between_anomalies.iloc[-1]
+                        anomalies.append((pair, row))
+                        pair_added.add(pair)
 
         if anomalies:
             print(f"Found {between_anomaly_count} price entries that greatly differ from one before and after")

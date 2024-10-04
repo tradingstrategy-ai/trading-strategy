@@ -25,6 +25,7 @@ from requests.adapters import HTTPAdapter
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
+from tradingstrategy.environment.jupyter import download_with_tqdm_progress_bar
 from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
@@ -804,6 +805,91 @@ class CachedHTTPTransport:
             progress_bar.close()
 
         return pd.concat(chunks)
+
+
+    def fetch_clmm_liquidity_provision_candles_by_pair_ids(
+        self,
+        pair_ids: Collection[PrimaryKey],
+        time_bucket: TimeBucket,
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+        progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Stream CLMM Parquet data from the server.
+
+        For the candles format see :py:mod:`tradingstrategy.clmm`.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+            We should be able to handle unlimited pair count,
+            as we do one request per pair.
+
+        :param time_bucket:
+            Candle time frame
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param progress_bar_description:
+            Display on downlood progress bar
+
+        :return:
+            CLMM dataframe.
+
+            See :py:mod:`tradingstrategy.clmm`.
+        """
+
+        cache_fname = self._generate_cache_name(
+            pair_ids, time_bucket, start_time, end_time,
+            candle_type="clmm"
+        )
+
+        full_fname = self.get_cached_file_path(cache_fname)
+
+        url = f"{self.endpoint}/clmm-liquidity"
+
+        with wait_other_writers(full_fname):
+
+            cached = self.get_cached_item(cache_fname)
+            path = self.get_cached_file_path(cache_fname)
+
+            if not cached:
+
+                params = {
+                    "pair_ids": ",".join([str(i) for i in pair_ids]),  # OpenAPI comma delimited array
+                    "time_bucket": time_bucket.value,
+                    "format": "parquet",
+                }
+
+                if start_time:
+                    params["start"] = start_time.isoformat()
+
+                if end_time:
+                    params["end"] = end_time.isoformat()
+
+                download_with_tqdm_progress_bar(
+                    session=self.requests,
+                    path=path,
+                    url=url,
+                    params=params,
+                    timeout=self.timeout,
+                    human_readable_hint=progress_bar_description,
+                )
+
+                size = pathlib.Path(path).stat().st_size
+                logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+            else:
+                size = pathlib.Path(path).stat().st_size
+                logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
+
+            return pandas.read_parquet(path)
 
     def fetch_trading_data_availability(self,
           pair_ids: Collection[PrimaryKey],
