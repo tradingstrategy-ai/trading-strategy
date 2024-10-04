@@ -372,6 +372,72 @@ class Client(BaseClient):
             progress_bar_description=progress_bar_description,
         )
 
+    def fetch_clmm_liquidity_provision_candles_by_pair_ids(self,
+        pair_ids: Collection[PrimaryKey],
+        bucket: TimeBucket,
+        start_time: Optional[AnyTimestamp] = None,
+        end_time: Optional[AnyTimestamp] = None,
+        progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Fetch CLMM liquidity provision candles..
+
+        Get Uniswap v3 liquidity provision data for liquidity provider position backtesting.
+
+        - Designed to be used with `Demeter backtesting framework <https://github.com/zelos-alpha/demeter/tree/master/demeter>`__ but works with others.
+
+        - For the candles format see :py:mod:`tradingstrategy.clmm`.
+
+        - Responses are cached on the local file system
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+            Only works with Uniswap v3 pairs.
+
+        :param bucket:
+            Candle time frame.
+
+            Ask `TimeBucker.d1` or higher. TVL data may not be indexed for
+            for lower timeframes.
+
+        :param start_time:
+            All candles after this.
+
+            Inclusive.
+
+        :param end_time:
+            All candles before this.
+
+            Inclusive.
+
+        :param progress_bar_description:
+            Display a download progress bar using `tqdm_loggable` if given.
+
+        :return:
+            CLMM dataframe.
+
+            See :py:mod:`tradingstrategy.clmm` for details.
+        """
+
+        assert bucket <= TimeBucket.d1, f"It does not make sense to fetch CLMM data with higher frequency than a 1 day, got {bucket}"
+
+        if isinstance(start_time, pd.Timestamp):
+            start_time = start_time.to_pydatetime()
+
+        if isinstance(end_time, pd.Timestamp):
+            end_time = end_time.to_pydatetime()
+
+        assert len(pair_ids) > 0
+
+        return self.transport.fetch_clmm_liquidity_provision_candles_by_pair_ids(
+            pair_ids,
+            bucket,
+            start_time,
+            end_time,
+            progress_bar_description=progress_bar_description,
+        )
+
     def fetch_trading_data_availability(self,
           pair_ids: Collection[PrimaryKey],
           bucket: TimeBucket,
