@@ -421,14 +421,13 @@ class Client(BaseClient):
         """
 
         assert bucket <= TimeBucket.d1, f"It does not make sense to fetch CLMM data with higher frequency than a 1 day, got {bucket}"
+        assert len(pair_ids) > 0
 
         if isinstance(start_time, pd.Timestamp):
             start_time = start_time.to_pydatetime()
 
         if isinstance(end_time, pd.Timestamp):
             end_time = end_time.to_pydatetime()
-
-        assert len(pair_ids) > 0
 
         return self.transport.fetch_clmm_liquidity_provision_candles_by_pair_ids(
             pair_ids,

@@ -11,10 +11,11 @@ import re
 from contextlib import contextmanager
 from importlib.metadata import version
 from json import JSONDecodeError
-from typing import Optional, Callable, Set, Union, Collection, Dict, Literal, Tuple
+from typing import Optional, Callable, Union, Collection, Dict, Tuple
 import shutil
 import logging
 from pathlib import Path
+from urllib3 import Retry
 
 import pandas
 import pandas as pd
@@ -25,13 +26,13 @@ from requests.adapters import HTTPAdapter
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
-from tradingstrategy.environment.jupyter import download_with_tqdm_progress_bar
 from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.lending import LendingCandle, LendingCandleType
-from urllib3 import Retry
+from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
+
 
 from tqdm_loggable.auto import tqdm
 
@@ -852,7 +853,7 @@ class CachedHTTPTransport:
 
         full_fname = self.get_cached_file_path(cache_fname)
 
-        url = f"{self.endpoint}/clmm-liquidity"
+        url = f"{self.endpoint}/clmm-candles"
 
         with wait_other_writers(full_fname):
 

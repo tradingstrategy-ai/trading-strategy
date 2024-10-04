@@ -17,6 +17,7 @@ class CLMM:
     """
 
     def get_pyarrow_schema(cls) -> pa.Schema:
+        # This schema is based on the original example files in Demeter repo
         schema = pa.schema([
             ("pair_id", pa.int32()),
             ("bucket", pa.timestamp("s")),
