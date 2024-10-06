@@ -797,6 +797,8 @@ class CachedHTTPTransport:
                 end_time,
             )
 
+            df = df.set_index(["pair_id", "timestamp"])
+
             chunks.append(df)
 
             if progress_bar:
@@ -806,7 +808,6 @@ class CachedHTTPTransport:
             progress_bar.close()
 
         try:
-            import ipdb ; ipdb.set_trace()
             return pd.concat(chunks)
         except ValueError as e:
             # Happens only on Github CI
