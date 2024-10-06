@@ -377,7 +377,7 @@ class Client(BaseClient):
         bucket: TimeBucket,
         start_time: Optional[AnyTimestamp] = None,
         end_time: Optional[AnyTimestamp] = None,
-        progress_bar_description: Optional[str] = None,
+        progress_bar_description: Optional[str] = "Downloading CLMM data",
     ) -> pd.DataFrame:
         """Fetch CLMM liquidity provision candles.
 
@@ -412,6 +412,8 @@ class Client(BaseClient):
 
         :param progress_bar_description:
             Display a download progress bar using `tqdm_loggable` if given.
+
+            Set to `None` to disable.
 
         :return:
             CLMM dataframe.

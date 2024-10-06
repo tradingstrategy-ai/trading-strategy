@@ -58,6 +58,8 @@ def test_load_clmm_two_pairs_mixed_exchange(persistent_test_client: Client):
     assert clmm_df.attrs["cached"] is False, f"Cached at {clmm_df.attrs['path']}"
     assert len(clmm_df) == 64
 
+    # Do second round, the file should be now in a cache
+
     clmm_df = client.fetch_clmm_liquidity_provision_candles_by_pair_ids(
         [pair.pair_id, pair_2.pair_id],
         TimeBucket.d1,
