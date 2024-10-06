@@ -890,7 +890,13 @@ class CachedHTTPTransport:
                 size = pathlib.Path(path).stat().st_size
                 logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
 
-            return pandas.read_parquet(path)
+            df = pandas.read_parquet(path)
+
+            # Export cache metadata
+            df.attrs["cached"] = cached is not None
+            df.attrs["filesize"] = size
+            df.attrs["path"] = path
+            return df
 
     def fetch_trading_data_availability(self,
           pair_ids: Collection[PrimaryKey],

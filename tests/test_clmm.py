@@ -1,6 +1,7 @@
 """CLMM data tests."""
 
 import datetime
+from pathlib import Path
 
 import pytest
 from requests.adapters import HTTPAdapter
@@ -17,6 +18,10 @@ def test_load_clmm_two_pairs_mixed_exchange(persistent_test_client: Client):
     """Load CLMM data for two pairs on Uniswap v3."""
 
     client = persistent_test_client
+
+    # Clean cache before first download attempt
+    for p in Path(client.transport.cache_path).glob("clmm-*"):
+        p.unlink()
 
     exchange_universe = client.fetch_exchange_universe()
     pairs_df = client.fetch_pair_universe().to_pandas()
@@ -50,8 +55,18 @@ def test_load_clmm_two_pairs_mixed_exchange(persistent_test_client: Client):
         start_time=start,
         end_time=end,
     )
-
+    assert clmm_df.attrs["cached"] is False, f"Cached at {clmm_df.attrs['path']}"
     assert len(clmm_df) == 64
+
+    clmm_df = client.fetch_clmm_liquidity_provision_candles_by_pair_ids(
+        [pair.pair_id, pair_2.pair_id],
+        TimeBucket.d1,
+        start_time=start,
+        end_time=end,
+    )
+    assert clmm_df.attrs["cached"] is True
+    assert clmm_df.attrs["filesize"] > 0
+    assert clmm_df.attrs["path"] is not None
 
 
 def test_load_clmm_bad_pair(persistent_test_client: Client):
