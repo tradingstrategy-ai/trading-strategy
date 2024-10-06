@@ -805,8 +805,15 @@ class CachedHTTPTransport:
         if progress_bar:
             progress_bar.close()
 
-        return pd.concat(chunks)
-
+        try:
+            return pd.concat(chunks)
+        except ValueError as e:
+            # Happens only on Github CI
+            # https://stackoverflow.com/questions/27719407/pandas-concat-valueerror-shape-of-passed-values-is-blah-indices-imply-blah2
+            msg = ""
+            for c in chunks:
+                msg += f"Index: {c.index}\n"
+            raise ValueError(f"pd.concat() failed:\n{msg}") from e
 
     def fetch_clmm_liquidity_provision_candles_by_pair_ids(
         self,
