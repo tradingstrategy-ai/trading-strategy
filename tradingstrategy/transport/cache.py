@@ -11,10 +11,11 @@ import re
 from contextlib import contextmanager
 from importlib.metadata import version
 from json import JSONDecodeError
-from typing import Optional, Callable, Set, Union, Collection, Dict, Literal, Tuple
+from typing import Optional, Callable, Union, Collection, Dict, Tuple
 import shutil
 import logging
 from pathlib import Path
+from urllib3 import Retry
 
 import pandas
 import pandas as pd
@@ -30,7 +31,8 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.lending import LendingCandle, LendingCandleType
-from urllib3 import Retry
+from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
+
 
 from tqdm_loggable.auto import tqdm
 
@@ -795,6 +797,8 @@ class CachedHTTPTransport:
                 end_time,
             )
 
+            df = df.set_index(["pair_id", "timestamp"])
+
             chunks.append(df)
 
             if progress_bar:
@@ -803,7 +807,106 @@ class CachedHTTPTransport:
         if progress_bar:
             progress_bar.close()
 
-        return pd.concat(chunks)
+        try:
+            return pd.concat(chunks)
+        except ValueError as e:
+            # Happens only on Github CI
+            # https://stackoverflow.com/questions/27719407/pandas-concat-valueerror-shape-of-passed-values-is-blah-indices-imply-blah2
+            msg = ""
+            for c in chunks:
+                msg += f"Index: {c.index}\n"
+                msg += f"Data: {c}\n"
+            raise ValueError(f"pd.concat() failed:\n{msg}") from e
+
+    def fetch_clmm_liquidity_provision_candles_by_pair_ids(
+        self,
+        pair_ids: Collection[PrimaryKey],
+        time_bucket: TimeBucket,
+        start_time: Optional[datetime.datetime] = None,
+        end_time: Optional[datetime.datetime] = None,
+        progress_bar_description: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Stream CLMM Parquet data from the server.
+
+        For the candles format see :py:mod:`tradingstrategy.clmm`.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+            We should be able to handle unlimited pair count,
+            as we do one request per pair.
+
+        :param time_bucket:
+            Candle time frame
+
+        :param start_time:
+            All candles after this.
+            If not given start from genesis.
+
+        :param end_time:
+            All candles before this
+
+        :param progress_bar_description:
+            Display on downlood progress bar
+
+        :return:
+            CLMM dataframe.
+
+            See :py:mod:`tradingstrategy.clmm`.
+        """
+
+        cache_fname = self._generate_cache_name(
+            pair_ids, time_bucket, start_time, end_time,
+            candle_type="clmm"
+        )
+
+        full_fname = self.get_cached_file_path(cache_fname)
+
+        url = f"{self.endpoint}/clmm-candles"
+
+        with wait_other_writers(full_fname):
+
+            cached = self.get_cached_item(cache_fname)
+            path = self.get_cached_file_path(cache_fname)
+
+            if not cached:
+
+                params = {
+                    "pair_ids": ",".join([str(i) for i in pair_ids]),  # OpenAPI comma delimited array
+                    "time_bucket": time_bucket.value,
+                    "format": "parquet",
+                }
+
+                if start_time:
+                    params["start"] = start_time.isoformat()
+
+                if end_time:
+                    params["end"] = end_time.isoformat()
+
+                download_with_tqdm_progress_bar(
+                    session=self.requests,
+                    path=path,
+                    url=url,
+                    params=params,
+                    timeout=self.timeout,
+                    human_readable_hint=progress_bar_description,
+                )
+
+                size = pathlib.Path(path).stat().st_size
+                logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+            else:
+                size = pathlib.Path(path).stat().st_size
+                logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
+
+            df = pandas.read_parquet(path)
+
+            # Export cache metadata
+            df.attrs["cached"] = cached is not None
+            df.attrs["filesize"] = size
+            df.attrs["path"] = path
+            return df
 
     def fetch_trading_data_availability(self,
           pair_ids: Collection[PrimaryKey],
