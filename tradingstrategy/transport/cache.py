@@ -806,6 +806,7 @@ class CachedHTTPTransport:
             progress_bar.close()
 
         try:
+            import ipdb ; ipdb.set_trace()
             return pd.concat(chunks)
         except ValueError as e:
             # Happens only on Github CI
@@ -813,6 +814,7 @@ class CachedHTTPTransport:
             msg = ""
             for c in chunks:
                 msg += f"Index: {c.index}\n"
+                msg += f"Data: {c}\n"
             raise ValueError(f"pd.concat() failed:\n{msg}") from e
 
     def fetch_clmm_liquidity_provision_candles_by_pair_ids(
