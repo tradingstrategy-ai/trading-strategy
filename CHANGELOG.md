@@ -5,6 +5,7 @@
 - Add: `examine_price_between_time_anomalies()`- anomaly examination if open/close between days is a strange value
 - Add: `fix_prices_in_between_time_frames()`- to heal broken open/close entries caused by MEV bots
 - Add: `remove_min_max_price()`: Remove candles where open value is outside the floating point range
+- Add CLMM candle fetching, needed for Demeter based LP backtests: `Client.fetch_clmm_liquidity_provision_candles_by_pair_ids()`
 
 # 0.23
 
