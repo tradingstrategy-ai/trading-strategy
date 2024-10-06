@@ -389,6 +389,53 @@ class Client(BaseClient):
 
         - Responses are cached on the local file system
 
+        Example:
+
+        .. code-block:: python
+
+            import datetime
+            from tradingstrategy.pair import PandasPairUniverse
+            from tradingstrategy.timebucket import TimeBucket
+            from tradingstrategy.chain import ChainId
+
+
+            class DemeterParameters:
+                pair_descriptions = [
+                    (ChainId.arbitrum, "uniswap-v3", "WETH", "USDC", 0.0005)
+                ]
+                start = datetime.datetime(2024, 1, 1)
+                end = datetime.datetime(2024, 2, 1)
+                time_bucket = TimeBucket.m1
+                initial_cash = 10_000  # USDC
+                initial_base_token = 1  # WETH
+
+            # Load data needed to resolve pair human descriptions to internal ids
+            exchange_universe = client.fetch_exchange_universe()
+            pairs_df = client.fetch_pair_universe().to_pandas()
+            pair_universe = PandasPairUniverse(
+                pairs_df,
+                exchange_universe=exchange_universe,
+            )
+
+            # Load metadata for the chosen trading pairs (pools)
+            pair_metadata = [pair_universe.get_pair_by_human_description(desc) for desc in DemeterParameters.pair_descriptions]
+
+            # Map to internal pair primary keys
+            pair_ids = [pm.pair_id for pm in pair_metadata]
+
+            print("Pool addresses are", [(pm.get_ticker(), pm.pair_id, pm.address) for pm in pair_metadata])
+
+            # Load CLMM data for selected pairs
+            clmm_df = client.fetch_clmm_liquidity_provision_candles_by_pair_ids(
+                pair_ids,
+                DemeterParameters.time_bucket,
+                start_time=DemeterParameters.start,
+                end_time=DemeterParameters.end,
+            )
+
+            print("CLMM data sample is")
+            display(clmm_df.head(10))
+
         :param pair_ids:
             Trading pairs internal ids we query data for.
             Get internal ids from pair dataset.

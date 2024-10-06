@@ -1,5 +1,7 @@
 """Uniswap V3 CLMM data format for liquidity provision backtesting.
 
+- See :py:class:`tradingstrategy.client.Client.fetch_clmm_liquidity_provision_candles_by_pair_ids` for documentation.
+
 - `Read more about Concentrated Liquidity Market Making <https://tradingstrategy.ai/glossary/clmm>`__
 """
 from dataclasses import dataclass
