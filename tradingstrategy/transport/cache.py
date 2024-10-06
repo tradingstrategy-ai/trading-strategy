@@ -797,7 +797,9 @@ class CachedHTTPTransport:
                 end_time,
             )
 
-            df = df.set_index(["pair_id", "timestamp"])
+            # Work around pd.concat() problem for some reason fails on Github,
+            # see details below
+            df = df.set_index(["pair_id", "timestamp"], drop=False)
 
             chunks.append(df)
 
