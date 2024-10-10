@@ -36,7 +36,7 @@ Sponsor = "https://tradingstrategy.ai"
 # E.g. ethpm
 python = ">=3.10,<=3.12"
 dataclasses-json = "^0.5.4"
-pandas = "<2.2"
+pandas = "<3"
 pyarrow = "^14.0.1"
 tqdm = "^4.61.2"
 plotly = "^5.1.0"
