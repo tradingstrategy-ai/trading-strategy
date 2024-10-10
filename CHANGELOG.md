@@ -1,3 +1,7 @@
+# Current
+
+- TODO
+
 # 0.24
 
 - Dependencies: Upgrade to Pandas 2.x. [NumPy 2.x is still incompatible](https://stackoverflow.com/questions/78634235/numpy-dtype-size-changed-may-indicate-binary-incompatibility-expected-96-from).
