@@ -1,11 +1,12 @@
-# Current
+# 0.24
 
+- Dependencies: Upgrade to Pandas 2.x. [NumPy 2.x is still incompatible](https://stackoverflow.com/questions/78634235/numpy-dtype-size-changed-may-indicate-binary-incompatibility-expected-96-from).
 - Add: `aggregate_ohlcv_across_pairs()`: Aggregate volumen-weighted open/high/low/close/volume/liquidity across multiple trading pairs to create unified view of volume and liquidity for a single base token
 - Add: `Client.fetch_tvl_by_pair_ids()` to allow TVL/liquidity data loading for selected trading pairs
 - Add: `examine_price_between_time_anomalies()`- anomaly examination if open/close between days is a strange value
 - Add: `fix_prices_in_between_time_frames()`- to heal broken open/close entries caused by MEV bots
 - Add: `remove_min_max_price()`: Remove candles where open value is outside the floating point range
-- Add CLMM candle fetching, needed for Demeter based LP backtests: `Client.fetch_clmm_liquidity_provision_candles_by_pair_ids()`
+- Add: `Client.fetch_clmm_liquidity_provision_candles_by_pair_ids()` - CLMM candle fetching, needed for Demeter based LP backtests
 
 # 0.23
 

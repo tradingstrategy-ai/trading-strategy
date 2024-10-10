@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trading-strategy"
-version = "0.23.1"
+version = "0.24"
 description = "Algorithmic trading data for cryptocurrencies and DEXes like Uniswap, Aave and PancakeSwap"
 authors = ["Mikko Ohtamaa <mikko@tradingstrategy.ai>"]
 homepage = "https://tradingstrategy.ai"
@@ -37,7 +37,10 @@ Sponsor = "https://tradingstrategy.ai"
 python = ">=3.10,<=3.12"
 dataclasses-json = "^0.5.4"
 pandas = "<3"
-pyarrow = "^14.0.1"
+# numpy.dtype size changed, may indicate binary incompatibility. Expected 96 from C header, got 88 from PyObject
+# https://stackoverflow.com/questions/78634235/numpy-dtype-size-changed-may-indicate-binary-incompatibility-expected-96-from
+numpy = "<2"
+pyarrow = "^17.0.0"
 tqdm = "^4.61.2"
 plotly = "^5.1.0"
 jsonlines = "^3.1.0"
