@@ -769,7 +769,7 @@ class LendingMetricUniverse(PairGroupedUniverse):
             # We just use the last APR.
             ffill_indexer = df.index.get_indexer([start], method="ffill")
             before_match_iloc = ffill_indexer[0]
-            avg_apr = df["close"][before_match_iloc]
+            avg_apr = df["close"].iloc[before_match_iloc]
 
         else:
             # Calculate interest rate estimate based on the data
