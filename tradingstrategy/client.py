@@ -21,8 +21,10 @@ from typing import Final, Optional, Union, Collection, Dict
 
 import pandas as pd
 
+from tests.backtest.test_backtest_inline_real_data import exchange_slug, chain_id
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.reader import BrokenData, read_parquet
+from tradingstrategy.top import TopPairsReply
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey, AnyTimestamp
 from tradingstrategy.utils.jupyter import is_pyodide
@@ -737,6 +739,58 @@ class Client(BaseClient):
     def fetch_chain_status(self, chain_id: ChainId) -> dict:
         """Get live information about how a certain blockchain indexing and candle creation is doing."""
         return self.transport.fetch_chain_status(chain_id.value)
+
+    def fetch_top_pairs(
+        self,
+        chain_ids: Collection[ChainId],
+        exchange_slugs: Collection[str],
+        limit: int = 100,
+        method="sorted-by-liquidity-with-filtering",
+    ) -> TopPairsReply:
+        """Get new trading pairs to be included in the trading universe.
+
+        This endpoint is designed to scan new trading pairs to be included in a trading universe.
+        It ranks and filters the daily/weekly/etc. interesting trading pairs by a criteria.
+
+        The result data is asynchronously filled, and may not return the most fresh situation,
+        due to data processing delays. So when you call this method `24:00` it does not have
+        pairs for yesterday ready yet. The results may vary, but should reflect the look back of last 24h.
+
+        Various heuristics is applied to the result filtering, like excluding stable pairs,
+        derivative tokens, choosing the trading pair with the best fee, etc.
+
+        When you store the result, you need to use tuple `(chain id, pool address)` as the persistent key.
+        Any integer primary keys may change over long term.
+
+        **This API is still under heavy development**.
+
+        :param chain_ids:
+            List of blockchains to consider.
+
+        :param exchange_slugs:
+            List of DEXes to consider.
+
+        :param limit:
+            Number of pairs to query.
+
+        :param method:
+            Currently, hardcoded. No other methods supported.
+
+        :return:
+            Top trading pairs included and excluded in the ranking.
+        """
+
+        assert len(chain_ids) > 0, f"Got {chain_ids}"
+        assert len(exchange_slugs) > 0, f"Got {exchange_slugs}"
+        assert 1 < limit <= 500
+
+        data = self.transport.fetch_top_pairs(
+            chain_ids=chain_ids,
+            exchange_slugs=exchange_slugs,
+            limit=limit,
+        )
+
+        return TopPairsReply.from_dict(data)
 
     @classmethod
     def preflight_check(cls):

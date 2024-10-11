@@ -324,7 +324,7 @@ class CachedHTTPTransport:
         # https://stackoverflow.com/a/14114741/315168
         self.download_func(self.requests, fpath, url, params, self.timeout, human_readable_hint)
 
-    def get_json_response(self, api_path, params=None):
+    def get_json_response(self, api_path, params=None) -> dict:
         url = f"{self.endpoint}/{api_path}"
         logger.debug("get_json_response() %s, %s", url, params)
         response = self.requests.get(url, params=params)
@@ -339,6 +339,21 @@ class CachedHTTPTransport:
     def fetch_chain_status(self, chain_id: int) -> dict:
         """Not cached."""
         return self.get_json_response("chain-status", params={"chain_id": chain_id})
+
+    def fetch_top_pairs(
+        self,
+        limit: int,
+        chain_ids: Collection[ChainId],
+        exchange_slugs: Collection[str],
+    ) -> dict:
+        """Not cached."""
+        params = {
+            "chain_slugs": ",".join([c.get_slug() for c in chain_ids]),
+            "exchange_slugs": ",".join([e for e in exchange_slugs]),
+            "limit": str(limit),
+        }
+        resp = self.get_json_response("top", params=params)
+        return resp
 
     def fetch_pair_universe(self) -> pathlib.Path:
         fname = "pair-universe.parquet"
