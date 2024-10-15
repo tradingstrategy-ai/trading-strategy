@@ -21,7 +21,6 @@ from typing import Final, Optional, Union, Collection, Dict
 
 import pandas as pd
 
-from tests.backtest.test_backtest_inline_real_data import exchange_slug, chain_id
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.top import TopPairsReply
@@ -762,6 +761,11 @@ class Client(BaseClient):
         When you store the result, you need to use tuple `(chain id, pool address)` as the persistent key.
         Any integer primary keys may change over long term.
 
+        .. warning::
+
+            Depending on the available TokenSniffer data caching, this endpoint may
+            take up to 15 seconds per token.
+
         **This API is still under heavy development**.
 
         :param chain_ids:
@@ -789,7 +793,6 @@ class Client(BaseClient):
             exchange_slugs=exchange_slugs,
             limit=limit,
         )
-
         return TopPairsReply.from_dict(data)
 
     @classmethod
