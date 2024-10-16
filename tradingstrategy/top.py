@@ -117,7 +117,11 @@ class TopPairData:
     def __repr__(self):
         return f"<Pair {self.base_token} - {self.quote_token} on {self.exchange_slug}, address {self.pool_address} - reason {self.exclude_reason}>"
 
-    def get_persistent_id(self) -> str:
+    def get_ticker(self) -> str:
+        """Simple marker ticker identifier for this pair."""
+        return f"{self.base_token} - {self.quote_token}"
+
+    def get_persistent_string_id(self) -> str:
         """Stable id over long period of time and across different systems."""
         return f"{self.chain_id}-{self.pool_address}"
 

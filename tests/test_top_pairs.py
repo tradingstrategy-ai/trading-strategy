@@ -29,7 +29,7 @@ def test_load_top(persistent_test_client: Client):
     # Because this is a dynamic reply,
     # we just check accessor methods work
     for pair in top_reply.included:
-        assert pair.get_persistent_id() is not None
+        assert pair.get_persistent_string_id() is not None
         assert isinstance(pair.volume_updated_at, datetime.datetime)
         assert isinstance(pair.tvl_updated_at, datetime.datetime)
         assert isinstance(pair.queried_at, datetime.datetime)
