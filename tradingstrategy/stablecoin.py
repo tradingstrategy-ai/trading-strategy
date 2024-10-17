@@ -1,6 +1,6 @@
 """Stablecoin filtering.
 
-- See also :py:mod:`tradingstrategy.utils.token_filter` more more filtering functionality.
+- See also :py:mod:`tradingstrategy.utils.token_filter` for more token types and filtering functionality.
 
 """
 
