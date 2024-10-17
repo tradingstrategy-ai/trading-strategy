@@ -9,14 +9,15 @@ import numpy as np
 import logging
 import shutil
 import os
-
+from pathlib import Path
 from types import NoneType
 from typing import Dict, Literal, Iterable
+
+
 from tqdm_loggable.auto import tqdm
 
-from eth_defi.utils import to_unix_timestamp
+
 from tradingstrategy.timebucket import TimeBucket
-from pathlib import Path
 from tradingstrategy.utils.time import (
     generate_monthly_timestamps,
     naive_utcnow,
@@ -30,7 +31,7 @@ from tradingstrategy.lending import (
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.lending import convert_interest_rates_to_lending_candle_type_map
 from tradingstrategy.binance.constants import BINANCE_SUPPORTED_QUOTE_TOKENS, split_binance_symbol, DAYS_IN_YEAR
-
+from tradingstrategy.utils.time import to_unix_timestamp
 
 logger = logging.getLogger(__name__)
 

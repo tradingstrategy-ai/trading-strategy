@@ -22,7 +22,9 @@ from tradingstrategy.token import Token
 from tradingstrategy.types import UNIXTimestamp, PrimaryKey, TokenSymbol, Slug, NonChecksummedAddress, URL
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 
-from eth_defi.aave_v3.rates import SECONDS_PER_YEAR
+
+SECONDS_PER_YEAR_INT = 31_536_000
+SECONDS_PER_YEAR = Decimal(SECONDS_PER_YEAR_INT)
 
 
 class LendingProtocolType(str, Enum):

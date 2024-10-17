@@ -116,3 +116,27 @@ def floor_pandas_week(ts: pd.Timestamp) -> pd.Timestamp:
 def floor_pandas_month(ts: pd.Timestamp) -> pd.Timestamp:
     """Round Pandas timestamp to a start of a month."""
     return ts.to_period("M").start_time
+
+
+def to_unix_timestamp(dt: datetime.datetime) -> float:
+    """Convert Python UTC datetime to UNIX seconds since epoch.
+
+    Example:
+
+    .. code-block:: python
+
+        import datetime
+        from eth_defi.utils import to_unix_timestamp
+
+        dt = datetime.datetime(1970, 1, 1)
+        unix_time = to_unix_timestamp(dt)
+        assert unix_time == 0
+
+    :param dt:
+        Python datetime to convert
+
+    :return:
+        Datetime as seconds since 1970-1-1
+    """
+    # https://stackoverflow.com/a/5499906/315168
+    return calendar.timegm(dt.utctimetuple())

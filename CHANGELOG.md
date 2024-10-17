@@ -1,7 +1,8 @@
-# Current
+# 0.24.1
 
 - Add: `Client.fetch_top_pairs()` - create a helper function to create always expanding trading universe for external signal providers
 - Add: `forward_fill(forward_fill_until)`. The default behavior is to forward fill gaps between first and last candle. However the last candle might not be updated if we load live sparse data and there has been no trades (no candles). Force the forward fill to go until a certain timestamp.
+- Fix: Remove `eth_defi` imports, an optional dependency, in the core library  
 
 # 0.24
 
