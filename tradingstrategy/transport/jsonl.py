@@ -143,6 +143,8 @@ def load_trading_strategy_like_jsonl_data(
             #  {'error_id': 'CandleLookupError', 'message': 'Start and the same: 2024-10-17 18:00:0
             raise JSONLEndpointError(str(item))
 
+        current_ts = item["ts"]
+
         # Set progress bar start to the first timestamp
         if not progress_bar_start and progress_bar_description:
             progress_bar_start = current_ts
