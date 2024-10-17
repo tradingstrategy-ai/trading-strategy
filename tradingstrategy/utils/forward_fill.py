@@ -16,11 +16,15 @@
 
 
 """
-from typing import Tuple, Collection
+import logging
+
+from typing import Collection
 
 import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
+
+logger = logging.getLogger(__name__)
 
 def generate_future_filler_data(
     last_valid_row: pd.Series,
@@ -49,6 +53,7 @@ def fill_future_gap(
     df,
     timestamp: pd.Timestamp,
     columns: Collection[str],
+    pair_hint: str | None = None,
 ):
     """Add a virtual OHLCV value at the end of the pair OHLCV data series if there is no real value."""
 
@@ -65,6 +70,15 @@ def fill_future_gap(
         # Create a new row with the timestamp and the last valid entry's values]
         df.loc[timestamp] = data
 
+        logger.debug(
+            "Pair %s: Added data end marker at %s, last entry was %s",
+            pair_hint,
+            timestamp,
+            last_valid_ts
+        )
+    else:
+        logger.debug("Pair %s: no need to add data end marker", pair_hint)
+
     return df
 
 
@@ -76,10 +90,21 @@ def fill_future_gap_multi_pair(
     assert isinstance(grouped_df, DataFrameGroupBy)
 
     def _apply(df):
-        df = fill_future_gap(df, timestamp, columns)
+        df = fill_future_gap(
+            df,
+            timestamp,
+            columns,
+            pair_hint=df.name,
+        )
         return df
 
     fixed = grouped_df.apply(_apply)
+
+    # Annoying: sometimes we may have timestamp column, sometimes we don't
+    # depends on the caller and is not normalised
+    if "timestamp" in fixed.columns:
+        del fixed["timestamp"]
+
     return fixed.reset_index().set_index("timestamp").groupby("pair_id")
 
 
@@ -87,7 +112,7 @@ def forward_fill(
     single_or_multipair_data: pd.DataFrame | DataFrameGroupBy,
     freq: pd.DateOffset | str,
     columns: Collection[str] = ("open", "high", "low", "close", "volume", "timestamp"),
-    drop_other_columns=True,
+    drop_other_columns = True,
     forward_fill_until: pd.Timestamp | None = None,
 ) -> pd.DataFrame:
     """Forward-fill OHLCV data for multiple trading pairs.
@@ -199,6 +224,10 @@ def forward_fill(
         The removed columns include ones like `high` and `low`, but also Trading Strategy specific
         columns like `start_block` and `end_block`. It's unlikely we are going to need
         forward-filled data in these columns.
+
+        .. note ::
+
+            We have no logic for forward filling random columns, only mentioned columns.
 
     :param forward_fill_until:
         The timestamp which we know the data is valid for.

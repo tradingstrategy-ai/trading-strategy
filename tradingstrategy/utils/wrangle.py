@@ -22,6 +22,7 @@ import numpy as np
 from .time import naive_utcnow
 from .forward_fill import forward_fill as _forward_fill
 from ..pair import PandasPairUniverse
+from ..types import AnyTimestamp
 
 logger = logging.getLogger(__name__)
 
@@ -264,7 +265,7 @@ def fix_dex_price_data(
     min_max_price: tuple | None = DEFAULT_MIN_MAX_RANGE,
     remove_candles_with_zero: bool = True,
     pair_id_column="pair_id",
-    forward_fill_until: datetime.datetime | None = None,
+    forward_fill_until: AnyTimestamp | None = None,
 ) -> pd.DataFrame:
     """Wrangle DEX price data for all known issues.
 
@@ -421,9 +422,13 @@ def fix_dex_price_data(
         ff_df = raw_df
 
     if forward_fill:
+
+        if isinstance(forward_fill_until, datetime.datetime):
+            forward_fill_until = pd.Timestamp(forward_fill_until)
+
         logger.info("Forward filling price data")
         assert freq, "freq argument must be given if forward_fill=True"
-        df = _forward_fill(ff_df, freq)
+        df = _forward_fill(ff_df, freq, forward_fill_until=forward_fill_until)
         return df
     else:
         return raw_df
