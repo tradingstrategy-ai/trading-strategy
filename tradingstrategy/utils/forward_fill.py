@@ -220,6 +220,7 @@ def forward_fill(
     assert isinstance(single_or_multipair_data, (pd.DataFrame, DataFrameGroupBy))
     assert isinstance(freq, (pd.DateOffset, str)), f"Expected pd.DateOffset, got: {freq}"
 
+    original = single_or_multipair_data
     grouped = isinstance(single_or_multipair_data, DataFrameGroupBy)
 
     # https://www.statology.org/pandas-drop-all-columns-except/
@@ -263,14 +264,18 @@ def forward_fill(
                     # Fill open, high, low from the ffill'ed close.
                     single_or_multipair_data[column] = single_or_multipair_data[column].fillna(single_or_multipair_data["close"])
                 case "timestamp":
-                    assert not grouped, "cannot handle timestamp column in forward fill for multipair data"
+
+                    if grouped:
+                        check_columns = original.obj.columns
+                    else:
+                        check_columns = original.columns
 
                     if isinstance(single_or_multipair_data.index, pd.MultiIndex):
-                        if "timestamp" in single_or_multipair_data.obj.columns:
+                        if "timestamp" in check_columns:
                             # pair_id, timestamp index
                             single_or_multipair_data["timestamp"] = single_or_multipair_data.index.get_level_values(1)
                     elif isinstance(single_or_multipair_data.index, pd.DatetimeIndex):
-                        if "timestamp" in single_or_multipair_data.columns:
+                        if "timestamp" in check_columns:
                             # timestamp index
                             single_or_multipair_data["timestamp"] = single_or_multipair_data.index
                     else:
