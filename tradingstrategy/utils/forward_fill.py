@@ -248,6 +248,7 @@ def forward_fill(
 
     columns = set(columns)
 
+    # Force columns to be forward filled in a certain order
     # We always need to ffill close column first
     for column in ("close", "open", "high", "low", "volume", "timestamp"):
         if column in columns:
