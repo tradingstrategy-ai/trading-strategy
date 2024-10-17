@@ -27,6 +27,7 @@ def forward_fill(
     freq: pd.DateOffset | str,
     columns: Collection[str] = ("open", "high", "low", "close", "volume", "timestamp"),
     drop_other_columns=True,
+    forward_fill_until: pd.Timestamp | None = None,
 ) -> pd.DataFrame:
     """Forward-fill OHLCV data for multiple trading pairs.
 
@@ -137,6 +138,14 @@ def forward_fill(
         The removed columns include ones like `high` and `low`, but also Trading Strategy specific
         columns like `start_block` and `end_block`. It's unlikely we are going to need
         forward-filled data in these columns.
+
+    :param forward_fill_until:
+        The timestamp which we know the data is valid for.
+
+        If there are price gaps at rarely traded pairs at the end of the (live) OHLCV series,
+        we will forward fill the data until this timestamp.
+
+        If not given forward fills until the last trade of the pair.
 
     :return:
         DataFrame where each timestamp has a value set for columns.
