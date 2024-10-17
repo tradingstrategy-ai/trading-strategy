@@ -22,8 +22,69 @@ import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
 
+def generate_future_filler_data(
+    last_valid_row: pd.Series,
+    timestamp: pd.Timestamp,
+    columns: Collection[str],
+):
+    """Create a new placeholder OHLCV entry based on the last valid entry."""
+    new_row = {}
+    last_close = last_valid_row["close"]
+
+    for col in columns:
+        match col:
+            case "open" | "high" | "low" | "close":
+                new_row[col] = last_close
+            case "volume":
+                new_row[col] = 0
+            case "timestamp":
+                new_row[col] = timestamp
+            case _:
+                raise NotImplementedError(f"Unsupported column {col}")
+
+    return new_row
+
+
+def fill_future_gap(
+    df,
+    timestamp: pd.Timestamp,
+    columns: Collection[str],
+):
+    """Add a virtual OHLCV value at the end of the pair OHLCV data series if there is no real value."""
+
+    assert isinstance(df, pd.DataFrame)
+    assert isinstance(df.index, pd.DatetimeIndex), f"Expected DatetimeIndex index, got {type(df.index)}"
+
+    if timestamp not in df.index:
+        # Get the latest valid entry before the timestamp
+        last_valid_ts = df.index[-1]
+        last_valid_entry = df.loc[last_valid_ts]
+        data = generate_future_filler_data(
+            last_valid_entry, timestamp, columns
+        )
+        # Create a new row with the timestamp and the last valid entry's values]
+        df.loc[timestamp] = data
+
+    return df
+
+
+def fill_future_gap_multi_pair(
+    grouped_df,
+    timestamp: pd.Timestamp,
+    columns: Collection[str],
+):
+    assert isinstance(grouped_df, DataFrameGroupBy)
+
+    def _apply(df):
+        df = fill_future_gap(df, timestamp, columns)
+        return df
+
+    fixed = grouped_df.apply(_apply)
+    return fixed.reset_index().set_index("timestamp").groupby("pair_id")
+
+
 def forward_fill(
-    df: pd.DataFrame | DataFrameGroupBy,
+    single_or_multipair_data: pd.DataFrame | DataFrameGroupBy,
     freq: pd.DateOffset | str,
     columns: Collection[str] = ("open", "high", "low", "close", "volume", "timestamp"),
     drop_other_columns=True,
@@ -107,7 +168,7 @@ def forward_fill(
         flattened_df.to_parquet(fpath)
         print(f"Wrote {fpath} {os.path.getsize(fpath):,} bytes")
 
-    :param df:
+    :param single_or_multipair_data:
         Candle data for single or multiple trading pairs
 
         - GroupBy DataFrame containing candle data for multiple trading pairs
@@ -147,28 +208,46 @@ def forward_fill(
 
         If not given forward fills until the last trade of the pair.
 
+        The timestamp must match the index timestamp frequency      .
+
     :return:
         DataFrame where each timestamp has a value set for columns.
+
+        For multi pair data if input is `DataFrameGroupBy` then a similar `DataFrameGroupBy` is
+        returned.
     """
 
-    assert isinstance(df, (pd.DataFrame, DataFrameGroupBy))
+    assert isinstance(single_or_multipair_data, (pd.DataFrame, DataFrameGroupBy))
     assert isinstance(freq, (pd.DateOffset, str)), f"Expected pd.DateOffset, got: {freq}"
 
-    source = df
-
-    grouped = isinstance(df, DataFrameGroupBy)
+    grouped = isinstance(single_or_multipair_data, DataFrameGroupBy)
 
     # https://www.statology.org/pandas-drop-all-columns-except/
     if drop_other_columns:
-        df = df[list(columns)]
+        single_or_multipair_data = single_or_multipair_data[list(columns)]
+
+    # Set the end marker if we know when the data should end
+    if forward_fill_until is not None:
+        assert isinstance(forward_fill_until, pd.Timestamp), f"Got: {type(forward_fill_until)}"
+
+        if grouped:
+            single_or_multipair_data = fill_future_gap_multi_pair(single_or_multipair_data, forward_fill_until, columns)
+        else:
+            single_or_multipair_data = fill_future_gap(single_or_multipair_data, forward_fill_until, columns)
 
     # Fill missing timestamps with NaN
     # https://stackoverflow.com/a/45620300/315168
-    df = df.resample(freq).mean(numeric_only=True)
+    # This will also ungroup the data
+    single_or_multipair_data = single_or_multipair_data.resample(freq).mean(numeric_only=True)
+
+    if grouped:
+        # resample() will set pair_id to NaN
+        # fix here
+        single_or_multipair_data["pair_id"] = single_or_multipair_data.index.get_level_values('pair_id')
 
     columns = set(columns)
 
-    # We always need to ffill close first
+    # We always need to ffill close column first
     for column in ("close", "open", "high", "low", "volume", "timestamp"):
         if column in columns:
             columns.remove(column)
@@ -176,22 +255,24 @@ def forward_fill(
             match column:
                 case "volume":
                     # Sparse volume is 0
-                    df["volume"] = df["volume"].fillna(0.0)
+                    single_or_multipair_data["volume"] = single_or_multipair_data["volume"].fillna(0.0)
                 case "close":
                     # Sparse close is the previous close
-                    df["close"] = df["close"].fillna(method="ffill")
+                    single_or_multipair_data["close"] = single_or_multipair_data["close"].fillna(method="ffill")
                 case "open" | "high" | "low":
                     # Fill open, high, low from the ffill'ed close.
-                    df[column] = df[column].fillna(df["close"])
+                    single_or_multipair_data[column] = single_or_multipair_data[column].fillna(single_or_multipair_data["close"])
                 case "timestamp":
-                    if isinstance(df.index, pd.MultiIndex):
-                        if "timestamp" in source.obj.columns:
+                    assert not grouped, "cannot handle timestamp column in forward fill for multipair data"
+
+                    if isinstance(single_or_multipair_data.index, pd.MultiIndex):
+                        if "timestamp" in single_or_multipair_data.obj.columns:
                             # pair_id, timestamp index
-                            df["timestamp"] = df.index.get_level_values(1)
-                    elif isinstance(df.index, pd.DatetimeIndex):
-                        if "timestamp" in source.columns:
+                            single_or_multipair_data["timestamp"] = single_or_multipair_data.index.get_level_values(1)
+                    elif isinstance(single_or_multipair_data.index, pd.DatetimeIndex):
+                        if "timestamp" in single_or_multipair_data.columns:
                             # timestamp index
-                            df["timestamp"] = df.index
+                            single_or_multipair_data["timestamp"] = single_or_multipair_data.index
                     else:
                         raise NotImplementedError(f"Unknown column: {column} - forward_fill() does not know how to handle")
 
@@ -201,6 +282,7 @@ def forward_fill(
 
     # Regroup by pair, as this was the original data format
     if grouped:
-        df = df.groupby("pair_id")
+        single_or_multipair_data["timestamp"] = single_or_multipair_data.index.get_level_values('timestamp')
+        single_or_multipair_data = single_or_multipair_data.groupby(level="pair_id")
 
-    return df
+    return single_or_multipair_data

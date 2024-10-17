@@ -197,3 +197,85 @@ def test_forward_fill_too_early_multiple_pairs():
             pair=1,
             when=pd.Timestamp("2019-12-31"),
             tolerance=pd.Timedelta(7, "d"))
+
+
+def test_forward_fill_until_single_pair():
+    """Forward fill data missing data for a single pair, until a certain date."""
+
+    data = [
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-01"), 100.10),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-02"), 100.50),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-03"), 101.10),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-09"), 101.80),
+    ]
+
+    df = pd.DataFrame(data, columns=Candle.DATAFRAME_FIELDS)
+    df = df.set_index("timestamp", drop=False)
+
+    assert len(df) == 4
+
+    # Forward fill until the start of the next month
+    candles = forward_fill(
+        df,
+        TimeBucket.d1.to_frequency(),
+        forward_fill_until=pd.Timestamp("2020-02-01"),
+    )
+
+    assert len(candles) == 32
+
+    last_entry = candles.iloc[-1]
+    assert last_entry.open == pytest.approx(101.80)
+    assert last_entry.high == pytest.approx(101.80)
+    assert last_entry.low == pytest.approx(101.80)
+    assert last_entry.close == pytest.approx(101.80)
+    assert last_entry.volume == 0
+    assert last_entry.timestamp == pd.Timestamp("2020-02-01")
+
+
+def test_forward_fill_until_multi_pair():
+    """Forward fill data missing data for multiple pairs, until a certain date."""
+
+    data = [
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-01"), 100.10, volume=1000),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-02"), 100.50, volume=1000),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-03"), 101.10, volume=1000),
+        Candle.generate_synthetic_sample(1, pd.Timestamp("2020-01-09"), 101.80, volume=2000),
+
+        Candle.generate_synthetic_sample(2, pd.Timestamp("2020-01-01"), 2.5, volume=50),
+        Candle.generate_synthetic_sample(2, pd.Timestamp("2020-01-03"), 2.2, volume=50),
+        Candle.generate_synthetic_sample(2, pd.Timestamp("2020-01-05"), 2.1, volume=50),
+        Candle.generate_synthetic_sample(2, pd.Timestamp("2020-01-18"), 3.8, volume=100),
+
+    ]
+
+    df = pd.DataFrame(data, columns=Candle.DATAFRAME_FIELDS)
+    df = df.set_index("timestamp", drop=False)
+    grouped = df.groupby("pair_id")
+
+    # Forward fill until the start of the next month
+    candles_grouped = forward_fill(
+        grouped,
+        TimeBucket.d1.to_frequency(),
+        forward_fill_until=pd.Timestamp("2020-02-01"),
+        columns=("open", "high", "low", "close", "volume"),
+    )
+
+    candles = candles_grouped.get_group(1)
+    assert len(candles) == 32
+    last_entry = candles.iloc[-1]
+    assert last_entry.open == pytest.approx(101.80)
+    assert last_entry.high == pytest.approx(101.80)
+    assert last_entry.low == pytest.approx(101.80)
+    assert last_entry.close == pytest.approx(101.80)
+    assert last_entry.volume == 0
+    assert last_entry.timestamp == pd.Timestamp("2020-02-01")
+
+    candles = candles_grouped.get_group(2)
+    assert len(candles) == 32
+    last_entry = candles.iloc[-1]
+    assert last_entry.open == pytest.approx(3.8)
+    assert last_entry.high == pytest.approx(3.8)
+    assert last_entry.low == pytest.approx(3.8)
+    assert last_entry.close == pytest.approx(3.8)
+    assert last_entry.volume == 0
+    assert last_entry.timestamp == pd.Timestamp("2020-02-01")
