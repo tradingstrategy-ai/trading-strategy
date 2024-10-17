@@ -17,6 +17,7 @@
 
 """
 import logging
+import warnings
 
 from typing import Collection
 
@@ -269,7 +270,10 @@ def forward_fill(
     # Fill missing timestamps with NaN
     # https://stackoverflow.com/a/45620300/315168
     # This will also ungroup the data
-    single_or_multipair_data = single_or_multipair_data.resample(freq, include_groups=False).mean(numeric_only=True)
+    with warnings.catch_warnings():
+        # FutureWarning: https://stackoverflow.com/questions/77969964/deprecation-warning-with-groupby-apply
+        warnings.simplefilter("ignore")
+        single_or_multipair_data = single_or_multipair_data.resample(freq).mean(numeric_only=True)
 
     if grouped:
         # resample() will set pair_id to NaN
