@@ -269,7 +269,7 @@ def forward_fill(
     # Fill missing timestamps with NaN
     # https://stackoverflow.com/a/45620300/315168
     # This will also ungroup the data
-    single_or_multipair_data = single_or_multipair_data.resample(freq).mean(numeric_only=True)
+    single_or_multipair_data = single_or_multipair_data.resample(freq, include_groups=False).mean(numeric_only=True)
 
     if grouped:
         # resample() will set pair_id to NaN
