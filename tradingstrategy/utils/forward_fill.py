@@ -26,6 +26,7 @@ from pandas.core.groupby import DataFrameGroupBy
 
 logger = logging.getLogger(__name__)
 
+
 def generate_future_filler_data(
     last_valid_row: pd.Series,
     timestamp: pd.Timestamp,

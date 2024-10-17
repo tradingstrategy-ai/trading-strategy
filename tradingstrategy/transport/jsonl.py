@@ -13,6 +13,7 @@ from typing import Optional, Dict, Set
 
 import requests
 import jsonlines
+from lxml.xslt import message
 from numpy import NaN
 from tqdm_loggable.auto import tqdm
 
@@ -50,6 +51,10 @@ class JSONLMaxResponseSizeExceeded(Exception):
 
 
 class NoJSONLData(Exception):
+    """Server did not return any data for some reason."""
+
+
+class JSONLEndpointError(Exception):
     """Server did not return any data for some reason."""
 
 
@@ -131,11 +136,13 @@ def load_trading_strategy_like_jsonl_data(
     # Massage the format good for pandas
     for idx, item in enumerate(reader):
 
-        # Stream terminated
+        # Stream terminated forcefully
         if "error" in item:
             raise JSONLMaxResponseSizeExceeded(str(item))
 
-        current_ts = item["ts"]
+        if "error_id" in item:
+            #  {'error_id': 'CandleLookupError', 'message': 'Start and the same: 2024-10-17 18:00:0
+            raise JSONLEndpointError(str(item))
 
         # Set progress bar start to the first timestamp
         if not progress_bar_start and progress_bar_description:
