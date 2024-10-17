@@ -3,7 +3,6 @@
 - See also :py:mod:`tradingstrategy.utils.token_filter` more more filtering functionality.
 
 """
-import warnings
 
 #: Token symbols that are stablecoin like.
 #: Note that it is *not* safe to to check the token symbol to know if a token is a specific stablecoin,
@@ -38,8 +37,3 @@ def is_stablecoin_like(token_symbol: str, symbol_list=ALL_STABLECOIN_LIKE) -> bo
     assert isinstance(token_symbol, str), f"We got {token_symbol}"
     return (token_symbol in symbol_list)
 
-
-def is_derivative(token_symbol: str) -> bool:
-    # Legacy import
-    warnings.warn("is_derivative() has been deprecated in the favour of tradingstrategy.utils.token_filter.is_derivative()", DeprecationWarning, stacklevel=2)
-    return is_derivative(token_symbol)
