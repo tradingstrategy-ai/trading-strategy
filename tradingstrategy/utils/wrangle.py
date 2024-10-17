@@ -264,6 +264,7 @@ def fix_dex_price_data(
     min_max_price: tuple | None = DEFAULT_MIN_MAX_RANGE,
     remove_candles_with_zero: bool = True,
     pair_id_column="pair_id",
+    forward_fill_until: datetime.datetime | None = None,
 ) -> pd.DataFrame:
     """Wrangle DEX price data for all known issues.
 
@@ -355,6 +356,14 @@ def fix_dex_price_data(
         Forward-filling data will delete any unknown columns,
         see :py:func:`tradingstrategy.utils.forward_fill.forward_fill` details.
 
+    :param forward_fill_until:
+        The timestamp which we know the data is valid for.
+
+        If there are price gaps at rarely traded pairs at the end of the (live) OHLCV series,
+        we will forward fill the data until this timestamp.
+
+        If not given forward fills until the last trade of the pair.
+
     :return:
         Fixed data frame.
 
@@ -395,6 +404,8 @@ def fix_dex_price_data(
 
         # Need to group here
         # TODO: Make this smarter, but how? Read index data in groupby instance?
+        assert "timestamp" in raw_df.columns, f"Got {raw_df.columns}"
+
         regrouped = raw_df.set_index("timestamp", drop=False).groupby(pair_id_column, group_keys=True)
 
         logger.info("Fixing prices having bad open/close values between timeframes: %s", fix_inbetween_threshold)

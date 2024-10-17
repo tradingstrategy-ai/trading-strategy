@@ -222,9 +222,11 @@ class Candle:
 
     @staticmethod
     def generate_synthetic_sample(
-            pair_id: int,
-            timestamp: pd.Timestamp,
-            price: float) -> dict:
+        pair_id: int,
+        timestamp: pd.Timestamp,
+        price: float,
+        volume: float | None = None,
+    ) -> dict:
         """Generate a candle dataframe.
 
         Used in testing when manually fiddled data is needed.
@@ -250,7 +252,7 @@ class Candle:
             "avg": 0,
             "start_block": 0,
             "end_block": 0,
-            "volume": 0,
+            "volume": 0 if volume is None else volume,
             "buy_volume": 0,
             "sell_volume": 0,
         }

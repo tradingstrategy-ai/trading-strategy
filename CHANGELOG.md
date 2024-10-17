@@ -1,7 +1,8 @@
 # Current
 
-- Add: `Client.fetch_top_pairs()`
-- 
+- Add: `Client.fetch_top_pairs()` - create a helper function to create always expanding trading universe for external signal providers
+- Add: `forward_fill(forward_fill_until)`. The default behavior is to forward fill gaps between first and last candle. However the last candle might not be updated if we load live sparse data and there has been no trades (no candles). Force the forward fill to go until a certain timestamp.
+
 # 0.24
 
 - Dependencies: Upgrade to Pandas 2.x. [NumPy 2.x is still incompatible](https://stackoverflow.com/questions/78634235/numpy-dtype-size-changed-may-indicate-binary-incompatibility-expected-96-from).
