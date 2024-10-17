@@ -42,6 +42,23 @@ DEFAULT_GOOD_EXCHANGES = ("uniswap-v2", "uniswap-v3", "trader-joe", "sushi", "pa
 #:
 DERIVATIVE_TOKEN_PREFIXES = ["wst", "os", "3Crv", "gOHM", "st", "bl", "ETH2x"]
 
+# Not all stablecoins, but not desirable trading pairs
+AAVE_TOKENS = ('AAAVE', 'AAMMBPTBALWETH', 'AAMMBPTWBTCWETH', 'AAMMDAI', 'AAMMUNIAAVEWETH', 'AAMMUNIBATWETH', 'AAMMUNICRVWETH', 'AAMMUNIDAIUSDC', 'AAMMUNIDAIWETH', 'AAMMUNILINKWETH', 'AAMMUNIMKRWETH', 'AAMMUNIRENWETH', 'AAMMUNISNXWETH', 'AAMMUNIUNIWETH', 'AAMMUNIUSDCWETH', 'AAMMUNIWBTCUSDC', 'AAMMUNIWBTCWETH', 'AAMMUNIYFIWETH', 'AAMMUSDC', 'AAMMUSDT', 'AAMMWBTC', 'AAMMWETH', 'ABAL', 'ABAT', 'ABUSD', 'ACRV', 'ADAI', 'AENJ', 'AETH', 'AGUSD', 'ASTETH', 'AKNC', 'ALINK', 'AMANA', 'AMKR', 'AMAAVE', 'AMDAI', 'AMUSDC', 'AMUSDT', 'AMWBTC', 'AMWETH', 'AMWMATIC', 'ARAI', 'AREN', 'ASNX', 'ASUSD', 'ATUSD', 'AUNI', 'AUSDC', 'AUSDT', 'A1INCH', 'AAGEUR', 'AARB', 'ABTC.B', 'ACBETH', 'ADPI', 'AENS', 'AEURE', 'AEURS', 'AFRAX', 'AGHST', 'AGNO', 'ALDO', 'ALUSD', 'AMAI', 'AMATICX', 'AMETIS', 'AOP', 'ARETH', 'ARPL', 'ASAVAX', 'ASDAI', 'ASTG', 'ASTMATIC', 'ASUSHI', 'AUSDBC', 'AUSDC.E', 'AWAVAX', 'AWBTC', 'AWETH', 'AWMATIC', 'AWSTETH', 'AXSUSHI', 'AYFI', 'AZRX', 'AM3CRV')
+
+# ETH liquid staking tokens.
+# Derivates of ETH
+LIQUID_RESTAKING_TOKENS = ('WSTETH', 'WEETH', 'EETH', 'INETH', 'INSFRXETH', 'INANKRETH', 'INCBETH', 'INETHX', 'INLSETH', 'INMETH', 'INOETH', 'INOSETH', 'INRETH', 'INSTETH', 'INSWETH', 'INWBETH', 'RSETH', 'EZETH', 'RSWETH')
+
+# Staking derivates
+ETH_2_STAKING = ('ANKRETH', 'BETH', 'CBETH', 'GETH', 'STETH', 'SFRXETH', 'OSETH', 'RETH')
+
+#: All derivative tokens
+#:
+#: See also `DERIVATIVE_TOKEN_PREFIXES`
+#:
+#: converted to set for faster lookup
+#:
+ALL_DERIVATIVE_TOKENS = set(AAVE_TOKENS + LIQUID_RESTAKING_TOKENS + ETH_2_STAKING)
 
 #: Tokens that are known to rebase
 #:
@@ -581,6 +598,8 @@ def is_derivative(token_symbol: TokenSymbol) -> bool:
         True if token symbol matches a common known derivative token symbol pattern
     """
     assert isinstance(token_symbol, str), f"We got {token_symbol}"
+    if token_symbol.upper() in ALL_DERIVATIVE_TOKENS:
+        return True
     return any(token_symbol.startswith(prefix) for prefix in DERIVATIVE_TOKEN_PREFIXES)
 
 
