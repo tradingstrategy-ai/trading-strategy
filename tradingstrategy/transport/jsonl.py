@@ -13,7 +13,6 @@ from typing import Optional, Dict, Set
 
 import requests
 import jsonlines
-from lxml.xslt import message
 from numpy import NaN
 from tqdm_loggable.auto import tqdm
 
