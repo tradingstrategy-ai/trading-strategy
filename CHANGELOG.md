@@ -1,3 +1,7 @@
+# Current
+
+- TODO
+
 # 0.24.1
 
 - Add: `Client.fetch_top_pairs()` - create a helper function to create always expanding trading universe for external signal providers
