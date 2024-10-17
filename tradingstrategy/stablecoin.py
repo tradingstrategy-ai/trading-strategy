@@ -3,6 +3,7 @@
 - See also :py:mod:`tradingstrategy.utils.token_filter` more more filtering functionality.
 
 """
+import warnings
 
 #: Token symbols that are stablecoin like.
 #: Note that it is *not* safe to to check the token symbol to know if a token is a specific stablecoin,
