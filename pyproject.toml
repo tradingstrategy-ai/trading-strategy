@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trading-strategy"
-version = "0.24.1"
+version = "0.24.3"
 description = "Algorithmic trading data for cryptocurrencies and DEXes like Uniswap, Aave and PancakeSwap"
 authors = ["Mikko Ohtamaa <mikko@tradingstrategy.ai>"]
 homepage = "https://tradingstrategy.ai"
@@ -34,7 +34,7 @@ Sponsor = "https://tradingstrategy.ai"
 [tool.poetry.dependencies]
 # Web3.py dependency compatibility
 # E.g. ethpm
-python = ">=3.10,<=3.12"
+python = ">=3.10,<3.13"
 dataclasses-json = "^0.5.4"
 pandas = "<3"
 # numpy.dtype size changed, may indicate binary incompatibility. Expected 96 from C header, got 88 from PyObject

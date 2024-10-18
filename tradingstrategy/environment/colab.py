@@ -1,8 +1,8 @@
 from tradingstrategy.environment.base import Environment
-from tradingstrategy.environment.jupyter import JupyterEnvironment
+from tradingstrategy.environment.jupyter import DefaultClientEnvironment
 
 
-class ColabEnvironment(JupyterEnvironment):
+class ColabEnvironment(DefaultClientEnvironment):
 
     def start(self):
         pass

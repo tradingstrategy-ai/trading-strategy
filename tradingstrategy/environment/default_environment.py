@@ -1,4 +1,3 @@
-import functools
 import logging
 import os
 import platform
@@ -30,6 +29,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SETTINGS_PATH = Path(os.path.expanduser("~/.tradingstrategy"))
 
 
+
 class SettingsDisabled(Exception):
     """Raised when the user tries to create/read settings file when it is purposefully disabled.
 
@@ -37,13 +37,18 @@ class SettingsDisabled(Exception):
     """
 
 
-class JupyterEnvironment(Environment):
-    """Define paths and setup processes when using Capitalgram from any local Jupyter Notebook installation"""
+class DefaultClientEnvironment(Environment):
+    """Sets up an application cache and settings.
+
+    - Use default `~/.cache` and `~/.tradingstrategy/settings.json` storage in your home folder.
+
+    - Locations can be overwritten e.g. in unit testes to temp paths
+    """
 
     def __init__(
         self,
         cache_path=None,
-        settings_path: Path | None = DEFAULT_SETTINGS_PATH,
+        settings_path=DEFAULT_SETTINGS_PATH,
     ):
         """CReate environment.
 

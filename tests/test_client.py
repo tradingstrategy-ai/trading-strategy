@@ -2,11 +2,10 @@
 
 import os
 import logging
-from pathlib import Path
 
 import pytest
 
-from tradingstrategy.environment.jupyter import JupyterEnvironment, SettingsDisabled
+from tradingstrategy.environment.default_environment import DefaultClientEnvironment, SettingsDisabled
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
 from tradingstrategy.chain import ChainId
@@ -134,7 +133,7 @@ def test_client_convert_all_pairs_to_pandas(client: Client, cache_path: str):
 
 def test_create_pyodide_client_detect():
     """Test the special client used in Pyodide which use HTTP referral authentication."""
-    env = JupyterEnvironment()
+    env = DefaultClientEnvironment()
     env.clear_configuration()
     client = Client.create_jupyter_client(pyodide=True)
 
@@ -162,6 +161,6 @@ def test_settings_disabled():
 
     client = Client.create_live_client(api_key=api_key, settings_path=None)
     env = client.env
-    assert isinstance(env, JupyterEnvironment)
+    assert isinstance(env, DefaultClientEnvironment)
     with pytest.raises(SettingsDisabled):
         env.setup_on_demand()
