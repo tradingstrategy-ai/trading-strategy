@@ -22,3 +22,5 @@ jobs:
     - name: Run test scripts
       run: |
         bash scripts/standalone-test.sh
+      env:
+        TRADING_STRATEGY_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}
