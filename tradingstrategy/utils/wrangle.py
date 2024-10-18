@@ -15,7 +15,6 @@ import datetime
 from itertools import islice
 
 import pandas as pd
-from IPython.testing.plugin.pytest_ipdoctest import ipdoctest_namespace
 from pandas.core.groupby import DataFrameGroupBy
 import numpy as np
 

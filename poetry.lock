@@ -1947,6 +1947,23 @@ files = [
 all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
 
 [[package]]
+name = "importchecker"
+version = "3.0"
+description = "Importchecker finds unused imports in Python modules."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "importchecker-3.0-py3-none-any.whl", hash = "sha256:8eba2f85ffef681a65c678f6877c41e1f836cfcbd7df0a4132dcef0cf3b7a6f3"},
+    {file = "importchecker-3.0.tar.gz", hash = "sha256:ce4fd5bd697d4b36bf2816a6c3675e66b620abed550f60b89edf9e2b99055c57"},
+]
+
+[package.dependencies]
+setuptools = "*"
+
+[package.extras]
+test = ["zope.testrunner"]
+
+[[package]]
 name = "importlib-metadata"
 version = "8.5.0"
 description = "Read metadata from Python packages"
@@ -5862,4 +5879,4 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<=3.12"
-content-hash = "c62f11846b17b3d4d2c1b5d24dc9df1c06bc9f4a3c35c8bf2c3d39f05b61a5c0"
+content-hash = "9e587e8d1876f2fe09ba75aa1277a633801e502bd3344dc37263c3b67e237748"

@@ -2,6 +2,10 @@
 
 - TODO
 
+# 0.24.2
+
+- Fix: Bad import line in `tradingstrategty.utils.wrangle` making the library not to import properly
+
 # 0.24.1
 
 - Add: `Client.fetch_top_pairs()` - create a helper function to create always expanding trading universe for external signal providers
