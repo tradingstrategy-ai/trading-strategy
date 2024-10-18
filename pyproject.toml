@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trading-strategy"
-version = "0.24.1"
+version = "0.24.2"
 description = "Algorithmic trading data for cryptocurrencies and DEXes like Uniswap, Aave and PancakeSwap"
 authors = ["Mikko Ohtamaa <mikko@tradingstrategy.ai>"]
 homepage = "https://tradingstrategy.ai"

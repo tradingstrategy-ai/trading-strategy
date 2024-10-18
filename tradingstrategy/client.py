@@ -22,11 +22,11 @@ from typing import Final, Optional, Union, Collection, Dict
 import pandas as pd
 
 from tradingstrategy.candle import TradingPairDataAvailability
+from tradingstrategy.environment.default_environment import DefaultClientEnvironment, DEFAULT_SETTINGS_PATH
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.top import TopPairsReply
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey, AnyTimestamp
-from tradingstrategy.utils.jupyter import is_pyodide
 from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType, LendingCandleResult
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
@@ -50,10 +50,7 @@ from pyarrow import Table
 from tradingstrategy.chain import ChainId
 from tradingstrategy.environment.base import Environment, download_with_progress_plain
 from tradingstrategy.environment.config import Configuration
-from tradingstrategy.environment.jupyter import (
-    JupyterEnvironment,
-    download_with_tqdm_progress_bar, DEFAULT_SETTINGS_PATH,
-)
+
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import CachedHTTPTransport, DataNotAvailable
@@ -857,15 +854,20 @@ class Client(BaseClient):
         return cls.create_jupyter_client(cache_path, api_key, pyodide=True)
 
     @classmethod
-    def create_jupyter_client(cls,
-                              cache_path: Optional[str] = None,
-                              api_key: Optional[str] = None,
-                              pyodide=None,
-                              settings_path=DEFAULT_SETTINGS_PATH,
-                              ) -> "Client":
+    def create_jupyter_client(
+        cls,
+        cache_path: Optional[str] = None,
+        api_key: Optional[str] = None,
+        pyodide=None,
+        settings_path=DEFAULT_SETTINGS_PATH,
+    ) -> "Client":
         """Create a new API client.
 
         This function is intended to be used from Jupyter notebooks
+
+        .. note ::
+
+            Only use within Jupyter Notebook environments. Otherwise use :py:meth:`create_live_client`.
 
         - Any local or server-side IPython session
 
@@ -890,11 +892,17 @@ class Client(BaseClient):
 
         """
 
+        from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_barl
+
         if pyodide is None:
-            pyodide = is_pyodide()
+            try:
+                from tradingstrategy.utils.jupyter import is_pyodide
+                pyodide = is_pyodide()
+            except ImportError:
+                pyodide = False
 
         cls.preflight_check()
-        env = JupyterEnvironment(settings_path=settings_path)
+        env = DefaultClientEnvironment(settings_path=settings_path)
 
         # Try Pyodide default key
         if not api_key:
@@ -913,6 +921,7 @@ class Client(BaseClient):
             api_key = config.api_key
 
         cache_path = cache_path or env.get_cache_path()
+
         transport = CachedHTTPTransport(
             download_with_tqdm_progress_bar,
             cache_path=cache_path,
@@ -929,6 +938,7 @@ class Client(BaseClient):
         By default, the test client caches data under `/tmp` folder.
         Tests do not clear this folder between test runs, to make tests faster.
         """
+
         if cache_path:
             os.makedirs(cache_path, exist_ok=True)
         else:
@@ -937,7 +947,7 @@ class Client(BaseClient):
         api_key = os.environ.get("TRADING_STRATEGY_API_KEY")
         assert api_key, "Unit test data client cannot be created without TRADING_STRATEGY_API_KEY env"
 
-        env = JupyterEnvironment(cache_path=cache_path, settings_path=None)
+        env = DefaultClientEnvironment(cache_path=cache_path, settings_path=None)
         config = Configuration(api_key=api_key)
         transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", api_key=config.api_key, cache_path=env.get_cache_path(), timeout=15)
         return Client(env, transport)
@@ -952,8 +962,6 @@ class Client(BaseClient):
         """Create a live trading instance of the client.
 
         - The live client is non-interactive and logs using Python logger
-
-        - No interactive progress bars are set up
 
         :param api_key:
             Trading Strategy oracle API key, starts with `secret-token:tradingstrategy-...`
@@ -972,7 +980,7 @@ class Client(BaseClient):
         if settings_path is None:
             assert api_key, "Either API key or settings file must be given"
 
-        env = JupyterEnvironment(settings_path=settings_path)
+        env = DefaultClientEnvironment(settings_path=settings_path)
         if cache_path:
             cache_path = cache_path.as_posix()
         else:
