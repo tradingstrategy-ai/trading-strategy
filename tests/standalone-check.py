@@ -5,6 +5,9 @@
 See scripts/standalone-test.sh
 """
 
+print("Starting standalone check")
+
+import os
 
 import pandas as pd
 
@@ -13,10 +16,11 @@ from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 
-pd.options.display.max_columns = None
-pd.set_option("display.width", 5000)
-
-client = Client.create_live_client()
+# For use the given test API key
+client = Client.create_live_client(
+    settings_path=None,
+    api_key=os.environ["TRADING_STRATEGY_API_KEY"],
+)
 # Load pairs in all exchange
 exchange_universe = client.fetch_exchange_universe()
 pairs_df = client.fetch_pair_universe().to_pandas()
@@ -36,3 +40,5 @@ clmm_df = client.fetch_clmm_liquidity_provision_candles_by_pair_ids(
     start_time=start,
     end_time=end,
 )
+
+assert len(clmm_df) > 0
