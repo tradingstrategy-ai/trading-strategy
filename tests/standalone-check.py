@@ -16,6 +16,12 @@ from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 
+try:
+    import IPython
+    raise RuntimeError("IPython must not be installed for this script to run")
+except ImportError:
+    pass
+
 # For use the given test API key
 client = Client.create_live_client(
     settings_path=None,

@@ -1,6 +1,6 @@
 # Current
 
-- TODO
+- Fix: Allow to run without Jupyter notebook/IPython installed. Make sure you use `Client.create_live_client()` instead of `Client.create_jupyter_Client()` 
 
 # 0.24.2
 

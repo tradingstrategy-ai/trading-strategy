@@ -1,4 +1,5 @@
-name: Standalone script wo/optional deps test
+# Make sure we can install Jupyter notebook free environments
+name: Standalone install wo/optional deps test
 
 on:
   push:
