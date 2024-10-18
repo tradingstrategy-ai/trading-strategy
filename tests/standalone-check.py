@@ -22,7 +22,8 @@ try:
 except ImportError:
     pass
 
-# For use the given test API key
+# Disable the settings file.
+# API key must be given in an environment variable.
 client = Client.create_live_client(
     settings_path=None,
     api_key=os.environ["TRADING_STRATEGY_API_KEY"],
