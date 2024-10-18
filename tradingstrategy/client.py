@@ -892,7 +892,7 @@ class Client(BaseClient):
 
         """
 
-        from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_barl
+        from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
 
         if pyodide is None:
             try:

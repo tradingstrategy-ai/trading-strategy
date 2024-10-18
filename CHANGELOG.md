@@ -1,6 +1,7 @@
-# Current
+# 0.24.3
 
-- Fix: Allow to run without Jupyter notebook/IPython installed. Make sure you use `Client.create_live_client()` instead of `Client.create_jupyter_Client()` 
+- Fix: Allow to run without Jupyter notebook/IPython installed. Make sure you use `Client.create_live_client()` instead of `Client.create_jupyter_client()`
+- Fix: Python version pindown `<3.13` instead of `<=3.12` as the pip did not allow minor versions like `3.12.7`
 
 # 0.24.2
 
