@@ -963,6 +963,8 @@ class Client(BaseClient):
 
         - The live client is non-interactive and logs using Python logger
 
+        - If you want to run inside notebook, use :py:meth:`create_jupyter_client` instead
+
         :param api_key:
             Trading Strategy oracle API key, starts with `secret-token:tradingstrategy-...`
 
