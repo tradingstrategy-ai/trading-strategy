@@ -649,6 +649,8 @@ def normalise_volume(df: pd.DataFrame) -> pd.DataFrame:
 
     - Run before :py:func:`fix_dex_price_data`
 
+    - The root cause is that uniswap_v2 tracks buy and sell volume, whileas for uniswap v3 we track only volume in the source data
+
     :return:
         DataFrame where column "volume" is properly filled for all different DEXes.
     """
