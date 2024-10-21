@@ -21,19 +21,19 @@ logger = logging.getLogger(__name__)
 class CoingeckoEntry(TypedDict):
     """CoinGecko data wrapper"""
 
-    #: Response of coin list
+    #: Coingecko response of coin id data for the token.
     #:
     #: See :py:func:`fetch_coingecko_coin_list`
     #:
     id: dict
 
-    #: Response of market cap
+    #: Coingecko response of market cap data for the token.
     #:
     #: See :py:func:`fetch_coingecko_coin_list_with_market_cap`
     #:
     market_cap: dict
 
-    #: Response of coin data
+    #: Coingecko response of coin data for the token.
     #:
     #: See :py:func:`fetch_coingecko_coin_data`
     #:

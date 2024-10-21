@@ -33,11 +33,11 @@ def main():
     pages = 1
     per_page = 5
 
+    fname = Path(os.path.join(os.path.dirname(__file__))) / ".." / "trading-strategy", "data_bundles", "coingecko.json.zstd"
+    fname = fname.resolve()
+
     client = create_client(os.environ["COINGECKO_API_KEY"], demo=True)
     data = fetch_top_coins(client, pages=pages, per_page=per_page)
-    fname = Path(os.path.join(os.path.dirname(__file__))) / ".." / "trading-strategy", "data_bundles", "coingecko.json.zstd"
-
-    fname = fname.resolve()
 
     universe = CoingeckoUniverse(data)
     universe.save(fname)
