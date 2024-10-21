@@ -628,3 +628,21 @@ def examine_anomalies(
 
     return issues_found
 
+
+def normalise_volume(df: pd.DataFrame) -> pd.DataFrame:
+    """Clean volume data columns.
+
+    - We have different ways to track volume depending on the DEX type
+
+    - The underlying nuances should not matter
+
+    - Normalise volume across all DEXes
+
+    - Run before :py:func:`fix_dex_price_data`
+    """
+
+    assert isinstance(df, pd.DataFrame)
+    columns = df.columns
+    assert "buy_volume" in columns, f"Assume we have buy_volume and sell_volume, we got {columns}"
+    df["volume"] = df["buy_volume"] + df["sell_volume"]
+    return df

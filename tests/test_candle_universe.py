@@ -1,12 +1,10 @@
 """Candle universe loading tests."""
 
 import datetime
-import os
 
 import pandas
 import pandas as pd
 import pytest
-from numpy.ma.core import anomalies
 from pandas import Timestamp
 from pandas.core.groupby import DataFrameGroupBy
 
@@ -18,7 +16,7 @@ from tradingstrategy.reader import read_parquet
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import JSONLMaxResponseSizeExceeded
 from tradingstrategy.utils.groupeduniverse import resample_candles, resample_dataframe, resample_price_series
-from tradingstrategy.utils.wrangle import examine_anomalies, fix_prices_in_between_time_frames, examine_price_between_time_anomalies, fix_dex_price_data
+from tradingstrategy.utils.wrangle import examine_anomalies, fix_prices_in_between_time_frames, examine_price_between_time_anomalies, fix_dex_price_data, normalise_volume
 
 
 def test_grouped_candles(persistent_test_client: Client):
@@ -788,6 +786,49 @@ def test_fix_min_max_price(persistent_test_client: Client):
     candles_dfgb = candles_df.groupby("pair_id")
 
     # Calls remove_min_max_price() internally
+    df = fix_dex_price_data(
+        candles_dfgb,
+        freq="D",
+    )
+    # We have nothing to check ATM
+    # TODO: Manually inject a broken value
+    assert isinstance(df, DataFrameGroupBy)
+
+
+def test_normalise_volume(persistent_test_client: Client):
+    """Normalise volume data ulocaniswap v2 + v3."""
+
+    client = persistent_test_client
+    pairs_df = client.fetch_pair_universe().to_pandas()
+
+    # Create filtered exchange and pair data
+    pair_universe = PandasPairUniverse.create_pair_universe(
+        pairs_df,
+        [
+            (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005),
+            (ChainId.ethereum, "uniswap-v2", "WETH", "USDC"),
+        ],
+    )
+
+    pairs = [pair.pair_id for pair in pair_universe.iterate_pairs()]
+    candles_df = client.fetch_candles_by_pair_ids(
+        pairs,
+        TimeBucket.d1,
+        start_time=datetime.datetime(2023, 1, 1),
+        end_time=datetime.datetime(2023, 2, 1)
+    )
+
+    candles_df = candles_df.set_index("timestamp", drop=False)
+
+    # Fix volume columns
+    volume_fixed_candles_dfgb = normalise_volume(candles_df)
+
+    # Group by pair, check we have good data
+    candles_dfgb = volume_fixed_candles_dfgb.groupby("pair_id")
+    for pair in pair_universe.iterate_pairs():
+        candles = candles_dfgb.get_group(pair.pair_id)
+        assert candles["volume"].sum() > 0
+
     df = fix_dex_price_data(
         candles_dfgb,
         freq="D",

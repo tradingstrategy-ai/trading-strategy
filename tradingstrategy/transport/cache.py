@@ -327,8 +327,11 @@ class CachedHTTPTransport:
     def get_json_response(self, api_path, params=None) -> dict:
         url = f"{self.endpoint}/{api_path}"
         logger.debug("get_json_response() %s, %s", url, params)
+
         response = self.requests.get(url, params=params)
-        assert 200 <= response.status_code <= 299
+
+        if not (200 <= response.status_code <= 299):
+            raise APIError(f"Could not call {url}\nParams: {params}\nResponse: {response.status_code} {response.text}")
         return response.json()
 
     def post_json_response(self, api_path, params=None):

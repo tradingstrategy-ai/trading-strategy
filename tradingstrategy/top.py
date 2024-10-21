@@ -121,6 +121,10 @@ class TopPairData:
         """Simple marker ticker identifier for this pair."""
         return f"{self.base_token} - {self.quote_token}"
 
+    def get_exchange_slug(self) -> str:
+        """Human readable id for the DEX this pair trades on."""
+        return f"{self.exchange_slug}"
+
     def get_persistent_string_id(self) -> str:
         """Stable id over long period of time and across different systems."""
         return f"{self.chain_id}-{self.pool_address}"
