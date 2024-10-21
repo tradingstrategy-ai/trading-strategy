@@ -277,6 +277,8 @@ def fix_dex_price_data(
     - We also have some open/close values that are "broken" in a sense that they do not reflect the market price you would be able to trade,
       again likely due to MEV
 
+    - Before calling this, you want to call :py:func:`normalise_volume` for OHLCV data
+
     Example:
 
     .. code-block:: python
@@ -289,9 +291,16 @@ def fix_dex_price_data(
           price_df = price_df.loc[price_df.pair_id.isin(top_liquid_pair_ids)]
 
           print("Wrangling DEX price data")
-          price_df = price_df.set_index("timestamp", drop=False).groupby("pair_id")
-          price_df = fix_dex_price_data(
-              price_df,
+          price_df = price_df.set_index("timestamp", drop=False)
+
+          # Normalise volume datapoints
+          price_df = normalise_volume(price_df)
+
+          # Conver to grouped data
+          price_dfgb = price_df.groupby("pair_id")
+
+          price_dfgb = fix_dex_price_data(
+              price_dfgb,
               freq=time_bucket.to_frequency(),
               forward_fill=True,
           )
@@ -639,10 +648,34 @@ def normalise_volume(df: pd.DataFrame) -> pd.DataFrame:
     - Normalise volume across all DEXes
 
     - Run before :py:func:`fix_dex_price_data`
+
+    - The root cause is that uniswap_v2 tracks buy and sell volume, whileas for uniswap v3 we track only volume in the source data
+
+    :return:
+        DataFrame where column "volume" is properly filled for all different DEXes.
     """
 
     assert isinstance(df, pd.DataFrame)
+
+    logger.info("Normalising volume for OHCLV candles data, %d rows", len(df))
+
     columns = df.columns
-    assert "buy_volume" in columns, f"Assume we have buy_volume and sell_volume, we got {columns}"
-    df["volume"] = df["buy_volume"] + df["sell_volume"]
+    assert "buy_volume" in columns, f"Assume we have buy_volume and sell_volume, we got {columns}. Did we already normalise or did forward fill too early?"
+
+    #             timestamp         open         high          low        close        volume  exchange_rate  buys  sells  buy_volume  sell_volume  pair_id  start_block  end_block  avg
+    # timestamp
+    # 2023-01-01 2023-01-01  1195.653680  1204.774808  1189.809599  1199.845590  8.087386e+07            1.0   NaN    NaN         NaN          NaN  2697765     16308193   16315354  NaN
+    # 2023-01-02 2023-01-02  1199.845590  1230.833520  1193.861634  1213.722761  1.374795e+08            1.0   NaN    NaN         NaN          NaN  2697765     16315362   16322532  NaN
+    df["summed_volume"] = df["buy_volume"] + df["sell_volume"]
+
+    # Create a mask when volume column is not set
+    #
+    mask = df['volume'] == 0 | df['volume'].isna()
+
+    # Replace for "summed_volume" data if volume column was not earlier set
+    df["volume"] = df["volume"].where(
+        cond=~mask,  # if cond = false, copy from `other`
+        other=df["summed_volume"],
+        axis="index"
+    )
     return df
