@@ -277,6 +277,8 @@ def fix_dex_price_data(
     - We also have some open/close values that are "broken" in a sense that they do not reflect the market price you would be able to trade,
       again likely due to MEV
 
+    - Before calling this, you want to call :py:func:`normalise_volume` for OHLCV data
+
     Example:
 
     .. code-block:: python
@@ -289,9 +291,16 @@ def fix_dex_price_data(
           price_df = price_df.loc[price_df.pair_id.isin(top_liquid_pair_ids)]
 
           print("Wrangling DEX price data")
-          price_df = price_df.set_index("timestamp", drop=False).groupby("pair_id")
-          price_df = fix_dex_price_data(
-              price_df,
+          price_df = price_df.set_index("timestamp", drop=False)
+
+          # Normalise volume datapoints
+          price_df = normalise_volume(price_df)
+
+          # Conver to grouped data
+          price_dfgb = price_df.groupby("pair_id")
+
+          price_dfgb = fix_dex_price_data(
+              price_dfgb,
               freq=time_bucket.to_frequency(),
               forward_fill=True,
           )

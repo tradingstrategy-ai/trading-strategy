@@ -1,3 +1,7 @@
+# Current
+
+- Add: `wrangle.normalise_volume` to deal with different volume formats of Uniswap v2 and v3 
+
 # 0.24.3
 
 - Fix: Allow to run without Jupyter notebook/IPython installed. Make sure you use `Client.create_live_client()` instead of `Client.create_jupyter_client()`
