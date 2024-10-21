@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 
-from tradingstrategy.alternative_data.coingecko import create_client, fetch_top_coins, CoingeckoUniverse
+from tradingstrategy.alternative_data.coingecko import fetch_top_coins, CoingeckoUniverse, CoingeckoClient, DEFAULT_COINGECKO_BUNDLE
 
 
 def main():
@@ -25,22 +25,20 @@ def main():
     logging.basicConfig(handlers=[logging.StreamHandler(sys.stdout)], level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    # pages = 5
-    #per_page = 25
+    pages = 25
+    per_page = 40
+    # pages = 1
+    # per_page = 5
 
-    logger.info("Starting Coingecko data fetcher")
+    logger.info("Starting Coingecko data fetcher to update the default data bundle %s", DEFAULT_COINGECKO_BUNDLE)
 
-    pages = 1
-    per_page = 5
-
-    fname = Path(os.path.join(os.path.dirname(__file__))) / ".." / "trading-strategy", "data_bundles", "coingecko.json.zstd"
-    fname = fname.resolve()
-
-    client = create_client(os.environ["COINGECKO_API_KEY"], demo=True)
+    client = CoingeckoClient(os.environ["COINGECKO_API_KEY"], demo=True)
     data = fetch_top_coins(client, pages=pages, per_page=per_page)
 
     universe = CoingeckoUniverse(data)
-    universe.save(fname)
+    logger.info("Coingecko universe is %s", universe)
+    logger.info("Coingecko data covers categories: %s", ", ".join(universe.get_all_categories()))
+    universe.save()
 
     print("All ok")
 

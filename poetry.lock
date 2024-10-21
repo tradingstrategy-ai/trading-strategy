@@ -3920,20 +3920,6 @@ numpy = ">=1.16.6"
 test = ["cffi", "hypothesis", "pandas", "pytest", "pytz"]
 
 [[package]]
-name = "pycoingecko"
-version = "3.1.0"
-description = "Python wrapper around the CoinGecko API"
-optional = true
-python-versions = "*"
-files = [
-    {file = "pycoingecko-3.1.0-py3-none-any.whl", hash = "sha256:5798240c0ffccfea14635b7ce42f90e49c8ba54a3cfa3e233fcc99df087485f6"},
-    {file = "pycoingecko-3.1.0.tar.gz", hash = "sha256:dcc08522c160e88bd1deb50bbab390be33dce87abb10a91ce6013d15bf859c12"},
-]
-
-[package.dependencies]
-requests = "*"
-
-[[package]]
 name = "pycparser"
 version = "2.22"
 description = "C parser in Python"
@@ -6006,4 +5992,4 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.13"
-content-hash = "701462f655968d46e11e98f8d981cf325a7f2c2997182d2df82c455f14c9b3b2"
+content-hash = "e49706de02ab4a53d4a46592e2aca5c29cbcb05e229a7ae278b615541d438b0d"
