@@ -805,8 +805,8 @@ def test_normalise_volume(persistent_test_client: Client):
     pair_universe = PandasPairUniverse.create_pair_universe(
         pairs_df,
         [
+            (ChainId.ethereum, "uniswap-v2", "WETH", "USDC", 0.0030),
             (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005),
-            (ChainId.ethereum, "uniswap-v2", "WETH", "USDC"),
         ],
     )
 
@@ -814,11 +814,12 @@ def test_normalise_volume(persistent_test_client: Client):
     candles_df = client.fetch_candles_by_pair_ids(
         pairs,
         TimeBucket.d1,
-        start_time=datetime.datetime(2023, 1, 1),
-        end_time=datetime.datetime(2023, 2, 1)
+        start_time=datetime.datetime(2024, 1, 1),
+        end_time=datetime.datetime(2024, 2, 1)
     )
 
     candles_df = candles_df.set_index("timestamp", drop=False)
+    assert len(candles_df) == 64
 
     # Fix volume columns
     volume_fixed_candles_dfgb = normalise_volume(candles_df)

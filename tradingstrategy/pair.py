@@ -1636,10 +1636,16 @@ class PandasPairUniverse:
 
             See :py:meth:`tradingstrategy.client.Client.fetch_pair_universe` for more information.
 
+        :param pairs:
+            List of pair human descriptions.
+
+            **Warning**: If any of descriptions have fee set, all must have fee set, or there might be resolution issues.
+
         :return:
             A trading pair universe that contains only the listed trading pairs.
         """
         resolved_pairs_df = resolve_pairs_based_on_ticker(df, pairs=pairs)
+        assert len(resolved_pairs_df) == len(pairs), f"Not all pairs were resolved.\nAsked pairs: {pairs}\nResolved pairs:\n{resolved_pairs_df}"
         return PandasPairUniverse(resolved_pairs_df)
 
 
@@ -1887,6 +1893,8 @@ def resolve_pairs_based_on_ticker(
 
     :return:
         DataFrame with filtered pairs.
+
+        **Warning**: If you give a pair that is not found there is no error. Check that you get right amount of pairs out.
     """
 
     assert pairs, "No pair_tickers given"
