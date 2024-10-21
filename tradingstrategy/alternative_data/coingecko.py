@@ -1,18 +1,58 @@
-import logging
-import os
-from pathlib import Path
+"""Coingecko data fetching and caching.
 
+- Get Coingecko ids, smart contract addresses and categories so we can cross reference
+  Trading Strategy data across different vendors
+
+"""
+
+import json
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TypedDict
+
+import zstandard
 from pycoingecko import CoinGeckoAPI
 
 
 logger = logging.getLogger(__name__)
 
 
-def create_client(api_key) -> CoinGeckoAPI:
-    return CoinGeckoAPI(api_key=api_key)
+class CoingeckoEntry(TypedDict):
+    """CoinGecko data wrapper"""
+
+    #: Response of coin list
+    #:
+    #: See :py:func:`fetch_coingecko_coin_list`
+    #:
+    id: dict
+
+    #: Response of market cap
+    #:
+    #: See :py:func:`fetch_coingecko_coin_list_with_market_cap`
+    #:
+    market_cap: dict
+
+    #: Response of coin data
+    #:
+    #: See :py:func:`fetch_coingecko_coin_data`
+    #:
+    metadata: dict
 
 
-def fetch_coingecko_coin_list(
+def create_client(api_key: str, demo=False) -> CoinGeckoAPI:
+    """Create pycoingecko client.
+
+    :param demo:
+        We are using demo API key
+    """
+    client = CoinGeckoAPI(api_key=api_key)
+    if demo:
+        client.api_base_url = "https://api.coingecko.com/api/v3/"
+    return client
+
+
+def fetch_coingecko_coins_list(
     client: CoinGeckoAPI,
 ) -> list[dict]:
     """Get full Coingecko list of its tokens.
@@ -56,7 +96,7 @@ def fetch_coingecko_coin_list(
           ...
 
     """
-    return client.get_coins(include_platform=True)
+    return client.get_coins_list(include_platform=True)
 
 
 def fetch_coingecko_coin_list_with_market_cap(
@@ -71,17 +111,172 @@ def fetch_coingecko_coin_list_with_market_cap(
 
 
 
-def fetch_category_data(
+def fetch_coingecko_coin_data(
+    client: CoinGeckoAPI,
+    id: str,
+    localization=False,
+    tickers=False,
+    market_data=False,
+    community_data=True,
+    developer_data=True,
+    sparkline=False,
+):
+    """Get Coingecko metadata.
+
+    Example:
+
+    .. code-block:: text
+
+        {
+          "id": "bitcoin",
+          "symbol": "btc",
+          "name": "Bitcoin",
+          "web_slug": "bitcoin",
+          "asset_platform_id": null,
+          "platforms": {
+            "": ""
+          },
+          "detail_platforms": {
+            "": {
+              "decimal_place": null,
+              "contract_address": ""
+            }
+          },
+          "block_time_in_minutes": 10,
+          "hashing_algorithm": "SHA-256",
+          "categories": [
+            "Cryptocurrency",
+            "Layer 1 (L1)",
+            "FTX Holdings",
+            "Proof of Work (PoW)",
+            "Bitcoin Ecosystem",
+            "GMCI 30 Index"
+          ],
+          "preview_listing": false,
+          "public_notice": null,
+          "additional_notices": [],
+          "description": {
+            "en": "Bitcoin is the first successful internet money based on peer-to-peer technology; whereby no central bank or authority is involved in the transaction and production of the Bitcoin currency. It was created by an anonymous individual/group under the name, Satoshi Nakamoto. The source code is available publicly as an open source project, anybody can look at it and be part of the developmental process.\r\n\r\nBitcoin is changing the way we see money as we speak. The idea was to produce a means of exchange, independent of any central authority, that could be transferred electronically in a secure, verifiable and immutable way. It is a decentralized peer-to-peer internet currency making mobile payment easy, very low transaction fees, protects your identity, and it works anywhere all the time with no central authority and banks.\r\n\r\nBitcoin is designed to have only 21 million BTC ever created, thus making it a deflationary currency. Bitcoin uses the <a href=\"https://www.coingecko.com/en?hashing_algorithm=SHA-256\">SHA-256</a> hashing algorithm with an average transaction confirmation time of 10 minutes. Miners today are mining Bitcoin using ASIC chip dedicated to only mining Bitcoin, and the hash rate has shot up to peta hashes.\r\n\r\nBeing the first successful online cryptography currency, Bitcoin has inspired other alternative currencies such as <a href=\"https://www.coingecko.com/en/coins/litecoin\">Litecoin</a>, <a href=\"https://www.coingecko.com/en/coins/peercoin\">Peercoin</a>, <a href=\"https://www.coingecko.com/en/coins/primecoin\">Primecoin</a>, and so on.\r\n\r\nThe cryptocurrency then took off with the innovation of the turing-complete smart contract by <a href=\"https://www.coingecko.com/en/coins/ethereum\">Ethereum</a> which led to the development of other amazing projects such as <a href=\"https://www.coingecko.com/en/coins/eos\">EOS</a>, <a href=\"https://www.coingecko.com/en/coins/tron\">Tron</a>, and even crypto-collectibles such as <a href=\"https://www.coingecko.com/buzz/ethereum-still-king-dapps-cryptokitties-need-1-billion-on-eos\">CryptoKitties</a>."
+          },
+          "links": {
+            "homepage": [
+              "http://www.bitcoin.org",
+              "",
+              ""
+            ],
+            "whitepaper": "https://bitcoin.org/bitcoin.pdf",
+            "blockchain_site": [
+              "https://mempool.space/",
+              "https://platform.arkhamintelligence.com/explorer/token/bitcoin",
+              "https://blockchair.com/bitcoin/",
+              "https://btc.com/",
+              "https://btc.tokenview.io/",
+              "https://www.oklink.com/btc",
+              "https://3xpl.com/bitcoin",
+              "",
+              "",
+              ""
+            ],
+            "official_forum_url": [
+              "https://bitcointalk.org/",
+              "",
+              ""
+            ],
+            "chat_url": [
+              "",
+              "",
+              ""
+            ],
+            "announcement_url": [
+              "",
+              ""
+            ],
+            "twitter_screen_name": "bitcoin",
+            "facebook_username": "bitcoins",
+            "bitcointalk_thread_identifier": null,
+            "telegram_channel_identifier": "",
+            "subreddit_url": "https://www.reddit.com/r/Bitcoin/",
+            "repos_url": {
+              "github": [
+                "https://github.com/bitcoin/bitcoin",
+                "https://github.com/bitcoin/bips"
+              ],
+              "bitbucket": []
+            }
+          },
+          "image": {
+            "thumb": "https://coin-images.coingecko.com/coins/images/1/thumb/bitcoin.png?1696501400",
+            "small": "https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png?1696501400",
+            "large": "https://coin-images.coingecko.com/coins/images/1/large/bitcoin.png?1696501400"
+          },
+          "country_origin": "",
+          "genesis_date": "2009-01-03",
+          "sentiment_votes_up_percentage": 84.79,
+          "sentiment_votes_down_percentage": 15.21,
+          "watchlist_portfolio_users": 1698440,
+          "market_cap_rank": 1,
+          "community_data": {
+            "facebook_likes": null,
+            "twitter_followers": 6894643,
+            "reddit_average_posts_48h": 0,
+            "reddit_average_comments_48h": 0,
+            "reddit_subscribers": 0,
+            "reddit_accounts_active_48h": 0,
+            "telegram_channel_user_count": null
+          },
+          "developer_data": {
+            "forks": 36426,
+            "stars": 73168,
+            "subscribers": 3967,
+            "total_issues": 7743,
+            "closed_issues": 7380,
+            "pull_requests_merged": 11215,
+            "pull_request_contributors": 846,
+            "code_additions_deletions_4_weeks": {
+              "additions": 1570,
+              "deletions": -1948
+            },
+            "commit_count_4_weeks": 108,
+            "last_4_weeks_commit_activity_series": []
+          },
+          "status_updates": [],
+          "last_updated": "2024-10-21T20:20:14.059Z"
+        }
+
+    """
+    assert type(id) == str
+
+    params = dict(
+        localization=localization,
+        developer_data=developer_data,
+        community_data=community_data,
+        market_data=market_data,
+        sparkline=sparkline,
+        tickers=tickers,
+    )
+
+    return client.get_coin_by_id(**params)
+
+
+def fetch_top_coins(
     client: CoinGeckoAPI,
     pages=40,
     per_page=25,
-) -> list[dict]:
+) -> list[CoingeckoEntry]:
+    """Get the list of top coins from CoinGecko, with metadata.
+
+    - Mainly used to built internal database needed for token address matching
+
+    :return:
+        Coins sorted by market cap, as dicts.
+
+    """
 
     assert isinstance(client, CoinGeckoAPI)
 
     logger.info("Loading Coingecko id data")
 
-    ids = fetch_coingecko_coin_list(client)
+    ids = fetch_coingecko_coins_list(client)
     id_map = {id["id"]: id for id in ids}
 
     market_cap_data = []
@@ -101,8 +296,8 @@ def fetch_category_data(
         id = mcap_entry["id"]
         id_data = id_map[id]
         result.append({
-            "id_data": id_data,
-            "market_cap_data": mcap_entry,
+            "id": id_data,
+            "market_cap": mcap_entry,
             "metadata": metadata_map[id]
         })
 
@@ -110,4 +305,60 @@ def fetch_category_data(
 
 
 
+@dataclass
+class CoingeckoUniverse:
+    """Coingecko data universe.
 
+    - Manage loading and saving Coingecko data in a flat file database
+
+    - Create id and address lookups for tokens
+    """
+
+    #: Raw data
+    data: list[CoingeckoEntry]
+
+    #: Smart contract address -> entry map
+    address_cache: dict[str, CoingeckoEntry]
+
+    #: Coingecko id -> entry map
+    id_cache: dict[str, CoingeckoEntry]
+
+    def __init__(self, data: list[CoingeckoEntry]):
+        """Create new universe from raw JSON data.
+
+        - Build access indices
+        """
+        self.data = data
+
+        address_cache = {}
+        for entry in data:
+            for platform_name, address in entry["platforms"]:
+                address_cache[address] = entry
+
+        self.address_cache = address_cache
+        self.id_cache = {entry["id"]["id"]: entry for entry in data}
+
+    def __repr__(self):
+        return f"<CoingeckoUniverse for {len(self.data)} tokens>"
+
+    def get_by_address(self, address: str) -> CoingeckoEntry | None:
+        return self.address_cache.get(address)
+
+    def get_by_coingecko_id(self, id: str) -> CoingeckoEntry | None:
+        return self.id_cache.get(id)
+
+    @staticmethod
+    def load(fname: Path) -> "CoingeckoUniverse":
+        logger.info("Reading Coingecko data bundle to %s", fname)
+        with zstandard.open(fname, "rb") as inp:
+            data = json.load(inp)
+            return CoingeckoUniverse(data)
+
+    def save(self, fname: Path):
+        """Creat zstd compressed data file.
+
+        - Save only raw data, no indices
+        """
+        logger.info("Writing Coingecko data bundle to %s", fname)
+        with zstandard.open(fname, "wb") as out:
+            json.dump(self.data, out)
