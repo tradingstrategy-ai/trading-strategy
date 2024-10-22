@@ -3,7 +3,9 @@
 - Get Coingecko ids, smart contract addresses and categories so we can cross reference
   Trading Strategy data across different vendors
 
-- See :py:class:`CoingeckoUniverse` for usage
+- See :py:class:`CoingeckoUniverse` for how to manipulate Coingeck data
+
+- See :py:func:`categorise_pairs` how to label Trading Strategy assets and trading pairs with CoinGecko data
 """
 
 import json
