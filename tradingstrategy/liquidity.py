@@ -176,6 +176,14 @@ class XYLiquidity:
             ("low", "float"),
         ])
 
+        # Handle the special case the API endpoint did not return any data
+        if len(web_candles) == 0:
+            # Create an empty DataFrame with the specified columns
+            df = pd.DataFrame(columns=['open', 'high', 'low', 'close', 'timestamp', 'pair_id'])
+            # Set the index to a DateTimeIndex
+            df.index = pd.DatetimeIndex([], name='timestamp')
+            return df
+
         df = pd.DataFrame(web_candles)
         df = df.rename(columns={
             "ts": "timestamp",

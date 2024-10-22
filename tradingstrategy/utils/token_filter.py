@@ -706,6 +706,8 @@ def deduplicate_pairs_by_volume(pairs_df: pd.DataFrame) -> pd.DataFrame:
             category,
         )
 
+    :return:
+        The returning pairs DataFrame is sorted by volume
     """
 
     # Normalise volume
