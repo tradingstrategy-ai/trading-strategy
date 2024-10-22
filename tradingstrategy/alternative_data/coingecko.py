@@ -599,6 +599,8 @@ def categorise_pairs(
         mask = category_df["category"] == "Decentralized Finance (DeFi)"
         pair_ids = category_df[mask]["pair_id"]
 
+    See also :py:attr:`SAMPLE_CATEGORIES` for soe example categories.
+
     :param coingecko_universe:
         Coingecko data bundle.
 
