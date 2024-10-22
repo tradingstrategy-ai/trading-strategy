@@ -478,6 +478,9 @@ class CoingeckoUniverse:
         categories = sorted(list(coingecko_universe.get_all_categories()), key=str.lower)
         for cat in categories:
             print(cat)
+
+    - Then you can use this universe to build trading pair universe of a specific category,
+      see :py:func:`categorise_pairs` for details
     """
 
     #: Raw data
