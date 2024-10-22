@@ -1,7 +1,9 @@
 # Current
 
 - Add: `wrangle.normalise_volume` to deal with different volume formats of Uniswap v2 and v3 
-
+- Add: Support for Coingecko data loading and metadata cross referencing. See `tradingstrategy.alternative_data.coingecko`.
+- Add: `tradingstrategy.alternative_data.coingecko.categorise_pairs()` to tag trading pair data with their CoinGecko category
+- 
 # 0.24.3
 
 - Fix: Allow to run without Jupyter notebook/IPython installed. Make sure you use `Client.create_live_client()` instead of `Client.create_jupyter_client()`

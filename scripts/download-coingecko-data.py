@@ -4,9 +4,6 @@ import logging
 import os
 import sys
 
-from pathlib import Path
-
-
 from tradingstrategy.alternative_data.coingecko import fetch_top_coins, CoingeckoUniverse, CoingeckoClient, DEFAULT_COINGECKO_BUNDLE
 
 
