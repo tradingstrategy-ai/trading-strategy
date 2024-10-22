@@ -14,6 +14,7 @@ import enum
 from typing import List, Set, Tuple, Collection
 
 import pandas as pd
+import numpy as np
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
@@ -616,3 +617,20 @@ def is_rebase(token_symbol: TokenSymbol) -> bool:
     assert isinstance(token_symbol, str), f"We got {token_symbol}"
     return token_symbol.upper() in REBASE_TOKENS
 
+
+def add_base_quote_address_columns(pairs_df: pd.DataFrame) -> pd.DataFrame:
+    """Add base_token_address and quote_token_address to pairs data.
+
+    - The server gives us a hint, but we can decide our own base token/quote token order at the client side
+
+    - This function follows the hint from the server
+
+    :return:
+        The same pairs DataFrame, with new columns `base_token_address` and `quote_token_address`.
+    """
+
+    token0_is_base_token_mask = pairs_df["base_token_symbol"] == pairs_df["token0_symbol"]
+
+    pairs_df["base_token_address"] = np.where(token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
+    pairs_df["quote_token_address"] = np.where(~token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
+    return pairs_df
