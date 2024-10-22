@@ -463,7 +463,7 @@ class CoingeckoUniverse:
     - Create id and address lookups for tokens
 
     - We provide a default bundle of first 1000 tokens as :py:attr:`DEFAULT_COINGECKO_BUNDLE`
-      included in Trading Strategy PyPi package
+      included in Trading Strategy PyPi package, sorted by the market cap at the time of creation
 
     Example usage:
 
