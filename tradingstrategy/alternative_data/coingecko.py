@@ -14,12 +14,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
+import pandas as pd
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import zstandard
 
-
+from tradingstrategy.utils.token_filter import add_base_quote_address_columns
 
 logger = logging.getLogger(__name__)
 
@@ -574,6 +575,60 @@ class CoingeckoUniverse:
         with zstandard.open(fname, "wt") as out:
             json.dump(self.data, out)
         logger.info(f"Zstd bundle size is {fname.stat().st_size:,} bytes")
+
+
+def categorise_pairs(
+    coingecko_universe: CoingeckoUniverse,
+    pairs_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Categorise trading pairs by their Coingecko category.
+
+    - This produces category data for trading pairs (not for assets, same asset can be in multiple trading pairs)
+
+    - Trading pairs are categorised by their base token
+
+    Example:
+
+    .. code-block:: python
+
+        pairs_df = client.fetch_pair_universe().to_pandas()
+        coingecko_universe = CoingeckoUniverse.load()
+        category_df = categorise_pairs(coingecko_universe, pairs_df)
+
+        # Get pair_ids for all tokens in Coingecko's DeFi category
+        mask = category_df["category"] == "Decentralized Finance (DeFi)"
+        pair_ids = category_df[mask]["pair_id"]
+
+    :param coingecko_universe:
+        Coingecko data bundle.
+
+    :param pairs_df:
+        As produced by :py:class:`tradingstrategy.client.Client`
+
+    :return:
+        A new dataframe which contains `(pair_id int, address str, category str)` for each token,
+        and no index.
+
+        Each pair_id has multiple rows, one for each category where it is contained.
+    """
+
+    def _get_categories(address: str) -> list:
+        coin_data = coingecko_universe.get_by_address(address)
+        if coin_data is None:
+            # Our token was not in Coingecko
+            return []
+        return coin_data["metadata"]["categories"]
+
+    pairs_df = add_base_quote_address_columns(pairs_df)
+
+    category_entries_df = pd.DataFrame({
+        "base_token_address": pairs_df["base_token_address"],
+        "base_token_symbol": pairs_df["base_token_symbol"],
+        "pair_id": pairs_df["pair_id"]
+    })
+    category_entries_df["category"] = category_entries_df["base_token_address"].apply(_get_categories)
+    return category_entries_df.explode("category")
+
 
 
 #: An example list of Coingecko categories.
