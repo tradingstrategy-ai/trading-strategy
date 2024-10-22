@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 #: Bundled with PyPi distribution for core data
 #:
+#: File location where we have .json.zstd flat file database within the Python package.
+#:
 #: Created by :py:func:`fetch_top_coins`
 #:
 DEFAULT_COINGECKO_BUNDLE = (Path(os.path.dirname(__file__)) / ".." / "data_bundles" / "coingecko.json.zstd").resolve()
@@ -39,7 +41,12 @@ class CoingeckoError(Exception):
 
 
 class CoingeckoEntry(TypedDict):
-    """CoinGecko data wrapper"""
+    """Represent one Coingecko coin entry.
+
+    - CoinGecko data wrapper.
+
+    - Typed dict of high level data we collect
+    """
 
     #: Coingecko response of coin id data for the token.
     #:
