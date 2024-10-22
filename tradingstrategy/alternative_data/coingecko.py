@@ -568,16 +568,23 @@ class CoingeckoUniverse:
 
     @staticmethod
     def load(fname: Path = DEFAULT_COINGECKO_BUNDLE) -> "CoingeckoUniverse":
-        """Read zstd compressed Coingecko flat file database."""
+        """Read JSON + zstd compressed Coingecko flat file database.
+
+        :param fname:
+            If not given, use the file bundled in `trading-strategy` package
+        """
         logger.info("Reading Coingecko data bundle to %s", fname)
         with zstandard.open(fname, "rt") as inp:
             data = json.load(inp)
             return CoingeckoUniverse(data)
 
     def save(self, fname: Path = DEFAULT_COINGECKO_BUNDLE) -> None:
-        """Creat zstd compressed data file.
+        """Create JSON + zstd compressed data file for Coingecko tokens.
 
-        - Save only raw data, no indices
+        - Save only raw data, no indices, which are re-created on read
+
+        :param fname:
+            If not given, use the file bundled in `trading-strategy` package
         """
         logger.info("Writing Coingecko data bundle to %s", fname)
         with zstandard.open(fname, "wt") as out:
