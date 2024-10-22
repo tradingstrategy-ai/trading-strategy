@@ -1,2 +1,5 @@
-"""Alternative data sources for cryptocurrency quantitative trading """
+"""Alternative data sources for cryptocurrency quantitative trading.
+
+See also :py:mod:`tradingstrategy.binance`.
+"""
 
