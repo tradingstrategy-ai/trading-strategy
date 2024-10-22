@@ -555,7 +555,10 @@ class CoingeckoUniverse:
         return self.id_cache.get(id)
 
     def get_all_categories(self) -> set[str]:
-        """Get list of Categories in our loade universe/"""
+        """Get list of Categories in our loade universe.
+
+        See :py:attr:`SAMPLE_CATEGORIES` for an example list
+        """
         flat_set = set(tag for item in self.data for tag in item['metadata']["categories"])
         return flat_set
 
