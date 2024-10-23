@@ -730,14 +730,26 @@ class CachedHTTPTransport:
                     params=params,
                 )
 
-                for pair_id, array in pair_candle_map.items():
-                    df = XYLiquidity.convert_web_candles_to_dataframe(array)
-                    # Fill in pair id,
-                    # because /candles endpoint does not reflect it back
-                    df["pair_id"] = int(pair_id)
+                if len(pair_candle_map) > 0:
+                    # This pair has valid data
+                    for pair_id, array in pair_candle_map.items():
+                        df = XYLiquidity.convert_web_candles_to_dataframe(array)
+                        # Fill in pair id,
+                        # because /candles endpoint does not reflect it back
+                        df["pair_id"] = int(pair_id)
 
-                # Update cache
-                df.to_parquet(path)
+                        # Update cache - we store a single file per pair
+                        # at the moment
+                        df.to_parquet(path)
+
+                else:
+                    # This pair has TVL data missing on the server,
+                    # because we asked for a single pair and did not get any data
+                    logger.warning("Pair id %d - could not load TVL/liquidity data", pair_id)
+                    df = XYLiquidity.convert_web_candles_to_dataframe([])
+                    # Update cache - we store a single file per pair
+                    # at the moment
+                    df.to_parquet(path)
 
             size = pathlib.Path(path).stat().st_size
             if not cached:
@@ -816,6 +828,9 @@ class CachedHTTPTransport:
                 start_time,
                 end_time,
             )
+
+            assert "timestamp" in df.columns, f"Columns lack timestamp: {df.columns}"
+            assert "pair_id" in df.columns, f"Columns lack pair_id: {df.columns}"
 
             # Work around pd.concat() problem for some reason fails on Github,
             # see details below
