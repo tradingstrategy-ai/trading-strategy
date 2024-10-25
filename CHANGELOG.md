@@ -1,5 +1,9 @@
 # Current
 
+TODO
+
+# 0.24.4
+
 - Add: `wrangle.normalise_volume` to deal with different volume formats of Uniswap v2 and v3 
 - Add: Support for Coingecko data loading and metadata cross referencing. See `tradingstrategy.alternative_data.coingecko`.
 - Add: `tradingstrategy.alternative_data.coingecko.categorise_pairs()` to tag trading pair data with their CoinGecko category
