@@ -29,7 +29,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
-from tradingstrategy.types import PrimaryKey
+from tradingstrategy.types import PrimaryKey, USDollarAmount
 from tradingstrategy.lending import LendingCandle, LendingCandleType
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
 
@@ -345,16 +345,32 @@ class CachedHTTPTransport:
 
     def fetch_top_pairs(
         self,
-        limit: int,
         chain_ids: Collection[ChainId],
         exchange_slugs: Collection[str],
+        addresses: Collection[str],
+        method: str,
+        min_volume_24h_usd: None | USDollarAmount = None,
+        limit: int | None = None,
     ) -> dict:
         """Not cached."""
         params = {
             "chain_slugs": ",".join([c.get_slug() for c in chain_ids]),
-            "exchange_slugs": ",".join([e for e in exchange_slugs]),
-            "limit": str(limit),
+            "method": method,
         }
+
+        # OpenAPI list syntax
+        if exchange_slugs:
+            params["exchange_slugs"] = ",".join([e for e in exchange_slugs])
+
+        if addresses:
+            params["addresses"] = ",".join([a for a in addresses])
+
+        if limit:
+            params["limit"] = str(limit)
+
+        if min_volume_24h_usd:
+            params["min_volume_24h_usd"] = str(min_volume_24h_usd)
+
         resp = self.get_json_response("top", params=params)
         return resp
 

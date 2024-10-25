@@ -4,6 +4,7 @@
 - Add: Support for Coingecko data loading and metadata cross referencing. See `tradingstrategy.alternative_data.coingecko`.
 - Add: `tradingstrategy.alternative_data.coingecko.categorise_pairs()` to tag trading pair data with their CoinGecko category
 - Add: `deduplicate_pairs_by_volume()` to make it easier to construct trading pair baskets from open-ended universes 
+- Add: `Client.fetch_top_pairs(TopPairMethod.by_token_addresses)` - query the best trading pairs and token tax for given token addresses
 
 # 0.24.3
 

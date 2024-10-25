@@ -7,6 +7,7 @@
 - See :py:func:`tradingstrategy.client.Client.fetch_top_pairs` for usage.
 """
 import datetime
+import enum
 
 from dataclasses import dataclass, field
 
@@ -14,10 +15,49 @@ from dataclasses_json import dataclass_json, config
 from marshmallow import fields
 
 
+
+class TopPairMethod(enum.Enum):
+    """Method to query top pair data.
+
+    - For given exchanges or token addresses, find the best trading pairs
+    """
+
+    #: Give the endpoint a list of exchange slugs and get the best trading pairs on these exchanges.
+    #:
+    #:
+    #:
+    sorted_by_liquidity_with_filtering = "sorted-by-liquidity-with-filtering"
+
+    #: Give the endpoint a list of **token** smart contract addresses and get the best trading pairs for these.
+    #:
+    #:
+    by_token_addresses = "by-addresses"
+
+
 @dataclass_json
 @dataclass(slots=True)
 class TopPairData:
-    """See open-defi-api.yaml"""
+    """Entry for one trading pair data in top picks.
+
+    Contains
+    - Latest cached volue :py:attr:`volume_24h_usd`
+    - Latest cached liquidity/TVL :py:attr:`tvl_latest_usd` (may not be yet available for all tokens)
+    - TokenSniffer risk score :py:attr:`risk_score`
+    - TokenSniffer token tax data :py:meth:`get_buy_tax` /:py:meth:`get_sekk_tax`
+
+    Example:
+
+    .. code-block:: python
+
+        comp_weth = top_reply.included[0]
+        assert comp_weth.base_token == "COMP"
+        assert comp_weth.quote_token == "WETH"
+        assert comp_weth.get_buy_tax() == 0
+        assert comp_weth.get_sell_tax() == 0
+        assert comp_weth.volume_24h_usd > 100.0
+        assert comp_weth.tvl_latest_usd > 100.0
+
+    """
 
     #: When this entry was queried
     #:
@@ -138,6 +178,64 @@ class TopPairData:
 
         return self.token_sniffer_data["score"]
 
+    def has_tax_data(self) -> bool | None:
+        """Do we have tax data for this pair.
+
+        The token tax data availability comes from TokenSniffer.
+        No insight what tells whether it should be available or not.
+
+        :return:
+            True/False is TokenSniffer data is available, otherwise None.
+        """
+        if self.token_sniffer_data is not None:
+            return "swap_simulation" in self.token_sniffer_data
+
+    def get_buy_tax(self, epsilon=0.0001) -> float | None:
+        """What was the TokenSniffer buy tax for the base token.
+
+        See also :py:meth:`has_tax_data`.
+
+        :param epsilon:
+            Deal with rounding errors.
+
+        :return:
+            Buy tax 0....1 or None if not available
+        """
+
+        if self.token_sniffer_data is None:
+            return None
+
+        if not self.has_tax_data():
+            return None
+
+        fee = float(self.token_sniffer_data["swap_simulation"]["buy_fee"])
+        if fee < epsilon:
+            return 0
+        return fee
+
+    def get_sell_tax(self, epsilon=0.0001) -> float | None:
+        """What was the TokenSniffer sell tax for the base token.
+
+        See also :py:meth:`has_tax_data`.
+
+        :param epsilon:
+            Deal with rounding errors.
+
+        :return:
+            Sell tax 0....1 or None if not available
+        """
+
+        if self.token_sniffer_data is None:
+            return None
+
+        if not self.has_tax_data():
+            return None
+
+        fee = float(self.token_sniffer_data["swap_simulation"]["sell_fee"])
+        if fee < epsilon:
+            return 0
+        return fee
+
 
 @dataclass_json
 @dataclass(slots=True)
@@ -157,3 +255,6 @@ class TopPairsReply:
     #: or had a trading pair for the same base token with better fees, etc.
     #:
     excluded: list[TopPairData]
+
+    def __repr__(self):
+        return f"<TopPairsReply included {len(self.included)}, exluded {len(self.excluded)}>"

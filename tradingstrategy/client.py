@@ -24,9 +24,9 @@ import pandas as pd
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.environment.default_environment import DefaultClientEnvironment, DEFAULT_SETTINGS_PATH
 from tradingstrategy.reader import BrokenData, read_parquet
-from tradingstrategy.top import TopPairsReply
+from tradingstrategy.top import TopPairsReply, TopPairMethod
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
-from tradingstrategy.types import PrimaryKey, AnyTimestamp
+from tradingstrategy.types import PrimaryKey, AnyTimestamp, USDollarAmount
 from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType, LendingCandleResult
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
@@ -104,7 +104,6 @@ def _retry_corrupted_parquet_fetch(method):
         raise AssertionError(f"Should not be reached. Download issue on {self}, {attempts} / {MAX_ATTEMPTS}, {method_args}, {method_kwargs}")
 
     return impl
-
 
 class BaseClient(ABC):
     """Base class for all real and test mocks clients."""
@@ -739,14 +738,28 @@ class Client(BaseClient):
     def fetch_top_pairs(
         self,
         chain_ids: Collection[ChainId],
-        exchange_slugs: Collection[str],
-        limit: int = 100,
-        method="sorted-by-liquidity-with-filtering",
+        exchange_slugs: Collection[str] | None = None,
+        addresses: Collection[str] | None = None,
+        limit: None = None,
+        method: TopPairMethod = TopPairMethod.sorted_by_liquidity_with_filtering,
+        min_volume_24h_usd: USDollarAmount | None = 1000,
     ) -> TopPairsReply:
         """Get new trading pairs to be included in the trading universe.
 
+        **This API is still under heavy development**.
+
         This endpoint is designed to scan new trading pairs to be included in a trading universe.
         It ranks and filters the daily/weekly/etc. interesting trading pairs by a criteria.
+
+        - Top pairs on exchanges
+        - Top pairs for given tokens, by a token address
+
+        The result will include
+        - Included and excluded trading pairs
+        - Pair metadata
+        - Latest volume and liquidity
+        - :term:`Token tax` information
+        - TokenSniffer risk score
 
         The result data is asynchronously filled, and may not return the most fresh situation,
         due to data processing delays. So when you call this method `24:00` it does not have
@@ -760,35 +773,114 @@ class Client(BaseClient):
 
         .. warning::
 
-            Depending on the available TokenSniffer data caching, this endpoint may
-            take up to 15 seconds per token.
+            Depending on the TokenSniffer data available, this endpoint may take up to 15 seconds per token.
 
-        **This API is still under heavy development**.
+        The endpoint has two modes of operation
 
-        :param chain_ids:
-            List of blockchains to consider.
+        - :py:attr:`TopPairMethod.sorted_by_liquidity_with_filtering`: Give the endpoint a list of exchange slugs and get the best trading pairs on these exchanges. You need to give ``chain_id`, limit` and `exchange_slugs` arguments.
+        - :py:attr:`TopPairMethod.by_addresses`: Give the endpoint a list of **token** smart contract addresses and get the best trading pairs for these. You need to give ``chain_id` and `addresses` arguments.
 
-        :param exchange_slugs:
-            List of DEXes to consider.
+        Example how to get token tax data and the best trading pair for given Ethereum tokens:
 
-        :param limit:
-            Number of pairs to query.
+        .. code-block:: python
+
+            top_reply = client.fetch_top_pairs(
+                chain_ids={ChainId.ethereum},
+                addresses={
+                    "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",  # COMP
+                    "0xc00e94Cb662C3520282E6f5717214004A7f26888"  # AAVE
+                },
+                method=TopPairMethod.by_token_addresses,
+                limit=None,
+            )
+
+            assert isinstance(top_reply, TopPairsReply)
+            # The top picks will be COMP/WETH and AAVE/WETH based on volume/liquidity
+            assert len(top_reply.included) == 2
+            # There are many pairs excluded e.g AAVE/USDC and AAVE/USDT) based ones because of low liq/vol
+            assert len(top_reply.excluded) > 0
+
+            comp_weth = top_reply.included[0]
+            assert comp_weth.base_token == "COMP"
+            assert comp_weth.quote_token == "WETH"
+            assert comp_weth.get_buy_tax() == 0
+            assert comp_weth.get_sell_tax() == 0
+            assert comp_weth.volume_24h_usd > 100.0
+            assert comp_weth.tvl_latest_usd > 100.0
+
+        Example of chain/exchange based query:
+
+        .. code-block:: python
+
+            # Get top tokens of Uniswap on Ethereum
+            top_reply = client.fetch_top_pairs(
+                chain_ids={ChainId.ethereum},
+                exchange_slugs={"uniswap-v2", "uniswap-v3"},
+                limit=10,
+            )
+
+            assert isinstance(top_reply, TopPairsReply)
+            assert len(top_reply.included) == 10
+            assert len(top_reply.excluded) > 0  # There is always something to be excluded
 
         :param method:
             Currently, hardcoded. No other methods supported.
 
+        :param chain_ids:
+            List of blockchains to consider.
+
+            Currently only 1 chain_id supported per query.
+
+        :param exchange_slugs:
+            List of DEXes to consider.
+
+        :param addresses:
+            List of token addresses to query.
+
+            Token addresses, *not** trading pair addresses.
+
+            The list is designed for base tokens in a trading pair. The list should **not** include any quote tokens like `WETH` or `USDC`
+            because the resulting trading pair list is too long to handle, and the server will limit the list at some point.
+
+        :param limit:
+            Max number of results.
+
+            If you ask very high number of tokens / pairs, the server will hard limit the response in some point.
+            In this case, you may not get a resulting trading pair for a token even if such exists.
+            Try to ask max 100 tokens at once.
+
+        :param min_volume_24h_usd:
+            Exclude trading pairs that do not reach this volume target.
+
+            The filtered pairs do not appear in the result at all (not worth to load from the database)
+            or will appear in `excluded` category.
+
+            Default to $1000. Minimum value is $1.
+
         :return:
             Top trading pairs included and excluded in the ranking.
+
+            If `by_addresses` method is used and there is no active trading data for the token,
+            the token may not appear in neither `included` or `excluded` results.
         """
 
         assert len(chain_ids) > 0, f"Got {chain_ids}"
-        assert len(exchange_slugs) > 0, f"Got {exchange_slugs}"
-        assert 1 < limit <= 500
+        if method == TopPairMethod.sorted_by_liquidity_with_filtering:
+            assert limit, "You must give limit argument with TopPairMethod.sorted_by_liquidity_with_filtering"
+            assert len(exchange_slugs) > 0, f"Got {exchange_slugs}"
+            assert 1 < limit <= 500
+        elif method == TopPairMethod.by_token_addresses:
+            assert len(addresses) > 0, f"Got {addresses}"
+        else:
+            raise NotImplementedError(f"Unknown method {method}")
 
         data = self.transport.fetch_top_pairs(
             chain_ids=chain_ids,
             exchange_slugs=exchange_slugs,
             limit=limit,
+            method=method.value,
+            addresses=addresses,
+            min_volume_24h_usd=min_volume_24h_usd,
         )
         return TopPairsReply.from_dict(data)
 
