@@ -161,6 +161,9 @@ class TopPairData:
     def has_tax_data(self) -> bool | None:
         """Do we have tax data for this pair.
 
+        The token tax data availability comes from TokenSniffer.
+        No insight what tells whether it should be available or not.
+
         :return:
             True/False is TokenSniffer data is available, otherwise None.
         """
@@ -169,6 +172,8 @@ class TopPairData:
 
     def get_buy_tax(self, epsilon=0.0001) -> float | None:
         """What was the TokenSniffer buy tax for the base token.
+
+        See also :py:meth:`has_tax_data`.
 
         :param epsilon:
             Deal with rounding errors.
@@ -190,6 +195,8 @@ class TopPairData:
 
     def get_sell_tax(self, epsilon=0.0001) -> float | None:
         """What was the TokenSniffer sell tax for the base token.
+
+        See also :py:meth:`has_tax_data`.
 
         :param epsilon:
             Deal with rounding errors.
