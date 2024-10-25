@@ -37,7 +37,27 @@ class TopPairMethod(enum.Enum):
 @dataclass_json
 @dataclass(slots=True)
 class TopPairData:
-    """See open-defi-api.yaml"""
+    """Entry for one trading pair data in top picks.
+
+    Contains
+    - Latest cached volue :py:attr:`volume_24h_usd`
+    - Latest cached liquidity/TVL :py:attr:`tvl_latest_usd` (may not be yet available for all tokens)
+    - TokenSniffer risk score :py:attr:`risk_score`
+    - TokenSniffer token tax data :py:meth:`get_buy_tax` /:py:meth:`get_sekk_tax`
+
+    Example:
+
+    .. code-block:: python
+
+        comp_weth = top_reply.included[0]
+        assert comp_weth.base_token == "COMP"
+        assert comp_weth.quote_token == "WETH"
+        assert comp_weth.get_buy_tax() == 0
+        assert comp_weth.get_sell_tax() == 0
+        assert comp_weth.volume_24h_usd > 100.0
+        assert comp_weth.tvl_latest_usd > 100.0
+
+    """
 
     #: When this entry was queried
     #:

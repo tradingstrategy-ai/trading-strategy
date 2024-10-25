@@ -808,6 +808,21 @@ class Client(BaseClient):
             assert comp_weth.volume_24h_usd > 100.0
             assert comp_weth.tvl_latest_usd > 100.0
 
+        Example of chain/exchange based query:
+
+        .. code-block:: python
+
+            # Get top tokens of Uniswap on Ethereum
+            top_reply = client.fetch_top_pairs(
+                chain_ids={ChainId.ethereum},
+                exchange_slugs={"uniswap-v2", "uniswap-v3"},
+                limit=10,
+            )
+
+            assert isinstance(top_reply, TopPairsReply)
+            assert len(top_reply.included) == 10
+            assert len(top_reply.excluded) > 0  # There is always something to be excluded
+
         :param method:
             Currently, hardcoded. No other methods supported.
 
