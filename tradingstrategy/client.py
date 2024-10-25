@@ -26,7 +26,7 @@ from tradingstrategy.environment.default_environment import DefaultClientEnviron
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.top import TopPairsReply, TopPairMethod
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
-from tradingstrategy.types import PrimaryKey, AnyTimestamp
+from tradingstrategy.types import PrimaryKey, AnyTimestamp, USDollarAmount
 from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType, LendingCandleResult
 
 # TODO: Must be here because  warnings are very inconveniently triggered import time
@@ -742,6 +742,7 @@ class Client(BaseClient):
         addresses: Collection[str] | None = None,
         limit: int = 100,
         method: TopPairMethod = TopPairMethod.sorted_by_liquidity_with_filtering,
+        min_volume_24h_usd: USDollarAmount | None = None,
     ) -> TopPairsReply:
         """Get new trading pairs to be included in the trading universe.
 
@@ -752,6 +753,13 @@ class Client(BaseClient):
 
         - Top pairs on exchanges
         - Top pairs for given tokens, by a token address
+
+        The result will include
+        - Included and excluded trading pairs
+        - Pair metadata
+        - Latest volume and liquidity
+        - :term:`Token tax` information
+        - TokenSniffer risk score
 
         The result data is asynchronously filled, and may not return the most fresh situation,
         due to data processing delays. So when you call this method `24:00` it does not have
@@ -786,12 +794,18 @@ class Client(BaseClient):
         :param addresses:
             List of token addresses to query.
 
-            **Not** trading pair addresses.
+            Token addresses, *not** trading pair addresses.
+
+            The list is designed for base tokens in a trading pair. The list should **not** include any quote tokens like `WETH` or `USDC`
+            because the resulting trading pair list is too long to handle, and the server will limit the list at some point.
 
         :param limit:
             Number of pairs to query.
 
             Only with `TopPairMethod.sorted_by_liquidity_with_filtering`.
+
+        :param min_volume_24h_usd:
+            Exclude trading pairs that do not reach this volume target.
 
         :return:
             Top trading pairs included and excluded in the ranking.
@@ -804,7 +818,7 @@ class Client(BaseClient):
         if method == TopPairMethod.sorted_by_liquidity_with_filtering:
             assert len(exchange_slugs) > 0, f"Got {exchange_slugs}"
             assert 1 < limit <= 500
-        elif method == TopPairMethod.sorted_by_liquidity_with_filtering:
+        elif method == TopPairMethod.by_token_addresses:
             assert len(addresses) > 0, f"Got {addresses}"
         else:
             raise NotImplementedError(f"Unknown method {method}")
@@ -815,6 +829,7 @@ class Client(BaseClient):
             limit=limit,
             method=method.value,
             addresses=addresses,
+            min_volume_24h_usd=min_volume_24h_usd,
         )
         return TopPairsReply.from_dict(data)
 

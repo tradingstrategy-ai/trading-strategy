@@ -22,11 +22,16 @@ class TopPairMethod(enum.Enum):
     - For given exchanges or token addresses, find the best trading pairs
     """
 
-    #: Give the endpoint a list of exchange slugs and get the best trading pairs on these exchanges
+    #: Give the endpoint a list of exchange slugs and get the best trading pairs on these exchanges.
+    #:
+    #:
+    #:
     sorted_by_liquidity_with_filtering = "sorted-by-liquidity-with-filtering"
 
-    #: Give the endpoint a list of **token** smart contract addresses and get the best trading pairs for these
-    by_addresses = "by-addresses"
+    #: Give the endpoint a list of **token** smart contract addresses and get the best trading pairs for these.
+    #:
+    #:
+    by_token_addresses = "by-addresses"
 
 
 @dataclass_json
@@ -208,3 +213,6 @@ class TopPairsReply:
     #: or had a trading pair for the same base token with better fees, etc.
     #:
     excluded: list[TopPairData]
+
+    def __repr__(self):
+        return f"<TopPairsReply included {len(self.included)}, exluded {len(self.excluded)}>"

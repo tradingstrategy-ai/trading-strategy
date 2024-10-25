@@ -29,7 +29,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
-from tradingstrategy.types import PrimaryKey
+from tradingstrategy.types import PrimaryKey, USDollarAmount
 from tradingstrategy.lending import LendingCandle, LendingCandleType
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
 
@@ -350,6 +350,7 @@ class CachedHTTPTransport:
         exchange_slugs: Collection[str],
         addresses: Collection[str],
         method: str,
+        min_volume_24h_usd: None | USDollarAmount = None,
     ) -> dict:
         """Not cached."""
         params = {
@@ -364,6 +365,9 @@ class CachedHTTPTransport:
 
         if addresses:
             params["addresses"] = ",".join([a for a in addresses])
+
+        if min_volume_24h_usd:
+            params["min_volume_24h_usd"] = str(min_volume_24h_usd)
 
         resp = self.get_json_response("top", params=params)
         return resp

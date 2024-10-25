@@ -1,5 +1,3 @@
-import ipdb
-
 from tradingstrategy.alternative_data.coingecko import CoingeckoUniverse, categorise_pairs
 
 
