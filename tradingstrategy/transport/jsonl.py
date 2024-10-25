@@ -116,7 +116,12 @@ def load_trading_strategy_like_jsonl_data(
     if max_bytes:
         params["max_bytes"] = max_bytes
 
-    logger.info("Loading JSON data, endpoint:%s, params:%s", api_url, params)
+    param_str = str(params)[0:256]
+
+    logger.info("Loading JSON data, endpoint:%s, params:%s", api_url, param_str)
+    if len(params) >= 256:
+        # Avoid excessive logging
+        logger.debug("Full params are %s", params)
 
     resp = session.get(api_url, params=params, stream=True)
     reader = jsonlines.Reader(resp.raw)
