@@ -24,7 +24,7 @@ import pandas as pd
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.environment.default_environment import DefaultClientEnvironment, DEFAULT_SETTINGS_PATH
 from tradingstrategy.reader import BrokenData, read_parquet
-from tradingstrategy.top import TopPairsReply
+from tradingstrategy.top import TopPairsReply, TopPairMethod
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey, AnyTimestamp
 from tradingstrategy.lending import LendingReserveUniverse, LendingCandleType, LendingCandleResult
@@ -104,7 +104,6 @@ def _retry_corrupted_parquet_fetch(method):
         raise AssertionError(f"Should not be reached. Download issue on {self}, {attempts} / {MAX_ATTEMPTS}, {method_args}, {method_kwargs}")
 
     return impl
-
 
 class BaseClient(ABC):
     """Base class for all real and test mocks clients."""
@@ -739,14 +738,20 @@ class Client(BaseClient):
     def fetch_top_pairs(
         self,
         chain_ids: Collection[ChainId],
-        exchange_slugs: Collection[str],
+        exchange_slugs: Collection[str] | None = None,
+        addresses: Collection[str] | None = None,
         limit: int = 100,
-        method="sorted-by-liquidity-with-filtering",
+        method: TopPairMethod = TopPairMethod.sorted_by_liquidity_with_filtering,
     ) -> TopPairsReply:
         """Get new trading pairs to be included in the trading universe.
 
+        **This API is still under heavy development**.
+
         This endpoint is designed to scan new trading pairs to be included in a trading universe.
         It ranks and filters the daily/weekly/etc. interesting trading pairs by a criteria.
+
+        - Top pairs on exchanges
+        - Top pairs for given tokens, by a token address
 
         The result data is asynchronously filled, and may not return the most fresh situation,
         due to data processing delays. So when you call this method `24:00` it does not have
@@ -760,35 +765,56 @@ class Client(BaseClient):
 
         .. warning::
 
-            Depending on the available TokenSniffer data caching, this endpoint may
-            take up to 15 seconds per token.
+            Depending on the TokenSniffer data available, this endpoint may take up to 15 seconds per token.
 
-        **This API is still under heavy development**.
+        The endpoint has two modes of operation
 
-        :param chain_ids:
-            List of blockchains to consider.
-
-        :param exchange_slugs:
-            List of DEXes to consider.
-
-        :param limit:
-            Number of pairs to query.
+        - :py:attr:`TopPairMethod.sorted_by_liquidity_with_filtering`: Give the endpoint a list of exchange slugs and get the best trading pairs on these exchanges. You need to give ``chain_id`, limit` and `exchange_slugs` arguments.
+        - :py:attr:`TopPairMethod.by_addresses`: Give the endpoint a list of **token** smart contract addresses and get the best trading pairs for these. You need to give ``chain_id` and `addresses` arguments.
 
         :param method:
             Currently, hardcoded. No other methods supported.
 
+        :param chain_ids:
+            List of blockchains to consider.
+
+            Currently only 1 chain_id supported per query.
+
+        :param exchange_slugs:
+            List of DEXes to consider.
+
+        :param addresses:
+            List of token addresses to query.
+
+            **Not** trading pair addresses.
+
+        :param limit:
+            Number of pairs to query.
+
+            Only with `TopPairMethod.sorted_by_liquidity_with_filtering`.
+
         :return:
             Top trading pairs included and excluded in the ranking.
+
+            If `by_addresses` method is used and there is no active trading data for the token,
+            the token may not appear in neither `included` or `excluded` results.
         """
 
         assert len(chain_ids) > 0, f"Got {chain_ids}"
-        assert len(exchange_slugs) > 0, f"Got {exchange_slugs}"
-        assert 1 < limit <= 500
+        if method == TopPairMethod.sorted_by_liquidity_with_filtering:
+            assert len(exchange_slugs) > 0, f"Got {exchange_slugs}"
+            assert 1 < limit <= 500
+        elif method == TopPairMethod.sorted_by_liquidity_with_filtering:
+            assert len(addresses) > 0, f"Got {addresses}"
+        else:
+            raise NotImplementedError(f"Unknown method {method}")
 
         data = self.transport.fetch_top_pairs(
             chain_ids=chain_ids,
             exchange_slugs=exchange_slugs,
             limit=limit,
+            method=method.value,
+            addresses=addresses,
         )
         return TopPairsReply.from_dict(data)
 

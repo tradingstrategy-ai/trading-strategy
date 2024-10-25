@@ -348,13 +348,23 @@ class CachedHTTPTransport:
         limit: int,
         chain_ids: Collection[ChainId],
         exchange_slugs: Collection[str],
+        addresses: Collection[str],
+        method: str,
     ) -> dict:
         """Not cached."""
         params = {
             "chain_slugs": ",".join([c.get_slug() for c in chain_ids]),
-            "exchange_slugs": ",".join([e for e in exchange_slugs]),
             "limit": str(limit),
+            "method": method,
         }
+
+        # OpenAPI list syntax
+        if exchange_slugs:
+            params["exchange_slugs"] = ",".join([e for e in exchange_slugs])
+
+        if addresses:
+            params["addresses"] = ",".join([a for a in addresses])
+
         resp = self.get_json_response("top", params=params)
         return resp
 
