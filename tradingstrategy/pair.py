@@ -886,7 +886,7 @@ class PandasPairUniverse:
                 # We do not initially construct these objects,
                 # as we do not know what pairs a strategy might access.
                 data = self.pair_map.get(pair_id)
-
+                assert data is not None, f"pair_map lacks entry for: {pair_id}, we have {len(self.pair_map)} entries"
                 obj = _convert_to_dex_pair(data, self.exchange_universe)
 
                 self.dex_pair_obj_cache[pair_id] = obj
@@ -2046,11 +2046,14 @@ def _preprocess_loaded_pair_data(data: dict) -> dict:
 
 
 def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=None) -> DEXPair:
-    """Convert trading pai0r data from dict to object.
+    """Convert trading pair data from dict to a wrapped object.
 
     - Correctly handle serialisation quirks
 
     - Give user friendly error reports
+
+    :param data:
+        Raw DEX data as a dict
 
     :param exchange_universe:
         If given assign exchange labels on the trading pairs.
@@ -2058,6 +2061,8 @@ def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=
     :return:
         Constructed DEXPair instance
     """
+
+    assert data is not None, "Passed None as DEX data"
 
     exchange_name = None
     if exchange_universe is not None:

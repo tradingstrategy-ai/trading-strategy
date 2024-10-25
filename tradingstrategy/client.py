@@ -740,9 +740,9 @@ class Client(BaseClient):
         chain_ids: Collection[ChainId],
         exchange_slugs: Collection[str] | None = None,
         addresses: Collection[str] | None = None,
-        limit: int = 100,
+        limit: None = None,
         method: TopPairMethod = TopPairMethod.sorted_by_liquidity_with_filtering,
-        min_volume_24h_usd: USDollarAmount | None = None,
+        min_volume_24h_usd: USDollarAmount | None = 1000,
     ) -> TopPairsReply:
         """Get new trading pairs to be included in the trading universe.
 
@@ -800,12 +800,19 @@ class Client(BaseClient):
             because the resulting trading pair list is too long to handle, and the server will limit the list at some point.
 
         :param limit:
-            Number of pairs to query.
+            Max number of results.
 
-            Only with `TopPairMethod.sorted_by_liquidity_with_filtering`.
+            If you ask very high number of tokens / pairs, the server will hard limit the response in some point.
+            In this case, you may not get a resulting trading pair for a token even if such exists.
+            Try to ask max 100 tokens at once.
 
         :param min_volume_24h_usd:
             Exclude trading pairs that do not reach this volume target.
+
+            The filtered pairs do not appear in the result at all (not worth to load from the database)
+            or will appear in `excluded` category.
+
+            Default to $1000. Minimum value is $1.
 
         :return:
             Top trading pairs included and excluded in the ranking.
@@ -816,6 +823,7 @@ class Client(BaseClient):
 
         assert len(chain_ids) > 0, f"Got {chain_ids}"
         if method == TopPairMethod.sorted_by_liquidity_with_filtering:
+            assert limit, "You must give limit argument with TopPairMethod.sorted_by_liquidity_with_filtering"
             assert len(exchange_slugs) > 0, f"Got {exchange_slugs}"
             assert 1 < limit <= 500
         elif method == TopPairMethod.by_token_addresses:

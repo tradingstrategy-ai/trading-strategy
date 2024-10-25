@@ -345,17 +345,16 @@ class CachedHTTPTransport:
 
     def fetch_top_pairs(
         self,
-        limit: int,
         chain_ids: Collection[ChainId],
         exchange_slugs: Collection[str],
         addresses: Collection[str],
         method: str,
         min_volume_24h_usd: None | USDollarAmount = None,
+        limit: int | None = None,
     ) -> dict:
         """Not cached."""
         params = {
             "chain_slugs": ",".join([c.get_slug() for c in chain_ids]),
-            "limit": str(limit),
             "method": method,
         }
 
@@ -365,6 +364,9 @@ class CachedHTTPTransport:
 
         if addresses:
             params["addresses"] = ",".join([a for a in addresses])
+
+        if limit:
+            params["limit"] = str(limit)
 
         if min_volume_24h_usd:
             params["min_volume_24h_usd"] = str(min_volume_24h_usd)

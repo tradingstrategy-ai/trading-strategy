@@ -158,6 +158,15 @@ class TopPairData:
 
         return self.token_sniffer_data["score"]
 
+    def has_tax_data(self) -> bool | None:
+        """Do we have tax data for this pair.
+
+        :return:
+            True/False is TokenSniffer data is available, otherwise None.
+        """
+        if self.token_sniffer_data is not None:
+            return "swap_simulation" in self.token_sniffer_data
+
     def get_buy_tax(self, epsilon=0.0001) -> float | None:
         """What was the TokenSniffer buy tax for the base token.
 
@@ -169,6 +178,9 @@ class TopPairData:
         """
 
         if self.token_sniffer_data is None:
+            return None
+
+        if not self.has_tax_data():
             return None
 
         fee = float(self.token_sniffer_data["swap_simulation"]["buy_fee"])
@@ -187,6 +199,9 @@ class TopPairData:
         """
 
         if self.token_sniffer_data is None:
+            return None
+
+        if not self.has_tax_data():
             return None
 
         fee = float(self.token_sniffer_data["swap_simulation"]["sell_fee"])

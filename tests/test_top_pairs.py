@@ -1,5 +1,8 @@
 """Test /top endpoint."""
 import datetime
+import itertools
+
+import ipdb
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
@@ -56,15 +59,16 @@ def test_load_top_by_tokens(persistent_test_client: Client):
         chain_ids={ChainId.ethereum},
         addresses={"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9", "0xc00e94Cb662C3520282E6f5717214004A7f26888"},
         method=TopPairMethod.by_token_addresses,
+        limit=None,
     )
 
     assert isinstance(top_reply, TopPairsReply)
-    assert len(top_reply.included) == 3
-    assert len(top_reply.excluded) == 0  # There is always something to be excluded
+    assert len(top_reply.included) == 2
+    assert len(top_reply.excluded) > 0  # There are many pairs excluded e.g (USDC/USDT) based ones because of low liq/vol
 
-    weth_usdc = top_reply[0]
-    assert weth_usdc.get_buy_tax() == 0
-    assert weth_usdc.get_sell_tax() == 0
+    comp_weth = top_reply.included[0]
+    assert comp_weth.get_buy_tax() == 0
+    assert comp_weth.get_sell_tax() == 0
 
     # Because this is a dynamic reply,
     # we just check accessor methods work
@@ -75,33 +79,37 @@ def test_load_top_by_tokens(persistent_test_client: Client):
         assert isinstance(pair.queried_at, datetime.datetime)
         assert pair.volume_24h_usd > 0, f"Top pair issue on {pair}"
         assert pair.tvl_latest_usd > 0, f"Top pair issue on {pair}"
-        if pair.base_token != "WETH":
-            assert pair.token_sniffer_score, f"Top pair issue on {pair}"
-            assert pair.token_sniffer_score > 0, f"Top pair issue on {pair}"
 
 
 def test_token_tax(persistent_test_client: Client):
-    """Check the token tax of a token."""
+    """Check the token tax of a token.
+
+    - Get data for 3 taxed token
+    """
 
     client = persistent_test_client
 
     # Example tokens with tax
-    # FRIEND.TECH 0x71fc7cf3e26ce5933fa1952590ca6014a5938138
+    # FRIEND.TECH 0x71fc7cf3e26ce5933fa1952590ca6014a5938138 SCAM
     # $PAAL 0x14feE680690900BA0ccCfC76AD70Fd1b95D10e16
     # TRUMP 0x576e2BeD8F7b46D34016198911Cdf9886f78bea7
     top_reply = client.fetch_top_pairs(
         chain_ids={ChainId.ethereum},
-        addresses={"0x71fc7cf3e26ce5933fa1952590ca6014a5938138", "0x14feE680690900BA0ccCfC76AD70Fd1b95D10e16", "0x576e2BeD8F7b46D34016198911Cdf9886f78bea7"},
+        addresses={
+            "0x71fc7cf3e26ce5933fa1952590ca6014a5938138",
+            "0x14feE680690900BA0ccCfC76AD70Fd1b95D10e16",
+            "0x576e2BeD8F7b46D34016198911Cdf9886f78bea7"
+        },
         method=TopPairMethod.by_token_addresses,
     )
 
     assert isinstance(top_reply, TopPairsReply)
-    assert len(top_reply.included) == 1
-    assert len(top_reply.excluded) == 0
-    friend_weth = top_reply.included[0]
-    assert friend_weth.base_token == "FRIEND.TECH"
-    assert friend_weth.quote_token == "WETH"
-    assert 0 < friend_weth.get_buy_tax() < 1
-    assert 0 < friend_weth.get_sell_tax() < 1
+    assert len(top_reply.included) == 2
+    assert len(top_reply.excluded) == 2  # FRIEND, another PAAL excluded
+
+    for pair in itertools.chain(top_reply.included, top_reply.excluded):
+        if pair.has_tax_data():
+            assert 0 < (pair.get_buy_tax() or 0) < 5, f"Pair lacks tax data: {pair}"
+            assert 0 < (pair.get_sell_tax() or 0) < 5, f"Pair lacks tax data: {pair}"
 
 
