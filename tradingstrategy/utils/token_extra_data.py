@@ -10,7 +10,6 @@ def load_extra_metadata(
     pairs_df: pd.DataFrame,
     client: Client | None = None,
     top_pair_reply: TopPairsReply | None = None,
-    tax_rounding=2,
 ) -> pd.DataFrame:
     """Load token tax data for given pairs dataframe.
 
