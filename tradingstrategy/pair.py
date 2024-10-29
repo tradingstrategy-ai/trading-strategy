@@ -433,12 +433,14 @@ class DEXPair:
     #:
     exchange_name: Optional[str] = None
 
-    #: Any user supplied data.
+    #: Any extra/user supplied data.
     #:
     #: Can contain:
     #: - `top_pair_data`; TopPairData instance
     #:
-    #: See :py:meth:`token_sniffer_data`
+    #: See
+    #:  - :py:meth:`token_sniffer_data`
+    #:  - :py:func:`tradingstrategy.utils.token_extra_data.load_extra_metadata` how to load
     #:
     other_data: Optional[dict] = field(default_factory=dict)
 
