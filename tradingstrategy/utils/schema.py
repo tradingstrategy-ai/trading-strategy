@@ -11,6 +11,7 @@ For more information about Pyarrow Schemas, see https://arrow.apache.org/docs/py
 
 import typing
 from enum import Enum
+from types import NoneType
 from typing import Optional, Dict, Callable, List
 from dataclasses import fields, Field
 
@@ -94,7 +95,7 @@ def create_pyarrow_schema_for_dataclass(
     if not hints:
         hints = {}
 
-    pa_fields = [(field.name, map_field_to_arrow(field, hints, core_mappings)) for field in fields(cls)]
+    pa_fields = [(field.name, map_field_to_arrow(field, hints, core_mappings)) for field in fields(cls) if hints.get(field.name) is not NoneType]
     return pa.schema(pa_fields)
 
 
