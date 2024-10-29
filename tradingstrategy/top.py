@@ -196,13 +196,16 @@ class TopPairData:
         if self.token_sniffer_data is not None:
             return "swap_simulation" in self.token_sniffer_data
 
-    def get_buy_tax(self, epsilon=0.0001) -> float | None:
+    def get_buy_tax(self, epsilon=0.0001, rounding=2) -> float | None:
         """What was the TokenSniffer buy tax for the base token.
 
         See also :py:meth:`has_tax_data`.
 
         :param epsilon:
             Deal with rounding errors.
+
+        :param rounding:
+            Deal with tax estimation accuracy
 
         :return:
             Buy tax 0....1 or None if not available
@@ -217,15 +220,18 @@ class TopPairData:
         fee = float(self.token_sniffer_data["swap_simulation"]["buy_fee"])
         if fee < epsilon:
             return 0
-        return fee
+        return round(fee, rounding)
 
-    def get_sell_tax(self, epsilon=0.0001) -> float | None:
+    def get_sell_tax(self, epsilon=0.0001, rounding=2) -> float | None:
         """What was the TokenSniffer sell tax for the base token.
 
         See also :py:meth:`has_tax_data`.
 
         :param epsilon:
             Deal with rounding errors.
+
+         :param rounding:
+            Deal with tax estimation accuracy
 
         :return:
             Sell tax 0....1 or None if not available
@@ -240,7 +246,7 @@ class TopPairData:
         fee = float(self.token_sniffer_data["swap_simulation"]["sell_fee"])
         if fee < epsilon:
             return 0
-        return fee
+        return round(fee, rounding)
 
 
 @dataclass_json
