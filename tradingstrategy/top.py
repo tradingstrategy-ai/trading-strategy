@@ -45,6 +45,10 @@ class TopPairData:
     - TokenSniffer risk score :py:attr:`risk_score`
     - TokenSniffer token tax data :py:meth:`get_buy_tax` /:py:meth:`get_sekk_tax`
 
+    See also
+
+    - :py:func:`tradingstrategy.utils.token_extra_data.load_extra_metadata`
+
     Example:
 
     .. code-block:: python
@@ -97,6 +101,12 @@ class TopPairData:
 
     #: Human readable quote token
     quote_token: str
+
+    #: 0x lowercased address
+    base_token_address: str
+
+    #: 0x lowercased address
+    quote_token_address: str
 
     #: Pair fee in 0...1, 0.0030 is 30 BPS
     fee: float
@@ -190,13 +200,16 @@ class TopPairData:
         if self.token_sniffer_data is not None:
             return "swap_simulation" in self.token_sniffer_data
 
-    def get_buy_tax(self, epsilon=0.0001) -> float | None:
+    def get_buy_tax(self, epsilon=0.0001, rounding=2) -> float | None:
         """What was the TokenSniffer buy tax for the base token.
 
         See also :py:meth:`has_tax_data`.
 
         :param epsilon:
             Deal with rounding errors.
+
+        :param rounding:
+            Deal with tax estimation accuracy
 
         :return:
             Buy tax 0....1 or None if not available
@@ -211,15 +224,18 @@ class TopPairData:
         fee = float(self.token_sniffer_data["swap_simulation"]["buy_fee"])
         if fee < epsilon:
             return 0
-        return fee
+        return round(fee, rounding)
 
-    def get_sell_tax(self, epsilon=0.0001) -> float | None:
+    def get_sell_tax(self, epsilon=0.0001, rounding=2) -> float | None:
         """What was the TokenSniffer sell tax for the base token.
 
         See also :py:meth:`has_tax_data`.
 
         :param epsilon:
             Deal with rounding errors.
+
+         :param rounding:
+            Deal with tax estimation accuracy
 
         :return:
             Sell tax 0....1 or None if not available
@@ -234,7 +250,7 @@ class TopPairData:
         fee = float(self.token_sniffer_data["swap_simulation"]["sell_fee"])
         if fee < epsilon:
             return 0
-        return fee
+        return round(fee, rounding)
 
 
 @dataclass_json
@@ -258,3 +274,16 @@ class TopPairsReply:
 
     def __repr__(self):
         return f"<TopPairsReply included {len(self.included)}, exluded {len(self.excluded)}>"
+
+    def as_token_address_map(self) -> dict[str, TopPairData]:
+        """Make base token address lookupable data.
+
+        Includes both excluded and included pairs.
+        Included takes priority if multiple pairs.
+
+        :return:
+            Map with all token addresses lowercase.
+         """
+        exc_data = {entry.base_token_address: entry for entry in self.excluded}
+        inc_data = {entry.base_token_address: entry for entry in self.included}
+        return exc_data | inc_data

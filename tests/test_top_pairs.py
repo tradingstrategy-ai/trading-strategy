@@ -2,11 +2,15 @@
 import datetime
 import itertools
 
-import ipdb
+import pandas as pd
+import pytest
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
+from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.top import TopPairsReply, TopPairMethod
+from tradingstrategy.utils.token_extra_data import load_extra_metadata
+from tradingstrategy.utils.token_filter import add_base_quote_address_columns
 
 
 def test_load_top_by_exchanges(persistent_test_client: Client):
@@ -110,3 +114,50 @@ def test_token_tax(persistent_test_client: Client):
             assert 0 < (pair.get_sell_tax() or 0) < 5, f"Pair lacks tax data: {pair}"
 
 
+def test_token_tax(persistent_test_client: Client):
+    """Load token tax data in load_extra_metadata()."""
+
+    client = persistent_test_client
+
+    exchange_universe = client.fetch_exchange_universe()
+
+    addresses = [
+        "0x71fc7cf3e26ce5933fa1952590ca6014a5938138",  # FRIEND.TECH 0x71fc7cf3e26ce5933fa1952590ca6014a5938138 SCAM
+        "0x14feE680690900BA0ccCfC76AD70Fd1b95D10e16",  # $PAAL 0x14feE680690900BA0ccCfC76AD70Fd1b95D10e16
+        "0x576e2BeD8F7b46D34016198911Cdf9886f78bea7"   # TRUMP 0x576e2BeD8F7b46D34016198911Cdf9886f78bea7
+    ]
+    addresses = list(map(str.lower, addresses))
+
+    # Get all pairs data and filter to our subset
+    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = add_base_quote_address_columns(pairs_df)
+    pairs_df = pairs_df.loc[
+        (pairs_df["base_token_address"].isin(addresses)) &
+        (pairs_df["chain_id"] == 1)
+    ]
+
+    # Retrofit TokenSniffer data
+    pairs_df = load_extra_metadata(
+        pairs_df,
+        client=client,
+    )
+
+    assert isinstance(pairs_df, pd.DataFrame)
+    assert "buy_tax" in pairs_df.columns
+    assert "sell_tax" in pairs_df.columns
+    assert "other_data" in pairs_df.columns
+
+    #
+    pair_universe = PandasPairUniverse(
+        pairs_df,
+        exchange_universe=exchange_universe,
+    )
+
+    trump_weth = pair_universe.get_pair_by_human_description(
+        (ChainId.ethereum, "uniswap-v2", "TRUMP", "WETH"),
+    )
+
+    # Read buy/sell/tokensniffer metadta through DEXPair instance
+    assert trump_weth.buy_tax == 1.0
+    assert trump_weth.sell_tax == 1.0
+    assert trump_weth.token_sniffer_data.get("balances") is not None  # Read random column from TokenSniffer reply

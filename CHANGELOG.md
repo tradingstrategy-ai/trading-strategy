@@ -1,6 +1,7 @@
 # Current
 
-TODO
+- Add: `utils.token_extra_data` to load additional trading pair data
+- Add: `load_extra_metadata` to load buy and sell tax for given trading pairs
 
 # 0.24.4
 
