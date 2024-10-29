@@ -115,17 +115,16 @@ def test_token_tax(persistent_test_client: Client):
 
 
 def test_token_tax(persistent_test_client: Client):
-    """Load token tax data in load_tokensniffer_metadata()."""
+    """Load token tax data in load_extra_metadata()."""
 
     client = persistent_test_client
 
     exchange_universe = client.fetch_exchange_universe()
 
-    # See test above
     addresses = [
-        "0x71fc7cf3e26ce5933fa1952590ca6014a5938138",
-        "0x14feE680690900BA0ccCfC76AD70Fd1b95D10e16",
-        "0x576e2BeD8F7b46D34016198911Cdf9886f78bea7"
+        "0x71fc7cf3e26ce5933fa1952590ca6014a5938138",  # FRIEND.TECH 0x71fc7cf3e26ce5933fa1952590ca6014a5938138 SCAM
+        "0x14feE680690900BA0ccCfC76AD70Fd1b95D10e16",  # $PAAL 0x14feE680690900BA0ccCfC76AD70Fd1b95D10e16
+        "0x576e2BeD8F7b46D34016198911Cdf9886f78bea7"   # TRUMP 0x576e2BeD8F7b46D34016198911Cdf9886f78bea7
     ]
     addresses = list(map(str.lower, addresses))
 
