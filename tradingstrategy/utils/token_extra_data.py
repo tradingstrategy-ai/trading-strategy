@@ -19,6 +19,8 @@ def load_extra_metadata(
 
     - Data is added by the base token, because TokenSniffer does not provide per-pair data
 
+    - Can only handle token amounts /top endpoint can handle
+
     .. note ::
 
         In the future, this data will be with supplied the core data,
