@@ -1,4 +1,4 @@
-"""High level helpers to deal with token tax data."""
+"""High level helpers to load with token tax data, TokenSniffer metadata and else."""
 import pandas as pd
 
 from tradingstrategy.chain import ChainId
