@@ -88,6 +88,17 @@ def load_extra_metadata(
         assert trump_weth.sell_tax == pytest.approx(1.0, rel=0.02)
         assert trump_weth.token_sniffer_data.get("balances") is not None  # Read random column from TokenSniffer reply
 
+    :param pairs_df:
+        Pandas DataFrame with pairs data.
+
+        Must be retrofitted with `add_base_quote_address_columns()`.
+
+    :param client:
+        Give client to load /top metadata
+
+    :param top_pair_reply:
+        Pass preloaded /top metadata
+
     :return:
         DataFrame with new columns added:
 
