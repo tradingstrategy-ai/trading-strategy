@@ -33,7 +33,8 @@ def load_extra_metadata(
     .. warning::
 
         Because we use third party services like TokenSniffer for token tax data,
-        and often these services
+        and often these services key this data by tokens, not by trading pairs,
+        this data might be invalid per trading pair.
 
     .. warning::
 
