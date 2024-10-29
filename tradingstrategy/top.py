@@ -221,7 +221,7 @@ class TopPairData:
         if not self.has_tax_data():
             return None
 
-        fee = float(self.token_sniffer_data["swap_simulation"]["buy_fee"])
+        fee = float(self.token_sniffer_data["swap_simulation"]["buy_fee"]) / 100
         if fee < epsilon:
             return 0
         return round(fee, rounding)
@@ -247,7 +247,7 @@ class TopPairData:
         if not self.has_tax_data():
             return None
 
-        fee = float(self.token_sniffer_data["swap_simulation"]["sell_fee"])
+        fee = float(self.token_sniffer_data["swap_simulation"]["sell_fee"]) / 100
         if fee < epsilon:
             return 0
         return round(fee, rounding)

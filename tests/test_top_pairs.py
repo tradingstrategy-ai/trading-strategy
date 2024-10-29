@@ -158,6 +158,6 @@ def test_token_tax(persistent_test_client: Client):
     )
 
     # Read buy/sell/tokensniffer metadta through DEXPair instance
-    assert trump_weth.buy_tax == 1.0
-    assert trump_weth.sell_tax == 1.0
+    assert trump_weth.buy_tax == 0.01
+    assert trump_weth.sell_tax == 0.01
     assert trump_weth.token_sniffer_data.get("balances") is not None  # Read random column from TokenSniffer reply

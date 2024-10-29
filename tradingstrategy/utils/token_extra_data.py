@@ -1,9 +1,14 @@
 """High level helpers to load with token tax data, TokenSniffer metadata and else."""
+import logging
+
 import pandas as pd
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.top import TopPairsReply, TopPairMethod
+
+
+logger = logging.getLogger(__name__)
 
 
 def load_extra_metadata(
@@ -109,6 +114,8 @@ def load_extra_metadata(
     """
 
     assert isinstance(pairs_df, pd.DataFrame)
+
+    logger.info("Loading extra metadata for %d tokens", len(pairs_df))
 
     assert len(pairs_df) > 0, "pairs_df is empty"
     assert len(pairs_df) < 200, f"pairs_df size is {len(pairs_df)}, looks too much?"
