@@ -63,7 +63,7 @@ import enum
 import pprint
 import warnings
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import NoneType
 from typing import Optional, Iterable, Dict, TypeAlias
 
@@ -408,21 +408,33 @@ class DEXPair:
 
     #: Buy token tax for this trading pair.
     #: See :ref:`token-tax` for details.
-    buy_tax: Optional[float] = None
+    buy_tax: Optional[Percent] = None
 
     #: Transfer token tax for this trading pair.
     #: See :ref:`token-tax` for details.
-    transfer_tax: Optional[float] = None
+    #:
+    #: **Legacy**. Not used.
+    #:
+    transfer_tax: Optional[Percent] = None
 
     #: Sell tax for this trading pair.
     #: See :ref:`token-tax` for details.
-    sell_tax: Optional[float] = None
+    sell_tax: Optional[Percent] = None
 
     #: Exchange name.
     #:
     #: Not part of the datasets. Added during the instance construction.
     #:
     exchange_name: Optional[str] = None
+
+    #: Any user supplied data.
+    #:
+    #: Can contain:
+    #: - `top_pair_data`; TopPairData instance
+    #:
+    #: See :py:meth:`token_sniffer_data`
+    #:
+    other_data: Optional[dict] = field(default_factory=dict)
 
     def __repr__(self):
         exchange_name = self.exchange_name if self.exchange_name else f"{self.exchange_id}"
@@ -526,6 +538,17 @@ class DEXPair:
             return self.token0_decimals
         else:
             return self.token1_decimals
+
+    @property
+    def token_sniffer_data(self) -> dict | None:
+        """Get TokenSniffer metadata.
+
+        Must be separarely loaded. See :py:func:`tradingstrategy.utils.tax.load_tokensniffer_metadata`
+        """
+        top_pair_data = self.other_data.get("top_pair_data")
+        if top_pair_data:
+            return top_pair_data.token_sniffer_data
+        return None
 
     def is_tradeable(
             self,
@@ -747,10 +770,12 @@ class PandasPairUniverse:
 
     """
 
-    def __init__(self,
-                 df: pd.DataFrame,
-                 build_index=True,
-                 exchange_universe: Optional[ExchangeUniverse]=None):
+    def __init__(
+            self,
+            df: pd.DataFrame,
+            build_index=True,
+            exchange_universe: Optional[ExchangeUniverse]=None
+    ):
         """
         :param df:
             The source DataFrame that contains all DEXPair entries

@@ -366,7 +366,7 @@ class CachedHTTPTransport:
         if exchange_slugs:
             params["exchange_slugs"] = ",".join([e for e in exchange_slugs])
 
-        if addresses:
+        if addresses is not None:
             params["addresses"] = ",".join([a for a in addresses])
 
         if limit:

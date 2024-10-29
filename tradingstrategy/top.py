@@ -98,6 +98,12 @@ class TopPairData:
     #: Human readable quote token
     quote_token: str
 
+    #: 0x lowercased address
+    base_token_address: str
+
+    #: 0x lowercased address
+    quote_token_address: str
+
     #: Pair fee in 0...1, 0.0030 is 30 BPS
     fee: float
 
@@ -258,3 +264,16 @@ class TopPairsReply:
 
     def __repr__(self):
         return f"<TopPairsReply included {len(self.included)}, exluded {len(self.excluded)}>"
+
+    def as_token_address_map(self) -> dict[str, TopPairData]:
+        """Make base token address lookupable data.
+
+        Includes both excluded and included pairs.
+        Included takes priority if multiple pairs.
+
+        :return:
+            Map with all token addresses lowercase.
+         """
+        exc_data = {entry.base_token_address: entry for entry in self.excluded}
+        inc_data = {entry.base_token_address: entry for entry in self.included}
+        return exc_data | inc_data
