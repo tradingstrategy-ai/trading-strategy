@@ -407,7 +407,10 @@ class DEXPair:
     sell_volume_30d: Optional[float] = None
 
     #: Buy token tax for this trading pair.
-    #: See :ref:`token-tax` for details.
+    #:
+    #: See
+    #:  - :ref:`token-tax` what it means
+    #:  - :py:func:`tradingstrategy.utils.token_extra_data.load_extra_metadata` how to load
     buy_tax: Optional[Percent] = None
 
     #: Transfer token tax for this trading pair.
@@ -418,7 +421,10 @@ class DEXPair:
     transfer_tax: Optional[Percent] = None
 
     #: Sell tax for this trading pair.
-    #: See :ref:`token-tax` for details.
+    #:
+    #: See
+    #:  - :ref:`token-tax` what it means
+    #:  - :py:func:`tradingstrategy.utils.token_extra_data.load_extra_metadata` how to load
     sell_tax: Optional[Percent] = None
 
     #: Exchange name.
