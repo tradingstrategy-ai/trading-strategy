@@ -351,8 +351,12 @@ class CachedHTTPTransport:
         method: str,
         min_volume_24h_usd: None | USDollarAmount = None,
         limit: int | None = None,
+        risk_score_threshold: int | None = None,
     ) -> dict:
-        """Not cached."""
+        """Call /top API endpoint.
+
+        - Not cached.
+        """
         params = {
             "chain_slugs": ",".join([c.get_slug() for c in chain_ids]),
             "method": method,
@@ -370,6 +374,9 @@ class CachedHTTPTransport:
 
         if min_volume_24h_usd:
             params["min_volume_24h_usd"] = str(min_volume_24h_usd)
+
+        if risk_score_threshold:
+            params["risk_score_threshold"] = str(risk_score_threshold)
 
         resp = self.get_json_response("top", params=params)
         return resp

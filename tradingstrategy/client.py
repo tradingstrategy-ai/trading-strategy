@@ -743,6 +743,7 @@ class Client(BaseClient):
         limit: None = None,
         method: TopPairMethod = TopPairMethod.sorted_by_liquidity_with_filtering,
         min_volume_24h_usd: USDollarAmount | None = 1000,
+        risk_score_threshold=65,
     ) -> TopPairsReply:
         """Get new trading pairs to be included in the trading universe.
 
@@ -857,6 +858,12 @@ class Client(BaseClient):
 
             Default to $1000. Minimum value is $1.
 
+        :param risk_score_threshold:
+            TokenSniffer risk score threshold.
+
+            If the TokenSniffer risk score is below this value, the token will be in `excluded`
+            category of the reply, otherwise it is `included`.
+
         :return:
             Top trading pairs included and excluded in the ranking.
 
@@ -881,6 +888,7 @@ class Client(BaseClient):
             method=method.value,
             addresses=addresses,
             min_volume_24h_usd=min_volume_24h_usd,
+            risk_score_threshold=risk_score_threshold,
         )
         return TopPairsReply.from_dict(data)
 
