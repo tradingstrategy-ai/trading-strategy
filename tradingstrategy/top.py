@@ -45,6 +45,10 @@ class TopPairData:
     - TokenSniffer risk score :py:attr:`risk_score`
     - TokenSniffer token tax data :py:meth:`get_buy_tax` /:py:meth:`get_sekk_tax`
 
+    See also
+
+    - :py:func:`tradingstrategy.utils.token_extra_data.load_extra_metadata`
+
     Example:
 
     .. code-block:: python
