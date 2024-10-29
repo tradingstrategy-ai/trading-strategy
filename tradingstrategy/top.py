@@ -200,7 +200,7 @@ class TopPairData:
         if self.token_sniffer_data is not None:
             return "swap_simulation" in self.token_sniffer_data
 
-    def get_buy_tax(self, epsilon=0.0001, rounding=2) -> float | None:
+    def get_buy_tax(self, epsilon=0.0001, rounding=4) -> float | None:
         """What was the TokenSniffer buy tax for the base token.
 
         See also :py:meth:`has_tax_data`.
@@ -226,7 +226,7 @@ class TopPairData:
             return 0
         return round(fee, rounding)
 
-    def get_sell_tax(self, epsilon=0.0001, rounding=2) -> float | None:
+    def get_sell_tax(self, epsilon=0.0001, rounding=4) -> float | None:
         """What was the TokenSniffer sell tax for the base token.
 
         See also :py:meth:`has_tax_data`.
