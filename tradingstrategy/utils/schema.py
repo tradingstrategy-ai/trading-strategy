@@ -46,7 +46,7 @@ DEFAULT_MAPPINGS = {
 }
 
 
-def map_field_to_arrpw(field: Field, hints: Dict[str, pa.DataType], core_mappings: Dict[str, Callable]) -> pa.DataType:
+def map_field_to_arrow(field: Field, hints: Dict[str, pa.DataType], core_mappings: Dict[str, Callable]) -> pa.DataType:
     """Map a dataclass field to a pyarrow equivalent, respect hints"""
     hinted = hints.get(field.name)
     if hinted:
@@ -94,7 +94,7 @@ def create_pyarrow_schema_for_dataclass(
     if not hints:
         hints = {}
 
-    pa_fields = [(field.name, map_field_to_arrpw(field, hints, core_mappings)) for field in fields(cls)]
+    pa_fields = [(field.name, map_field_to_arrow(field, hints, core_mappings)) for field in fields(cls)]
     return pa.schema(pa_fields)
 
 

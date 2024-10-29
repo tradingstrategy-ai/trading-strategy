@@ -628,6 +628,7 @@ class DEXPair:
         hints = {
             "chain_id": pa.uint64(),
             "dex_type": pa.string(),
+            "other_data": pa.string(),  # TODO: Broken. PyArrow cannot handle object-like data.
         }
 
         return create_pyarrow_schema_for_dataclass(cls, hints=hints)

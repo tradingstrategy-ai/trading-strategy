@@ -38,8 +38,8 @@ def load_extra_metadata(
 
     .. warning::
 
-        The /top endpoint does not return data for dead trading pairs or assets. The trading pair
-        must have seen at least $1 volume during the last 24h to be alive.
+        The /top endpoint may not return data for dead trading pairs or assets. The trading pair
+        must have seen at least $1 volume during the last 24h to be alive, or other similar condition.
 
     Example:
 
