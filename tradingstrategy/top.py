@@ -200,11 +200,7 @@ class TopPairData:
         if self.token_sniffer_data is not None:
             return "swap_simulation" in self.token_sniffer_data
 
-<<<<<<< HEAD
     def get_buy_tax(self, epsilon=0.0001, rounding=4) -> float | None:
-=======
-    def get_buy_tax(self, epsilon=0.0001, rounding=2) -> float | None:
->>>>>>> master
         """What was the TokenSniffer buy tax for the base token.
 
         See also :py:meth:`has_tax_data`.
@@ -230,11 +226,7 @@ class TopPairData:
             return 0
         return round(fee, rounding)
 
-<<<<<<< HEAD
     def get_sell_tax(self, epsilon=0.0001, rounding=4) -> float | None:
-=======
-    def get_sell_tax(self, epsilon=0.0001, rounding=2) -> float | None:
->>>>>>> master
         """What was the TokenSniffer sell tax for the base token.
 
         See also :py:meth:`has_tax_data`.
@@ -281,7 +273,7 @@ class TopPairsReply:
     excluded: list[TopPairData]
 
     def __repr__(self):
-        return f"<TopPairsReply included {len(self.included)}, exluded {len(self.excluded)}>"
+        return f"<TopPairsReply included {len(self.included)}, excluded {len(self.excluded)}>"
 
     def as_token_address_map(self) -> dict[str, TopPairData]:
         """Make base token address lookupable data.
