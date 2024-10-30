@@ -1,21 +1,30 @@
 """High level helpers to load with token tax data, TokenSniffer metadata and else."""
+<<<<<<< HEAD
 import logging
 
+=======
+>>>>>>> master
 import pandas as pd
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.top import TopPairsReply, TopPairMethod
+<<<<<<< HEAD
 from tradingstrategy.utils.token_filter import POPULAR_QUOTE_TOKENS
 
 logger = logging.getLogger(__name__)
+=======
+>>>>>>> master
 
 
 def load_extra_metadata(
     pairs_df: pd.DataFrame,
     client: Client | None = None,
     top_pair_reply: TopPairsReply | None = None,
+<<<<<<< HEAD
     ignored_tokens=POPULAR_QUOTE_TOKENS,
+=======
+>>>>>>> master
 ) -> pd.DataFrame:
     """Load token tax data for given pairs dataframe.
 
@@ -105,11 +114,14 @@ def load_extra_metadata(
     :param top_pair_reply:
         Pass preloaded /top metadata
 
+<<<<<<< HEAD
     :param ignored_tokens:
         Ignore popular quote tokens.
 
         Asking data for these tokens causes too many hits and pollutes the query.
 
+=======
+>>>>>>> master
     :return:
         DataFrame with new columns added:
 
