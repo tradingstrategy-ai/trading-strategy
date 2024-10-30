@@ -135,6 +135,11 @@ def load_extra_metadata(
     # Filter out quote tokens
     query_pairs_df = pairs_df.loc[~pairs_df["base_token_symbol"].isin(ignored_tokens)]
 
+    logger.info(
+        "Total queried tokens will be %d",
+        len(query_pairs_df),
+    )
+
     chain_id = ChainId(pairs_df.iloc[0]["chain_id"])
     token_addresses = query_pairs_df["base_token_address"].unique()
 
@@ -151,6 +156,12 @@ def load_extra_metadata(
     # We retrofit data for the full frame,
     # ignored tokens just don't get these fields filled as None
     token_map = top_pair_reply.as_token_address_map()
+
+    logger.info(
+        "We got metadata for %d tokens",
+        len(token_map),
+    )
+
     pairs_df["other_data"] = pairs_df["base_token_address"].apply(lambda x: {"top_pair_data": token_map.get(x)})
     pairs_df["buy_tax"] = pairs_df["other_data"].apply(lambda r: r["top_pair_data"] and r["top_pair_data"].get_buy_tax())
     pairs_df["sell_tax"] = pairs_df["other_data"].apply(lambda r: r["top_pair_data"] and r["top_pair_data"].get_sell_tax())
