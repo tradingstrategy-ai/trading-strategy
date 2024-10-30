@@ -106,14 +106,11 @@ def load_extra_metadata(
     :param top_pair_reply:
         Pass preloaded /top metadata
 
-<<<<<<< HEAD
     :param ignored_tokens:
         Ignore popular quote tokens.
 
         Asking data for these tokens causes too many hits and pollutes the query.
 
-=======
->>>>>>> master
     :return:
         DataFrame with new columns added:
 
