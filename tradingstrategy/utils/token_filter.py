@@ -18,7 +18,7 @@ import numpy as np
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
-from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
+from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE, STABLECOIN_LIKE
 from tradingstrategy.types import Slug, TokenSymbol, Percent, IntBasisPoint, PrimaryKey
 
 #: The pair must be quoted in one of these tokens
@@ -65,6 +65,23 @@ ALL_DERIVATIVE_TOKENS = set(AAVE_TOKENS + LIQUID_RESTAKING_TOKENS + ETH_2_STAKIN
 #:
 REBASE_TOKENS = ["OHM", "KLIMA"]
 
+#: Trading pair native quote tokens we need to deal with
+#:
+POPULAR_NATIVE_TOKENS = {
+    "WETH",
+    "WAVAX",
+    "WMATIC",
+    "WBNB",
+}
+
+#: Popular quote tokens in trading pairs.
+#:
+#: Asking data for these tokens may yield tens of thousands of results.
+#:
+#: Used by
+#:
+#:
+POPULAR_QUOTE_TOKENS = POPULAR_NATIVE_TOKENS | STABLECOIN_LIKE
 
 
 def filter_for_base_tokens(

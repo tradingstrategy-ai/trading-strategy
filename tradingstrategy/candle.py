@@ -315,8 +315,8 @@ class GroupedCandleUniverse(PairGroupedUniverse):
         return self.get_sample_count()
 
     def get_candles_by_pair(
-            self,
-            pair: "PrimaryKey | tradingstrategy.pair.DEXPair",
+        self,
+        pair: "PrimaryKey | tradingstrategy.pair.DEXPair",
     ) -> Optional[pd.DataFrame]:
         """Get all price candles for a single trading pair.
 

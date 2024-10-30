@@ -408,6 +408,8 @@ class DEXPair:
 
     #: Buy token tax for this trading pair.
     #:
+    #: Values of 900+ are error codes of internal token tax measurer and should be ignored.
+    #:
     #: See
     #:  - :ref:`token-tax` what it means
     #:  - :py:func:`tradingstrategy.utils.token_extra_data.load_extra_metadata` how to load
@@ -421,6 +423,8 @@ class DEXPair:
     transfer_tax: Optional[Percent] = None
 
     #: Sell tax for this trading pair.
+    #:
+    #: Values of 900+ are error codes of internal token tax measurer and should be ignored.
     #:
     #: See
     #:  - :ref:`token-tax` what it means
