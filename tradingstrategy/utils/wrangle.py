@@ -283,6 +283,8 @@ def fix_dex_price_data(
 
     .. code-block:: python
 
+          from tradingstrategy.utils.wrangle import fix_dex_price_data
+
           # After we know pair ids that fill the liquidity criteria,
           # we can build OHLCV dataset for these pairs
           print(f"Downloading/opening OHLCV dataset {time_bucket}")

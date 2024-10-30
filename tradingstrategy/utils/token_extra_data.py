@@ -48,9 +48,34 @@ def load_extra_metadata(
         The /top endpoint may not return data for dead trading pairs or assets. The trading pair
         must have seen at least $1 volume during the last 24h to be alive, or other similar condition.
 
-    Example:
+    Example how to perform scam filter on pair universe data:
 
     .. code-block:: python
+
+        # Scam filter using TokenSniffer
+        pairs_df = load_extra_metadata(
+            pairs_df,
+            client,
+        )
+        all_pairs_df = pairs_df
+        pairs_df = pairs_df.loc[pairs_df["risk_score"] >= Parameters.min_token_sniffer_score]
+        print(f"After scam filter we have {len(pairs_df)} pairs")
+        clean_tokens = pairs_df["base_token_symbol"]
+        only_scams = all_pairs_df.loc[~all_pairs_df["base_token_symbol"].isin(clean_tokens)]
+        for idx, row in only_scams.iterrows():
+            print(f"Scammy pair {row.base_token_symbol} - {row.quote_token_symbol}, risk score {row.risk_score}, pool {row.address}, token {row.base_token_address}")
+
+        pairs_df = pairs_df.sort_values("volume", ascending=False)
+
+        print("Top pair matches (including benchmark pairs):")
+        for _, pair in pairs_df.head(10).iterrows():
+            print(f"   Pair: {pair.base_token_symbol} - {pair.quote_token_symbol} ({pair.exchange_slug})")
+
+    Another example:
+
+    .. code-block:: python
+
+        from tradingstrategy.utils.token_extra_data import load_extra_metadata
 
         exchange_universe = client.fetch_exchange_universe()
 
@@ -110,6 +135,7 @@ def load_extra_metadata(
         Ignore popular quote tokens.
 
         Asking data for these tokens causes too many hits and pollutes the query.
+        The column `risk_score` column is set to 100 for these tokens.
 
     :return:
         DataFrame with new columns added:
@@ -117,6 +143,8 @@ def load_extra_metadata(
         - `buy_tax`
         - `sell_tax`
         - `other_data` dict, contains `top_pair_data` which is `TopPairData` instance for the base asset
+        - `risk_score` - risk score 0 to 100, we recommend to cull everything beloe 65
+        - `whitelisted` - token is on `ignored_tokens` whitelist
 
     """
 
@@ -166,4 +194,7 @@ def load_extra_metadata(
     pairs_df["other_data"] = pairs_df["base_token_address"].apply(lambda x: {"top_pair_data": token_map.get(x)})
     pairs_df["buy_tax"] = pairs_df["other_data"].apply(lambda r: r["top_pair_data"] and r["top_pair_data"].get_buy_tax())
     pairs_df["sell_tax"] = pairs_df["other_data"].apply(lambda r: r["top_pair_data"] and r["top_pair_data"].get_sell_tax())
+    pairs_df["risk_score"] = pairs_df["other_data"].apply(lambda r: r["top_pair_data"] and r["top_pair_data"].token_sniffer_score)
+    pairs_df["whitelisted"] = pairs_df["base_token_symbol"].apply(lambda r: r in ignored_tokens)
+    pairs_df.loc[pairs_df["whitelisted"], 'risk_score'] = 100
     return pairs_df

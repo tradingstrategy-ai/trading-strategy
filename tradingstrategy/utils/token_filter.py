@@ -72,6 +72,7 @@ POPULAR_NATIVE_TOKENS = {
     "WAVAX",
     "WMATIC",
     "WBNB",
+    "WBTC",
 }
 
 #: Popular quote tokens in trading pairs.
