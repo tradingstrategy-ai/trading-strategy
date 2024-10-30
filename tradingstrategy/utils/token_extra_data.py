@@ -6,7 +6,7 @@ import pandas as pd
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.top import TopPairsReply, TopPairMethod
-
+from tradingstrategy.utils.token_filter import POPULAR_QUOTE_TOKENS
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ def load_extra_metadata(
     pairs_df: pd.DataFrame,
     client: Client | None = None,
     top_pair_reply: TopPairsReply | None = None,
+    ignored_tokens=POPULAR_QUOTE_TOKENS,
 ) -> pd.DataFrame:
     """Load token tax data for given pairs dataframe.
 
@@ -104,6 +105,11 @@ def load_extra_metadata(
     :param top_pair_reply:
         Pass preloaded /top metadata
 
+    :param ignored_tokens:
+        Ignore popular quote tokens.
+
+        Asking data for these tokens causes too many hits and pollutes the query.
+
     :return:
         DataFrame with new columns added:
 
@@ -123,10 +129,14 @@ def load_extra_metadata(
     if client is None:
         assert top_pair_reply is None, "Cannot give both client and top_pair_reply argument"
 
-    assert "base_token_address" in pairs_df.columns, "base/quote token data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata()"
+    assert "base_token_address" in pairs_df.columns, "base/quote token address data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata()"
+    assert "base_token_symbol" in pairs_df.columns, "base/quote token symbol data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata()"
+
+    # Filter out quote tokens
+    query_pairs_df = pairs_df.loc[~pairs_df["base_token_symbol"].isin(ignored_tokens)]
 
     chain_id = ChainId(pairs_df.iloc[0]["chain_id"])
-    token_addresses = pairs_df["base_token_address"].unique()
+    token_addresses = query_pairs_df["base_token_address"].unique()
 
     # Load data if not given
     if top_pair_reply is None:
@@ -138,8 +148,10 @@ def load_extra_metadata(
             risk_score_threshold=0,
         )
 
+    # We retrofit data for the full frame,
+    # ignored tokens just don't get these fields filled as None
     token_map = top_pair_reply.as_token_address_map()
-    pairs_df["other_data"] = pairs_df["base_token_address"].apply(lambda x: {"top_pair_data": token_map[x]})
-    pairs_df["buy_tax"] = pairs_df["other_data"].apply(lambda r: r["top_pair_data"].get_buy_tax())
-    pairs_df["sell_tax"] = pairs_df["other_data"].apply(lambda r: r["top_pair_data"].get_sell_tax())
+    pairs_df["other_data"] = pairs_df["base_token_address"].apply(lambda x: {"top_pair_data": token_map.get(x)})
+    pairs_df["buy_tax"] = pairs_df["other_data"].apply(lambda r: r["top_pair_data"] and r["top_pair_data"].get_buy_tax())
+    pairs_df["sell_tax"] = pairs_df["other_data"].apply(lambda r: r["top_pair_data"] and r["top_pair_data"].get_sell_tax())
     return pairs_df
