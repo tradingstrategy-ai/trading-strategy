@@ -237,17 +237,15 @@ def fix_prices_in_between_time_frames(
     replacements = {}
 
     for pair_id, price_df in dfgb:
-        for column in ("open", "close",):
-            price_series = price_df[column]
-            fixed_price_series = examine_price_between_time_anomalies(
-                price_series,
-                low_diff=fix_inbetween_threshold[0],
-                high_diff=fix_inbetween_threshold[1],
-                heal=True,
-            )
-            if fixed_price_series is not None:
-                replacements[pair_id] = replacements.get(pair_id, {})
-                replacements[pair_id][column] = fixed_price_series
+        healed_ohlcv_df = heal_anomalies(
+            price_df,
+            low_diff=fix_inbetween_threshold[0],
+            high_diff=fix_inbetween_threshold[1],
+            hint=f"pair {pair_id}"
+        )
+        if healed_ohlcv_df is not None:
+            logger.info("Healed OHLCV data for pair %d", pair_id)
+            replacements[pair_id] = healed_ohlcv_df
 
     healed = dfgb.apply(lambda x: _replace_for_groups(x, replacements))
     healed = healed.set_index("timestamp", drop=False)
@@ -262,7 +260,7 @@ def fix_dex_price_data(
     fix_wick_threshold: tuple | None = (0.1, 1.9),
     fix_inbetween_threshold: tuple | None = (-0.99, 5.0),
     min_max_price: tuple | None = DEFAULT_MIN_MAX_RANGE,
-    remove_candles_with_zero: bool = True,
+    remove_candles_with_zero_volume: bool = True,
     pair_id_column="pair_id",
     forward_fill_until: AnyTimestamp | None = None,
 ) -> pd.DataFrame:
@@ -351,7 +349,7 @@ def fix_dex_price_data(
     :param pair_id_column:
         The pair/reserve id column name in the dataframe.
 
-    :param remove_candles_with_zero:
+    :param remove_candles_with_zero_volume:
         Remove candles with zero values for OHLC.
 
         To deal with abnormal data.
@@ -404,7 +402,7 @@ def fix_dex_price_data(
             bad_open_close_threshold=bad_open_close_threshold,
         )
 
-    if remove_candles_with_zero:
+    if remove_candles_with_zero_volume:
         logger.info("Fixing zero volume candles")
         raw_df = remove_zero_candles(raw_df)
 
@@ -419,13 +417,18 @@ def fix_dex_price_data(
 
         regrouped = raw_df.set_index("timestamp", drop=False).groupby(pair_id_column, group_keys=True)
 
-        logger.info("Fixing prices having bad open/close values between timeframes: %s", fix_inbetween_threshold)
+        if fix_inbetween_threshold:
 
-        ff_df = fix_prices_in_between_time_frames(
-            regrouped,
-            fix_inbetween_threshold=fix_inbetween_threshold,
-            pair_id_column=pair_id_column,
-        )
+            logger.info("Fixing prices having bad open/close values between timeframes: %s", fix_inbetween_threshold)
+
+            ff_df = fix_prices_in_between_time_frames(
+                regrouped,
+                fix_inbetween_threshold=fix_inbetween_threshold,
+                pair_id_column=pair_id_column,
+            )
+        else:
+            logger.info("Skipped fix_prices_in_between_time_frames()")
+            ff_df = regrouped
 
     else:
         assert not fix_inbetween_threshold, "fix_inbetween_threshold() only works for DataFrameGroupBy input. Set fix_inbetween_threshold == None if you really want to call this"
@@ -438,7 +441,13 @@ def fix_dex_price_data(
 
         logger.info("Forward filling price data")
         assert freq, "freq argument must be given if forward_fill=True"
-        df = _forward_fill(ff_df, freq, forward_fill_until=forward_fill_until)
+
+        if "volume" in ff_df.obj.columns:
+            # Price
+            df = _forward_fill(ff_df, freq, forward_fill_until=forward_fill_until)
+        else:
+            # TVL
+            df = _forward_fill(ff_df, freq, forward_fill_until=forward_fill_until, columns=("open", "high", "low", "close"))
         return df
     else:
         return raw_df
@@ -518,6 +527,88 @@ def examine_price_between_time_anomalies(
         df = df.dropna(subset=["surrounding_avg"])
 
         return df.loc[df["anomaly"]]
+
+
+def heal_anomalies(
+    ohlcv_df: pd.DataFrame,
+    high_diff=5.00,
+    low_diff=-0.99,
+    indication_column: str = "close",
+    hint="<unknown pair>",
+) -> pd.DataFrame | None:
+    """Fix bad open/close/high/low prices where the open price is very different from the value of previous and next day.
+
+    - Fix columns open/high/low/close/volume
+
+    - Caused by MEV trades generating spikes and volume
+
+    - If we detect bad candle with MEV trades in it dominating close price, blend the values from previous candles
+
+    TODO: Work in progress.
+
+    :param ohlcv_df:
+        Incoming OHLCV or single price series.
+
+    :param high_diff:
+        A price between days cannot be higher than this multiplier.
+
+    :param low_diff:
+        A price between days cannot be lower than this multiplier.
+
+    :param indication_column:
+        Column name to check.
+
+        Only relevant if input is DataFrame.
+
+    :return:
+        The same DataFrame with OHLCV columns manipulated. `None` if nothing was done.
+
+        New flag column `healed` added to mark rows we manipulated.
+
+    """
+    assert isinstance(ohlcv_df, (pd.Series, pd.DataFrame)), f"Got: {ohlcv_df.__class__}"
+
+    # Calculation dataframe
+    df = pd.DataFrame({
+        "price": ohlcv_df[indication_column],
+    })
+
+    # Calculate surrounding price
+    df["pct_change"] = df['price'].pct_change()
+    df["change_before"] = df['pct_change'].shift(1)
+    df["change_after"] = df['pct_change'].shift(-1)
+
+    # How much the current price is different from the surrounding avg price
+    # df["price_diff"] = ((df["surrounding_avg"] - df['price']) / df['price'])
+
+    # Create mask for rows where we detect anomalies
+    # high anomaly = price shoots up
+    # low  anomaly = price shoots down
+    df["high_anomaly"] = (df["pct_change"] > high_diff) & (df["change_after"] < low_diff)
+    df["low_anomaly"] = (df["pct_change"] < low_diff) & (df["change_after"] > high_diff)
+    df["anomaly"] =  df["low_anomaly"] | df["high_anomaly"]
+
+    count = df["anomaly"].sum()
+
+    if count == 0:
+        # Avoid extra work
+        return None
+
+    logger.info("Detected %d anomalies for %s", count, hint)
+
+    # display(df.loc[df["anomaly"] == True])
+
+    # Heal anomalies by using avg price and previous volcd
+    df['surrounding_avg'] = (df["price"].shift(1) + df["price"].shift(-1)) / 2
+    heal_mask = df["anomaly"] == True
+    ohlcv_df.loc[heal_mask, "open"] = df['surrounding_avg']
+    ohlcv_df.loc[heal_mask, "close"] = df['surrounding_avg']
+    ohlcv_df.loc[heal_mask, "high"] = df['surrounding_avg']
+    ohlcv_df.loc[heal_mask, "low"] = df['surrounding_avg']
+    if "volume" in ohlcv_df.columns:
+        ohlcv_df.loc[heal_mask, "volume"] = ohlcv_df.shift(1)["volume"]
+    ohlcv_df.loc[heal_mask, "healed"] = True
+    return ohlcv_df
 
 
 def examine_anomalies(
@@ -605,6 +696,8 @@ def examine_anomalies(
 
     if between_high_diff and between_low_diff:
         grouped = price_df.groupby(pair_id_column)
+
+        #: Record pairs that have anomalies for logging
         anomalies = []
 
         between_anomaly_count = 0

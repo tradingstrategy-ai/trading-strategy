@@ -23,6 +23,7 @@ from typing import Optional, Tuple, Iterable, cast
 import numpy as np
 import pandas as pd
 from pandas import MultiIndex
+from pandas.core.groupby import DataFrameGroupBy
 
 from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
@@ -31,7 +32,7 @@ from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.forward_fill import forward_fill as _forward_fill
 from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA, naive_utcnow
 
-from .wrangle import fix_bad_wicks, filter_bad_wicks, remove_zero_candles
+from .wrangle import fix_bad_wicks, filter_bad_wicks, remove_zero_candles, fix_dex_price_data
 
 logger = logging.getLogger(__name__)
 
@@ -77,10 +78,12 @@ class PairGroupedUniverse:
         timestamp_column: str="timestamp",
         index_automatically: bool=True,
         fix_wick_threshold: tuple | None = (0.1, 1.9),
+        fix_inbetween_threshold: tuple | None = (-0.99, 5.0),
         primary_key_column: str="pair_id",
-        remove_candles_with_zero: bool = True,
+        remove_candles_with_zero_volume: bool = True,
         forward_fill: bool = False,
         bad_open_close_threshold: float | None=3.0,
+        autoheal_pair_limit=200,
     ):
         """Set up new candle universe where data is grouped by trading pair.
 
@@ -121,6 +124,16 @@ class PairGroupedUniverse:
             Forward-will gaps in the data.
 
             See :term:`forward fill` and :ref:`forward filling data` for more information.
+
+        :param autoheal_pair_limit:
+            Don't try to autoheal data if the candle universe is too large.
+
+            Autohealing is very taxing operation and should not be performed on large universes.
+            Instead you should preprocess the universe to a candles Parquet file and load
+            directly from there.
+
+        :param autoheal_limit:
+            If we have more than
         """
         self.index_automatically = index_automatically
         assert isinstance(df, pd.DataFrame)
@@ -141,34 +154,30 @@ class PairGroupedUniverse:
         else:
             self.df = df
 
-        if fix_wick_threshold or bad_open_close_threshold:
-            self.df = fix_bad_wicks(
-                self.df,
-                fix_wick_threshold,
-                bad_open_close_threshold=bad_open_close_threshold,
-            )
-            
-        if remove_candles_with_zero:
-            self.df = remove_zero_candles(self.df)
+        logger.info(
+            f"Creating candle/liquidity universe with {len(self.df):,} rows",
+        )
 
         #: This contains DataFrameGroupBy
         #: by pair.
         #: For the original ungrouped data use self.df
-        self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
+        self.pairs = self.df.groupby(by=self.primary_key_column)
 
-        if forward_fill:
-            if "volume" in self.df.columns:
-                # Price data data
-                ff_columns = ("open", "high", "low", "close", "volume", "timestamp")
-            else:
-                # Liqudity/TVL data
-                ff_columns = ("open", "high", "low", "close", "timestamp")
-
-            self.pairs = _forward_fill(
-                self.pairs,
-                freq=self.time_bucket.to_frequency(),
-                columns=ff_columns,
-            )
+        if len(self.pairs) < autoheal_pair_limit:
+            if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
+                # TODO: Fix non-intuive API
+                self.pairs = fix_dex_price_data(
+                    self.pairs,
+                    freq=time_bucket.to_frequency(),
+                    fix_wick_threshold=fix_wick_threshold,
+                    bad_open_close_threshold=bad_open_close_threshold,
+                    fix_inbetween_threshold=fix_inbetween_threshold,
+                    remove_candles_with_zero_volume=remove_candles_with_zero_volume,
+                    forward_fill=forward_fill,
+                )
+                assert isinstance(self.pairs, DataFrameGroupBy)
+                # self.pairs = self.df.groupby(by=self.primary_key_column)
+                self.df = self.pairs.obj
 
         #: Grouped DataFrame cache for faster lookup
         self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}
