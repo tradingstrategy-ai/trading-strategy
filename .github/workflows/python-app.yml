@@ -34,6 +34,17 @@ jobs:
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: |
         poetry install --all-extras --no-interaction
+
+    # Speed up testing by not downloading integration test data from the production server
+    # https://github.com/actions/cache
+    # See conftest.persistent_test_client
+    - name: Cache datasetes
+      id: cache-datasets
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/trading-strategy-tests
+        key: cache-datasets
+
     - name: Run test scripts
       run: |
         poetry run pytest --tb=native -n 6
@@ -41,3 +52,13 @@ jobs:
         TRADING_STRATEGY_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}
         BASE_BINANCE_API_URL: ${{ secrets.BASE_BINANCE_API_URL }}
         BASE_BINANCE_MARGIN_API_URL: ${{ secrets.BASE_BINANCE_MARGIN_API_URL }}
+
+    - name: Save datasets
+      id: cache-datasets
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.cache/trading-strategy-tests
+        key: cache-datasets
+
+
+
