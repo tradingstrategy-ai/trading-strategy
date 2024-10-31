@@ -441,7 +441,13 @@ def fix_dex_price_data(
 
         logger.info("Forward filling price data")
         assert freq, "freq argument must be given if forward_fill=True"
-        df = _forward_fill(ff_df, freq, forward_fill_until=forward_fill_until)
+
+        if "volume" in ff_df.obj.columns:
+            # Price
+            df = _forward_fill(ff_df, freq, forward_fill_until=forward_fill_until)
+        else:
+            # TVL
+            df = _forward_fill(ff_df, freq, forward_fill_until=forward_fill_until, columns=("open", "high", "low", "close"))
         return df
     else:
         return raw_df

@@ -23,6 +23,7 @@ from typing import Optional, Tuple, Iterable, cast
 import numpy as np
 import pandas as pd
 from pandas import MultiIndex
+from pandas.core.groupby import DataFrameGroupBy
 
 from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
@@ -165,15 +166,18 @@ class PairGroupedUniverse:
         if len(self.pairs) < autoheal_pair_limit:
             if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
                 # TODO: Fix non-intuive API
-                self.df = fix_dex_price_data(
+                self.pairs = fix_dex_price_data(
                     self.pairs,
+                    freq=time_bucket.to_frequency(),
                     fix_wick_threshold=fix_wick_threshold,
                     bad_open_close_threshold=bad_open_close_threshold,
                     fix_inbetween_threshold=fix_inbetween_threshold,
                     remove_candles_with_zero_volume=remove_candles_with_zero_volume,
                     forward_fill=forward_fill,
                 )
-                self.pairs = self.df.groupby(by=self.primary_key_column)
+                assert isinstance(self.pairs, DataFrameGroupBy)
+                # self.pairs = self.df.groupby(by=self.primary_key_column)
+                self.df = self.pairs.obj
 
         #: Grouped DataFrame cache for faster lookup
         self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}
