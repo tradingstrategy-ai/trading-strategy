@@ -31,7 +31,7 @@ from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.forward_fill import forward_fill as _forward_fill
 from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA, naive_utcnow
 
-from .wrangle import fix_bad_wicks, filter_bad_wicks, remove_zero_candles
+from .wrangle import fix_bad_wicks, filter_bad_wicks, remove_zero_candles, fix_dex_price_data
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +77,9 @@ class PairGroupedUniverse:
         timestamp_column: str="timestamp",
         index_automatically: bool=True,
         fix_wick_threshold: tuple | None = (0.1, 1.9),
+        fix_inbetween_threshold: tuple | None = (-0.99, 5.0),
         primary_key_column: str="pair_id",
-        remove_candles_with_zero: bool = True,
+        remove_candles_with_zero_volume: bool = True,
         forward_fill: bool = False,
         bad_open_close_threshold: float | None=3.0,
     ):
@@ -141,15 +142,15 @@ class PairGroupedUniverse:
         else:
             self.df = df
 
-        if fix_wick_threshold or bad_open_close_threshold:
-            self.df = fix_bad_wicks(
+        if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
+            self.df = fix_dex_price_data(
                 self.df,
-                fix_wick_threshold,
+                fix_wick_threshold=fix_wick_threshold,
                 bad_open_close_threshold=bad_open_close_threshold,
+                fix_inbetween_threshold=fix_inbetween_threshold,
+                remove_candles_with_zero_volume=remove_candles_with_zero_volume,
+                forward_fill=forward_fill,
             )
-            
-        if remove_candles_with_zero:
-            self.df = remove_zero_candles(self.df)
 
         #: This contains DataFrameGroupBy
         #: by pair.

@@ -259,7 +259,7 @@ def fix_dex_price_data(
     fix_wick_threshold: tuple | None = (0.1, 1.9),
     fix_inbetween_threshold: tuple | None = (-0.99, 5.0),
     min_max_price: tuple | None = DEFAULT_MIN_MAX_RANGE,
-    remove_candles_with_zero: bool = True,
+    remove_candles_with_zero_volume: bool = True,
     pair_id_column="pair_id",
     forward_fill_until: AnyTimestamp | None = None,
 ) -> pd.DataFrame:
@@ -348,7 +348,7 @@ def fix_dex_price_data(
     :param pair_id_column:
         The pair/reserve id column name in the dataframe.
 
-    :param remove_candles_with_zero:
+    :param remove_candles_with_zero_volume:
         Remove candles with zero values for OHLC.
 
         To deal with abnormal data.
@@ -401,7 +401,7 @@ def fix_dex_price_data(
             bad_open_close_threshold=bad_open_close_threshold,
         )
 
-    if remove_candles_with_zero:
+    if remove_candles_with_zero_volume:
         logger.info("Fixing zero volume candles")
         raw_df = remove_zero_candles(raw_df)
 
