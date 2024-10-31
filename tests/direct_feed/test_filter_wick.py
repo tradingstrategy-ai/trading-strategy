@@ -8,7 +8,7 @@ from tradingstrategy.direct_feed.candle_feed import CandleFeed, prepare_raw_cand
 from eth_defi.event_reader.reorganisation_monitor import MockChainAndReorganisationMonitor
 from tradingstrategy.direct_feed.synthetic_feed import SyntheticTradeFeed
 from tradingstrategy.direct_feed.timeframe import Timeframe
-from tradingstrategy.utils.groupeduniverse import filter_bad_wicks, fix_bad_wicks, remove_zero_candles
+from tradingstrategy.utils.wrangle import filter_bad_wicks, fix_bad_wicks, remove_zero_candles
 from tradingstrategy.utils.wrangle import fix_dex_price_data
 
 
