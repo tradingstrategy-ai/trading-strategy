@@ -803,7 +803,8 @@ class PairGroupedUniverse:
     @classmethod
     def create_from_multiple_candle_dataframes(
         cls,
-        dfs: Iterable[pd.DataFrame]
+        dfs: Iterable[pd.DataFrame],
+        autoheal_pair_limit=200,
     ) -> "GroupedCandleUniverse":
         """Construct universe based on multiple trading pairs.
 
@@ -814,7 +815,7 @@ class PairGroupedUniverse:
             OHLCV data feed.
         """
         merged = pd.concat(dfs)
-        return cls(merged)
+        return cls(merged, autoheal_pair_limit=autoheal_pair_limit)
 
 
 def filter_for_pairs(samples: pd.DataFrame, pairs: pd.DataFrame) -> pd.DataFrame:
