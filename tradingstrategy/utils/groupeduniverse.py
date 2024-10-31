@@ -151,6 +151,13 @@ class PairGroupedUniverse:
         else:
             self.df = df
 
+        if timestamp_column != "timestamp":
+            # TODO: Some ancient legacy test dat
+            # get rid of it
+            self.df = self.df.rename(columns={
+                timestamp_column: "timestamp"
+            })
+
         logger.info(
             f"Creating candle/liquidity universe with {len(self.df):,} rows",
         )
