@@ -206,7 +206,37 @@ def filter_scams(
     client: Client,
     min_token_sniffer_score=65,
 ) -> pd.DataFrame:
-    """Filter out scam tokens in pairs dataset and print some stdout diagnostics"""
+    """Filter out scam tokens in pairs dataset and print some stdout diagnostics.
+
+    To be called from a backtesting notebook.
+
+    Example:
+
+    .. code-block:: python
+
+        # Scam filter using TokenSniffer
+        pairs_df = filter_scams(pairs_df, client, min_token_sniffer_score=Parameters.min_token_sniffer_score)
+        pairs_df = pairs_df.sort_values("volume", ascending=False)
+
+        print("Top pair matches (including benchmark pairs):")
+        for _, pair in pairs_df.head(10).iterrows():
+            print(f"   Pair: {pair.base_token_symbol} - {pair.quote_token_symbol} ({pair.exchange_slug})")
+
+        uni_v2 = pairs_df.loc[pairs_df["exchange_slug"] == "uniswap-v2"]
+        uni_v3 = pairs_df.loc[pairs_df["exchange_slug"] == "uniswap-v3"]
+        print(f"Pairs on Uniswap v2: {len(uni_v2)}, Uniswap v3: {len(uni_v3)}")
+
+        dataset = load_partial_data(
+            client=client,
+            time_bucket=Parameters.candle_time_bucket,
+            pairs=pairs_df,
+            execution_context=execution_context,
+            universe_options=universe_options,
+            liquidity=True,
+            liquidity_time_bucket=TimeBucket.d1,
+        )
+
+    """
     pairs_df = load_extra_metadata(
         pairs_df,
         client,
