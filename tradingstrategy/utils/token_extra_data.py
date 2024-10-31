@@ -198,3 +198,24 @@ def load_extra_metadata(
     pairs_df["whitelisted"] = pairs_df["base_token_symbol"].apply(lambda r: r in ignored_tokens)
     pairs_df.loc[pairs_df["whitelisted"], 'risk_score'] = 100
     return pairs_df
+
+
+
+def filter_scams(
+    pairs_df: pd.DataFrame,
+    client: Client,
+    min_token_sniffer_score=65,
+) -> pd.DataFrame:
+    """Filter out scam tokens in pairs dataset and print some stdout diagnostics"""
+    pairs_df = load_extra_metadata(
+        pairs_df,
+        client,
+    )
+    all_pairs_df = pairs_df
+    pairs_df = pairs_df.loc[pairs_df["risk_score"] >= min_token_sniffer_score]
+    print(f"After scam filter we have {len(pairs_df)} pairs")
+    clean_tokens = pairs_df["base_token_symbol"]
+    only_scams = all_pairs_df.loc[~all_pairs_df["base_token_symbol"].isin(clean_tokens)]
+    for _, row in only_scams.iterrows():
+        print(f"Scammy pair {row.base_token_symbol} - {row.quote_token_symbol}, risk score {row.risk_score}, pool {row.address}, token {row.base_token_address}")
+    return pairs_df
