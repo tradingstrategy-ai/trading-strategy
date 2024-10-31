@@ -161,23 +161,42 @@ class PairGroupedUniverse:
         #: This contains DataFrameGroupBy
         #: by pair.
         #: For the original ungrouped data use self.df
-        self.pairs = self.df.groupby(by=self.primary_key_column)
+        self.pairs = groups = self.df.groupby(by=self.primary_key_column)
 
         if len(self.pairs) < autoheal_pair_limit:
             if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
+
+                # We can only forward fill data if we know the freq
+                if forward_fill:
+                    if time_bucket:
+                        freq = time_bucket.to_frequency()
+                    else:
+                        # TODO: Make this assert in the future
+                        # Legacty
+                        logger.error("Forward fill requested, but time_bucket missing, skipping")
+                        freq = None
+                        forward_fill = None
+                else:
+                    freq = None
+
                 # TODO: Fix non-intuive API
-                self.pairs = fix_dex_price_data(
+                fix_result = fix_dex_price_data(
                     self.pairs,
-                    freq=time_bucket.to_frequency(),
+                    freq=freq,
                     fix_wick_threshold=fix_wick_threshold,
                     bad_open_close_threshold=bad_open_close_threshold,
                     fix_inbetween_threshold=fix_inbetween_threshold,
                     remove_candles_with_zero_volume=remove_candles_with_zero_volume,
                     forward_fill=forward_fill,
                 )
-                assert isinstance(self.pairs, DataFrameGroupBy)
-                # self.pairs = self.df.groupby(by=self.primary_key_column)
-                self.df = self.pairs.obj
+                if len(groups) > 1:
+                    assert isinstance(self.pairs, DataFrameGroupBy)
+                    # self.pairs = self.df.groupby(by=self.primary_key_column)
+                    self.df = self.pairs.obj
+                    self.pairs = fix_result
+                else:
+                    self.df = fix_result
+                    self.pairs = fix_result.groupby("pair_id")
 
         #: Grouped DataFrame cache for faster lookup
         self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}
