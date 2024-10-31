@@ -17,22 +17,19 @@ See also
 import datetime
 import logging
 import warnings
-from itertools import islice
 from typing import Optional, Tuple, Iterable, cast
 
-import numpy as np
 import pandas as pd
-from pandas import MultiIndex
 from pandas.core.groupby import DataFrameGroupBy
 
 from tradingstrategy.pair import DEXPair
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.forward_fill import forward_fill
-from tradingstrategy.utils.forward_fill import forward_fill as _forward_fill
-from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA, naive_utcnow
+from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA
 
-from .wrangle import fix_bad_wicks, filter_bad_wicks, remove_zero_candles, fix_dex_price_data
+from .wrangle import fix_dex_price_data
+
 
 logger = logging.getLogger(__name__)
 

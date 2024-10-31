@@ -244,8 +244,11 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
             time_bucket,
             timestamp_column,
             index_automatically,
-            bad_open_close_threshold=None,  # Applicable to prices only
+            fix_wick_threshold=None,
+            fix_inbetween_threshold=None,
             forward_fill=forward_fill,
+            remove_candles_with_zero_volume=False,
+            bad_open_close_threshold=None,
         )
 
     def get_liquidity_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:
