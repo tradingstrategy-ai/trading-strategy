@@ -581,6 +581,7 @@ class LendingMetricUniverse(PairGroupedUniverse):
             df,
             primary_key_column="reserve_id",
             fix_wick_threshold=None,
+            autoheal_pair_limit=0,  # Lending data does not need healing/is incompatiible
         )
 
     def get_rates_by_reserve(
