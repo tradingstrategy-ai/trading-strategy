@@ -450,7 +450,7 @@ def fix_dex_price_data(
             df = _forward_fill(ff_df, freq, forward_fill_until=forward_fill_until, columns=("open", "high", "low", "close"))
         return df
     else:
-        return raw_df
+        return ff_df
 
 
 def examine_price_between_time_anomalies(

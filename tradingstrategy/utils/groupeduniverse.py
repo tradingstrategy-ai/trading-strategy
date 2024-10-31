@@ -189,14 +189,10 @@ class PairGroupedUniverse:
                     remove_candles_with_zero_volume=remove_candles_with_zero_volume,
                     forward_fill=forward_fill,
                 )
-                if len(groups) > 1:
-                    assert isinstance(self.pairs, DataFrameGroupBy)
-                    # self.pairs = self.df.groupby(by=self.primary_key_column)
-                    self.df = self.pairs.obj
-                    self.pairs = fix_result
-                else:
-                    self.df = fix_result
-                    self.pairs = fix_result.groupby("pair_id")
+
+                assert isinstance(fix_result, DataFrameGroupBy)
+                self.df = fix_result.obj
+                self.pairs = fix_result
 
         #: Grouped DataFrame cache for faster lookup
         self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}
