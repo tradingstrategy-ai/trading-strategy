@@ -164,7 +164,8 @@ class PairGroupedUniverse:
 
         if len(self.pairs) < autoheal_pair_limit:
             if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
-                self.pairs = fix_dex_price_data(
+                # TODO: Fix non-intuive API
+                self.df = fix_dex_price_data(
                     self.pairs,
                     fix_wick_threshold=fix_wick_threshold,
                     bad_open_close_threshold=bad_open_close_threshold,
@@ -172,7 +173,7 @@ class PairGroupedUniverse:
                     remove_candles_with_zero_volume=remove_candles_with_zero_volume,
                     forward_fill=forward_fill,
                 )
-                self.df = self.pairs.obj
+                self.pairs = self.df.groupby(by=self.primary_key_column)
 
         #: Grouped DataFrame cache for faster lookup
         self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}
