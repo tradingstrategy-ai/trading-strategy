@@ -244,7 +244,7 @@ def fix_prices_in_between_time_frames(
             hint=f"pair {pair_id}"
         )
         if healed_ohlcv_df is not None:
-            logger.info("Healed OHLCV data for pair %d", pair_id)
+            logger.info("Healed OHLCV data for pair %s - detected issues", pair_id)
             replacements[pair_id] = healed_ohlcv_df
 
     healed = dfgb.apply(lambda x: _replace_for_groups(x, replacements))
