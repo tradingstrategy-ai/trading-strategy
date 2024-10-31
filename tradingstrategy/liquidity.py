@@ -368,7 +368,10 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
         # so one does not need to open ipdb to inspect faulty data
         try:
             first_sample = candles_per_pair.iloc[0]
-            second_sample = candles_per_pair.iloc[1]
+            if len(candles_per_pair) >= 2:
+                second_sample = candles_per_pair.iloc[1]
+            else:
+                second_sample = first_sample
             last_sample = candles_per_pair.iloc[-1]
         except KeyError:
             raise LiquidityDataUnavailable(
