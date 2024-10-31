@@ -142,33 +142,19 @@ class PairGroupedUniverse:
         else:
             self.df = df
 
-        if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
-            self.df = fix_dex_price_data(
-                self.df,
-                fix_wick_threshold=fix_wick_threshold,
-                bad_open_close_threshold=bad_open_close_threshold,
-                fix_inbetween_threshold=fix_inbetween_threshold,
-                remove_candles_with_zero_volume=remove_candles_with_zero_volume,
-                forward_fill=forward_fill,
-            )
-
         #: This contains DataFrameGroupBy
         #: by pair.
         #: For the original ungrouped data use self.df
         self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
 
-        if forward_fill:
-            if "volume" in self.df.columns:
-                # Price data data
-                ff_columns = ("open", "high", "low", "close", "volume", "timestamp")
-            else:
-                # Liqudity/TVL data
-                ff_columns = ("open", "high", "low", "close", "timestamp")
-
-            self.pairs = _forward_fill(
+        if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
+            self.df = fix_dex_price_data(
                 self.pairs,
-                freq=self.time_bucket.to_frequency(),
-                columns=ff_columns,
+                fix_wick_threshold=fix_wick_threshold,
+                bad_open_close_threshold=bad_open_close_threshold,
+                fix_inbetween_threshold=fix_inbetween_threshold,
+                remove_candles_with_zero_volume=remove_candles_with_zero_volume,
+                forward_fill=forward_fill,
             )
 
         #: Grouped DataFrame cache for faster lookup

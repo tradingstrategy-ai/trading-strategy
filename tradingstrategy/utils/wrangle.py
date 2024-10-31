@@ -591,7 +591,8 @@ def heal_anomalies(
     ohlcv_df.loc[heal_mask, "close"] = df['surrounding_avg']
     ohlcv_df.loc[heal_mask, "high"] = df['surrounding_avg']
     ohlcv_df.loc[heal_mask, "low"] = df['surrounding_avg']
-    ohlcv_df.loc[heal_mask, "volume"] = ohlcv_df.shift(1)["volume"]
+    if "volume" in ohlcv_df.columns:
+        ohlcv_df.loc[heal_mask, "volume"] = ohlcv_df.shift(1)["volume"]
     ohlcv_df.loc[heal_mask, "healed"] = True
     return ohlcv_df
 
