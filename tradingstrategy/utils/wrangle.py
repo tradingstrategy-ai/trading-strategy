@@ -241,6 +241,7 @@ def fix_prices_in_between_time_frames(
             price_df,
             low_diff=fix_inbetween_threshold[0],
             high_diff=fix_inbetween_threshold[1],
+            hint=f"pair {pair_id}"
         )
         if healed_ohlcv_df is not None:
             logger.info("Healed OHLCV data for pair %d", pair_id)
@@ -527,6 +528,7 @@ def heal_anomalies(
     high_diff=5.00,
     low_diff=-0.99,
     indication_column: str = "close",
+    hint="<unknown pair>",
 ) -> pd.DataFrame | None:
     """Fix bad open/close/high/low prices where the open price is very different from the value of previous and next day.
 
@@ -580,9 +582,15 @@ def heal_anomalies(
     df["low_anomaly"] = (df["pct_change"] < low_diff) & (df["change_after"] > high_diff)
     df["anomaly"] =  df["low_anomaly"] | df["high_anomaly"]
 
-    if df["anomaly"].sum() == 0:
+    count = df["anomaly"].sum()
+
+    if count == 0:
         # Avoid extra work
         return None
+
+    logger.info("Detected %d anomalies for %s", count, hint)
+
+    # display(df.loc[df["anomaly"] == True])
 
     # Heal anomalies by using avg price and previous volcd
     df['surrounding_avg'] = (df["price"].shift(1) + df["price"].shift(-1)) / 2

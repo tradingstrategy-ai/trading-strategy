@@ -27,9 +27,11 @@ def cache_path(client: Client):
 
 @pytest.fixture(scope="session")
 def persistent_test_client() -> Client:
-    """Create a client that never redownloads data in a local dev env.
-    """
-    c = Client.create_test_client("/tmp/trading-strategy-tests")
+    """Create a client that never redownloads data in a local dev env."""
+
+    # Use persistent cache across reboots - because tests download a lot of data
+    path = os.path.expanduser("~/.cache/trading-strategy-tests")
+    c = Client.create_test_client(path)
 
     # Old testing hack
     if os.environ.get("CLEAR_CACHES"):

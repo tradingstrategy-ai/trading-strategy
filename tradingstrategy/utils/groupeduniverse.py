@@ -82,6 +82,7 @@ class PairGroupedUniverse:
         remove_candles_with_zero_volume: bool = True,
         forward_fill: bool = False,
         bad_open_close_threshold: float | None=3.0,
+        autoheal_pair_limit=200,
     ):
         """Set up new candle universe where data is grouped by trading pair.
 
@@ -122,6 +123,16 @@ class PairGroupedUniverse:
             Forward-will gaps in the data.
 
             See :term:`forward fill` and :ref:`forward filling data` for more information.
+
+        :param autoheal_pair_limit:
+            Don't try to autoheal data if the candle universe is too large.
+
+            Autohealing is very taxing operation and should not be performed on large universes.
+            Instead you should preprocess the universe to a candles Parquet file and load
+            directly from there.
+
+        :param autoheal_limit:
+            If we have more than
         """
         self.index_automatically = index_automatically
         assert isinstance(df, pd.DataFrame)
@@ -142,20 +153,25 @@ class PairGroupedUniverse:
         else:
             self.df = df
 
+        logger.info(
+            f"Creating candle/liquidity universe with {len(self.df):,} rows",
+        )
+
         #: This contains DataFrameGroupBy
         #: by pair.
         #: For the original ungrouped data use self.df
-        self.pairs: pd.GroupBy = self.df.groupby(by=self.primary_key_column)
+        self.pairs = self.df.groupby(by=self.primary_key_column)
 
-        if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
-            self.df = fix_dex_price_data(
-                self.pairs,
-                fix_wick_threshold=fix_wick_threshold,
-                bad_open_close_threshold=bad_open_close_threshold,
-                fix_inbetween_threshold=fix_inbetween_threshold,
-                remove_candles_with_zero_volume=remove_candles_with_zero_volume,
-                forward_fill=forward_fill,
-            )
+        if len(self.pairs) < autoheal_pair_limit:
+            if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
+                self.df = fix_dex_price_data(
+                    self.pairs,
+                    fix_wick_threshold=fix_wick_threshold,
+                    bad_open_close_threshold=bad_open_close_threshold,
+                    fix_inbetween_threshold=fix_inbetween_threshold,
+                    remove_candles_with_zero_volume=remove_candles_with_zero_volume,
+                    forward_fill=forward_fill,
+                )
 
         #: Grouped DataFrame cache for faster lookup
         self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}
