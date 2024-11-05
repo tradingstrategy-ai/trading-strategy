@@ -193,7 +193,7 @@ class PairNotFoundError(DataNotFoundError):
         if base_token and quote_token:
             message = f"No pair with base_token {base_token}, quote_token {quote_token}, fee tier {fee_tier}"
         else:
-            assert exchange_slug or pair_id, "Either exchange_slug or pair_id must be specified if base_token and quote_token are not specified"
+            assert exchange_slug or pair_id or address, "Either exchange_slug or pair_id or address must be specified if base_token and quote_token are not specified"
             message = custom_message or "No pair with "
 
         if exchange_slug:
