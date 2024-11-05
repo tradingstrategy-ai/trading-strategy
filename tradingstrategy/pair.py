@@ -178,9 +178,11 @@ class PairNotFoundError(DataNotFoundError):
         quote_token: Optional[str]=None, 
         fee_tier: Optional[Percent] = None, 
         pair_id: Optional[int]=None,
-        exchange_slug: Optional[str] = None, 
+        exchange_slug: Optional[str] = None,
+        address: Optional[str] = None,
         exchange_id: Optional[int] = None,
         description: Optional[HumanReadableTradingPairDescription] = None,
+        custom_message: Optional[str] = None,
     ):
 
         if base_token:
@@ -192,7 +194,7 @@ class PairNotFoundError(DataNotFoundError):
             message = f"No pair with base_token {base_token}, quote_token {quote_token}, fee tier {fee_tier}"
         else:
             assert exchange_slug or pair_id, "Either exchange_slug or pair_id must be specified if base_token and quote_token are not specified"
-            message = "No pair with "
+            message = custom_message or "No pair with "
 
         if exchange_slug:
             message = message + f" exchange_slug {exchange_slug}"
@@ -202,6 +204,9 @@ class PairNotFoundError(DataNotFoundError):
 
         if pair_id:
             message = message + f" pair_id {pair_id}"
+
+        if address:
+            message = message + f" address: {address}"
 
         if description:
             message = message + f" description: {description}"
@@ -961,6 +966,11 @@ class PandasPairUniverse:
         address = address.lower()
         assert self.smart_contract_map, "You need to build the index to use this function"
         data = self.smart_contract_map.get(address)
+        if data is None:
+            raise PairNotFoundError(
+                address=address,
+                custom_message=f"smart_contract_map does not have entry for {address}, it has {len(self.smart_contract_map)} entries",
+            )
         return self.get_pair_by_id(data["pair_id"])
 
     def get_token(self, address: str, chain_id=None) -> Optional[Token]:
