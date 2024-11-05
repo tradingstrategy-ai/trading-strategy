@@ -1271,7 +1271,10 @@ class PandasPairUniverse:
 
             # Sort by trade volume and pick the highest one
             pairs = pairs.sort_values(by=["fee", "buy_volume_all_time"], ascending=[True, False])
-            data = next(iter(pairs.to_dict("index").values()))
+            try:
+                data = next(iter(pairs.to_dict("index").values()))
+            except ValueError as e:
+                raise ValueError(f"Could not pull out the first value: {pairs}\nDict: {pairs.to_dict()}") from e
             return _convert_to_dex_pair(data, self.exchange_universe)
 
         if len(pairs) == 1:
