@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
+import orjson
 import pandas as pd
 import requests
 from requests.adapters import HTTPAdapter
@@ -581,21 +582,27 @@ class CoingeckoUniverse:
             If not given, use the file bundled in `trading-strategy` package
         """
         logger.info("Reading Coingecko data bundle to %s", fname)
-        with zstandard.open(fname, "rt") as inp:
-            data = json.load(inp)
+        with zstandard.open(fname, "rb") as inp:
+            dump = inp.read()
+            data = orjson.loads(dump)
             return CoingeckoUniverse(data)
 
-    def save(self, fname: Path = DEFAULT_COINGECKO_BUNDLE) -> None:
+    def save(self, fname: Path = DEFAULT_COINGECKO_BUNDLE, level=10) -> None:
         """Create JSON + zstd compressed data file for Coingecko tokens.
 
         - Save only raw data, no indices, which are re-created on read
 
         :param fname:
             If not given, use the file bundled in `trading-strategy` package
+
+        :param level:
+            zstd compression level
         """
         logger.info("Writing Coingecko data bundle to %s", fname)
-        with zstandard.open(fname, "wt") as out:
-            json.dump(self.data, out)
+        with zstandard.open(fname, "wb", cctx=zstandard.ZstdCompressor(level=level)) as out:
+            dump = orjson.dumps(self.data)
+            out.write(dump)
+
         logger.info(f"Zstd bundle size is {fname.stat().st_size:,} bytes")
 
 

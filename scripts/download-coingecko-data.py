@@ -22,8 +22,10 @@ def main():
     logging.basicConfig(handlers=[logging.StreamHandler(sys.stdout)], level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    pages = 25
+    total = 1500
     per_page = 40
+    pages = total // per_page
+
     # pages = 1
     # per_page = 5
 
