@@ -24,22 +24,6 @@ class LiquidityDataUnavailable(Exception):
     """We tried to look up liquidity info for a trading pair, but count not find a sample."""
 
 
-class TVLQueryType(enum.Enum):
-    """What kind of liquidity query we want to perform."""
-
-    #: Contains one-sided liquidity for XYLiquidity Uniswap v2 pairs and some V3 dollar nominated pairs
-    #:
-    #: This is the legacy method.
-    #:
-    v1 = "v1"
-
-    #: Contains one-sided quote-token measured, dollar-nominated, TVL for Uniswap v2 and v3 pairs
-    #:
-    #: This is the recommended method.
-    #:
-    v2 = "v2"
-
-
 @dataclass_json
 @dataclass
 class XYLiquidity:

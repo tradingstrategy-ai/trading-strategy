@@ -10,6 +10,7 @@ from tradingstrategy.client import Client
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, LiquidityDataUnavailable
 from tradingstrategy.pair import DEXPair, PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.transport.cache import OHLCVCandleType
 from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.liquidity_filter import build_liquidity_summary
 from tradingstrategy.utils.token_filter import filter_pairs_default
@@ -341,11 +342,23 @@ def test_uniswap_v2_weth_quoted_tvl(
     start = datetime.datetime(2024, 8, 1)
     end = datetime.datetime(2024, 9, 1)
 
+    # v2 query works
     liquidity_df = client.fetch_tvl_by_pair_ids(
         [pair.pair_id],
         TimeBucket.d1,
         start_time=start,
         end_time=end,
+        query_type=OHLCVCandleType.tvl_v2,
+    )
+    assert len(liquidity_df) > 0
+
+    # v1 query does not work
+    liquidity_df = client.fetch_tvl_by_pair_ids(
+        [pair.pair_id],
+        TimeBucket.d1,
+        start_time=start,
+        end_time=end,
+        query_type=OHLCVCandleType.tvl_v1,
     )
 
-    assert len(liquidity_df) > 0
+    assert len(liquidity_df) == 0

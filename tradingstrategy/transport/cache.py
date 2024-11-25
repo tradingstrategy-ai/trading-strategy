@@ -26,7 +26,7 @@ from requests.adapters import HTTPAdapter
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
-from tradingstrategy.liquidity import XYLiquidity, TVLQueryType
+from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey, USDollarAmount
@@ -44,9 +44,23 @@ class OHLCVCandleType(enum.Enum):
     """Candle types for /candles endpoint
 
     See /candles as https://tradingstrategy.ai/api/explorer/#/Trading%20pair/web_candles
-    ."""
+    """
+
+    #: OHLCV price data
     price = "price"
-    tvl = "tvl"
+
+    #: Contains one-sided liquidity for XYLiquidity Uniswap v2 pairs and some V3 dollar nominated pairs
+    #:
+    #: This is the legacy method.
+    #:
+    tvl_v1 = "tvl"
+
+    #: Contains one-sided quote-token measured, dollar-nominated, TVL for Uniswap v2 and v3 pairs
+    #:
+    #: This is the recommended method.
+    #:
+    tvl_v2 = "tvl2"
+
 
 
 class APIError(Exception):
@@ -695,7 +709,7 @@ class CachedHTTPTransport:
         time_bucket: TimeBucket,
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
-        query_type: TVLQueryType = TVLQueryType.v1,
+        query_type: OHLCVCandleType = OHLCVCandleType.tvl_v1,
     ) -> pd.DataFrame:
         """Internal hack to load TVL data for a single pair.
 
@@ -711,9 +725,11 @@ class CachedHTTPTransport:
 
         """
 
+        assert query_type in (OHLCVCandleType.tvl_v1, OHLCVCandleType.tvl_v2,), f"Got: {query_type}"
+
         pair_ids = [pair_id]
 
-        candle_type = f"tvl_{query_type.value}"
+        candle_type = query_type.value
 
         cache_fname = self._generate_cache_name(
             pair_ids,
@@ -742,17 +758,13 @@ class CachedHTTPTransport:
                     "pair_id": pair_ids[0],
                 }
 
-                if query_type == TVLQueryType.v2:
-                    # New style data
-                    params["candle_type"] = "tvl2"
+                params["candle_type"] = query_type.value
 
                 if start_time:
                     params["start"] = start_time.isoformat()
 
                 if end_time:
                     params["end"] = end_time.isoformat()
-
-                params["candle_type"] = OHLCVCandleType.tvl.value
 
                 # Use /candles endpoint to load TVL data
                 pair_candle_map = self.get_json_response(
@@ -801,7 +813,7 @@ class CachedHTTPTransport:
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
         progress_bar_description: Optional[str] = None,
-        query_type: TVLQueryType = TVLQueryType.v1,
+        query_type: OHLCVCandleType = OHLCVCandleType.tvl_v1,
     ) -> pd.DataFrame:
         """Load particular set of the TVL candles and cache the result.
 

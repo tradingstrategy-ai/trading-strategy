@@ -23,7 +23,6 @@ import pandas as pd
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.environment.default_environment import DefaultClientEnvironment, DEFAULT_SETTINGS_PATH
-from tradingstrategy.liquidity import TVLQueryType
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.top import TopPairsReply, TopPairMethod
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
@@ -54,7 +53,7 @@ from tradingstrategy.environment.config import Configuration
 
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.transport.cache import CachedHTTPTransport, DataNotAvailable
+from tradingstrategy.transport.cache import CachedHTTPTransport, DataNotAvailable, OHLCVCandleType
 
 logger = logging.getLogger(__name__)
 
@@ -276,7 +275,7 @@ class Client(BaseClient):
         start_time: Optional[AnyTimestamp] = None,
         end_time: Optional[AnyTimestamp] = None,
         progress_bar_description: Optional[str] = None,
-        query_type: TVLQueryType = TVLQueryType.v1,
+        query_type: OHLCVCandleType = OHLCVCandleType.tvl_v1,
     ) -> pd.DataFrame:
         """Fetch TVL/liquidity candles for particular trading pairs.
 
@@ -284,6 +283,8 @@ class Client(BaseClient):
         or few trading pairs. If the number
         of trading pair is small, this download is much more lightweight
         than Parquet dataset download.
+
+        TODO: Upgrade default `query_type` from `tvl_v1` to `tvl_v2`. Lots of backwards breaking changes.
 
         The returned TVL/liquidity data is converted to US dollars by the server.
 
