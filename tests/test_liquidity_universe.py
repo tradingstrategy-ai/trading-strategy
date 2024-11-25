@@ -122,10 +122,9 @@ def test_liquidity_index_is_datetime(
     client = persistent_test_client
 
     pair_universe = default_pair_universe
-    exchange_universe = default_exchange_universe()
+    exchange_universe = default_exchange_universe
 
-    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
-    pair = pair_universe.get_pair_by_ticker_by_exchange(exchange.exchange_id, "WETH", "DAI")
+    pair = pair_universe.get_pair_by_human_description([ChainId.ethereum, "uniswap-v2", "WETH", "DAI"])
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
     assert exchange, "Uniswap v2 not found"
@@ -138,7 +137,9 @@ def test_liquidity_index_is_datetime(
 
 def test_merge_liquidity_samples(
     persistent_test_client: Client,
-    default_exchange_universe
+    default_exchange_universe,
+    default_pairs_df,
+    default_pair_universe,
 ):
     """Merging two liquidity graphs using Pandas should work.
 
@@ -148,15 +149,14 @@ def test_merge_liquidity_samples(
 
     client = persistent_test_client
 
-    exchange_universe = default_exchange_universe()
+    exchange_universe = default_exchange_universe
 
     uniswap_v2 = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "uniswap v2")
     sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
 
-    raw_pairs = client.fetch_pair_universe().to_pandas()
-    raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
+    raw_pairs = default_pairs_df
 
-    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
+    pair_universe = default_pair_universe
 
     pair1: DEXPair = pair_universe.get_one_pair_from_pandas_universe(
         sushi_swap.exchange_id,
@@ -204,7 +204,7 @@ def test_build_liquidity_summary(
 
     client = persistent_test_client
 
-    exchange_universe = default_exchange_universe()
+    exchange_universe = default_exchange_universe
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v3")
     pairs_df = default_pairs_df
