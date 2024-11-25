@@ -9,16 +9,15 @@ from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 
 
-def test_resampled_liquidity_universe(persistent_test_client: Client):
+def test_resampled_liquidity_universe(persistent_test_client: Client, default_pair_universe):
     """Group downloaded liquidity sample data by a trading pair."""
 
     client = persistent_test_client
 
     exchange_universe = client.fetch_exchange_universe()
-    raw_pairs = client.fetch_pair_universe().to_pandas()
     # Do some test calculations for a single pair
     sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
-    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
+    pair_universe =default_pair_universe
     sushi_usdt = pair_universe.get_one_pair_from_pandas_universe(sushi_swap.exchange_id, "SUSHI", "USDT")
 
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()

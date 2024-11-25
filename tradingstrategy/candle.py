@@ -641,6 +641,21 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             f"Trading pair page link: {link}"
             )
 
+    def calculate_returns(
+        self,
+        column="close",
+    ) -> pd.Series:
+        """Calculate timeframe returns for all trading pairs.
+
+        :return:
+            Series with MultiIndex (pair_id, timestamp) and returns for each candle.
+
+            Frequency remains original.
+        """
+        price = self.df[column]
+        returns = price.groupby(level='pair_id', group_keys=False).apply(lambda x: x.pct_change().fillna(0))
+        return returns
+
     @staticmethod
     def create_empty() -> "GroupedCandleUniverse":
         """Return an empty GroupedCandleUniverse"""

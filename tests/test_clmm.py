@@ -14,7 +14,10 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import APIError
 
 
-def test_load_clmm_two_pairs_mixed_exchange(persistent_test_client: Client):
+def test_load_clmm_two_pairs_mixed_exchange(
+    persistent_test_client: Client,
+    default_pair_universe,
+):
     """Load CLMM data for two pairs on Uniswap v3."""
 
     client = persistent_test_client
@@ -23,13 +26,7 @@ def test_load_clmm_two_pairs_mixed_exchange(persistent_test_client: Client):
     for p in Path(client.transport.cache_path).glob("clmm-*"):
         p.unlink()
 
-    exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
-
-    pair_universe = PandasPairUniverse(
-        pairs_df,
-        exchange_universe=exchange_universe,
-    )
+    pair_universe = default_pair_universe
 
     pair = pair_universe.get_pair_by_human_description(
         (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005)
@@ -71,18 +68,15 @@ def test_load_clmm_two_pairs_mixed_exchange(persistent_test_client: Client):
     assert clmm_df.attrs["path"] is not None
 
 
-def test_load_clmm_bad_pair(persistent_test_client: Client):
+def test_load_clmm_bad_pair(
+    persistent_test_client: Client,
+    default_pair_universe,
+):
     """Attempt load CLMM data for Uniswap v2 pair."""
 
     client = persistent_test_client
 
-    exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
-
-    pair_universe = PandasPairUniverse(
-        pairs_df,
-        exchange_universe=exchange_universe,
-    )
+    pair_universe = default_pair_universe
 
     pair = pair_universe.get_pair_by_human_description(
         (ChainId.ethereum, "uniswap-v2", "WETH", "USDC")

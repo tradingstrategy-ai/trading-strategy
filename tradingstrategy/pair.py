@@ -789,10 +789,10 @@ class PandasPairUniverse:
     """
 
     def __init__(
-            self,
-            df: pd.DataFrame,
-            build_index=True,
-            exchange_universe: Optional[ExchangeUniverse]=None
+        self,
+        df: pd.DataFrame,
+        build_index=True,
+        exchange_universe: Optional[ExchangeUniverse]=None
     ):
         """
         :param df:
@@ -883,6 +883,7 @@ class PandasPairUniverse:
             does not index chain id and thus is invalid.
 
         """
+        # TODO: Slow - fix
         # https://stackoverflow.com/a/73638890/315168
         self.pair_map = self.df.T.to_dict()
         self.smart_contract_map = {d["address"].lower(): d for d in self.pair_map.values()}

@@ -3,7 +3,7 @@
 For more information about liquidity in automatic market making pools see :term:`AMM`
 and :term:`XY liquidity model`.
 """
-
+import enum
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Dict, cast
 

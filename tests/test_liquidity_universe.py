@@ -1,3 +1,4 @@
+"""TVL API tests."""
 
 import datetime
 import pandas as pd
@@ -7,23 +8,28 @@ from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, LiquidityDataUnavailable
-from tradingstrategy.pair import DEXPair, LegacyPairUniverse, PandasPairUniverse
+from tradingstrategy.pair import DEXPair, PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.transport.cache import OHLCVCandleType
 from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.liquidity_filter import build_liquidity_summary
 from tradingstrategy.utils.token_filter import filter_pairs_default
 
 
-def test_grouped_liquidity(persistent_test_client: Client):
+
+def test_grouped_liquidity(
+    persistent_test_client: Client,
+    default_pair_universe,
+):
     """Group downloaded liquidity sample data by a trading pair."""
 
-    client = persistent_test_client
+    pair_universe = default_pair_universe
 
+    client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
-    raw_pairs = client.fetch_pair_universe().to_pandas()
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
 
-    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
+
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
 
     # Do some test calculations for a single pair
@@ -104,18 +110,21 @@ def test_combined_candles_and_liquidity(persistent_test_client: Client):
     assert abs((liq_pair_count - candle_pair_count) / liq_pair_count) < 0.15
 
 
-def test_liquidity_index_is_datetime(persistent_test_client: Client):
+def test_liquidity_index_is_datetime(
+    persistent_test_client: Client,
+    default_pair_universe,
+    default_exchange_universe,
+):
     """Any liquidity samples use datetime index by default.
 
     Avoid raw running counter indexes. This makes manipulating data much easier.
     """
     client = persistent_test_client
 
-    exchange_universe = client.fetch_exchange_universe()
-    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
-    pairs = client.fetch_pair_universe()
-    pair_universe = LegacyPairUniverse.create_from_pyarrow_table(pairs)
-    pair = pair_universe.get_pair_by_ticker_by_exchange(exchange.exchange_id, "WETH", "DAI")
+    pair_universe = default_pair_universe
+    exchange_universe = default_exchange_universe
+
+    pair = pair_universe.get_pair_by_human_description([ChainId.ethereum, "uniswap-v2", "WETH", "DAI"])
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
     assert exchange, "Uniswap v2 not found"
@@ -126,7 +135,12 @@ def test_liquidity_index_is_datetime(persistent_test_client: Client):
     assert isinstance(liq1.index, pd.DatetimeIndex)
 
 
-def test_merge_liquidity_samples(persistent_test_client: Client):
+def test_merge_liquidity_samples(
+    persistent_test_client: Client,
+    default_exchange_universe,
+    default_pairs_df,
+    default_pair_universe,
+):
     """Merging two liquidity graphs using Pandas should work.
 
 
@@ -135,15 +149,14 @@ def test_merge_liquidity_samples(persistent_test_client: Client):
 
     client = persistent_test_client
 
-    exchange_universe = client.fetch_exchange_universe()
+    exchange_universe = default_exchange_universe
 
     uniswap_v2 = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "uniswap v2")
     sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
 
-    raw_pairs = client.fetch_pair_universe().to_pandas()
-    raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
+    raw_pairs = default_pairs_df
 
-    pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
+    pair_universe = default_pair_universe
 
     pair1: DEXPair = pair_universe.get_one_pair_from_pandas_universe(
         sushi_swap.exchange_id,
@@ -179,7 +192,11 @@ def test_empty_liquididty_universe():
     assert universe.get_sample_count() == 0
 
 
-def test_build_liquidity_summary(persistent_test_client: Client):
+def test_build_liquidity_summary(
+    persistent_test_client: Client,
+    default_exchange_universe,
+    default_pairs_df,
+):
     """See we can put together historical liquidity for backtest filtering.
 
     - Get liquidity summary for all Uniswap v3 pairs on Etheruem
@@ -187,9 +204,10 @@ def test_build_liquidity_summary(persistent_test_client: Client):
 
     client = persistent_test_client
 
-    exchange_universe = client.fetch_exchange_universe()
+    exchange_universe = default_exchange_universe
+
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v3")
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     pairs_df = filter_pairs_default(
         pairs_df,
@@ -209,18 +227,16 @@ def test_build_liquidity_summary(persistent_test_client: Client):
         assert liquidity_usd > 0, f"Got zero liquidity for pair {pair_id}"
 
 
-def test_load_tvl_one_pair(persistent_test_client: Client):
+def test_load_tvl_one_pair(
+    persistent_test_client: Client,
+    default_exchange_universe,
+    default_pair_universe,
+):
     """Load TVL data for a single pair."""
 
     client = persistent_test_client
 
-    exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
-
-    pair_universe = PandasPairUniverse(
-        pairs_df,
-        exchange_universe=exchange_universe,
-    )
+    pair_universe = default_pair_universe
 
     pair = pair_universe.get_pair_by_human_description(
         (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005)
@@ -239,18 +255,16 @@ def test_load_tvl_one_pair(persistent_test_client: Client):
     assert len(liquidity_df) == 32
 
 
-def test_load_tvl_one_pair_cache(persistent_test_client: Client):
+def test_load_tvl_one_pair_cache(
+    persistent_test_client: Client,
+    default_exchange_universe,
+    default_pair_universe,
+):
     """Load TVL data for a single pair, use cache."""
 
     client = persistent_test_client
 
-    exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
-
-    pair_universe = PandasPairUniverse(
-        pairs_df,
-        exchange_universe=exchange_universe,
-    )
+    pair_universe = default_pair_universe
 
     pair = pair_universe.get_pair_by_human_description(
         (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005)
@@ -278,18 +292,17 @@ def test_load_tvl_one_pair_cache(persistent_test_client: Client):
     assert len(liquidity_df) == 32
 
 
-def test_load_tvl_two_pairs_mixed_exchange(persistent_test_client: Client):
+def test_load_tvl_two_pairs_mixed_exchange(
+    persistent_test_client: Client,
+    default_exchange_universe,
+    default_pair_universe,
+
+):
     """Load TVL data for two pairs using a different DEX rtype."""
 
     client = persistent_test_client
 
-    exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
-
-    pair_universe = PandasPairUniverse(
-        pairs_df,
-        exchange_universe=exchange_universe,
-    )
+    pair_universe = default_pair_universe
 
     pair = pair_universe.get_pair_by_human_description(
         (ChainId.ethereum, "uniswap-v3", "WETH", "USDC", 0.0005)
@@ -311,3 +324,41 @@ def test_load_tvl_two_pairs_mixed_exchange(persistent_test_client: Client):
 
     assert len(liquidity_df) == 64
 
+
+def test_uniswap_v2_weth_quoted_tvl(
+    persistent_test_client: Client,
+    default_pair_universe,
+):
+    """See that v2 liquidity can be quried."""
+
+    client = persistent_test_client
+    pair_universe = default_pair_universe
+
+    # https://tradingstrategy.ai/trading-view/arbitrum/uniswap-v3/pepe-eth-fee-100-2
+    pair = pair_universe.get_pair_by_human_description(
+        (ChainId.ethereum, "uniswap-v3", "PEPE", "WETH", 0.01)
+    )
+
+    start = datetime.datetime(2024, 8, 1)
+    end = datetime.datetime(2024, 9, 1)
+
+    # v2 query works
+    liquidity_df = client.fetch_tvl_by_pair_ids(
+        [pair.pair_id],
+        TimeBucket.d1,
+        start_time=start,
+        end_time=end,
+        query_type=OHLCVCandleType.tvl_v2,
+    )
+    assert len(liquidity_df) > 0
+
+    # v1 query does not work
+    liquidity_df = client.fetch_tvl_by_pair_ids(
+        [pair.pair_id],
+        TimeBucket.d1,
+        start_time=start,
+        end_time=end,
+        query_type=OHLCVCandleType.tvl_v1,
+    )
+
+    assert len(liquidity_df) == 0

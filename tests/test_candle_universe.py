@@ -156,14 +156,13 @@ def test_iterate_pairs_by_timestamp_range(persistent_test_client: Client):
                 pass
 
 
-def test_data_for_single_pair(persistent_test_client: Client):
+def test_data_for_single_pair(persistent_test_client: Client, default_pairs_df):
     """Get data from the single pair candle universe."""
 
     client = persistent_test_client
 
     exchange_universe = client.fetch_exchange_universe()
-    columnar_pair_table = client.fetch_pair_universe()
-    pairs_df = columnar_pair_table.to_pandas()
+    pairs_df = default_pairs_df
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
 
@@ -189,14 +188,13 @@ def test_data_for_single_pair(persistent_test_client: Client):
     assert df.iloc[-1]["timestamp"] > pd.Timestamp("2021-1-1")
 
 
-def test_data_for_two_pairs(persistent_test_client: Client):
+def test_data_for_two_pairs(persistent_test_client: Client, default_pairs_df):
     """Get data from the two pair candle universe."""
 
     client = persistent_test_client
 
     exchange_universe = client.fetch_exchange_universe()
-    columnar_pair_table = client.fetch_pair_universe()
-    pairs_df = columnar_pair_table.to_pandas()
+    pairs_df = default_pairs_df
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
 
@@ -214,14 +212,13 @@ def test_data_for_two_pairs(persistent_test_client: Client):
     candle_universe = GroupedCandleUniverse(two_pair_candles)
 
 
-def test_candle_colour(persistent_test_client: Client):
+def test_candle_colour(persistent_test_client: Client, default_pairs_df):
     """Green and red candle coloring functions work."""
 
     client = persistent_test_client
 
     exchange_universe = client.fetch_exchange_universe()
-    columnar_pair_table = client.fetch_pair_universe()
-    pairs_df = columnar_pair_table.to_pandas()
+    pairs_df = default_pairs_df
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
 
@@ -266,14 +263,13 @@ def test_candle_colour(persistent_test_client: Client):
     assert is_candle_red(candle)
 
 
-def test_candle_upsample(persistent_test_client: Client):
+def test_candle_upsample(persistent_test_client: Client, default_pairs_df):
     """Upsample OHLCV candles."""
 
     client = persistent_test_client
 
     exchange_universe = client.fetch_exchange_universe()
-    columnar_pair_table = client.fetch_pair_universe()
-    pairs_df = columnar_pair_table.to_pandas()
+    pairs_df = default_pairs_df
 
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
 
@@ -462,7 +458,7 @@ def test_candle_get_last_entries(persistent_test_client: Client):
 
 
 @pytest.mark.skip(reason="This test currently downloads a 3.4G parquet and load it to RAM, TODO: move to manual test")
-def test_filter_pyarrow(persistent_test_client: Client):
+def test_filter_pyarrow(persistent_test_client: Client, default_pairs_df):
     """Filter loaded pyarrow files without loading them fully to the memory.
 
     Ensures that we can work on candle and liquidity data files on low memory servers.
@@ -486,7 +482,7 @@ def test_filter_pyarrow(persistent_test_client: Client):
 
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
@@ -518,12 +514,12 @@ def test_filter_pyarrow(persistent_test_client: Client):
     # print(f"Max mem {mem_used/(1024*1024)} MB")
 
 
-def test_load_candles_using_jsonl(persistent_test_client: Client):
+def test_load_candles_using_jsonl(persistent_test_client: Client, default_pairs_df):
     """Load data using JSONL endpoint"""
 
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
@@ -547,12 +543,12 @@ def test_load_candles_using_jsonl(persistent_test_client: Client):
 
 
 
-def test_load_candles_using_jsonl_max_bytes(persistent_test_client: Client):
+def test_load_candles_using_jsonl_max_bytes(persistent_test_client: Client, default_pairs_df):
     """OverloadJSONL endpoint max_bytes"""
 
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
@@ -570,12 +566,12 @@ def test_load_candles_using_jsonl_max_bytes(persistent_test_client: Client):
         )
 
 
-def test_load_candles_using_json_historical(persistent_test_client: Client):
+def test_load_candles_using_json_historical(persistent_test_client: Client, default_pairs_df):
     """Load historical candles using JSONL endpoint"""
 
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
@@ -594,12 +590,12 @@ def test_load_candles_using_json_historical(persistent_test_client: Client):
     assert len(candles_df) == 25  # 24 hours + 1 inclusive
 
 
-def test_examine_anomalies_single_pair(persistent_test_client: Client):
+def test_examine_anomalies_single_pair(persistent_test_client: Client, default_pairs_df):
     """Run examine_anomalies() on candle data"""
 
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
@@ -625,12 +621,12 @@ def test_examine_anomalies_single_pair(persistent_test_client: Client):
     assert not issues_found
 
 
-def test_examine_anomalies_multi_pair(persistent_test_client: Client):
+def test_examine_anomalies_multi_pair(persistent_test_client: Client, default_pairs_df):
     """Run examine_anomalies() on candle data for multiple pairs"""
 
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
@@ -658,12 +654,12 @@ def test_examine_anomalies_multi_pair(persistent_test_client: Client):
     assert not issues_found
 
 
-def test_fix_prices_in_between_time_frames_no_actions(persistent_test_client: Client):
+def test_fix_prices_in_between_time_frames_no_actions(persistent_test_client: Client, default_pairs_df):
     """Run fix_prices_in_between_time_frames() - nothing should happen"""
 
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
@@ -699,7 +695,7 @@ def test_fix_prices_in_between_time_frames_no_actions(persistent_test_client: Cl
             assert original.equals(healed)
 
 
-def test_fix_prices_in_between_time_frames_broken_data(persistent_test_client: Client):
+def test_fix_prices_in_between_time_frames_broken_data(persistent_test_client: Client, default_pairs_df):
     """Run fix_prices_in_between_time_frames().
 
     - Fix one broken entry we create
@@ -708,7 +704,7 @@ def test_fix_prices_in_between_time_frames_broken_data(persistent_test_client: C
     """
 
     client = persistent_test_client
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     pair_universe = PandasPairUniverse.create_pair_universe(
@@ -753,7 +749,7 @@ def test_fix_prices_in_between_time_frames_broken_data(persistent_test_client: C
     assert healed["2024-09-27 10:00"] == pytest.approx(0.012104, rel=0.10)
 
 
-def test_fix_min_max_price(persistent_test_client: Client):
+def test_fix_min_max_price(persistent_test_client: Client, default_pairs_df):
     """Run remove_min_max_price().
 
     - Fix one broken entry we create
@@ -761,7 +757,7 @@ def test_fix_min_max_price(persistent_test_client: Client):
 
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     exchange = exchange_universe.get_by_chain_and_slug(ChainId.bsc, "pancakeswap-v2")
@@ -794,11 +790,11 @@ def test_fix_min_max_price(persistent_test_client: Client):
     assert isinstance(df, DataFrameGroupBy)
 
 
-def test_normalise_volume(persistent_test_client: Client):
+def test_normalise_volume(persistent_test_client: Client, default_pairs_df):
     """Normalise volume data ulocaniswap v2 + v3."""
 
     client = persistent_test_client
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
 
     # Create filtered exchange and pair data
     pair_universe = PandasPairUniverse.create_pair_universe(

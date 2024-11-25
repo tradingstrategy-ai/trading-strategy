@@ -114,7 +114,7 @@ def test_token_tax(persistent_test_client: Client):
             assert 0 < (pair.get_sell_tax() or 0) < 5, f"Pair lacks tax data: {pair}"
 
 
-def test_token_tax(persistent_test_client: Client):
+def test_token_tax(persistent_test_client: Client, default_pairs_df):
     """Load token tax data in load_extra_metadata()."""
 
     client = persistent_test_client
@@ -129,7 +129,7 @@ def test_token_tax(persistent_test_client: Client):
     addresses = list(map(str.lower, addresses))
 
     # Get all pairs data and filter to our subset
-    pairs_df = client.fetch_pair_universe().to_pandas()
+    pairs_df = default_pairs_df
     pairs_df = add_base_quote_address_columns(pairs_df)
     pairs_df = pairs_df.loc[
         (pairs_df["base_token_address"].isin(addresses)) &
