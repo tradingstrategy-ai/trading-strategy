@@ -23,6 +23,7 @@ import pandas as pd
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.environment.default_environment import DefaultClientEnvironment, DEFAULT_SETTINGS_PATH
+from tradingstrategy.liquidity import TVLQueryType
 from tradingstrategy.reader import BrokenData, read_parquet
 from tradingstrategy.top import TopPairsReply, TopPairMethod
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
@@ -275,6 +276,7 @@ class Client(BaseClient):
         start_time: Optional[AnyTimestamp] = None,
         end_time: Optional[AnyTimestamp] = None,
         progress_bar_description: Optional[str] = None,
+        query_type: TVLQueryType = TVLQueryType.v1,
     ) -> pd.DataFrame:
         """Fetch TVL/liquidity candles for particular trading pairs.
 
@@ -367,6 +369,7 @@ class Client(BaseClient):
             start_time,
             end_time,
             progress_bar_description=progress_bar_description,
+            query_type=query_type,
         )
 
     def fetch_clmm_liquidity_provision_candles_by_pair_ids(self,

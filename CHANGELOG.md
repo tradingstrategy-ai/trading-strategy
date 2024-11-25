@@ -4,6 +4,7 @@
 - Add: `load_extra_metadata` to load buy and sell tax for given trading pairs
 - Add: `CandleUniverse(autoheal_pair_limit)` and reworked how to mitigate MEV issues on pricing data 
 - Add: `heal_anomalies` to get rid of MEV anomalies, second attempt - handles anomalies detection and smoothing out better
+- Add: `GroupedCandleUniverse.calculate_returns` to easily get returns of each trading pair
 - Change: Use `orjson` to faster serialisation of some data
 
 # 0.24.4

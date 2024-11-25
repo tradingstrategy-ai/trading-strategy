@@ -26,7 +26,7 @@ from requests.adapters import HTTPAdapter
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
-from tradingstrategy.liquidity import XYLiquidity
+from tradingstrategy.liquidity import XYLiquidity, TVLQueryType
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.jsonl import load_candles_jsonl
 from tradingstrategy.types import PrimaryKey, USDollarAmount
@@ -695,6 +695,7 @@ class CachedHTTPTransport:
         time_bucket: TimeBucket,
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
+        query_type: TVLQueryType = TVLQueryType.v1,
     ) -> pd.DataFrame:
         """Internal hack to load TVL data for a single pair.
 
@@ -712,12 +713,14 @@ class CachedHTTPTransport:
 
         pair_ids = [pair_id]
 
+        candle_type = f"tvl_{query_type.value}"
+
         cache_fname = self._generate_cache_name(
             pair_ids,
             time_bucket,
             start_time,
             end_time,
-            candle_type="tvl",
+            candle_type=candle_type,
         )
 
         full_fname = self.get_cached_file_path(cache_fname)
@@ -738,6 +741,10 @@ class CachedHTTPTransport:
                     # "pair_ids": ",".join([str(i) for i in pair_ids]),  # OpenAPI comma delimited array
                     "pair_id": pair_ids[0],
                 }
+
+                if query_type == TVLQueryType.v2:
+                    # New style data
+                    params["candle_type"] = "tvl2"
 
                 if start_time:
                     params["start"] = start_time.isoformat()
@@ -794,6 +801,7 @@ class CachedHTTPTransport:
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
         progress_bar_description: Optional[str] = None,
+        query_type: TVLQueryType = TVLQueryType.v1,
     ) -> pd.DataFrame:
         """Load particular set of the TVL candles and cache the result.
 
@@ -850,6 +858,7 @@ class CachedHTTPTransport:
                 time_bucket,
                 start_time,
                 end_time,
+                query_type=query_type,
             )
 
             assert "timestamp" in df.columns, f"Columns lack timestamp: {df.columns}"
