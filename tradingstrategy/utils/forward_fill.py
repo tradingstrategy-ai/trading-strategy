@@ -294,7 +294,7 @@ def forward_fill(
                     single_or_multipair_data["volume"] = single_or_multipair_data["volume"].fillna(0.0)
                 case "close":
                     # Sparse close is the previous close
-                    single_or_multipair_data["close"] = single_or_multipair_data["close"].fillna(method="ffill")
+                    single_or_multipair_data["close"] = single_or_multipair_data["close"].ffill()
                 case "open" | "high" | "low":
                     # Fill open, high, low from the ffill'ed close.
                     single_or_multipair_data[column] = single_or_multipair_data[column].fillna(single_or_multipair_data["close"])
