@@ -283,10 +283,19 @@ class PairGroupedUniverse:
         adjusted_timestamp = timestamp - small_time
         return pair_candles.loc[:adjusted_timestamp]
 
-    def get_all_pairs(self) -> Iterable[Tuple[PrimaryKey, pd.DataFrame]]:
-        """Go through all liquidity samples, one DataFrame per trading pair."""
+    def get_all_pairs(self, max_count=None) -> Iterable[Tuple[PrimaryKey, pd.DataFrame]]:
+        """Go through all liquidity samples, one DataFrame per trading pair.
+
+        :param max_count:
+            Randomly sample N pairs
+        """
+        count = 0
         for pair_id, data in self.pairs:
             yield pair_id, data
+
+            count += 1
+            if max_count is not None and count >= max_count:
+                break
 
     def get_pair_ids(self) -> Iterable[PrimaryKey]:
         """Get all pairs present in the dataset"""

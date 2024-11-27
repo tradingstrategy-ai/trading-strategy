@@ -205,10 +205,11 @@ def filter_scams(
     pairs_df: pd.DataFrame,
     client: Client,
     min_token_sniffer_score=65,
+    drop_token_tax=False,
 ) -> pd.DataFrame:
     """Filter out scam tokens in pairs dataset and print some stdout diagnostics.
 
-    To be called from a backtesting notebook.
+    TODO: Work in progress.
 
     Example:
 
@@ -236,6 +237,9 @@ def filter_scams(
             liquidity_time_bucket=TimeBucket.d1,
         )
 
+    :parma drop_token_tax:
+        Discard tokens with token tax features, as by Tokensniffer data
+
     """
     pairs_df = load_extra_metadata(
         pairs_df,
@@ -246,6 +250,16 @@ def filter_scams(
     print(f"After scam filter we have {len(pairs_df)} pairs")
     clean_tokens = pairs_df["base_token_symbol"]
     only_scams = all_pairs_df.loc[~all_pairs_df["base_token_symbol"].isin(clean_tokens)]
+
     for _, row in only_scams.iterrows():
         print(f"Scammy pair {row.base_token_symbol} - {row.quote_token_symbol}, risk score {row.risk_score}, pool {row.address}, token {row.base_token_address}")
+
+    if drop_token_tax:
+        taxed_token_mask = (pairs_df["buy_tax"] > 0) | (pairs_df["sell_tax"] > 0)
+        taxed_tokens = pairs_df[taxed_token_mask]
+        pairs_df = pairs_df[~taxed_token_mask]
+
+        for _, row in taxed_tokens.iterrows():
+            print(f"Taxed pair {row.base_token_symbol} - {row.quote_token_symbol}, buy tax {row.buy_tax * 100} %, sell tax {row.sell_tax * 100} %, pool {row.address}, token {row.base_token_address}")
+
     return pairs_df
