@@ -81,6 +81,7 @@ class PairGroupedUniverse:
         forward_fill: bool = False,
         bad_open_close_threshold: float | None=3.0,
         autoheal_pair_limit=200,
+        forward_fill_until: datetime.datetime | pd.Timestamp | None = None,
     ):
         """Set up new candle universe where data is grouped by trading pair.
 
@@ -192,6 +193,7 @@ class PairGroupedUniverse:
                     fix_inbetween_threshold=fix_inbetween_threshold,
                     remove_candles_with_zero_volume=remove_candles_with_zero_volume,
                     forward_fill=forward_fill,
+                    forward_fill_until=forward_fill_until,
                 )
 
                 assert isinstance(fix_result, DataFrameGroupBy)
