@@ -11,6 +11,7 @@ import re
 from contextlib import contextmanager
 from importlib.metadata import version
 from json import JSONDecodeError
+from pprint import pformat
 from typing import Optional, Callable, Union, Collection, Dict, Tuple
 import shutil
 import logging
@@ -36,6 +37,7 @@ from tradingstrategy.transport.progress_enabled_download import download_with_tq
 
 from tqdm_loggable.auto import tqdm
 
+from tradingstrategy.utils.logging_retry import LoggingRetry
 
 logger = logging.getLogger(__name__)
 
@@ -100,22 +102,28 @@ class CachedHTTPTransport:
 
     """
 
-    def __init__(self,
-                 download_func: Callable,
-                 endpoint: Optional[str] = None,
-                 cache_period =datetime.timedelta(days=3),
-                 cache_path: Optional[str] = None,
-                 api_key: Optional[str] = None,
-                 timeout: float = 15.0,
-                 add_exception_hook=True,
-                 retry_policy: Optional[Retry] = None):
+    def __init__(
+        self,
+         download_func: Callable,
+         endpoint: Optional[str] = None,
+         cache_period =datetime.timedelta(days=3),
+         cache_path: Optional[str] = None,
+         api_key: Optional[str] = None,
+         timeout: float | tuple = (45.0, 45.0),
+         add_exception_hook=True,
+         retry_policy: Optional[Retry] = None
+    ):
         """
         :param download_func: Interactive download progress bar displayed during the download
         :param endpoint: API server we are using - default is `https://tradingstrategy.ai/api`
         :param cache_period: How many days we store the downloaded files
         :param cache_path: Where we store the downloaded files
         :param api_key: Trading Strategy API key to use download
-        :param timeout: requests HTTP lib timeout
+        :param timeout:
+            Requests HTTP lib timeout.
+
+            Passed to ``requests.get()``.
+
         :param add_exception_hook: Automatically raise an error in the case of HTTP error. Prevents auto retries.
         :param retry_policy:
 
@@ -150,10 +158,12 @@ class CachedHTTPTransport:
         """Release any underlying sockets."""
         self.requests.close()
 
-    def create_requests_client(self,
-                               retry_policy: Optional[Retry]=None,
-                               api_key: Optional[str] = None,
-                               add_exception_hook=True):
+    def create_requests_client(
+        self,
+        retry_policy: Optional[Retry]=None,
+        api_key: Optional[str] = None,
+        add_exception_hook=True,
+    ):
         """Create HTTP 1.1 keep-alive connection to the server with optional authorization details.
 
         :param add_exception_hook: Automatically raise an error in the case of HTTP error
@@ -164,7 +174,7 @@ class CachedHTTPTransport:
         # Set up dealing with network connectivity flakey
         if retry_policy is None:
             # https://stackoverflow.com/a/35504626/315168
-            retry_policy = Retry(
+            retry_policy = LoggingRetry(
                 total=5,
                 backoff_factor=0.1,
                 status_forcelist=[ 500, 502, 503, 504 ],
@@ -342,7 +352,11 @@ class CachedHTTPTransport:
         url = f"{self.endpoint}/{api_path}"
         logger.debug("get_json_response() %s, %s", url, params)
 
-        response = self.requests.get(url, params=params)
+        response = self.requests.get(
+            url,
+            params=params,
+            timeout=self.timeout,
+        )
 
         if not (200 <= response.status_code <= 299):
             raise APIError(f"Could not call {url}\nParams: {params}\nResponse: {response.status_code} {response.text}")
@@ -391,6 +405,11 @@ class CachedHTTPTransport:
 
         if risk_score_threshold:
             params["risk_score_threshold"] = str(risk_score_threshold)
+
+        logger.info(
+            "/top call with params %s, timeout is %s",
+            pformat(params),
+        )
 
         resp = self.get_json_response("top", params=params)
         return resp
