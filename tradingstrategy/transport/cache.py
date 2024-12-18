@@ -407,7 +407,7 @@ class CachedHTTPTransport:
             params["risk_score_threshold"] = str(risk_score_threshold)
 
         logger.info(
-            "/top call with params %s, timeout is %s",
+            "/top call with params %s",
             pformat(params),
         )
 
