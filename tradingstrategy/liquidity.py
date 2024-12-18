@@ -3,6 +3,7 @@
 For more information about liquidity in automatic market making pools see :term:`AMM`
 and :term:`XY liquidity model`.
 """
+import datetime
 import enum
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Dict, cast
@@ -238,6 +239,7 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
         timestamp_column="timestamp",
         index_automatically=True,
         forward_fill=False,
+        forward_fill_until: datetime.datetime = None,
     ):
         super().__init__(
             df,
@@ -247,6 +249,7 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
             fix_wick_threshold=None,
             fix_inbetween_threshold=None,
             forward_fill=forward_fill,
+            forward_fill_until=forward_fill_until,
             remove_candles_with_zero_volume=False,
             bad_open_close_threshold=None,
         )
