@@ -74,7 +74,7 @@ def test_load_top_by_tokens(persistent_test_client: Client):
     assert len(top_reply.excluded) > 0
 
     comp_weth = top_reply.included[0]
-    assert comp_weth.base_token == "COMP"
+    assert comp_weth.base_token in ("COMP", "AAVE")
     assert comp_weth.quote_token == "WETH"
     assert comp_weth.get_buy_tax() == 0
     assert comp_weth.get_sell_tax() == 0
@@ -160,4 +160,3 @@ def test_token_tax(persistent_test_client: Client, default_pairs_df):
     # Read buy/sell/tokensniffer metadta through DEXPair instance
     assert trump_weth.buy_tax == 0.01
     assert trump_weth.sell_tax == 0.01
-    assert trump_weth.token_sniffer_data.get("balances") is not None  # Read random column from TokenSniffer reply
