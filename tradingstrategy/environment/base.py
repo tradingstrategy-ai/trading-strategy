@@ -18,13 +18,15 @@ class Environment(ABC):
     """
 
 
-def download_with_progress_plain(session: Session, path: str, url: str, params: dict, timeout: float, human_desc: str):
+def download_with_progress_plain(session: Session, path: str, url: str, params: dict, timeout: float | tuple, human_desc: str):
     """The default downloader does not display any fancy progress bar.
 
     :param timeout: Timeout in seconds.
     """
 
-    assert timeout > 0
+    # can be tuple as well
+    if type(timeout) == float:
+        assert timeout > 0
 
     start = naive_utcnow()
 

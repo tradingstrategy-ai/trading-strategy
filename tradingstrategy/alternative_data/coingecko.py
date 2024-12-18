@@ -8,7 +8,6 @@
 - See :py:func:`categorise_pairs` how to label Trading Strategy assets and trading pairs with CoinGecko data
 """
 
-import json
 import logging
 import os
 from collections import defaultdict
@@ -20,9 +19,9 @@ import orjson
 import pandas as pd
 import requests
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 import zstandard
 
+from tradingstrategy.utils.logging_retry import LoggingRetry
 from tradingstrategy.utils.token_filter import add_base_quote_address_columns
 
 logger = logging.getLogger(__name__)
@@ -66,24 +65,6 @@ class CoingeckoEntry(TypedDict):
     #: See :py:func:`fetch_coingecko_coin_data`
     #:
     metadata: dict
-
-
-class LoggingRetry(Retry):
-    """In the case we need to throttle Coingecko, be verbose about it."""
-    def __init__(self, *args, **kwargs):
-        self.logger = kwargs.pop('logger', logging.getLogger(__name__))
-        super().__init__(*args, **kwargs)
-
-    def increment(self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None):
-        if response:
-            status = response.status
-            reason = response.reason
-        else:
-            status = None
-            reason = str(error)
-
-        self.logger.warning(f"Retrying: {method} {url} (status: {status}, reason: {reason})")
-        return super().increment(method, url, response, error, _pool, _stacktrace)
 
 
 class CoingeckoClient:
