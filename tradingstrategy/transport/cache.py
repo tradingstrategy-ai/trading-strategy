@@ -109,7 +109,7 @@ class CachedHTTPTransport:
          cache_period =datetime.timedelta(days=3),
          cache_path: Optional[str] = None,
          api_key: Optional[str] = None,
-         timeout: float | tuple = (45.0, 45.0),
+         timeout: float | tuple = (89.0, 89.0),
          add_exception_hook=True,
          retry_policy: Optional[Retry] = None
     ):
