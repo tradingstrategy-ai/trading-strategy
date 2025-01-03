@@ -6,7 +6,23 @@ from urllib3 import Retry
 
 
 class LoggingRetry(Retry):
-    """In the case we need to throttle Coingecko or other HTTP API, be verbose about it."""
+    """In the case we need to throttle Coingecko or other HTTP API, be verbose about it.
+
+    Example how to use:
+
+    .. code-block:: python
+
+        # Set up dealing with network connectivity flakey
+        if retry_policy is None:
+            # https://stackoverflow.com/a/35504626/315168
+            retry_policy = LoggingRetry(
+                total=5,
+                backoff_factor=0.1,
+                status_forcelist=[ 500, 502, 503, 504 ],
+            )
+            session.mount('http://', HTTPAdapter(max_retries=retry_policy))
+            session.mount('https://', HTTPAdapter(max_retries=retry_policy))
+    """
 
     def __init__(self, *args, **kwargs):
         self.logger = kwargs.pop('logger', logging.getLogger(__name__))
