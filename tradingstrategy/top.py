@@ -220,8 +220,12 @@ class TopPairData:
 
         if not self.has_tax_data():
             return None
+        
+        raw_buy_fee = self.token_sniffer_data["swap_simulation"].get("buy_fee")
+        if raw_buy_fee is None:
+            return None
 
-        fee = float(self.token_sniffer_data["swap_simulation"]["buy_fee"]) / 100
+        fee = float(raw_buy_fee) / 100
         if fee < epsilon:
             return 0
         return round(fee, rounding)
@@ -246,8 +250,12 @@ class TopPairData:
 
         if not self.has_tax_data():
             return None
+        
+        raw_sell_fee = self.token_sniffer_data["swap_simulation"].get("sell_fee")
+        if raw_sell_fee is None:
+            return None
 
-        fee = float(self.token_sniffer_data["swap_simulation"]["sell_fee"]) / 100
+        fee = float(raw_sell_fee) / 100
         if fee < epsilon:
             return 0
         return round(fee, rounding)
