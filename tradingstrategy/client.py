@@ -177,6 +177,17 @@ class Client(BaseClient):
         If the download seems to be corrupted, it will be attempted 3 times.
         """
         path = self.transport.fetch_pair_universe()
+        assert path.exists(), f"Does not exist: {path}"
+        size = path.stat().st_size
+        assert size > 0, f"Parquest file size is zero {path}"
+        logger.info("Fetched pair universe to %s, file size is %d bytes", path, size)
+
+        if size < 1024:
+            # Broken file, hack to display info to user what goes wrong
+            with open(path, "rt") as f:
+                data = f.read()
+                logger.error("Parquet %s corrupted, size %d, content %s", path, size, data)
+
         return read_parquet(path)
 
     def fetch_exchange_universe(self) -> ExchangeUniverse:
