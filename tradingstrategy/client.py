@@ -176,6 +176,7 @@ class Client(BaseClient):
 
         If the download seems to be corrupted, it will be attempted 3 times.
         """
+        assert self.transport.api_key, "fetch_pair_universe(): Client.api_key missing"
         path = self.transport.fetch_pair_universe()
         assert path.exists(), f"Does not exist: {path}"
         size = path.stat().st_size
