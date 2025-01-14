@@ -65,9 +65,6 @@ class Universe:
     #: Historical candles for the decision making
     candles: Optional[GroupedCandleUniverse] = None
 
-    #: Liquidity data granularity
-    liquidity_time_bucket: Optional[TimeBucket] = None
-
     #: Historical liquidity samples.
     #:
     #: Might not be loaded if the strategy does not need to access
@@ -136,6 +133,14 @@ class Universe:
 
         for c in self.chains:
             assert isinstance(c, ChainId), f"Expected ChainId object, got {c.__class__}: {c}"
+
+    @property
+    def liquidity_time_bucket(self) -> TimeBucket:
+        """Alias for liquidity.time_bucket.
+
+        Legacy code compat.
+        """
+        return self.liquidity.time_bucket
 
     @property
     def lending_reserves(self) -> LendingReserveUniverse | None:
