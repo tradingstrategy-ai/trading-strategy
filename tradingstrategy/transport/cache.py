@@ -184,6 +184,7 @@ class CachedHTTPTransport:
 
         if api_key:
             session.headers.update({'Authorization': api_key})
+            assert api_key.startswith("secret-token:"), f"API key must start with secret-token: - we got: {api_key[0:8]}..."
 
         # - Add default HTTP request retry policy to the client
         package_version = version("trading-strategy")
