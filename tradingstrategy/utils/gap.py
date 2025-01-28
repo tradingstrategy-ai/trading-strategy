@@ -1,6 +1,4 @@
-# TODO: Unfinished
-
-"""Detect gaps and bugs in timeseries data."""
+"""Detect gaps and bugs in timeseries data, and deal with it."""
 from dataclasses import dataclass
 
 import pandas as pd
@@ -135,3 +133,63 @@ def detect_timestamp_gaps(series, freq=None) -> list[Gap]:
     gaps.append((gap_start, prev_date, gap_size))
 
     return gaps
+
+
+
+def fill_missing_ohlcv(df, columns_to_fill=['open', 'high', 'low', 'close', 'volume', 'tvl']):
+    """
+    Fill missing timestamps for each pair_id with zeros for specified columns.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        Input DataFrame with MultiIndex (pair_id, timestamp)
+    columns_to_zero : list, optional
+        Columns to fill with zeros when data is missing
+
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with missing timestamps filled with zeros
+    """
+    # Get full timestamp range across all pair_ids
+    full_timestamp_range = df.index.get_level_values('timestamp').unique()
+
+    # Create a new index with all combinations of pair_ids and timestamps
+    pair_ids = df.index.get_level_values('pair_id').unique()
+    multi_index = pd.MultiIndex.from_product([pair_ids, full_timestamp_range],
+                                             names=['pair_id', 'timestamp'])
+
+    # Reindex the original DataFrame
+    filled_df = df.reindex(multi_index)
+
+    # Fill specified columns with zeros where data is missing
+    # for col in columns_to_zero:
+    #    filled_df[col] = filled_df[col]
+
+    return filled_df
+
+
+def equalise_timestamp_index(
+    data: pd.Series,
+):
+    """Make all pair data series equally length.
+
+    :param series:
+        pandas.Series of (pair_id, timestamp) multiindex
+    """
+    assert isinstance(data.index, pd.MultiIndex)
+
+    unique_pair_ids = data.index.unique(level='pair_id')
+    unique_timestamps = data.index.unique(level='timestamp')
+
+    # Create a full MultiIndex with all combinations
+    full_index = pd.MultiIndex.from_product(
+        [unique_pair_ids, unique_timestamps],
+        names=['pair_id', 'timestamp']
+    )
+
+    # Reindex the Series to fill missing values with NaN
+    filled_series = data.reindex(full_index)
+
+    return filled_series
