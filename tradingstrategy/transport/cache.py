@@ -711,7 +711,7 @@ class CachedHTTPTransport:
                 max_bytes=max_bytes,
                 progress_bar_description=progress_bar_description,
                 # temp increase sanity check count
-                sanity_check_count=160,
+                sanity_check_count=250,
             )
 
             # Update cache
