@@ -264,8 +264,55 @@ def prefilter_pairs_with_tvl(
 
     - Only applicable for backtesting, as this uses static datasets
 
+    Example:
+
+    .. code-block:: python
+
+        chain_id = Parameters.chain_id
+
+        exchange_universe = client.fetch_exchange_universe()
+        pairs_df = client.fetch_pair_universe().to_pandas()
+
+        # Drop other chains to make the dataset smaller to work with
+        chain_mask = pairs_df["chain_id"] == Parameters.chain_id.value
+        pairs_df = pairs_df[chain_mask]
+
+        # Pull out our benchmark pairs ids.
+        # We need to construct pair universe object for the symbolic lookup.
+        pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+        benchmark_pair_ids = [pair_universe.get_pair_by_human_description(desc).pair_id for desc in SUPPORTING_PAIRS]
+
+        category_df = pairs_df
+        # category_df = filter_for_quote_tokens(category_df, {USDC_NATIVE_TOKEN[chain_id.value].lower()})
+        category_df = add_base_quote_address_columns(category_df)
+        category_df = filter_for_stablecoins(category_df, StablecoinFilteringMode.only_volatile_pairs)
+        category_pair_ids = category_df["pair_id"]
+
+        our_pair_ids = list(category_pair_ids) + benchmark_pair_ids
+
+        # From these pair ids, see what trading pairs we have on Ethereum mainnet
+        pairs_df = pairs_df[pairs_df["pair_id"].isin(our_pair_ids)]
+
+        # Limit by DEX
+        pairs_df = pairs_df[pairs_df["exchange_slug"].isin(Parameters.exchanges)]
+
+        # Get TVL data for prefilteirng
+        pairs_df = prefilter_pairs_with_tvl(
+            client,
+            pairs_df,
+            chain_id=Parameters.chain_id,
+            min_tvl=Parameters.min_tvl,
+            start=Parameters.backtest_start,
+            end=Parameters.backtest_end,
+        )
+
+        print(f"After TVL filter {Parameters.min_tvl:,} USD we have {len(pairs_df)} tradeable pairs")
+
     :param min_prefilter_liquidity:
         Pair must reach this liquidity during its lifetime.
+
+    :return:
+        Filtered pairs DF
     """
 
     assert isinstance(pairs_df, pd.DataFrame)
