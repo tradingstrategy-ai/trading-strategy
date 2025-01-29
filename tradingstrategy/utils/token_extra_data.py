@@ -153,7 +153,7 @@ def load_extra_metadata(
     logger.info("Loading extra metadata for %d tokens", len(pairs_df))
 
     assert len(pairs_df) > 0, "pairs_df is empty"
-    assert len(pairs_df) < 200, f"pairs_df size is {len(pairs_df)}, looks too much?"
+    assert len(pairs_df) < 400, f"pairs_df size is {len(pairs_df)}, looks too much?"
 
     if client is None:
         assert top_pair_reply is None, "Cannot give both client and top_pair_reply argument"

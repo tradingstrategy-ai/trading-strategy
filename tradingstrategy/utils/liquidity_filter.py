@@ -5,15 +5,23 @@
 - See :py:func:`build_liquidity_summary` for usage
 
 """
+import logging
+import datetime
 from collections import Counter
 from typing import Collection, Iterable, Tuple
 
 import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
+from tradingstrategy.chain import ChainId
+from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse
+from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import USDollarAmount, PrimaryKey
 from tradingstrategy.utils.time import floor_pandas_week
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_somewhat_realistic_max_liquidity(
@@ -240,3 +248,87 @@ def get_top_liquidity_pairs_by_base_token(
             break
 
     return result_set
+
+
+
+def prefilter_pairs_with_tvl(
+    client: Client,
+    pairs_df: pd.DataFrame,
+    chain_id: ChainId,
+    min_tvl: USDollarAmount,
+    start: datetime.datetime,
+    end: datetime.datetime,
+    time_bucket=TimeBucket.d7,
+) -> pd.DataFrame:
+    """Remove pairs that never reach TVL threshold during their lifetime.
+
+    - Only applicable for backtesting, as this uses static datasets
+
+    :param min_prefilter_liquidity:
+        Pair must reach this liquidity during its lifetime.
+    """
+
+    assert isinstance(pairs_df, pd.DataFrame)
+    assert type(min_tvl) in (float, int), f"Expected float min_tvl, got: {min_tvl} ({type(min_tvl)})"
+
+    assert "pair_id" in pairs_df.columns
+
+    liquidity_time_bucket = time_bucket
+
+    our_chain_pair_ids = pairs_df["pair_id"].unique()
+
+    # Download all liquidity data, extract
+    # trading pairs that exceed our prefiltering threshold
+    logger.info(f"Downloading/opening TVL/liquidity dataset {liquidity_time_bucket}")
+    liquidity_df = client.fetch_all_liquidity_samples(liquidity_time_bucket).to_pandas()
+    logger.info(f"Filtering out liquidity for chain {chain_id.name}")
+    liquidity_df = liquidity_df.loc[liquidity_df.pair_id.isin(our_chain_pair_ids)]
+    liquidity_per_pair = liquidity_df.groupby(liquidity_df.pair_id)
+    logger.info(f"Chain {chain_id.name} has liquidity data for {len(liquidity_per_pair.groups)}")
+
+    # Check that the highest peak of the pair liquidity filled our threshold
+    passed_pair_ids = set()
+    liquidity_output_chunks = []
+
+    for pair_id, pair_df in liquidity_per_pair:
+        if pair_df["high"].max() > min_tvl:
+            liquidity_output_chunks.append(pair_df)
+            passed_pair_ids.add(pair_id)
+
+    logger.info(f"After filtering for {min_tvl:,} USD min liquidity we have {len(passed_pair_ids)} pairs")
+    liquidity_df = pd.concat(liquidity_output_chunks)
+
+    # Resample liquidity to the higher timeframe
+    liquidity_df = liquidity_df[["pair_id", "timestamp", "close"]]
+
+    # Crop to range
+    liquidity_df = liquidity_df[
+        (liquidity_df['timestamp'] >= start) &
+        (liquidity_df['timestamp'] <= end)
+    ]
+
+    liquidity_df = liquidity_df.drop_duplicates(subset=['pair_id', 'timestamp'], keep='first')
+    if time_bucket != liquidity_time_bucket:
+        liquidity_df = liquidity_df.groupby('pair_id').apply(lambda x: x.set_index("timestamp").resample(time_bucket.to_frequency()).ffill())
+        liquidity_df = liquidity_df.drop(columns=["pair_id"])
+    else:
+        liquidity_df = liquidity_df.set_index(["pair_id", "timestamp"])
+
+    #                                     close
+    # pair_id timestamp
+    # 1       2020-05-05 00:00:00  9.890000e-01
+    #         2020-05-05 04:00:00  9.890000e-01
+    #         2020-05-05 08:00:00  9.890000e-01
+
+    #
+    # Find timestamps when the pair exceeds min TVL threshold and can be added to the index
+    #
+
+    filtered_df = liquidity_df[liquidity_df['close'] >= min_tvl]
+    threshold_pair_ids = filtered_df.index.get_level_values("pair_id")
+
+    filtered_df = pairs_df[pairs_df["pair_id"].isin(threshold_pair_ids)]
+    logger.info(f"After TVL filtering we have {len(filtered_df):,} pairs left")
+
+    return filtered_df
+
