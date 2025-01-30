@@ -363,7 +363,7 @@ class CachedHTTPTransport:
         # we need a special logic here
         # requests.exceptions.ChunkedEncodingError: Response ended prematurely
         retryable = (ChunkedEncodingError,)
-        for attempt in range(attempts, start=1):
+        for attempt in range(attempts):
             try:
                 response = self.requests.get(
                     url,
@@ -373,7 +373,7 @@ class CachedHTTPTransport:
                 break
             except Exception as e:
                 if isinstance(e, retryable):
-                    logger.warning("Attempt %d, received %s", attempt, e)
+                    logger.warning("Attempt #%d, received %s", attempt + 1, e)
                     time.sleep(sleep)
                     continue
                 raise
