@@ -16,6 +16,8 @@ from typing import Optional, Callable, Union, Collection, Dict, Tuple
 import shutil
 import logging
 from pathlib import Path
+
+from requests.exceptions import ChunkedEncodingError
 from urllib3 import Retry
 
 import pandas
@@ -165,6 +167,9 @@ class CachedHTTPTransport:
         add_exception_hook=True,
     ):
         """Create HTTP 1.1 keep-alive connection to the server with optional authorization details.
+
+        :param retry_policy:
+            Override default retry policy.
 
         :param add_exception_hook: Automatically raise an error in the case of HTTP error
         """
@@ -349,15 +354,26 @@ class CachedHTTPTransport:
         # https://stackoverflow.com/a/14114741/315168
         self.download_func(self.requests, fpath, url, params, self.timeout, human_readable_hint)
 
-    def get_json_response(self, api_path, params=None) -> dict:
+    def get_json_response(self, api_path, params=None, attempts=5, sleep=30.0) -> dict:
         url = f"{self.endpoint}/{api_path}"
         logger.debug("get_json_response() %s, %s", url, params)
 
-        response = self.requests.get(
-            url,
-            params=params,
-            timeout=self.timeout,
-        )
+        # Because we can also fail in decoding HTTP response, not just HTTP error code,
+        # we need a special logic here
+        # requests.exceptions.ChunkedEncodingError: Response ended prematurely
+        retryable = [ChunkedEncodingErrorl,]
+        for attempt in range(attempts):
+            try:
+                response = self.requests.get(
+                    url,
+                    params=params,
+                    timeout=self.timeout,
+                )
+                break
+            except Exception as e:
+                if isinstance(e, retryable):
+                    continue
+                raise
 
         if not (200 <= response.status_code <= 299):
             raise APIError(f"Could not call {url}\nParams: {params}\nResponse: {response.status_code} {response.text}")
