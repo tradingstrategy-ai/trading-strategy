@@ -8,6 +8,7 @@ import os
 import pathlib
 import platform
 import re
+import time
 from contextlib import contextmanager
 from importlib.metadata import version
 from json import JSONDecodeError
@@ -361,8 +362,8 @@ class CachedHTTPTransport:
         # Because we can also fail in decoding HTTP response, not just HTTP error code,
         # we need a special logic here
         # requests.exceptions.ChunkedEncodingError: Response ended prematurely
-        retryable = [ChunkedEncodingErrorl,]
-        for attempt in range(attempts):
+        retryable = (ChunkedEncodingError,)
+        for attempt in range(attempts, start=1):
             try:
                 response = self.requests.get(
                     url,
@@ -372,6 +373,8 @@ class CachedHTTPTransport:
                 break
             except Exception as e:
                 if isinstance(e, retryable):
+                    logger.warning("Attempt %d, received %s", attempt, e)
+                    time.sleep(sleep)
                     continue
                 raise
 
