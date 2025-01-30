@@ -26,4 +26,8 @@ top_pair_reply = client.fetch_top_pairs(
 
 pair_data = top_pair_reply.find_pair_data_for_token(token_address)
 print(pair_data)
-import ipdb ; ipdb.set_trace()
+
+print(f"Token sniffer score {pair_data.token_sniffer_score}")
+print(f"Metadta {pair_data.token_sniffer_data}")
+
+

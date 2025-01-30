@@ -417,13 +417,13 @@ class CachedHTTPTransport:
         if addresses is not None:
             params["addresses"] = ",".join([a for a in addresses])
 
-        if limit:
+        if limit is not None:
             params["limit"] = str(limit)
 
-        if min_volume_24h_usd:
+        if min_volume_24h_usd is not None:
             params["min_volume_24h_usd"] = str(min_volume_24h_usd)
 
-        if risk_score_threshold:
+        if risk_score_threshold is not None:
             params["risk_score_threshold"] = str(risk_score_threshold)
 
         logger.info(
