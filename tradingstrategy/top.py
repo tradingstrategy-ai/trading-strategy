@@ -8,6 +8,7 @@
 """
 import datetime
 import enum
+import itertools
 
 from dataclasses import dataclass, field
 
@@ -295,3 +296,17 @@ class TopPairsReply:
         exc_data = {entry.base_token_address: entry for entry in self.excluded}
         inc_data = {entry.base_token_address: entry for entry in self.included}
         return exc_data | inc_data
+
+    def find_pair_data_for_token(self, token_address: str) -> TopPairData | None:
+        """Get token data.
+
+        - Can be excluded or included pair
+
+        - If there are multiple trading pairs for the same token, get the first one
+        """
+        token_address = token_address.lower()
+        for data in itertools.chain(self.included, self.excluded):
+            if data.base_token_address == token_address:
+                return data
+
+        return None

@@ -209,6 +209,10 @@ def filter_scams(
 ) -> pd.DataFrame:
     """Filter out scam tokens in pairs dataset and print some stdout diagnostics.
 
+    - Loads token extra metadata from the server for the trading pairs
+
+    - This includes TokenSniffer scores
+
     TODO: Work in progress.
 
     Example:
