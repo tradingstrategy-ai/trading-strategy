@@ -4,6 +4,7 @@
 This method does not require API key at the moment.
 """
 import logging
+import time
 from collections import defaultdict
 
 import pandas as pd
@@ -67,6 +68,8 @@ def load_trading_strategy_like_jsonl_data(
     end_time: Optional[datetime.datetime] = None,
     max_bytes: Optional[int] = None,
     progress_bar_description: Optional[str] = None,
+    attempts=5,
+    sleep=30,
 ) -> pd.DataFrame:
     """Read data from JSONL endpoint.
 
@@ -123,56 +126,73 @@ def load_trading_strategy_like_jsonl_data(
         # Avoid excessive logging
         logger.debug("Full params are %s", params)
 
-    resp = session.get(api_url, params=params, stream=True)
-    reader = jsonlines.Reader(resp.raw)
+    for attempt in range(attempts):
+        resp = session.get(api_url, params=params, stream=True)
+        reader = jsonlines.Reader(resp.raw)
+        candle_data = defaultdict(list)
 
-    candle_data = defaultdict(list)
+        # Figure out how to plot candle download progress using TQDM
+        # Draw progress bar using timestamps first candle - last candle
+        progress_bar_start = None
+        progress_bar_end = end_time or naive_utcnow()
+        progress_bar_end = to_int_unix_timestamp(progress_bar_end)
+        current_ts = last_ts = None
+        progress_bar = None
+        refresh_rate = 200  # Update the progress bar for every N candles
 
-    # Figure out how to plot candle download progress using TQDM
-    # Draw progress bar using timestamps first candle - last candle
-    progress_bar_start = None
-    progress_bar_end = end_time or naive_utcnow()
-    progress_bar_end = to_int_unix_timestamp(progress_bar_end)
-    current_ts = last_ts = None
-    progress_bar = None
-    refresh_rate = 200  # Update the progress bar for every N candles
+        logger.info("Download attempt %d", attempt+1)
 
-    # Massage the format good for pandas
-    for idx, item in enumerate(reader):
+        try:
+            # Massage the format good for pandas
+            for idx, item in enumerate(reader):
 
-        # Stream terminated forcefully
-        if "error" in item:
-            raise JSONLMaxResponseSizeExceeded(str(item))
+                # Stream terminated forcefully
+                if "error" in item:
+                    raise JSONLMaxResponseSizeExceeded(str(item))
 
-        if "error_id" in item:
-            #  {'error_id': 'CandleLookupError', 'message': 'Start and the same: 2024-10-17 18:00:0
-            raise JSONLEndpointError(str(item))
+                if "error_id" in item:
+                    #  {'error_id': 'CandleLookupError', 'message': 'Start and the same: 2024-10-17 18:00:0
+                    raise JSONLEndpointError(str(item))
 
-        current_ts = item["ts"]
+                current_ts = item["ts"]
 
-        # Set progress bar start to the first timestamp
-        if not progress_bar_start and progress_bar_description:
-            progress_bar_start = current_ts
-            logger.debug("First candle timestamp at %s", current_ts)
-            total = progress_bar_end - progress_bar_start
-            assert progress_bar_start <= progress_bar_end, f"Mad progress bar {progress_bar_start} - {progress_bar_end}"
-            progress_bar = tqdm(desc=progress_bar_description, total=total)
+                # Set progress bar start to the first timestamp
+                if not progress_bar_start and progress_bar_description:
+                    progress_bar_start = current_ts
+                    logger.debug("First candle timestamp at %s", current_ts)
+                    total = progress_bar_end - progress_bar_start
+                    assert progress_bar_start <= progress_bar_end, f"Mad progress bar {progress_bar_start} - {progress_bar_end}"
+                    progress_bar = tqdm(desc=progress_bar_description, total=total)
 
-        # Translate the raw compressed keys to our internal
-        # Pandas keys
-        for key, value in item.items():
-            translated_key = mappings[key]
-            if translated_key is None:
-                # Deprecated/discarded keys
+                # Translate the raw compressed keys to our internal
+                # Pandas keys
+                for key, value in item.items():
+                    translated_key = mappings[key]
+                    if translated_key is None:
+                        # Deprecated/discarded keys
+                        continue
+
+                    candle_data[translated_key].append(value)
+
+                if idx % refresh_rate == 0:
+                    if last_ts and progress_bar:
+                        progress_bar.update(current_ts - last_ts)
+                        progress_bar.set_postfix({"Currently at": naive_utcfromtimestamp(current_ts)})
+                    last_ts = current_ts
+            break
+        except Exception as e:
+            # Deal with all sort of errors, some not related to HTTP status code
+            # base-memex  | urllib3.exceptions.ProtocolError: Response ended prematurely
+            logger.warning(
+                "load_trading_strategy_like_jsonl_data(): encountered %s, attempt %d, sleeping %f seconds",
+                e,
+                attempt+1,
+                sleep,
+            )
+            time.sleep(sleep)
+            if attempt < attempts:
                 continue
-
-            candle_data[translated_key].append(value)
-
-        if idx % refresh_rate == 0:
-            if last_ts and progress_bar:
-                progress_bar.update(current_ts - last_ts)
-                progress_bar.set_postfix({"Currently at": naive_utcfromtimestamp(current_ts)})
-            last_ts = current_ts
+            raise
 
     # Some data validation facilities
     assumed_lenght = None
