@@ -190,7 +190,7 @@ def load_trading_strategy_like_jsonl_data(
                 sleep,
             )
             time.sleep(sleep)
-            if attempt < attempts:
+            if attempt < attempt - 1:
                 continue
             raise
 
