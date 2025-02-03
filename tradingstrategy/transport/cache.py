@@ -359,9 +359,11 @@ class CachedHTTPTransport:
         url = f"{self.endpoint}/{api_path}"
         logger.debug("get_json_response() %s, %s", url, params)
 
+        # TODO: Replace custom retryable with a generic Requests library retry handler
+
         # Because we can also fail in decoding HTTP response, not just HTTP error code,
         # we need a special logic here
-        # requests.exceptions.ChunkedEncodingError: Response ended prematurely
+        # requests.exceptions.ChunkedEncodingError: Response ended  prematurely
         retryable = (ChunkedEncodingError,)
 
         response: Response
@@ -373,7 +375,7 @@ class CachedHTTPTransport:
                     timeout=self.timeout,
                 )
 
-                if 200 <= response.status_code <= 299:
+                if not (200 <= response.status_code <= 299):
                     logger.warning(
                         "Attempt #%d, received code %d: %s",
                         attempt + 1,
