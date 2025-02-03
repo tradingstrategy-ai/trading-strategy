@@ -363,6 +363,8 @@ class CachedHTTPTransport:
         # we need a special logic here
         # requests.exceptions.ChunkedEncodingError: Response ended prematurely
         retryable = (ChunkedEncodingError,)
+
+        response: Response
         for attempt in range(attempts):
             try:
                 response = self.requests.get(
@@ -370,7 +372,19 @@ class CachedHTTPTransport:
                     params=params,
                     timeout=self.timeout,
                 )
+
+                if 200 <= response.status_code <= 299:
+                    logger.warning(
+                        "Attempt #%d, received code %d: %s",
+                        attempt + 1,
+                        response.status_code,
+                        response.text[0:300],
+                    )
+                    time.sleep(sleep)
+                    continue
+
                 break
+
             except Exception as e:
                 if isinstance(e, retryable):
                     logger.warning("Attempt #%d, received %s", attempt + 1, e)

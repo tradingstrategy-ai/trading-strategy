@@ -17,6 +17,8 @@ def load_extra_metadata(
     client: Client | None = None,
     top_pair_reply: TopPairsReply | None = None,
     ignored_tokens=POPULAR_QUOTE_TOKENS,
+    min_volume_24h_usd=0,
+    risk_score_threshold=0, 
 ) -> pd.DataFrame:
     """Load token tax data for given pairs dataframe.
 
@@ -153,7 +155,7 @@ def load_extra_metadata(
     logger.info("Loading extra metadata for %d tokens", len(pairs_df))
 
     assert len(pairs_df) > 0, "pairs_df is empty"
-    assert len(pairs_df) < 400, f"pairs_df size is {len(pairs_df)}, looks too much?"
+    assert len(pairs_df) < 800, f"pairs_df size is {len(pairs_df)}, looks too much?"
 
     if client is None:
         assert top_pair_reply is None, "Cannot give both client and top_pair_reply argument"
@@ -172,14 +174,16 @@ def load_extra_metadata(
     chain_id = ChainId(pairs_df.iloc[0]["chain_id"])
     token_addresses = query_pairs_df["base_token_address"].unique()
 
+
     # Load data if not given
     if top_pair_reply is None:
         top_pair_reply = client.fetch_top_pairs(
             {chain_id},
             addresses=token_addresses,
             method=TopPairMethod.by_token_addresses,
-            min_volume_24h_usd=0,
-            risk_score_threshold=0,
+            min_volume_24h_usd=min_volume_24h_usd,
+            risk_score_threshold=risk_score_threshold,
+            # limit=len(pairs_df) * 2,  # Assume max 2 pairs per token
         )
 
     # We retrofit data for the full frame,
@@ -206,12 +210,16 @@ def filter_scams(
     client: Client,
     min_token_sniffer_score=65,
     drop_token_tax=False,
+    min_volume_24h_usd=0,
+    risk_score_threshold=0,    
 ) -> pd.DataFrame:
     """Filter out scam tokens in pairs dataset and print some stdout diagnostics.
 
     - Loads token extra metadata from the server for the trading pairs
 
     - This includes TokenSniffer scores
+
+    - Zero means zero TokenSniffer score. Nan means the TokenSniffer data was not available on the server likely due to low liquidity/trading pair no longer functional.
 
     TODO: Work in progress.
 
@@ -244,14 +252,24 @@ def filter_scams(
     :parma drop_token_tax:
         Discard tokens with token tax features, as by Tokensniffer data
 
+    :param min_token_sniffer_score:
+        Do not load data from the server unless score is higher
+
+    :param min_volume_24h_usd:
+        Ignore pairs with less than this 24h volume.
+
+        Set to zero to load historical scams.
+
     """
     pairs_df = load_extra_metadata(
         pairs_df,
         client,
+        min_volume_24h_usd=min_volume_24h_usd,
+        risk_score_threshold=risk_score_threshold,
     )
     all_pairs_df = pairs_df
     pairs_df = pairs_df.loc[pairs_df["risk_score"] >= min_token_sniffer_score]
-    print(f"After scam filter we have {len(pairs_df)} pairs")
+    print(f"After scam filter we have {len(pairs_df)} pairs. Zero means zero TokenSniffer score. Nan means the TokenSniffer data was not available on the server likely due to low liquidity/trading pair no longer functional.")
     clean_tokens = pairs_df["base_token_symbol"]
     only_scams = all_pairs_df.loc[~all_pairs_df["base_token_symbol"].isin(clean_tokens)]
 
