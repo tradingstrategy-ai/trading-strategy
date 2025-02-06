@@ -80,7 +80,7 @@ class PairGroupedUniverse:
         remove_candles_with_zero_volume: bool = True,
         forward_fill: bool = False,
         bad_open_close_threshold: float | None=3.0,
-        autoheal_pair_limit=200,
+        autoheal_pair_limit=500,
         forward_fill_until: datetime.datetime | pd.Timestamp | None = None,
     ):
         """Set up new candle universe where data is grouped by trading pair.

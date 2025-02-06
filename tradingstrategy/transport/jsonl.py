@@ -184,13 +184,14 @@ def load_trading_strategy_like_jsonl_data(
             # Deal with all sort of errors, some not related to HTTP status code
             # base-memex  | urllib3.exceptions.ProtocolError: Response ended prematurely
             logger.warning(
-                "load_trading_strategy_like_jsonl_data(): encountered %s, attempt %d, sleeping %f seconds",
+                "load_trading_strategy_like_jsonl_data(): encountered %s, attempt %d / %d, sleeping %f seconds",
                 e,
                 attempt+1,
+                attempts,
                 sleep,
             )
             time.sleep(sleep)
-            if attempt < attempt - 1:
+            if attempt < attempts - 1:
                 continue
             raise
 
