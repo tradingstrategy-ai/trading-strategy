@@ -32,11 +32,13 @@ class LoggingRetry(Retry):
         if response:
             status = response.status
             reason = response.reason
+            text = response.read()
         else:
             status = None
             reason = str(error)
+            text =None
 
         url_shortened = url[0:96]
 
-        self.logger.warning(f"Retrying: {method} {url_shortened} (status: {status}, reason: {reason})")
+        self.logger.warning(f"Retrying: {method} {url_shortened} (status: {status}, reason: {reason}, text: {text})")
         return super().increment(method, url, response, error, _pool, _stacktrace)

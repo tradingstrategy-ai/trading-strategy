@@ -75,6 +75,7 @@ from numpy import isnan
 
 from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, ExchangeType, ExchangeNotFoundError
+from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent, \
     USDollarAmount, URL
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
@@ -449,6 +450,7 @@ class DEXPair:
     #:
     #: See
     #:  - :py:meth:`token_sniffer_data`
+    #   - :py:meth:`coingecko_data`
     #:  - :py:func:`tradingstrategy.utils.token_extra_data.load_extra_metadata` how to load
     #:
     other_data: Optional[dict] = field(default_factory=dict)
@@ -557,14 +559,45 @@ class DEXPair:
             return self.token1_decimals
 
     @property
+    def metadata(self) -> TokenMetadata | None:
+        """Get token metadata.
+
+        Must be separately loaded.
+        See :py:func:`tradingstrategy.utils.token_extra_data.load_token_metadata`
+        """
+        meta = self.other_data.get("token_metadata")
+        return meta
+
+    @property
     def token_sniffer_data(self) -> dict | None:
         """Get TokenSniffer metadata.
 
-        Must be separarely loaded. See :py:func:`tradingstrategy.utils.tax.load_tokensniffer_metadata`
+        Must be separarely loaded. See
+
+        - :py:func:`tradingstrategy.utils.token_extra_data.load_token_metadata`
+        - :py:func:`tradingstrategy.utils.tax.load_tokensniffer_metadata`
         """
         top_pair_data = self.other_data.get("top_pair_data")
         if top_pair_data:
             return top_pair_data.token_sniffer_data
+
+        # Alternative path
+        token_metadata = self.metadata
+        if token_metadata:
+            return token_metadata["token_sniffer_data"]
+
+        return None
+
+    @property
+    def coingecko_data(self) -> dict | None:
+        """Get Coingecko metadata.
+
+        Must be separarely loaded. See :py:func:`tradingstrategy.utils.token_extra_data.load_token_metadata`
+        """
+        # Alternative path
+        token_metadata = self.metadata
+        if token_metadata:
+            return token_metadata["coingecko_data"]
         return None
 
     def is_tradeable(
@@ -2123,10 +2156,15 @@ def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=
         if exchange is not None:
             exchange_name = exchange.exchange_slug
 
-    data = _preprocess_loaded_pair_data(data)
+    preprocessed_data = _preprocess_loaded_pair_data(data)
     try:
-        obj = DEXPair.from_dict(data)
+        obj = DEXPair.from_dict(preprocessed_data)
         obj.exchange_name = exchange_name
+
+        meta = data.get("token_metadata")
+        if meta:
+            obj.other_data["token_metadata"] = meta
+
     except Exception as e:
         pretty = pprint.pformat(data)
         raise DataDecodeFailed(f"Could not decode trading pair data:\n{pretty}") from e

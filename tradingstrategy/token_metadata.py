@@ -9,7 +9,15 @@ from dataclasses import dataclass
 
 @dataclass(slots=True, frozen=True)
 class TokenMetadata:
-    """Metadata definition for one token """
+    """Metadata definition for one token.
+
+    Extra metadata that needs to be loaded separate for tokens/trading pairs.
+
+    - Risk profiling: :py:attr:`token_sniffer_data`
+    - Categorisation: :py:attr:`coingecko_data`
+
+    See :py:func:`tradingstrategy.utils.token_extra_data.load_token_metadata` for usage.
+    """
 
     #: When this entry was queried.
     #:
@@ -40,8 +48,11 @@ class TokenMetadata:
     #: Website slug
     slug: str
 
-    #: List of internal trading pair ids where this token appears
-    pair_ids: list[int]
+    #: List of internal trading pair ids where this token appears.
+    #:
+    #: Filling this list is disabled by default, because entries like WETH or USDC may contain tens of thousands entries.
+    #:
+    pair_ids: list[int] | None
 
     #: TokenSniffer data for the base token.
     #:

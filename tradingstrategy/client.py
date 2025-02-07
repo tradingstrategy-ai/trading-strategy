@@ -920,6 +920,8 @@ class Client(BaseClient):
 
         - If there is no known token, the resulting dict does not contain entry for this address
 
+        - Also if the token data is broken/not serialisable for some reason, the token might not appear in the output
+
         :return:
             Address -> metadata mapping.
 
@@ -930,7 +932,6 @@ class Client(BaseClient):
             addresses=addresses,
             progress_bar_description="Loading token metadata",
         )
-
 
     @classmethod
     def preflight_check(cls):

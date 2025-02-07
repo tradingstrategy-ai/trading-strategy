@@ -1116,20 +1116,25 @@ class CachedHTTPTransport:
         os.makedirs(base_cache, exist_ok=True)
 
         def get_cache_path(address: str) -> Path:
+            assert address.startswith("0x")
             return base_cache / f"{chain_id.value}-{address}.json"
 
         # Find metadata which we have already loaded
         addresses = set(a.lower() for a in addresses)
-        cached = {get_cache_path(a).exists() for a in addresses}
+        cached = {a for a in addresses if get_cache_path(a).exists()}
         uncached = addresses - cached
 
-        fresh_load = load_token_metadata_jsonl(
-            session=self.requests,
-            server_url=self.endpoint,
-            chain_id=chain_id,
-            addresses=uncached,
-            progress_bar_description=progress_bar_description,
-        )
+        # Load items we have not locally
+        if len(uncached) > 0:
+            fresh_load = load_token_metadata_jsonl(
+                session=self.requests,
+                server_url=self.endpoint,
+                chain_id=chain_id,
+                addresses=uncached,
+                progress_bar_description=progress_bar_description,
+            )
+        else:
+            fresh_load = {}
 
         # Save cached
         for address, data in fresh_load.items():
@@ -1139,16 +1144,17 @@ class CachedHTTPTransport:
 
         # Load existing
         cached_load = {}
-        for address in uncached:
+        for address in cached:
             with open(get_cache_path(address), "rb") as f:
-                data = f.read()
+                data = orjson.loads(f.read())
                 data["cached"] = True
-                cached_load[address] = orjson.loads(data)
+                cached_load[address] = data
 
+        logger.info("Server-side loaded: %d, cache loaded: %d", len(fresh_load), len(cached_load))
         full_set = fresh_load | cached_load
 
         # Return and convert to TokenMetadata instances
-        return {address: TokenMetadata(**item) for address, item in full_set}
+        return {address: TokenMetadata(**item) for address, item in full_set.items()}
 
 
 @contextmanager

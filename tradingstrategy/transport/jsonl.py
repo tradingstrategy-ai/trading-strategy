@@ -311,6 +311,7 @@ def load_token_metadata_jsonl(
 
     api_url = f"{server_url}/token-metadata-jsonl"
     total = len(addresses)
+    assert total > 0, f"No addresses given, chain: {chain_id}"
 
     # Download tracking
     progress_bar = None
@@ -322,12 +323,16 @@ def load_token_metadata_jsonl(
 
     for attempt in range(attempts):
         params = {
-            "chain_id": chain_id.get_slug(),
+            "chain_slug": chain_id.get_slug(),
             "addresses": ",".join(addresses_left)
         }
         param_str = str(params)[0:256]
         logger.info("Loading JSON data, endpoint:%s, params:%s, total: %d, attempt %d", api_url, param_str, total, attempt)
         resp = session.get(api_url, params=params, stream=True)
+
+        # Deal with errors from the server
+        resp.raise_for_status()
+
         reader = jsonlines.Reader(resp.raw)
 
         try:
@@ -346,7 +351,7 @@ def load_token_metadata_jsonl(
                 if progress_bar_description:
                     progress_bar = tqdm(desc=progress_bar_description, total=total)
 
-                metadata_dict = orjson.loads(item)
+                metadata_dict = item
 
                 data[metadata_dict["token_address"]] = metadata_dict
                 addresses_left.remove(metadata_dict["token_address"])

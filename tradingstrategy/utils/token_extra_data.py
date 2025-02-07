@@ -320,7 +320,6 @@ def load_token_metadata(
         Columns will contain NA value if not available.
     """
 
-
     assert isinstance(pairs_df, pd.DataFrame)
 
     assert "base_token_address" in pairs_df.columns, "base/quote token address data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata(). Call add_base_quote_address_columns() first."
