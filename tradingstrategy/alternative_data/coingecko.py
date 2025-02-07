@@ -77,6 +77,19 @@ class CoingeckoClient:
     """Minimal implementation of Coingecko API client."""
 
     def __init__(self, api_key: str, retries=10, demo=False):
+        """Create Coingecko client.
+
+        :parma api_key:
+            Get from Coingecko.com
+
+        :param retries:
+            HTTP request auto retry count.
+
+        :param demo:
+            Free Coingecko API keys need to have this flag set.
+
+            Coingecko uses different domain for these requests.
+        """
         assert type(api_key) == str
         self.api_key = api_key
         self.base_url = 'https://api.coingecko.com/api/v3/'
@@ -89,15 +102,16 @@ class CoingeckoClient:
 
         self.session.headers.update({'accept': "application/json"})
 
-        retries = LoggingRetry(
-            total=retries,
-            backoff_factor=0.75,
-            # TODO: Old urllib3 version?
-            # backoff_jitter=4.0,  #  Sleep 0...n seconds
-            status_forcelist=[429, 502, 503, 504],
-            logger=logger,
-        )
-        self.session.mount('https://', HTTPAdapter(max_retries=retries))
+        if retries > 0:
+            retry_policy = LoggingRetry(
+                total=retries,
+                backoff_factor=0.75,
+                # TODO: Old urllib3 version?
+                # backoff_jitter=4.0,  #  Sleep 0...n seconds
+                status_forcelist=[400, 429, 502, 503, 504],
+                logger=logger,
+            )
+            self.session.mount('https://', HTTPAdapter(max_retries=retry_policy))
 
     def make_request(
         self,
@@ -418,14 +432,15 @@ class CoingeckoClient:
         blockchain = chain_id.get_coingecko_slug()
         endpoint = f"{self.base_url}coins/{blockchain}/contract/{contract_address}"
 
+        # response = self.session.get(endpoint)
         response = self.session.get(endpoint)
+
         if response.status_code == 404:
             raise CoingeckoUnknownToken(f"Coingecko has no {chain_id}: {contract_address}")
 
         try:
             response.raise_for_status()
             data = response.json()
-
             if not data:
                 raise CoingeckoError("Data returned by Coingecko was empty")
 
@@ -433,7 +448,7 @@ class CoingeckoClient:
             data["queried_at"] = datetime.datetime.utcnow()
             return data
         except Exception as e:
-            raise CoingeckoError(f"Coingecko failure at {endpoint}") from e
+            raise CoingeckoError(f"Coingecko failure at {endpoint}: {response.text}") from e
 
 
 
