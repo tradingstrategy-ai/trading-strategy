@@ -7,10 +7,11 @@ import logging
 import time
 from collections import defaultdict
 
+import orjson
 import pandas as pd
 
 import datetime
-from typing import Optional, Dict, Set
+from typing import Optional, Dict, Set, Collection
 
 import requests
 import jsonlines
@@ -18,7 +19,9 @@ from numpy import NaN
 from tqdm_loggable.auto import tqdm
 
 from tradingstrategy.candle import Candle
+from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.utils.time import to_int_unix_timestamp, naive_utcnow, naive_utcfromtimestamp
 
 logger = logging.getLogger(__name__)
@@ -288,3 +291,87 @@ def load_candles_jsonl(
     df.set_index("timestamp", inplace=True, drop=False)
 
     return df
+
+
+
+def load_token_metadata_jsonl(
+    session: requests.Session,
+    server_url: str,
+    chain_id: ChainId,
+    addresses: Collection[str],
+    progress_bar_description: Optional[str] = None,
+    attempts=5,
+    sleep=30,
+) -> dict[str, TokenMetadata]:
+    """Read data from /token-metadata JSONL endpoint.
+
+    `See OpenAPI spec for details on the format <https://tradingstrategy.ai/api/explorer/>`_.
+    """
+
+    assert isinstance(chain_id, ChainId)
+
+    api_url = f"{server_url}/token-metadata-jsonl"
+    total = len(addresses)
+
+    # Download tracking
+    progress_bar = None
+    data = {}
+    addresses_left = set(a.lower() for a in addresses)
+
+    for attempt in range(attempts):
+        params = {
+            "chain_id": chain_id.get_slug(),
+            "addresses": ",".join(addresses_left)
+        }
+        param_str = str(params)[0:256]
+        logger.info("Loading JSON data, endpoint:%s, params:%s, total: %d, attempt %d", api_url, param_str, total, attempt)
+        resp = session.get(api_url, params=params, stream=True)
+        reader = jsonlines.Reader(resp.raw)
+
+        try:
+            # Massage the format good for pandas
+            for idx, item in enumerate(reader):
+
+                # Stream terminated forcefully
+                if "error" in item:
+                    raise JSONLMaxResponseSizeExceeded(str(item))
+
+                if "error_id" in item:
+                    #  {'error_id': 'CandleLookupError', 'message': 'Start and the same: 2024-10-17 18:00:0
+                    raise JSONLEndpointError(str(item))
+
+                # Set progress bar start to the first timestamp
+                if progress_bar_description:
+                    progress_bar = tqdm(desc=progress_bar_description, total=total)
+
+                metadata_dict = orjson.loads(item)
+
+                data[metadata_dict["token_address"] = metadata
+                addresses_left.remove(metadata["token_address"])
+
+                progress_bar.update()
+
+            # Success, get out of attempts
+            break
+        except Exception as e:
+            # Deal with all sort of errors, some not related to HTTP status code
+            # base-memex  | urllib3.exceptions.ProtocolError: Response ended prematurely
+            logger.warning(
+                "load_token_metadata_jsonl(): encountered %s, attempt %d / %d, sleeping %f seconds",
+                e,
+                attempt+1,
+                attempts,
+                sleep,
+            )
+            time.sleep(sleep)
+            if attempt < attempts - 1:
+                continue
+            raise
+
+    if progress_bar:
+        # https://stackoverflow.com/a/45808255/315168
+        progress_bar.update(progress_bar.total - progress_bar.n)
+        progress_bar.close()
+
+    logger.info("Loaded %d rows", len(data))
+    return data

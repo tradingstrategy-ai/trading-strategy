@@ -24,6 +24,7 @@ import pandas as pd
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.environment.default_environment import DefaultClientEnvironment, DEFAULT_SETTINGS_PATH
 from tradingstrategy.reader import BrokenData, read_parquet
+from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.top import TopPairsReply, TopPairMethod
 from tradingstrategy.transport.pyodide import PYODIDE_API_KEY
 from tradingstrategy.types import PrimaryKey, AnyTimestamp, USDollarAmount
@@ -907,6 +908,20 @@ class Client(BaseClient):
             risk_score_threshold=risk_score_threshold,
         )
         return TopPairsReply.from_dict(data)
+
+    def fetch_token_metadata(
+        self,
+        chain_id: ChainId,
+        addresses: Collection[str],
+    ) -> dict[str, TokenMetadata]:
+        """Get token metadata for several tokens.
+
+        - Cached locally on disk if possible
+
+        :return:
+            Address -> metadata mapping
+        """
+
 
     @classmethod
     def preflight_check(cls):
