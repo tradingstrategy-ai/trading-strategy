@@ -11,9 +11,11 @@ from dataclasses import dataclass
 class TokenMetadata:
     """Metadata definition for one token """
 
-    #: When this entry was queried
+    #: When this entry was queried.
     #:
-    #: Wall clock UTC time.
+    #: Server-side timestamp generated on load.
+    #:
+    #: Wall clock UTC time. Can used to purge disk files later.
     #:
     queried_at: datetime.datetime
 
@@ -38,7 +40,7 @@ class TokenMetadata:
     #: Website slug
     slug: str
 
-    #: List of internal pair ids where this token appears
+    #: List of internal trading pair ids where this token appears
     pair_ids: list[int]
 
     #: TokenSniffer data for the base token.
@@ -54,7 +56,8 @@ class TokenMetadata:
 
     #: Coingecko metadata
     #:
-    #: Passed as is https://docs.coingecko.com/reference/coins-contract-address
+    #: Passed as is https://docs.coingecko.com/reference/coins-contract-address.
+    #: market_data removed to keep download size smaller.
     #:
     coingecko_data: dict | None
 
@@ -74,4 +77,14 @@ class TokenMetadata:
 
         return self.token_sniffer_data["score"]
 
+    def get_coingecko_categories(self) -> set[str] | None:
+        """Get CoinGecko categories of this token.
+
+        :return:
+            None if Coingecko data not available
+        """
+        if self.coingecko_data is None:
+            return None
+
+        return set(self.coingecko_data.get("categories", []))
 

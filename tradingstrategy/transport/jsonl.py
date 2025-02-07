@@ -1,7 +1,7 @@
-"""Load candle and liquidity data over Trading Strategy real-time API.
+"""Load various data over Trading Strategy real-time API, JSONL endpoints.
 
-[Use JSONL transport](https://tradingstrategy.ai/api/explorer/).
-This method does not require API key at the moment.
+- [Use JSONL transport](https://tradingstrategy.ai/api/explorer/).
+- This method does not require API key at the moment.
 """
 import logging
 import time
@@ -21,7 +21,6 @@ from tqdm_loggable.auto import tqdm
 from tradingstrategy.candle import Candle
 from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.utils.time import to_int_unix_timestamp, naive_utcnow, naive_utcfromtimestamp
 
 logger = logging.getLogger(__name__)
@@ -302,7 +301,7 @@ def load_token_metadata_jsonl(
     progress_bar_description: Optional[str] = None,
     attempts=5,
     sleep=30,
-) -> dict[str, TokenMetadata]:
+) -> dict[str, dict]:
     """Read data from /token-metadata JSONL endpoint.
 
     `See OpenAPI spec for details on the format <https://tradingstrategy.ai/api/explorer/>`_.
@@ -317,6 +316,9 @@ def load_token_metadata_jsonl(
     progress_bar = None
     data = {}
     addresses_left = set(a.lower() for a in addresses)
+
+    for a in addresses_left:
+        assert a.startswith("0x"), f"Does not look like an address: {a}"
 
     for attempt in range(attempts):
         params = {
@@ -346,8 +348,8 @@ def load_token_metadata_jsonl(
 
                 metadata_dict = orjson.loads(item)
 
-                data[metadata_dict["token_address"] = metadata
-                addresses_left.remove(metadata["token_address"])
+                data[metadata_dict["token_address"]] = metadata_dict
+                addresses_left.remove(metadata_dict["token_address"])
 
                 progress_bar.update()
 

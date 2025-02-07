@@ -918,9 +918,18 @@ class Client(BaseClient):
 
         - Cached locally on disk if possible
 
+        - If there is no known token, the resulting dict does not contain entry for this address
+
         :return:
-            Address -> metadata mapping
+            Address -> metadata mapping.
+
+            All addresses will be in lowercase.
         """
+        return self.transport.fetch_token_metadata(
+            chain_id=chain_id,
+            addresses=addresses,
+            progress_bar_description="Loading token metadata",
+        )
 
 
     @classmethod
