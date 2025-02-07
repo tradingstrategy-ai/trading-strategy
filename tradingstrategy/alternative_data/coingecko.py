@@ -21,6 +21,7 @@ import requests
 from requests.adapters import HTTPAdapter
 import zstandard
 
+from tradingstrategy.chain import ChainId
 from tradingstrategy.utils.logging_retry import LoggingRetry
 from tradingstrategy.utils.token_filter import add_base_quote_address_columns
 
@@ -395,6 +396,23 @@ class CoingeckoClient:
             f"/coins/{id}",
             params,
         )
+
+    def fetch_by_contract(self, chain_id: ChainId, contract_address: str) -> dict:
+        """Fetch token data using contract address.
+
+        - Return contract/address Coingecko endpoint as is
+
+        - See https://docs.coingecko.com/reference/coins-contract-address
+        """
+        blockchain = chain_id.get_coingecko_slug()
+        endpoint = f"{self.base_url}/coins/{blockchain}/contract/{contract_address}"
+        try:
+            response = self.session.get(endpoint)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise CoingeckoError(f"Coingecko failure at {endpoint}") from e
+
 
 
 def fetch_top_coins(

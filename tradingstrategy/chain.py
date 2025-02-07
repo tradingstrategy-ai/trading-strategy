@@ -230,6 +230,12 @@ class ChainId(enum.IntEnum):
             return None
         return ChainId(chain_id_value)
 
+    def get_coingecko_slug(self) -> str:
+        coingecko_override = self.data.get("coingecko_slug")
+        if coingecko_override is not None:
+            return coingecko_override
+        return self.get_slug()
+
 
 #: Override stuff we do not like in Chain data repo
 #:
@@ -251,6 +257,7 @@ _CHAIN_DATA_OVERRIDES = {
         "name": "BNB Smart Chain",
         # Deployed on Arweave for good
         "slug": "binance",
+        "coingecko_slug": "binance-smart-chain",
         "svg_icon": "https://hv4gxzchk24cqfezebn3ujjz6oy2kbtztv5vghn6kpbkjc3vg4rq.arweave.net/fgp9wHyH92hION8E6CuPtUNbmiTlqsl23QbQlwA8cZQ",
     },
 
