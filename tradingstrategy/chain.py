@@ -120,7 +120,7 @@ class ChainId(enum.IntEnum):
     #: Ethereum mainnet chain id
     ethereum = 1
 
-    #: Binance Smarrt Chain mainnet chain id
+    #: Binance Smart Chain mainnet chain id
     bsc = 56
 
     #: Alias for Binance Smart Chain
@@ -140,6 +140,9 @@ class ChainId(enum.IntEnum):
 
     #: Mantle
     mantle = 5000
+
+    #: Berachain
+    berachain = 80094
 
     #: Ethereum Classic chain id.
     #:
@@ -325,6 +328,15 @@ _CHAIN_DATA_OVERRIDES = {
         "name": "Mantle",
         "slug": "mantle",
         "svg_icon": "https://cryptologos.cc/logos/mantle-mnt-logo.svg",
+    },
+
+    # 
+    # Berachain
+    #
+    ChainId.berachain.value: {
+        "name": "Berachain",
+        "slug": "berachain",
+        "svg_icon": None,
     },
 
     #
