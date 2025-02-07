@@ -1,3 +1,7 @@
+# 0.25.1
+
+- Add: Berachain
+- 
 # 0.25
 
 - Add: `utils.token_extra_data` to load additional trading pair data
