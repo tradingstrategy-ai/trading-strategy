@@ -425,6 +425,10 @@ class CoingeckoClient:
         try:
             response.raise_for_status()
             data = response.json()
+
+            if not data:
+                raise CoingeckoError("Data returned by Coingecko was empty")
+
             # Add timestamp for caches
             data["queried_at"] = datetime.datetime.utcnow()
             return data

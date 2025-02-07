@@ -1,3 +1,7 @@
+# 0.25.2
+
+- Fix: Missing `chains` submodule update from the previous release
+
 # 0.25.1
 
 - Add: Berachain
