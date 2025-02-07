@@ -14,6 +14,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
+import datetime
 
 import orjson
 import pandas as pd
@@ -39,6 +40,10 @@ DEFAULT_COINGECKO_BUNDLE = (Path(os.path.dirname(__file__)) / ".." / "data_bundl
 
 class CoingeckoError(Exception):
     """Wrap some Coingecko errors."""
+
+
+class CoingeckoUnknownToken(Exception):
+    """Coingecko has no data for this token."""
 
 
 class CoingeckoEntry(TypedDict):
@@ -403,13 +408,26 @@ class CoingeckoClient:
         - Return contract/address Coingecko endpoint as is
 
         - See https://docs.coingecko.com/reference/coins-contract-address
+
+        :raise CoingeckoUnknownToken:
+            If Coingecko gives 404
         """
+        assert isinstance(chain_id, ChainId)
+        assert isinstance(contract_address, str)
+        assert contract_address.startswith("0x")
         blockchain = chain_id.get_coingecko_slug()
-        endpoint = f"{self.base_url}/coins/{blockchain}/contract/{contract_address}"
+        endpoint = f"{self.base_url}coins/{blockchain}/contract/{contract_address}"
+
+        response = self.session.get(endpoint)
+        if response.status_code == 404:
+            raise CoingeckoUnknownToken(f"Coingecko has no {chain_id}: {contract_address}")
+
         try:
-            response = self.session.get(endpoint)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            # Add timestamp for caches
+            data["queried_at"] = datetime.datetime.utcnow()
+            return data
         except Exception as e:
             raise CoingeckoError(f"Coingecko failure at {endpoint}") from e
 
