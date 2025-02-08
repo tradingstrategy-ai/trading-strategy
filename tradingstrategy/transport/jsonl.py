@@ -2,6 +2,7 @@
 
 - [Use JSONL transport](https://tradingstrategy.ai/api/explorer/).
 - This method does not require API key at the moment.
+
 """
 import logging
 import time
