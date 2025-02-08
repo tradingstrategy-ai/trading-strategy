@@ -1,10 +1,12 @@
 """High level helpers to load with token tax data, TokenSniffer metadata and else."""
 import logging
 
+import numpy as np
 import pandas as pd
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
+from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.top import TopPairsReply, TopPairMethod
 from tradingstrategy.utils.token_filter import POPULAR_QUOTE_TOKENS
 
@@ -160,8 +162,8 @@ def load_extra_metadata(
     if client is None:
         assert top_pair_reply is None, "Cannot give both client and top_pair_reply argument"
 
-    assert "base_token_address" in pairs_df.columns, "base/quote token address data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata()"
-    assert "base_token_symbol" in pairs_df.columns, "base/quote token symbol data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata()"
+    assert "base_token_address" in pairs_df.columns, "base/quote token address data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata(). Call add_base_quote_address_columns() first."
+    assert "base_token_symbol" in pairs_df.columns, "base/quote token symbol data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata(). Call add_base_quote_address_columns() first."
 
     # Filter out quote tokens
     query_pairs_df = pairs_df.loc[~pairs_df["base_token_symbol"].isin(ignored_tokens)]
@@ -222,7 +224,9 @@ def filter_scams(
 
     - Zero means zero TokenSniffer score. Nan means the TokenSniffer data was not available on the server likely due to low liquidity/trading pair no longer functional.
 
-    TODO: Work in progress.
+    .. note::
+
+        Deprecated. Use :py:func:`load_token_metadata` instead.
 
     Example:
 
@@ -292,3 +296,70 @@ def filter_scams(
                 print(f"Taxed pair {row.base_token_symbol} - {row.quote_token_symbol}, buy tax {row.buy_tax * 100} %, sell tax {row.sell_tax * 100} %, pool {row.address}, token {row.base_token_address}")
 
     return pairs_df
+
+
+def load_token_metadata(
+    pairs_df: pd.DataFrame,
+    client: Client,
+) -> pd.DataFrame:
+    """Load token metadata for all trading pairs.
+
+    - Load and cache token metadata for given DataFrame of trading pairs
+    - Gets Trading Strategy metadata, TokenSniffer data, Coingecko data
+    - Uses :py:meth:`Client.fetch_token_metadata` to retrofit trading pair data with token metadata
+    - Can be used e.g. for scam filtering
+
+    See :py:class:`tradingstrategy.token_metadata.TokenMetadata`.
+
+    :return:
+        New DataFrame with new columns:
+
+        - "token_metadata" containing token metadata object.
+        - "coingecko_categories" containing CoinGecko categories
+        - "tokensniffer_score" containing TokenSniffer risk score
+
+        All data is for the base token of the trading pair.
+        Columns will contain NA value if not available.
+    """
+
+    assert isinstance(pairs_df, pd.DataFrame)
+
+    assert "base_token_address" in pairs_df.columns, "base/quote token address data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata(). Call add_base_quote_address_columns() first."
+    assert "base_token_symbol" in pairs_df.columns, "base/quote token symbol data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata(). Call add_base_quote_address_columns() first."
+
+    token_addresses = pd.concat([pairs_df["token0_address"], pairs_df["token1_address"]])
+
+    chain_ids = pairs_df["chain_id"].unique()
+    assert len(chain_ids) == 1, f"Mixed chain_ids: {chain_ids}"
+    chain_id = ChainId(chain_ids[0])
+
+    logger.info("Loading metadata for %d tokens", len(token_addresses))
+
+    token_metadata = client.fetch_token_metadata(
+        chain_id,
+        token_addresses
+    )
+
+    def _map_meta(address):
+        data = token_metadata.get(address)
+        if data:
+            return data
+        return np.nan
+
+    def _map_risk_score(meta: TokenMetadata | None):
+        if meta:
+            return meta.token_sniffer_score
+        return np.nan
+
+    def _map_categories(meta: TokenMetadata | None):
+        if meta:
+            categories = meta.get_coingecko_categories()
+            if categories is not None:
+                return categories
+        return np.nan
+
+    df = pairs_df
+    df["token_metadata"] = df["base_token_address"].apply(_map_meta)
+    df["tokensniffer_score"] = df["token_metadata"].apply(_map_risk_score)
+    df["coingecko_categories"] = df["token_metadata"].apply(_map_categories)
+    return df

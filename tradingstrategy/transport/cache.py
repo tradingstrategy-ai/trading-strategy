@@ -18,6 +18,7 @@ import shutil
 import logging
 from pathlib import Path
 
+from orjson import orjson
 from requests.exceptions import ChunkedEncodingError
 from urllib3 import Retry
 
@@ -32,7 +33,8 @@ from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
 from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.transport.jsonl import load_candles_jsonl
+from tradingstrategy.token_metadata import TokenMetadata
+from tradingstrategy.transport.jsonl import load_candles_jsonl, load_token_metadata_jsonl
 from tradingstrategy.types import PrimaryKey, USDollarAmount
 from tradingstrategy.lending import LendingCandle, LendingCandleType
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
@@ -1096,6 +1098,63 @@ class CachedHTTPTransport:
                 raise RuntimeError(f"Failed to convert: {p}") from e
 
         return {p["pair_id"]: _convert(p) for p in array}
+
+    def fetch_token_metadata(
+        self,
+        chain_id: ChainId,
+        addresses: Collection[str],
+        progress_bar_description: str | None,
+    ) -> dict[str, TokenMetadata]:
+        """Load cached token metadata
+
+        - Cache on this, one JSON file per token
+
+        - Only load token metadata for cached files we do not have
+        """
+
+        base_cache = Path(self.cache_path) / "token-metadata"
+        os.makedirs(base_cache, exist_ok=True)
+
+        def get_cache_path(address: str) -> Path:
+            assert address.startswith("0x")
+            return base_cache / f"{chain_id.value}-{address}.json"
+
+        # Find metadata which we have already loaded
+        addresses = set(a.lower() for a in addresses)
+        cached = {a for a in addresses if get_cache_path(a).exists()}
+        uncached = addresses - cached
+
+        # Load items we have not locally
+        if len(uncached) > 0:
+            fresh_load = load_token_metadata_jsonl(
+                session=self.requests,
+                server_url=self.endpoint,
+                chain_id=chain_id,
+                addresses=uncached,
+                progress_bar_description=progress_bar_description,
+            )
+        else:
+            fresh_load = {}
+
+        # Save cached
+        for address, data in fresh_load.items():
+            data["cached"] = False
+            with open(get_cache_path(address), "wb") as f:
+                f.write(orjson.dumps(data))
+
+        # Load existing
+        cached_load = {}
+        for address in cached:
+            with open(get_cache_path(address), "rb") as f:
+                data = orjson.loads(f.read())
+                data["cached"] = True
+                cached_load[address] = data
+
+        logger.info("Server-side loaded: %d, cache loaded: %d", len(fresh_load), len(cached_load))
+        full_set = fresh_load | cached_load
+
+        # Return and convert to TokenMetadata instances
+        return {address: TokenMetadata(**item) for address, item in full_set.items()}
 
 
 @contextmanager

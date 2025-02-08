@@ -1,5 +1,4 @@
-"""CLMM data tests."""
-
+"""Load token metadta."""
 import datetime
 from pathlib import Path
 
@@ -9,14 +8,13 @@ from urllib3 import Retry
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
-from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import APIError
 
 
 def test_load_clmm_two_pairs_mixed_exchange(
-    persistent_test_client: Client,
-    default_pair_universe,
+        persistent_test_client: Client,
+        default_pair_universe,
 ):
     """Load CLMM data for two pairs on Uniswap v3."""
 
@@ -69,8 +67,8 @@ def test_load_clmm_two_pairs_mixed_exchange(
 
 
 def test_load_clmm_bad_pair(
-    persistent_test_client: Client,
-    default_pair_universe,
+        persistent_test_client: Client,
+        default_pair_universe,
 ):
     """Attempt load CLMM data for Uniswap v2 pair."""
 
@@ -102,4 +100,3 @@ def test_load_clmm_bad_pair(
 
     e = exc_info.value
     assert "CandleLookupError" in str(e)
-

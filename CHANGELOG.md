@@ -1,13 +1,16 @@
+# Current
+
 # 0.25.2
 
-- Fix: Missing `chains` submodule update from the previous release
+ - Fix: Missing `chains` submodule update from the previous release
 
 # 0.25.1
 
-- Add: Berachain
-- 
+ - Fix: Missing `chains` submodule update from the previous release
+
 # 0.25
 
+- Add: `Client.fetch_token_metadata(query_type=OHLCVCandleType.tvl_v2)` option to load /WETH quoted TVL data for Uniswap v3
 - Add: `utils.token_extra_data` to load additional trading pair data
 - Add: `load_extra_metadata` to load buy and sell tax for given trading pairs
 - Add: `CandleUniverse(autoheal_pair_limit)` and reworked how to mitigate MEV issues on pricing data 
