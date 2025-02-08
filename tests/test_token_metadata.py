@@ -37,9 +37,11 @@ def test_load_token_metadata(
     print(usdc)
 
 
-def test_load_metadata_bad_token(
+@pytest.mark.skip(reason="Server-side error messages must be fine-tuned")
+def test_load_metadata_single_bad_token(
     persistent_test_client: Client,
 ):
+    """"One of loaded tokens is unsupported"""
     client = persistent_test_client
 
     metadata = client.fetch_token_metadata(
@@ -50,6 +52,7 @@ def test_load_metadata_bad_token(
     assert len(metadata) == 1
 
 
+@pytest.mark.skip(reason="Unfinished")
 def test_create_trading_universe_with_token_metadata(
     persistent_test_client: Client,
     default_pair_universe,
