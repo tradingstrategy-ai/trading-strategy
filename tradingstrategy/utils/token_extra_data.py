@@ -305,6 +305,7 @@ def load_token_metadata(
     """Load token metadata for all trading pairs.
 
     - Load and cache token metadata for given DataFrame of trading pairs
+    - Gets Trading Strategy metadata, TokenSniffer data, Coingecko data
     - Uses :py:meth:`Client.fetch_token_metadata` to retrofit trading pair data with token metadata
     - Can be used e.g. for scam filtering
 
