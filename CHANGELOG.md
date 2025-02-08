@@ -1,4 +1,7 @@
 # Current
+ 
+- Add: `Client.fetch_token_metadata`: Load token metadata for given token addresses, including Coingecko and TokenSniffer data
+- Add: `token_extra_data.load_token_metadata`: Load and cache token metadata for given DataFrame of trading pairs
 
 # 0.25.2
 
