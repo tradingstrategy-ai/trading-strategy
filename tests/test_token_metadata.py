@@ -1,10 +1,10 @@
 """Token metadata loading tests."""
-
-import pytest
+import datetime
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse
+from tradingstrategy.utils.liquidity_filter import prefilter_pairs_with_tvl
 from tradingstrategy.utils.token_extra_data import load_token_metadata
 from tradingstrategy.utils.token_filter import add_base_quote_address_columns, filter_for_stablecoins, StablecoinFilteringMode, filter_for_derivatives, filter_for_quote_tokens, deduplicate_pairs_by_volume
 
@@ -82,8 +82,13 @@ def test_create_trading_universe_with_token_metadata(
     """Create a trading universe using /token-metadata endpoint for filtering scams"""
     client = persistent_test_client
 
+    exchange_universe = client.fetch_exchange_universe()
+
     chain_id = ChainId.avalanche
     exchanges = {"trader-joe", "pangolin"}
+    min_tvl = 100_000
+    backtest_start = datetime.datetime(2024, 1, 1)
+    backtest_end = datetime.datetime(2024, 1, 1)
 
     pairs_df = client.fetch_pair_universe().to_pandas()
 
@@ -101,8 +106,8 @@ def test_create_trading_universe_with_token_metadata(
 
     # Take pairs only in supported quote token
     allowed_quotes = {
-        "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",  # USDC
-        "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",  # WAVAX
+        "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E".lower(),  # USDC
+        "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7".lower(),  # WAVAX
     }
     category_df = filter_for_quote_tokens(category_df, allowed_quotes)
     category_pair_ids = category_df["pair_id"]
@@ -116,6 +121,16 @@ def test_create_trading_universe_with_token_metadata(
     # Limit by supported DEX
     pairs_df = pairs_df[pairs_df["exchange_slug"].isin(exchanges)]
     print(f"After DEX filtering we have {len(pairs_df)} tradeable pairs")
+
+    # Get TVL data for prefilteirng
+    pairs_df = prefilter_pairs_with_tvl(
+        client,
+        pairs_df,
+        chain_id=chain_id,
+        min_tvl=min_tvl,
+        start=backtest_start,
+        end=backtest_end,
+    )
 
     # Deduplicate trading pairs - Choose the best pair with the best volume
     deduplicated_df = deduplicate_pairs_by_volume(pairs_df)
@@ -134,16 +149,21 @@ def test_create_trading_universe_with_token_metadata(
     print(f"After TokenSniffer risk score filter we have {len(pairs_df)} pairs left")
 
     # Pull out categories for a singke token
-    pairs_universe = PandasPairUniverse(pairs_df)
+    pairs_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
     joe_usdc = pairs_universe.get_pair_by_human_description(
-        (ChainId.avalanche, "trader-joe", "JOE", "USDC.e"),
+        (ChainId.avalanche, "trader-joe", "JOE", "WAVAX"),
     )
 
     # Check metadata object has gone through all transformations
     assert joe_usdc.metadata
     assert joe_usdc.token_sniffer_data
     assert joe_usdc.coingecko_data
+
     categories = joe_usdc.metadata.get_coingecko_categories()
+    assert type(categories) == set
+    assert "Decentralized Exchange (DEX)" in categories
+    assert "Avalanche Ecosystem" in categories
+
 
 
 

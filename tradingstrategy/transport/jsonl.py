@@ -329,7 +329,10 @@ def load_token_metadata_jsonl(
         }
         param_str = str(params)[0:256]
         logger.info("Loading JSON data, endpoint:%s, params:%s, total: %d, attempt %d", api_url, param_str, total, attempt)
-        resp = session.get(api_url, params=params, stream=True)
+
+        # We must use POST and form encoding here,
+        # because otherwise we get 414 Request-URI Too Large
+        resp = session.post(api_url, data=params, stream=True)
 
         # Deal with errors from the server
         resp.raise_for_status()
@@ -350,7 +353,8 @@ def load_token_metadata_jsonl(
 
                 # Set progress bar start to the first timestamp
                 if progress_bar_description:
-                    progress_bar = tqdm(desc=progress_bar_description, total=total)
+                    if progress_bar is None:
+                        progress_bar = tqdm(desc=progress_bar_description, total=total)
 
                 metadata_dict = item
 
@@ -372,6 +376,7 @@ def load_token_metadata_jsonl(
                 sleep,
             )
             time.sleep(sleep)
+            progress_bar = None
             if attempt < attempts - 1:
                 continue
             raise

@@ -348,6 +348,7 @@ def load_token_metadata(
 
     def _map_risk_score(meta: TokenMetadata | None):
         if meta:
+            assert isinstance(meta, TokenMetadata), f"Got: {type(meta)} {meta} "
             return meta.token_sniffer_score
         return np.nan
 

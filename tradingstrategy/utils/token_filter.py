@@ -148,8 +148,8 @@ def filter_for_base_tokens(
 
 
 def filter_for_quote_tokens(
-        pairs: pd.DataFrame,
-        quote_token_addresses: List[str] | Set[str]
+    pairs: pd.DataFrame,
+    quote_token_addresses: List[str] | Set[str]
 ) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs that have a certain quote tokens.
 

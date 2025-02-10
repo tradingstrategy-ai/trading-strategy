@@ -7,6 +7,7 @@ import datetime
 from dataclasses import dataclass
 
 
+
 @dataclass(slots=True, frozen=True)
 class TokenMetadata:
     """Metadata definition for one token.
@@ -61,6 +62,8 @@ class TokenMetadata:
     #: Not available for all tokens that are filtered out for other reasons.
     #: This is the last check.
     #:
+    #: If `errored_at` member is set, the TokenSniffer failed and data is missng.
+    #:
     #: `See more information here <https://web3-ethereum-defi.readthedocs.io/api/token_analysis/_autosummary_token_analysis/eth_defi.token_analysis.tokensniffer.html>`__.
     #:
     token_sniffer_data: dict | None
@@ -82,6 +85,10 @@ class TokenMetadata:
         """Stable id over long period of time and across different systems."""
         return f"{self.chain_id}-{self.token_address}"
 
+    def has_good_token_sniffer_data(self) -> bool:
+        """Did we get HTTP 200 from TokenSniffer for this token."""
+        return "errored_at" not in self.token_sniffer_data
+
     @property
     def token_sniffer_score(self) -> int | None:
         """What was the TokenSniffer score for the base token."""
@@ -89,7 +96,10 @@ class TokenMetadata:
         if self.token_sniffer_data is None:
             return None
 
-        return self.token_sniffer_data["score"]
+        if not self.has_good_token_sniffer_data():
+            return None
+
+        return self.token_sniffer_data.get("score")
 
     def get_coingecko_categories(self) -> set[str] | None:
         """Get CoinGecko categories of this token.
