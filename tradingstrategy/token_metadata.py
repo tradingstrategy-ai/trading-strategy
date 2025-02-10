@@ -72,8 +72,11 @@ class TokenMetadata:
     #:
     coingecko_data: dict | None
 
-    #: Was this item loaded from the disk or server
+    #: Was this item cached on the server side
     cached: bool = None
+
+    #: Was this item cached on locally on a disk
+    disk_cached: bool = None
 
     def get_persistent_id(self) -> str:
         """Stable id over long period of time and across different systems."""

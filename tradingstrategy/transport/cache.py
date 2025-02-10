@@ -1104,6 +1104,7 @@ class CachedHTTPTransport:
         chain_id: ChainId,
         addresses: Collection[str],
         progress_bar_description: str | None,
+        cache=True,
     ) -> dict[str, TokenMetadata]:
         """Load cached token metadata
 
@@ -1121,8 +1122,13 @@ class CachedHTTPTransport:
 
         # Find metadata which we have already loaded
         addresses = set(a.lower() for a in addresses)
-        cached = {a for a in addresses if get_cache_path(a).exists()}
-        uncached = addresses - cached
+
+        if cache:
+            cached = {a for a in addresses if get_cache_path(a).exists()}
+            uncached = addresses - cached
+        else:
+            uncached = addresses
+            cached = {}
 
         # Load items we have not locally
         if len(uncached) > 0:
@@ -1138,16 +1144,16 @@ class CachedHTTPTransport:
 
         # Save cached
         for address, data in fresh_load.items():
-            data["cached"] = False
             with open(get_cache_path(address), "wb") as f:
                 f.write(orjson.dumps(data))
+            data["disk_cached"] = False
 
         # Load existing
         cached_load = {}
         for address in cached:
             with open(get_cache_path(address), "rb") as f:
                 data = orjson.loads(f.read())
-                data["cached"] = True
+                data["disk_cached"] = True
                 cached_load[address] = data
 
         logger.info("Server-side loaded: %d, cache loaded: %d", len(fresh_load), len(cached_load))

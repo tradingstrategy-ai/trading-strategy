@@ -913,6 +913,7 @@ class Client(BaseClient):
         self,
         chain_id: ChainId,
         addresses: Collection[str],
+        cache=True,
     ) -> dict[str, TokenMetadata]:
         """Get token metadata for several tokens.
 
@@ -921,6 +922,11 @@ class Client(BaseClient):
         - If there is no known token, the resulting dict does not contain entry for this address
 
         - Also if the token data is broken/not serialisable for some reason, the token might not appear in the output
+
+        :param cache:
+            Disable local disk caching.
+
+            Disable for testing.
 
         :return:
             Address -> metadata mapping.
@@ -931,6 +937,7 @@ class Client(BaseClient):
             chain_id=chain_id,
             addresses=addresses,
             progress_bar_description="Loading token metadata",
+            cache=cache,
         )
 
     @classmethod

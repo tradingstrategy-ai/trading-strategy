@@ -1,17 +1,10 @@
-"""CLMM data tests."""
-
-import datetime
-from pathlib import Path
+"""Token metadata loading tests."""
 
 import pytest
-from requests.adapters import HTTPAdapter
-from urllib3 import Retry
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse
-from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.transport.cache import APIError
 from tradingstrategy.utils.token_extra_data import load_token_metadata
 from tradingstrategy.utils.token_filter import add_base_quote_address_columns, filter_for_stablecoins, StablecoinFilteringMode, filter_for_derivatives, filter_for_quote_tokens, deduplicate_pairs_by_volume
 
@@ -37,7 +30,6 @@ def test_load_token_metadata(
     print(usdc)
 
 
-@pytest.mark.skip(reason="Server-side error messages must be fine-tuned")
 def test_load_metadata_single_bad_token(
     persistent_test_client: Client,
 ):
@@ -47,12 +39,42 @@ def test_load_metadata_single_bad_token(
     metadata = client.fetch_token_metadata(
         ChainId.ethereum,
         # AAVe, USDC
-        {"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9", "0xFFFF6991c6218b36c1d19d4a2e9eb0ce3606eb48"}
+        addresses={"0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9", "0xFFFF6991c6218b36c1d19d4a2e9eb0ce3606eb48"},
+        cache=False,
     )
     assert len(metadata) == 1
 
 
-@pytest.mark.skip(reason="Unfinished")
+def test_load_metadata_cache(
+    persistent_test_client: Client,
+):
+    """"We correctly cache tokens"""
+    client = persistent_test_client
+
+    aave_address = "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9".lower()
+
+    metadata = client.fetch_token_metadata(
+        ChainId.ethereum,
+        # AAVe, USDC
+        addresses={aave_address},
+        cache=False,
+    )
+
+    data = metadata[aave_address]
+    assert data.disk_cached is False
+
+    metadata = client.fetch_token_metadata(
+        ChainId.ethereum,
+        # AAVe, USDC
+        addresses={aave_address},
+        cache=True,
+    )
+
+    data = metadata[aave_address]
+    assert data.disk_cached is True
+
+
+
 def test_create_trading_universe_with_token_metadata(
     persistent_test_client: Client,
     default_pair_universe,
@@ -122,6 +144,7 @@ def test_create_trading_universe_with_token_metadata(
     assert joe_usdc.token_sniffer_data
     assert joe_usdc.coingecko_data
     categories = joe_usdc.metadata.get_coingecko_categories()
+
 
 
 
