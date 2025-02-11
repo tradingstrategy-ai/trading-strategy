@@ -86,7 +86,7 @@ class TokenMetadata:
         if self.token_sniffer_data is None:
             return None
 
-        return self.token_sniffer_data["score"]
+        return self.token_sniffer_data.get("score")
 
     def get_coingecko_categories(self) -> set[str] | None:
         """Get CoinGecko categories of this token.

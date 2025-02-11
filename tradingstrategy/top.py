@@ -187,7 +187,7 @@ class TopPairData:
         if self.token_sniffer_data is None:
             return None
 
-        return self.token_sniffer_data["score"]
+        return self.token_sniffer_data.get("score")
 
     def has_tax_data(self) -> bool | None:
         """Do we have tax data for this pair.
