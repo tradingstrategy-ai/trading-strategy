@@ -74,7 +74,6 @@ def test_load_metadata_cache(
     assert data.disk_cached is True
 
 
-
 def test_create_trading_universe_with_token_metadata(
     persistent_test_client: Client,
     default_pair_universe,
