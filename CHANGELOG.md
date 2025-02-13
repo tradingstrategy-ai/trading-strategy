@@ -1,3 +1,7 @@
+# 0.25.4
+
+- Update: Pass original HTTP response request around for `CoingeckoError` so caller can diagnose Coingecko failures
+
 # 0.25.3
  
 - Add: Unichain
