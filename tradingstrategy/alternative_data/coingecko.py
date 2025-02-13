@@ -41,6 +41,10 @@ DEFAULT_COINGECKO_BUNDLE = (Path(os.path.dirname(__file__)) / ".." / "data_bundl
 class CoingeckoError(Exception):
     """Wrap some Coingecko errors."""
 
+    def __init__(self, msg: str, resp: requests.Response):
+        super().__init__(msg)
+        self.resp = resp
+
 
 class CoingeckoUnknownToken(Exception):
     """Coingecko has no data for this token."""
@@ -127,7 +131,7 @@ class CoingeckoClient:
             if resp.status_code == 429:
                 # Throttled
                 raise
-            raise CoingeckoError(f"Coingecko error: {resp.text}") from e
+            raise CoingeckoError(f"Coingecko error: {resp.text}", resp=resp) from e
         return resp.json()
 
     def fetch_coins_list(
@@ -442,13 +446,13 @@ class CoingeckoClient:
             response.raise_for_status()
             data = response.json()
             if not data:
-                raise CoingeckoError("Data returned by Coingecko was empty")
+                raise CoingeckoError("Data returned by Coingecko was empty", resp=response)
 
             # Add timestamp for caches
             data["queried_at"] = datetime.datetime.utcnow()
             return data
         except Exception as e:
-            raise CoingeckoError(f"Coingecko failure at {endpoint}: {response.text}") from e
+            raise CoingeckoError(f"Coingecko failure at {endpoint}: {response.status_code} {response.text}", resp=response) from e
 
 
 

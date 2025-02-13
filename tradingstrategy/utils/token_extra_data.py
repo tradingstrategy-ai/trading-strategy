@@ -310,7 +310,6 @@ def load_token_metadata(
     - Can be used e.g. for scam filtering
 
     See :py:class:`tradingstrategy.token_metadata.TokenMetadata`.
-
     :return:
         New DataFrame with new columns:
 
