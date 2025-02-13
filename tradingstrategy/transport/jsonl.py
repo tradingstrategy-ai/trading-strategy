@@ -350,7 +350,8 @@ def load_token_metadata_jsonl(
 
                 # Set progress bar start to the first timestamp
                 if progress_bar_description:
-                    progress_bar = tqdm(desc=progress_bar_description, total=total)
+                    if progress_bar is None:
+                        progress_bar = tqdm(desc=progress_bar_description, total=total)
 
                 metadata_dict = item
 
@@ -372,6 +373,7 @@ def load_token_metadata_jsonl(
                 sleep,
             )
             time.sleep(sleep)
+            progress_bar = None
             if attempt < attempts - 1:
                 continue
             raise
