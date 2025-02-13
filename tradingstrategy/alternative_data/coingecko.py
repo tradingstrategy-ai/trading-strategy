@@ -120,7 +120,7 @@ class CoingeckoClient:
     def make_request(
         self,
         name: str,
-        params: dict,
+        params: dict | None = None,
     ):
         """Coingecko JSON get wrapper."""
         url = f"{self.base_url}{name}"
@@ -437,7 +437,7 @@ class CoingeckoClient:
         endpoint = f"{self.base_url}coins/{blockchain}/contract/{contract_address}"
 
         # response = self.session.get(endpoint)
-        response = self.session.get(endpoint)
+        response = self.make_request(endpoint, params=None)
 
         if response.status_code == 404:
             raise CoingeckoUnknownToken(f"Coingecko has no {chain_id}: {contract_address}")
