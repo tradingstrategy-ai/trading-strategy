@@ -13,7 +13,7 @@ from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import APIError
 from tradingstrategy.utils.token_extra_data import load_token_metadata
-from tradingstrategy.utils.token_filter import add_base_quote_address_columns, filter_for_stablecoins, StablecoinFilteringMode, filter_for_derivatives, filter_for_quote_tokens, deduplicate_pairs_by_volume
+from tradingstrategy.utils.token_filter import add_base_quote_address_columns, filter_for_stablecoins, StablecoinFilteringMode, filter_for_derivatives, filter_for_quote_tokens, deduplicate_pairs_by_volume, filter_by_token_sniffer_score
 
 
 def test_load_token_metadata(
@@ -107,7 +107,7 @@ def test_create_trading_universe_with_token_metadata(
     assert "coingecko_categories" in pairs_df.columns
 
     # Scam filter using TokenSniffer
-    pairs_df = pairs_df[pairs_df["tokensniffer_score"] >= 25]
+    pairs_df = filter_by_token_sniffer_score(pairs_df, 25)
     pairs_df = pairs_df.sort_values("volume", ascending=False)
     print(f"After TokenSniffer risk score filter we have {len(pairs_df)} pairs left")
 
@@ -122,6 +122,8 @@ def test_create_trading_universe_with_token_metadata(
     assert joe_usdc.token_sniffer_data
     assert joe_usdc.coingecko_data
     categories = joe_usdc.metadata.get_coingecko_categories()
+
+
 
 
 

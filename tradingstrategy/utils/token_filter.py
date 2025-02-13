@@ -11,6 +11,7 @@
 """
 
 import enum
+import logging
 from typing import List, Set, Tuple, Collection
 
 import pandas as pd
@@ -20,6 +21,9 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE, STABLECOIN_LIKE
 from tradingstrategy.types import Slug, TokenSymbol, Percent, IntBasisPoint, PrimaryKey
+
+
+logger = logging.getLogger(__name__)
 
 #: The pair must be quoted in one of these tokens
 #:
@@ -747,3 +751,46 @@ def deduplicate_pairs_by_volume(pairs_df: pd.DataFrame) -> pd.DataFrame:
     return pairs_df
 
 
+def filter_by_token_sniffer_score(
+    pairs_df: pd.DataFrame,
+    risk_score: int,
+    drop_tokens_with_missing_data=True,
+):
+    """Filter out tokens by their TokenSniffer risk score.
+
+    - See :py:func:`tradingstrategy.utils.token_extra_data.load_token_metadata`.
+
+    Example:
+
+    .. code-block:: python
+
+        # Load metadata
+        pairs_df = load_token_metadata(pairs_df, client)
+
+        # Scam filter using TokenSniffer
+        pairs_df = filter_by_token_sniffer_score(pairs_df, 25)
+    """
+    assert type(risk_score) == int
+    assert risk_score >= 0
+    assert isinstance(pairs_df, pd.DataFrame)
+    assert "tokensniffer_score" in pairs_df.columns, "tokensniffer_score column not available. Please call load_token_metadata() for the data"
+
+    before = len(pairs_df)
+
+    if drop_tokens_with_missing_data:
+        pairs_df["tokensniffer_score"].dropna(inplace=True)
+
+    after_drop = len(pairs_df)
+
+    pairs_df = pairs_df[pairs_df["tokensniffer_score"] >= risk_score]
+
+    after_filter = len(pairs_df)
+
+    logger.info(
+        "Filtered by TokenSniffer risk score %d, before %d, after NA %d, after risk score %d",
+        risk_score,
+        before,
+        after_drop,
+        after_filter,
+    )
+    return pairs_df
