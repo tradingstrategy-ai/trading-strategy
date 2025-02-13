@@ -342,6 +342,12 @@ _CHAIN_DATA_OVERRIDES = {
         "svg_icon": None,
     },
 
+    ChainId.unichain.value: {
+        "name": "Unichain",
+        "slug": "unichain",
+        "svg_icon": None,
+    },
+
     #
     # Osmosis
     #
