@@ -7,6 +7,10 @@ from tradingstrategy.alternative_data.coingecko import CoingeckoUniverse, catego
 from tradingstrategy.chain import ChainId
 
 
+#: Are we using free Coingecko demo account
+COINGECKO_DEMO=os.environ.get("COINGECKO_DEMO") != "false"
+
+
 def test_category_pairs(persistent_test_client):
     """Chck that we can produce category metadata for downloaded trading pairs."""
     client = persistent_test_client
@@ -24,7 +28,7 @@ def test_category_pairs(persistent_test_client):
 def test_coingecko_fetch_token():
     """Check we can query individual tokens from Coingecko."""
 
-    coingecko_client = CoingeckoClient(os.environ["COINGECKO_API_KEY"], demo=True)
+    coingecko_client = CoingeckoClient(os.environ["COINGECKO_API_KEY"], demo=COINGECKO_DEMO)
     data = coingecko_client.fetch_by_contract(
         chain_id=ChainId.ethereum,
         contract_address="0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
@@ -48,7 +52,7 @@ def test_coingecko_fetch_token():
 def test_coingecko_fetch_unknown_token():
     """Check what happens if Coingecko does not support token."""
 
-    coingecko_client = CoingeckoClient(os.environ["COINGECKO_API_KEY"], demo=True)
+    coingecko_client = CoingeckoClient(os.environ["COINGECKO_API_KEY"], demo=COINGECKO_DEMO)
 
     with pytest.raises(CoingeckoUnknownToken):
         _ = coingecko_client.fetch_by_contract(

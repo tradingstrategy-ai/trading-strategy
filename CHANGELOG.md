@@ -1,5 +1,6 @@
 # 0.25.4
 
+- Update: Use correct CoinGecko domain for Pro API
 - Update: Pass original HTTP response request around for `CoingeckoError` so caller can diagnose Coingecko failures
 
 # 0.25.3

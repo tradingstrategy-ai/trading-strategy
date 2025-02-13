@@ -32,13 +32,17 @@ class LoggingRetry(Retry):
         if response:
             status = response.status
             reason = response.reason
-            text = response.read()
+            text = response.read().decode('utf-8', errors="ignore")
+            headers = response.headers
         else:
             status = None
             reason = str(error)
-            text =None
+            text = None
+            headers = {}
 
         url_shortened = url[0:96]
 
-        self.logger.warning(f"Retrying: {method} {url_shortened} (status: {status}, reason: {reason}, text: {text})")
+        headers = [f"{k}: {v}" for k, v in headers.items()]
+        headers_text = "\n".join(headers)
+        self.logger.warning(f"Retrying: {method} {url_shortened} (status: {status}, reason: {reason}, text: {text})\nHeaders: {headers_text}")
         return super().increment(method, url, response, error, _pool, _stacktrace)

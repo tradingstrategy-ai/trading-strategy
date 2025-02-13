@@ -19,6 +19,7 @@ import datetime
 import orjson
 import pandas as pd
 import requests
+from requests import Response
 from requests.adapters import HTTPAdapter
 import zstandard
 
@@ -96,13 +97,14 @@ class CoingeckoClient:
         """
         assert type(api_key) == str
         self.api_key = api_key
-        self.base_url = 'https://api.coingecko.com/api/v3/'
 
         self.session = requests.Session()
         if demo:
             self.session.headers.update({'x-cg-demo-api-key': api_key})
+            self.base_url = 'https://api.coingecko.com/api/v3/'
         else:
             self.session.headers.update({'x-cg-pro-api-key': api_key})
+            self.base_url = 'https://pro-api.coingecko.com/api/v3/'
 
         self.session.headers.update({'accept': "application/json"})
 
@@ -117,22 +119,38 @@ class CoingeckoClient:
             )
             self.session.mount('https://', HTTPAdapter(max_retries=retry_policy))
 
+        logger.info("Coingecko client created, API key: %s..., demo %s", api_key[0:6], demo)
+
     def make_request(
         self,
         name: str,
         params: dict | None = None,
-    ):
-        """Coingecko JSON get wrapper."""
+        raw_response=False,
+    ) -> dict | Response:
+        """Coingecko JSON get wrapper.
+
+        :raise CoingeckoError:
+            Did not get HTTP 200
+        """
         url = f"{self.base_url}{name}"
+
+        logger.info("Making Coingecko request %s: %s", url, params)
         resp = self.session.get(url, params=params)
+
         try:
             resp.raise_for_status()
         except Exception as e:
             if resp.status_code == 429:
-                # Throttled
+                # Throttled.
+                # Should not happen as handled by LoggingRetry handler
+                logger.info("Coingecko throttling: %s", resp.text)
                 raise
-            raise CoingeckoError(f"Coingecko error: {resp.text}", resp=resp) from e
-        return resp.json()
+            raise CoingeckoError(f"Coingecko error: {resp.status_code} {resp.text}", resp=resp) from e
+
+        if raw_response:
+            return resp
+        else:
+            return resp.json()
 
     def fetch_coins_list(
         self,
@@ -434,24 +452,23 @@ class CoingeckoClient:
         assert isinstance(contract_address, str)
         assert contract_address.startswith("0x")
         blockchain = chain_id.get_coingecko_slug()
-        endpoint = f"{self.base_url}coins/{blockchain}/contract/{contract_address}"
-
-        # response = self.session.get(endpoint)
-        response = self.make_request(endpoint, params=None)
-
-        if response.status_code == 404:
-            raise CoingeckoUnknownToken(f"Coingecko has no {chain_id}: {contract_address}")
+        endpoint = f"coins/{blockchain}/contract/{contract_address}"
 
         try:
-            response.raise_for_status()
-            data = response.json()
+
+            # response = self.session.get(endpoint)
+            data = self.make_request(endpoint, params=None)
+
             if not data:
                 raise CoingeckoError("Data returned by Coingecko was empty", resp=response)
 
             # Add timestamp for caches
             data["queried_at"] = datetime.datetime.utcnow()
             return data
-        except Exception as e:
+        except CoingeckoError as e:
+            if e.resp.status_code == 404:
+                raise CoingeckoUnknownToken(f"Token not found on Coingecko: {blockchain}: {contract_address}") from e
+            response = e.resp
             raise CoingeckoError(f"Coingecko failure at {endpoint}: {response.status_code} {response.text}", resp=response) from e
 
 
