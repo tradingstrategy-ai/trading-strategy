@@ -144,6 +144,9 @@ class ChainId(enum.IntEnum):
     #: Berachain
     berachain = 80094
 
+    #: Unichain
+    unichain = 130
+
     #: Ethereum Classic chain id.
     #:
     #: This is also the value used by EthereumTester in unit tests.
