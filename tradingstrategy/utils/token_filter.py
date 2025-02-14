@@ -486,6 +486,17 @@ def filter_for_exchange_ids(pairs: pd.DataFrame, exchange_ids: Collection[Primar
     return our_pairs
 
 
+def filter_for_exchange_slugs(pairs: pd.DataFrame, exchange_slugs: Collection[str]) -> pd.DataFrame:
+    """Filter dataset so that it only contains data for the trading pairs from a certain exchange.
+
+    Use primary keys for filtering.
+    """
+    our_pairs: pd.DataFrame = pairs.loc[
+        (pairs['exchange_slug'].isin(exchange_slugs))
+    ]
+    return our_pairs
+
+
 def filter_for_trading_fee(pairs: pd.DataFrame, fee: Percent) -> pd.DataFrame:
     """Select only pairs with a specific trading fee.
 
