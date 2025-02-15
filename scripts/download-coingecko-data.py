@@ -22,7 +22,7 @@ def main():
     logging.basicConfig(handlers=[logging.StreamHandler(sys.stdout)], level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    total = 2500
+    total = 3000
     per_page = 60
     pages = total // per_page
 
@@ -31,7 +31,8 @@ def main():
 
     logger.info("Starting Coingecko data fetcher to update the default data bundle %s", DEFAULT_COINGECKO_BUNDLE)
 
-    client = CoingeckoClient(os.environ["COINGECKO_API_KEY"], demo=True)
+    demo = os.environ.get("COINGECKO_DEMO") != "false"
+    client = CoingeckoClient(os.environ["COINGECKO_API_KEY"], demo=demo)
     data = fetch_top_coins(client, pages=pages, per_page=per_page)
 
     universe = CoingeckoUniverse(data)

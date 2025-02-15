@@ -81,7 +81,7 @@ class CoingeckoEntry(TypedDict):
 class CoingeckoClient:
     """Minimal implementation of Coingecko API client."""
 
-    def __init__(self, api_key: str, retries=10, demo=False):
+    def __init__(self, api_key: str, retries=10, demo=False, timeout=(5, 30)):
         """Create Coingecko client.
 
         :parma api_key:
@@ -107,6 +107,8 @@ class CoingeckoClient:
             self.base_url = 'https://pro-api.coingecko.com/api/v3/'
 
         self.session.headers.update({'accept': "application/json"})
+
+        self.session.timeout = timeout
 
         if retries > 0:
             retry_policy = LoggingRetry(
