@@ -329,7 +329,7 @@ def load_token_metadata_jsonl(
         }
         param_str = str(params)[0:256]
         logger.info("Loading JSON data, endpoint:%s, params:%s, total: %d, attempt %d", api_url, param_str, total, attempt)
-        resp = session.get(api_url, params=params, stream=True)
+        resp = session.post(api_url, data=params, stream=True)  # Need to use POST here
 
         # Deal with errors from the server
         resp.raise_for_status()

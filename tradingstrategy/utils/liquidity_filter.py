@@ -264,6 +264,8 @@ def prefilter_pairs_with_tvl(
 
     - Only applicable for backtesting, as this uses static datasets
 
+    TODO: Add live trading version
+
     Example:
 
     .. code-block:: python
@@ -314,6 +316,8 @@ def prefilter_pairs_with_tvl(
     :return:
         Filtered pairs DF
     """
+
+    logger.info("prefilter_pairs_with_tvl() for %d pairs", len(pairs_df))
 
     assert isinstance(pairs_df, pd.DataFrame)
     assert type(min_tvl) in (float, int), f"Expected float min_tvl, got: {min_tvl} ({type(min_tvl)})"
