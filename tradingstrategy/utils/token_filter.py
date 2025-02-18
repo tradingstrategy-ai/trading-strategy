@@ -17,6 +17,7 @@ from typing import List, Set, Tuple, Collection
 import pandas as pd
 import numpy as np
 
+from eth_defi.token_analysis.tokensniffer import KNOWN_GOOD_TOKENS
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE, STABLECOIN_LIKE
@@ -766,6 +767,7 @@ def filter_by_token_sniffer_score(
     pairs_df: pd.DataFrame,
     risk_score: int,
     drop_tokens_with_missing_data=True,
+    known_good_tokens=KNOWN_GOOD_TOKENS,
 ):
     """Filter out tokens by their TokenSniffer risk score.
 
@@ -780,6 +782,11 @@ def filter_by_token_sniffer_score(
 
         # Scam filter using TokenSniffer
         pairs_df = filter_by_token_sniffer_score(pairs_df, 25)
+
+    :param known_good_tokens:
+        These are set of tokens we know are good, but TokenSniffer gives them bad score.
+
+        E.g. some Coinbase tokens on Base.
     """
     assert type(risk_score) == int
     assert risk_score >= 0
@@ -793,7 +800,7 @@ def filter_by_token_sniffer_score(
 
     after_drop = len(pairs_df)
 
-    pairs_df = pairs_df[pairs_df["tokensniffer_score"] >= risk_score]
+    pairs_df = pairs_df[(pairs_df["tokensniffer_score"] >= risk_score) | (pairs_df["base_token_symbol"].isin(known_good_tokens))]
 
     after_filter = len(pairs_df)
 

@@ -2158,12 +2158,17 @@ def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=
 
     preprocessed_data = _preprocess_loaded_pair_data(data)
     try:
+        obj: DEXPair
         obj = DEXPair.from_dict(preprocessed_data)
         obj.exchange_name = exchange_name
 
+        meta: TokenMetadata
         meta = data.get("token_metadata")
         if meta:
+            assert isinstance(meta, TokenMetadata), f"Expected TokenMetadata, got {type(meta)}: {meta}"
             obj.other_data["token_metadata"] = meta
+            obj.buy_tax =  meta.get_buy_tax()
+            obj.sell_tax = meta.get_sell_tax()
 
     except Exception as e:
         pretty = pprint.pformat(data)

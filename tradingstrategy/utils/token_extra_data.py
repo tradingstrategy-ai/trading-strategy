@@ -1,5 +1,6 @@
 """High level helpers to load with token tax data, TokenSniffer metadata and else."""
 import logging
+from math import isnan
 
 import numpy as np
 import pandas as pd
@@ -316,9 +317,11 @@ def load_token_metadata(
         - "token_metadata" containing token metadata object.
         - "coingecko_categories" containing CoinGecko categories
         - "tokensniffer_score" containing TokenSniffer risk score
+        - "buy_tax" containing buy tax
+        - "sell_tax" containing sell tax
 
         All data is for the base token of the trading pair.
-        Columns will contain NA value if not available.
+        Columns will contain ``None`` value if not available.
     """
 
     assert isinstance(pairs_df, pd.DataFrame)
@@ -343,22 +346,35 @@ def load_token_metadata(
         data = token_metadata.get(address)
         if data:
             return data
-        return np.nan
+        return None
 
     def _map_risk_score(meta: TokenMetadata | None):
         if meta:
             return meta.token_sniffer_score
-        return np.nan
+        return None
 
     def _map_categories(meta: TokenMetadata | None):
         if meta:
-            categories = meta.get_coingecko_categories()
-            if categories is not None:
-                return categories
-        return np.nan
+            return  meta.get_coingecko_categories()
+        return None
+
+    def _map_buy_tax(meta: TokenMetadata | None):
+        if meta:
+            return meta.get_buy_tax()
+        return None
+
+    def _map_sell_tax(meta: TokenMetadata | None):
+        if meta:
+            return meta.get_sell_tax()
+        return None
 
     df = pairs_df
     df["token_metadata"] = df["base_token_address"].apply(_map_meta)
     df["tokensniffer_score"] = df["token_metadata"].apply(_map_risk_score)
     df["coingecko_categories"] = df["token_metadata"].apply(_map_categories)
+    df["buy_tax"] = df["token_metadata"].apply(_map_buy_tax)
+    df["sell_tax"] = df["token_metadata"].apply(_map_sell_tax)
+
+    assert not df["token_metadata"].isna().any().any(), "NA detected in metadata"
+
     return df

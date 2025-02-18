@@ -99,3 +99,74 @@ class TokenMetadata:
 
         return set(self.coingecko_data.get("categories", []))
 
+    def has_tax_data(self) -> bool | None:
+        """Do we have tax data for this pair.
+
+        The token tax data availability comes from TokenSniffer.
+        No insight what tells whether it should be available or not.
+
+        :return:
+            True/False is TokenSniffer data is available, otherwise None.
+        """
+        if self.token_sniffer_data is not None:
+            return "swap_simulation" in self.token_sniffer_data
+
+    def get_buy_tax(self, epsilon=0.0001, rounding=4) -> float | None:
+        """What was the TokenSniffer buy tax for the base token.
+
+        See also :py:meth:`has_tax_data`.
+
+        :param epsilon:
+            Deal with rounding errors.
+
+        :param rounding:
+            Deal with tax estimation accuracy
+
+        :return:
+            Buy tax 0....1 or None if not available
+        """
+
+        if self.token_sniffer_data is None:
+            return None
+
+        if not self.has_tax_data():
+            return None
+
+        raw_buy_fee = self.token_sniffer_data["swap_simulation"].get("buy_fee")
+        if raw_buy_fee is None:
+            return None
+
+        fee = float(raw_buy_fee) / 100
+        if fee < epsilon:
+            return 0
+        return round(fee, rounding)
+
+    def get_sell_tax(self, epsilon=0.0001, rounding=4) -> float | None:
+        """What was the TokenSniffer sell tax for the base token.
+
+        See also :py:meth:`has_tax_data`.
+
+        :param epsilon:
+            Deal with rounding errors.
+
+         :param rounding:
+            Deal with tax estimation accuracy
+
+        :return:
+            Sell tax 0....1 or None if not available
+        """
+
+        if self.token_sniffer_data is None:
+            return None
+
+        if not self.has_tax_data():
+            return None
+
+        raw_sell_fee = self.token_sniffer_data["swap_simulation"].get("sell_fee")
+        if raw_sell_fee is None:
+            return None
+
+        fee = float(raw_sell_fee) / 100
+        if fee < epsilon:
+            return 0
+        return round(fee, rounding)
