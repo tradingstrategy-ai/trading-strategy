@@ -1081,7 +1081,7 @@ class CachedHTTPTransport:
                 assert type(min_tvl) == float
                 cache_fname = self._generate_cache_name(
                     exchange_ids, time_bucket, start_time, end_time,
-                    candle_type="min_tvl"
+                    candle_type="min-tvl"
                 )
             case _:
                 raise NotImplementedError(f"Unsupported mode: {mode}")

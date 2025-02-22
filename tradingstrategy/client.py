@@ -517,7 +517,7 @@ class Client(BaseClient):
             Ask `TimeBucket.d1` or lower. `TimeBucket.m1` is most useful for LP backtesting.
 
         :param mode:
-            Query all exchange data by min_tvl, or use given pair list.
+            Query all exchange data by min_tvl (mode = "min_tvl"), or use given pair list (mode = "pair_ids").
 
         :param exchange_ids:
             Exchange internal ids for min_tvl query.
