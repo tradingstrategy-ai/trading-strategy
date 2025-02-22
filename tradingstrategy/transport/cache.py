@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from importlib.metadata import version
 from json import JSONDecodeError
 from pprint import pformat
-from typing import Optional, Callable, Union, Collection, Dict, Tuple
+from typing import Optional, Callable, Union, Collection, Dict, Tuple, Literal
 import shutil
 import logging
 from pathlib import Path
@@ -35,7 +35,7 @@ from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.transport.jsonl import load_candles_jsonl, load_token_metadata_jsonl
-from tradingstrategy.types import PrimaryKey, USDollarAmount
+from tradingstrategy.types import PrimaryKey, USDollarAmount, AnyTimestamp
 from tradingstrategy.lending import LendingCandle, LendingCandleType
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
 
@@ -1021,6 +1021,101 @@ class CachedHTTPTransport:
 
                 if end_time:
                     params["end"] = end_time.isoformat()
+
+                download_with_tqdm_progress_bar(
+                    session=self.requests,
+                    path=path,
+                    url=url,
+                    params=params,
+                    timeout=self.timeout,
+                    human_readable_hint=progress_bar_description,
+                )
+
+                size = pathlib.Path(path).stat().st_size
+                logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+            else:
+                size = pathlib.Path(path).stat().st_size
+                logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
+
+            df = pandas.read_parquet(path)
+
+            # Export cache metadata
+            df.attrs["cached"] = cached is not None
+            df.attrs["filesize"] = size
+            df.attrs["path"] = path
+            return df
+
+    def fetch_tvl(
+        self,
+        time_bucket: TimeBucket,
+        mode: Literal["min_tvl", "pair_ids"],
+        exchange_ids: Collection[PrimaryKey] = None,
+        pair_ids: Collection[PrimaryKey] = None,
+        start_time: Optional[AnyTimestamp] = None,
+        end_time: Optional[AnyTimestamp] = None,
+        min_tvl: Optional[USDollarAmount] = None,
+        progress_bar_description: Optional[str] = "Downloading TVL data",
+    ) -> pd.DataFrame:
+        """Stream TVL Parquet data from the server.
+
+        :return:
+            TVL dataframe.
+
+            See :py:mod:`tradingstrategy.tvl`.
+        """
+
+        assert isinstance(time_bucket, TimeBucket)
+
+        match mode:
+            case "pair_ids":
+                assert pair_ids
+                assert type(pair_ids) in (list, tuple, set)
+                cache_fname = self._generate_cache_name(
+                    pair_ids, time_bucket, start_time, end_time,
+                    candle_type="tvl"
+                )
+            case "min_tvl":
+                assert exchange_ids
+                assert type(exchange_ids) in (list, tuple, set)
+                assert type(min_tvl) == float
+                cache_fname = self._generate_cache_name(
+                    exchange_ids, time_bucket, start_time, end_time,
+                    candle_type="min_tvl"
+                )
+            case _:
+                raise NotImplementedError(f"Unsupported mode: {mode}")
+
+        full_fname = self.get_cached_file_path(cache_fname)
+
+        url = f"{self.endpoint}/tvl"
+
+        with wait_other_writers(full_fname):
+
+            cached = self.get_cached_item(cache_fname)
+            path = self.get_cached_file_path(cache_fname)
+
+            if not cached:
+
+                params = {
+                    "time_bucket": time_bucket.value,
+                    "mode": mode,
+                }
+
+                if pair_ids:
+                    params["pair_ids"] = ",".join([str(i) for i in pair_ids]),  # OpenAPI comma delimited array
+
+                if exchange_ids:
+                    params["exchange_ids"] = ",".join([str(i) for i in exchange_ids]),  # OpenAPI comma delimited array
+
+                if start_time:
+                    params["start"] = start_time.isoformat()
+
+                if end_time:
+                    params["end"] = end_time.isoformat()
+
+                if min_tvl:
+                    params["min_tvl"] = str(min_tvl)
 
                 download_with_tqdm_progress_bar(
                     session=self.requests,

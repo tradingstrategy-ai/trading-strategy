@@ -17,7 +17,7 @@ from abc import abstractmethod, ABC
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Final, Optional, Union, Collection, Dict
+from typing import Final, Optional, Union, Collection, Dict, Literal
 
 import pandas as pd
 
@@ -496,6 +496,78 @@ class Client(BaseClient):
             bucket,
             start_time,
             end_time,
+            progress_bar_description=progress_bar_description,
+        )
+
+    def fetch_tvl(self,
+        bucket: TimeBucket,
+        mode: Literal["min_tvl", "pair_ids"],
+        exchange_ids: Collection[PrimaryKey] = None,
+        pair_ids: Collection[PrimaryKey] = None,
+        start_time: Optional[AnyTimestamp] = None,
+        end_time: Optional[AnyTimestamp] = None,
+        min_tvl: Optional[USDollarAmount] = None,
+        progress_bar_description: Optional[str] = "Downloading TVL data",
+    ) -> pd.DataFrame:
+        """Fetch TVL data
+
+        :param bucket:
+            Candle time frame.
+
+            Ask `TimeBucket.d1` or lower. `TimeBucket.m1` is most useful for LP backtesting.
+
+        :param mode:
+            Query all exchange data by min_tvl, or use given pair list.
+
+        :param exchange_ids:
+            Exchange internal ids for min_tvl query.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+            Only works with Uniswap v3 pairs.
+
+        :param start_time:
+            All candles after this.
+
+            Inclusive.
+
+        :param end_time:
+            All candles before this.
+
+            Inclusive.
+
+        :param min_tvl:
+            Any pair must have this minimum TVL reached during the start - end period to be included.
+
+        :param progress_bar_description:
+            Display a download progress bar using `tqdm_loggable` if given.
+
+            Set to `None` to disable.
+
+        :return:
+            TVL dataframe.
+
+            See :py:mod:`tradingstrategy.clmm` for details.
+        """
+
+        assert bucket <= TimeBucket.d1, f"It does not make sense to fetch CLMM data with higher frequency than a 1 day, got {bucket}"
+
+        if isinstance(start_time, pd.Timestamp):
+            start_time = start_time.to_pydatetime()
+
+        if isinstance(end_time, pd.Timestamp):
+            end_time = end_time.to_pydatetime()
+
+        return self.transport.fetch_tvl(
+            mode=mode,
+            time_bucket=bucket,
+            pair_ids=pair_ids,
+            exchange_ids=exchange_ids,
+            min_tvl=min_tvl,
+            start_time=start_time,
+            end_time=end_time,
             progress_bar_description=progress_bar_description,
         )
 
