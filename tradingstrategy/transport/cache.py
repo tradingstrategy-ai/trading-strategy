@@ -1078,7 +1078,7 @@ class CachedHTTPTransport:
             case "min_tvl":
                 assert exchange_ids
                 assert type(exchange_ids) in (list, tuple, set)
-                assert type(min_tvl) == float
+                assert type(min_tvl) in (float, int), f"min_tvl must be float, got {type(min_tvl)}: {min_tvl}"
                 cache_fname = self._generate_cache_name(
                     exchange_ids, time_bucket, start_time, end_time,
                     candle_type="min-tvl"

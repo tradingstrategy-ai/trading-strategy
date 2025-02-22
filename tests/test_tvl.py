@@ -12,7 +12,7 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import APIError
 
 
-def test_load_tvl_base(
+def test_load_tvl_parquet(
     persistent_test_client: Client,
     default_pair_universe,
 ):
@@ -25,9 +25,8 @@ def test_load_tvl_base(
         p.unlink()
 
     exchange_universe = client.fetch_exchange_universe()
-
-    base_uni_v2 = exchange_universe.get_by_chain_and_name(ChainId.base, "uniswap-v2")
-    base_uni_v3 = exchange_universe.get_by_chain_and_name(ChainId.base, "uniswap-v3")
+    base_uni_v2 = exchange_universe.get_by_chain_and_slug(ChainId.base, "uniswap-v2")
+    base_uni_v3 = exchange_universe.get_by_chain_and_slug(ChainId.base, "uniswap-v3")
 
     start = datetime.datetime(2025, 1, 1)
     end = datetime.datetime(2025, 2, 1)
@@ -45,6 +44,7 @@ def test_load_tvl_base(
         start_time=start,
         end_time=end,
         exchange_ids={base_uni_v2.exchange_id, base_uni_v3.exchange_id},
+        min_tvl=5_000_000,
     )
     assert df.attrs["cached"] is False, f"Cached at {df.attrs['path']}"
     assert len(df) == 64
