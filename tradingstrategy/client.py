@@ -64,7 +64,7 @@ RETRY_DELAY: Final[int] = 30  # seconds
 MAX_ATTEMPTS: Final[int] = 3
 
 #: Default HTTP timeout conn/read
-DEFAULT_TIMEOUT = 60
+DEFAULT_TIMEOUT = (89.0, 89.0)
 
 def _retry_corrupted_parquet_fetch(method):
     """A helper decorator to down with download/Parquet corruption issues.
@@ -1194,6 +1194,7 @@ class Client(BaseClient):
         api_key: Optional[str] = None,
         cache_path: Optional[Path] = None,
         settings_path: Path | None = DEFAULT_SETTINGS_PATH,
+        timeout=DEFAULT_TIMEOUT,
     ) -> "Client":
         """Create a live trading instance of the client.
 
@@ -1267,6 +1268,8 @@ class Client(BaseClient):
             "https://tradingstrategy.ai/api",
             cache_path=cache_path,
             api_key=config.api_key,
-            add_exception_hook=False)
+            add_exception_hook=False,
+            timeout=DEFAULT_TIMEOUT,
+        )
 
         return Client(env, transport)
