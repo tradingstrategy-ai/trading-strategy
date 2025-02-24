@@ -1159,7 +1159,7 @@ class Client(BaseClient):
         return Client(env, transport)
 
     @classmethod
-    def create_test_client(cls, cache_path=None) -> "Client":
+    def create_test_client(cls, cache_path=None, timeout=DEFAULT_TIMEOUT) -> "Client":
         """Create a new Trading Strategy client to be used with automated test suites.
 
         Reads the API key from the environment variable `TRADING_STRATEGY_API_KEY`.
@@ -1184,7 +1184,7 @@ class Client(BaseClient):
             "https://tradingstrategy.ai/api",
             api_key=config.api_key,
             cache_path=env.get_cache_path(),
-            timeout=DEFAULT_TIMEOUT,  # Likely first timeouter /tvl endpoint
+            timeout=timeout,  # Likely first timeouter /tvl endpoint
         )
         return Client(env, transport)
 
