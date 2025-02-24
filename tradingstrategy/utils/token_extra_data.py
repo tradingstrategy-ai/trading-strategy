@@ -302,7 +302,7 @@ def filter_scams(
 def load_token_metadata(
     pairs_df: pd.DataFrame,
     client: Client,
-apply=df["token_metadata"].apply(_map_categories)) -> pd.DataFrame:
+) -> pd.DataFrame:
     """Load token metadata for all trading pairs.
 
     - Load and cache token metadata for given DataFrame of trading pairs
@@ -329,7 +329,7 @@ apply=df["token_metadata"].apply(_map_categories)) -> pd.DataFrame:
     assert "base_token_address" in pairs_df.columns, "base/quote token address data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata(). Call add_base_quote_address_columns() first."
     assert "base_token_symbol" in pairs_df.columns, "base/quote token symbol data must be retrofitted to the DataFrame before calling load_tokensniffer_metadata(). Call add_base_quote_address_columns() first."
 
-    token_addresses = pd.concat([pairs_df["token0_address"], pairs_df["token1_address"]])
+    token_addresses = set(pd.concat([pairs_df["token0_address"], pairs_df["token1_address"]]))
 
     chain_ids = pairs_df["chain_id"].unique()
     assert len(chain_ids) == 1, f"Mixed chain_ids: {chain_ids}"
@@ -371,13 +371,14 @@ apply=df["token_metadata"].apply(_map_categories)) -> pd.DataFrame:
     df = pairs_df
     df["token_metadata"] = df["base_token_address"].apply(_map_meta)
     df["tokensniffer_score"] = df["token_metadata"].apply(_map_risk_score)
-    df["coingecko_categories"] = apply
+    df["coingecko_categories"] = df["token_metadata"].apply(_map_categories)
     df["buy_tax"] = df["token_metadata"].apply(_map_buy_tax)
     df["sell_tax"] = df["token_metadata"].apply(_map_sell_tax)
 
     missing_meta_mask = df["token_metadata"].isna()
     missing_meta_df = df[missing_meta_mask]
     if len(missing_meta_df) > 0:
-        assert not df["token_metadata"].isna().any().any(), f"NA detected in token metadata:\n{missing_meta_df}"
+        display_df = missing_meta_df[["pair_id", "base_token_symbol", "base_token_address"]]
+        assert not df["token_metadata"].isna().any().any(), f"NA detected in token metadata {len(missing_meta_df)}:\n{display_df}"
 
     return df

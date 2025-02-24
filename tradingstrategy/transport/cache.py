@@ -287,6 +287,7 @@ class CachedHTTPTransport:
         end_time: Optional[datetime.datetime] = None,
         max_bytes: Optional[int] = None,
         candle_type: str = "candles",
+        ftype="jsonl",
     ) -> str:
         """Generate the name of the file for holding cached candle data for ``pair_ids``.
         """
@@ -315,7 +316,7 @@ class CachedHTTPTransport:
 
         end_part = end_time.strftime("%Y-%m-%d_%H-%M-%S") if end_time else "any"
 
-        return f"{candle_type.replace('_', '-')}-jsonl-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.parquet"
+        return f"{candle_type.replace('_', '-')}-{ftype}-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.parquet"
 
     def purge_cache(self, filename: Optional[Union[str, pathlib.Path]] = None):
         """Delete all cached files on the filesystem.
@@ -1077,7 +1078,8 @@ class CachedHTTPTransport:
                 assert type(pair_ids) in (list, tuple, set)
                 cache_fname = self._generate_cache_name(
                     pair_ids, time_bucket, start_time, end_time,
-                    candle_type="tvl"
+                    candle_type="tvl",
+                    ftype="parquet",
                 )
             case "min_tvl":
                 assert exchange_ids
@@ -1085,7 +1087,8 @@ class CachedHTTPTransport:
                 assert type(min_tvl) in (float, int), f"min_tvl must be float, got {type(min_tvl)}: {min_tvl}"
                 cache_fname = self._generate_cache_name(
                     exchange_ids, time_bucket, start_time, end_time,
-                    candle_type=f"min-tvl-{min_tvl}"
+                    candle_type=f"min-tvl-{min_tvl}",
+                    ftype="parquet",
                 )
             case _:
                 raise NotImplementedError(f"Unsupported mode: {mode}")
@@ -1121,6 +1124,8 @@ class CachedHTTPTransport:
                 if min_tvl:
                     params["min_tvl"] = str(min_tvl)
 
+                logger.info("fetch_tvl(): no cache hit for %s, loading %s", path, params)
+
                 download_with_tqdm_progress_bar(
                     session=self.requests,
                     path=path,
@@ -1134,6 +1139,7 @@ class CachedHTTPTransport:
                 logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
 
             else:
+                logger.info("fetch_tvl(): cache hit for %s", path)
                 size = pathlib.Path(path).stat().st_size
                 logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
 
