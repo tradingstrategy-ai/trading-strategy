@@ -681,8 +681,11 @@ def add_base_quote_address_columns(pairs_df: pd.DataFrame) -> pd.DataFrame:
 
     token0_is_base_token_mask = pairs_df["base_token_symbol"] == pairs_df["token0_symbol"]
 
-    pairs_df["base_token_address"] = np.where(token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
-    pairs_df["quote_token_address"] = np.where(~token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
+    #pairs_df["base_token_address"] = np.where(token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
+    #pairs_df["quote_token_address"] = np.where(~token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
+
+    pairs_df.loc[token0_is_base_token_mask, "base_token_address"] = pairs_df.loc[token0_is_base_token_mask, "token0_address"]
+    pairs_df.loc[~token0_is_base_token_mask, "base_token_address"] = pairs_df.loc[~token0_is_base_token_mask, "token1_address"]    
     return pairs_df
 
 

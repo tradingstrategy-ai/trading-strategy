@@ -946,7 +946,11 @@ class CachedHTTPTransport:
             progress_bar.close()
 
         try:
-            return pd.concat([c for c in chunks if len(c) > 0])
+            parts = [c for c in chunks if len(c) > 0]
+            if len(parts) > 0:
+                return pd.concat(parts)
+            else:
+                return pd.DataFrame()
         except ValueError as e:
             # Happens only on Github CI
             # https://stackoverflow.com/questions/27719407/pandas-concat-valueerror-shape-of-passed-values-is-blah-indices-imply-blah2
