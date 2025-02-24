@@ -281,13 +281,13 @@ class CachedHTTPTransport:
 
     def _generate_cache_name(
         self,
-        pair_ids: Collection[PrimaryKey],
+        pair_ids: Collection[PrimaryKey] | PrimaryKey,
         time_bucket: TimeBucket,
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
         max_bytes: Optional[int] = None,
         candle_type: str = "candles",
-        ftype="jsonl",
+        ftype: Literal["parquet", "jsonl"]="parquet",
     ) -> str:
         """Generate the name of the file for holding cached candle data for ``pair_ids``.
         """
@@ -301,10 +301,16 @@ class CachedHTTPTransport:
                 trunc["hour"] = 0
             end_time = end_time.replace(**trunc)
 
+        if type(pair_ids) is int:
+            # Backwards compat
+            pass
+        else:
+            pair_ids = sorted(list(pair_ids))
+
         # Create a compressed cache key for the filename,
         # as we have 256 char limit on fname lenghts
         full_cache_key = (
-            f"{pair_ids}{time_bucket}{start_time}{end_time}{max_bytes}"
+            f"{candle_type}{ftype}{pair_ids}{time_bucket}{start_time}{end_time}{max_bytes}"
         )
         md5 = hashlib.md5(full_cache_key.encode("utf-8")).hexdigest()
 
@@ -316,7 +322,7 @@ class CachedHTTPTransport:
 
         end_part = end_time.strftime("%Y-%m-%d_%H-%M-%S") if end_time else "any"
 
-        return f"{candle_type.replace('_', '-')}-{ftype}-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.parquet"
+        return f"{candle_type.replace('_', '-')}-{time_bucket.value}-between-{start_part}-and-{end_part}-{md5}.{ftype}"
 
     def purge_cache(self, filename: Optional[Union[str, pathlib.Path]] = None):
         """Delete all cached files on the filesystem.
