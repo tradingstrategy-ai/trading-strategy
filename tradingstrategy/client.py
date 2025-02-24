@@ -63,6 +63,8 @@ RETRY_DELAY: Final[int] = 30  # seconds
 
 MAX_ATTEMPTS: Final[int] = 3
 
+#: Default HTTP timeout conn/read
+DEFAULT_TIMEOUT = 60
 
 def _retry_corrupted_parquet_fetch(method):
     """A helper decorator to down with download/Parquet corruption issues.
@@ -1177,7 +1179,13 @@ class Client(BaseClient):
 
         env = DefaultClientEnvironment(cache_path=cache_path, settings_path=None)
         config = Configuration(api_key=api_key)
-        transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", api_key=config.api_key, cache_path=env.get_cache_path(), timeout=15)
+        transport = CachedHTTPTransport(
+            download_with_progress_plain,
+            "https://tradingstrategy.ai/api",
+            api_key=config.api_key,
+            cache_path=env.get_cache_path(),
+            timeout=DEFAULT_TIMEOUT,  # Likely first timeouter /tvl endpoint
+        )
         return Client(env, transport)
 
     @classmethod

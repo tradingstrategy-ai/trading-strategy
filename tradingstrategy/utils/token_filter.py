@@ -26,6 +26,7 @@ from tradingstrategy.types import Slug, TokenSymbol, Percent, IntBasisPoint, Pri
 logger = logging.getLogger(__name__)
 
 #: Manually whitelist some custodian tokens
+#: Always include these tokens no matter what TokenSniffer risk score we get for them.
 #:
 #: Copied from eth_defi package.
 #:
