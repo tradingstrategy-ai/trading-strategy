@@ -1,3 +1,7 @@
+# Current
+
+- Add: `Client.fetch_tvl()` endpoint to stream TVL data efficiently
+
 # 0.25.4
 
 - Update: Use correct CoinGecko domain for Pro API
