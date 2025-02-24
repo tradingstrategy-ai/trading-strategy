@@ -281,7 +281,7 @@ class CachedHTTPTransport:
 
     def _generate_cache_name(
         self,
-        pair_ids: Collection[PrimaryKey],
+        pair_ids: Collection[PrimaryKey] | PrimaryKey,
         time_bucket: TimeBucket,
         start_time: Optional[datetime.datetime] = None,
         end_time: Optional[datetime.datetime] = None,
@@ -301,7 +301,11 @@ class CachedHTTPTransport:
                 trunc["hour"] = 0
             end_time = end_time.replace(**trunc)
 
-        pair_ids = sorted(list(pair_ids))
+        if type(pair_ids) is int:
+            # Backwards compat
+            pass
+        else:
+            pair_ids = sorted(list(pair_ids))
 
         # Create a compressed cache key for the filename,
         # as we have 256 char limit on fname lenghts
