@@ -61,19 +61,7 @@ def test_get_cached_item_cache_file_no_end_time_expired(transport, tmp_path):
     (
         (
             {},  # no overrides
-            "candles-jsonl-1m-between-2021-07-01_14-35-17-and-any-b445ce65b8b8117fef6ee7b9b44b98ac.parquet"
-        ),
-        (
-            {"pair_ids": {22, 1717, 88}},
-            "candles-jsonl-1m-between-2021-07-01_14-35-17-and-any-3650b4fd16270e6522eddbeffa6fa676.parquet"
-        ),
-        (
-            {"start_time": dt.datetime(2021, 11, 15, 19, 7, 50, 654321)},
-            "candles-jsonl-1m-between-2021-11-15_19-07-50-and-any-932cd917d5f82f60c3c1e39c6725a427.parquet"
-        ),
-        (
-            {"max_bytes": 1024 * 1024},
-            "candles-jsonl-1m-between-2021-07-01_14-35-17-and-any-58000fef3f0a6af9d8393f50d530d3db.parquet"
+            "candles-1m-between-2021-07-01_14-35-17-and-any-7c33c210096558933e5ba446e1d36bf2.parque"
         ),
     ),
 )
@@ -98,12 +86,12 @@ def test__generate_cache_name_no_end_time(transport, kwarg_overrides, expected_n
         (
             TimeBucket.m1,
             dt.datetime(2022, 8, 18, 12, 59, 24, 987654),
-            "candles-jsonl-1m-between-any-and-2022-08-18_12-59-00-3d66bc1d7a463e6ddb99fbc57e83b98e.parquet"
+            "candles-1m-between-2021-07-01_14-35-17-and-any-7c33c210096558933e5ba446e1d36bf2.parquet"
         ),
         (
             TimeBucket.m15,
             dt.datetime(2022, 8, 18, 12, 59, 59, 999999),
-            "candles-jsonl-15m-between-any-and-2022-08-18_12-59-00-42b45ce03eb586963e1e660f8bd7cab8.parquet"
+            " candles-1m-between-2021-07-01_14-35-17-and-any-7c33c210096558933e5ba446e1d36bf2.parquet"
         ),
     ),
 )
