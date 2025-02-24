@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 #: Always include these tokens no matter what TokenSniffer risk score we get for them.
 #:
 #: Copied from eth_defi package.
-#:
+#:  
 KNOWN_GOOD_TOKENS = {
     "USDC",
     "USDT",
@@ -679,13 +679,19 @@ def add_base_quote_address_columns(pairs_df: pd.DataFrame) -> pd.DataFrame:
         The same pairs DataFrame, with new columns `base_token_address` and `quote_token_address`.
     """
 
+    assert "token0_address" in pairs_df.columns, f"Got: {pairs_df.columns}"
+    assert "token1_address" in pairs_df.columns, f"Got: {pairs_df.columns}"
+
     token0_is_base_token_mask = pairs_df["base_token_symbol"] == pairs_df["token0_symbol"]
 
     #pairs_df["base_token_address"] = np.where(token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
     #pairs_df["quote_token_address"] = np.where(~token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
 
-    pairs_df.loc[token0_is_base_token_mask, "base_token_address"] = pairs_df.loc[token0_is_base_token_mask, "token0_address"]
-    pairs_df.loc[~token0_is_base_token_mask, "base_token_address"] = pairs_df.loc[~token0_is_base_token_mask, "token1_address"]    
+    pairs_df = pairs_df.copy()  # TODO: Figure out how to do this without copy
+    pairs_df.loc[token0_is_base_token_mask, "base_token_address"] = pairs_df["token0_address"]
+    pairs_df.loc[token0_is_base_token_mask, "quote_token_address"] = pairs_df["token1_address"]
+    pairs_df.loc[~token0_is_base_token_mask, "base_token_address"] = pairs_df["token1_address"]    
+    pairs_df.loc[~token0_is_base_token_mask, "quote_token_address"] = pairs_df["token0_address"]    
     return pairs_df
 
 

@@ -302,7 +302,7 @@ def filter_scams(
 def load_token_metadata(
     pairs_df: pd.DataFrame,
     client: Client,
-) -> pd.DataFrame:
+apply=df["token_metadata"].apply(_map_categories)) -> pd.DataFrame:
     """Load token metadata for all trading pairs.
 
     - Load and cache token metadata for given DataFrame of trading pairs
@@ -371,10 +371,13 @@ def load_token_metadata(
     df = pairs_df
     df["token_metadata"] = df["base_token_address"].apply(_map_meta)
     df["tokensniffer_score"] = df["token_metadata"].apply(_map_risk_score)
-    df["coingecko_categories"] = df["token_metadata"].apply(_map_categories)
+    df["coingecko_categories"] = apply
     df["buy_tax"] = df["token_metadata"].apply(_map_buy_tax)
     df["sell_tax"] = df["token_metadata"].apply(_map_sell_tax)
 
-    assert not df["token_metadata"].isna().any().any(), "NA detected in metadata"
+    missing_meta_mask = df["token_metadata"].isna()
+    missing_meta_df = df[missing_meta_mask]
+    if len(missing_meta_df) > 0:
+        assert not df["token_metadata"].isna().any().any(), f"NA detected in token metadata:\n{missing_meta_df}"
 
     return df
