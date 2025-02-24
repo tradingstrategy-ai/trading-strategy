@@ -526,6 +526,11 @@ class Client(BaseClient):
             At this kind of cases use :py:meth:`fetch_all_liquidity_samples` static Parquet
             file download and filter down pairs yourself.
 
+        .. note:::
+
+            When ``min_tvl`` is used, the date range ``start`` - ``end`` is approximation. Entries outside this range
+            may be returned.
+
         :param bucket:
             Candle time frame.
 
