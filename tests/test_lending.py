@@ -67,11 +67,11 @@ def test_fetch_lending_reserve_info(client: Client):
 def test_client_fetch_lending_candles(client: Client, cache_path: str):
     df = client.fetch_lending_candles_by_reserve_id(1, TimeBucket.h1)
     assert len(df) > 50
-    assert len(list(Path(cache_path).glob("variable-borrow-apr-jsonl-1h-between-any-and-any-*.parquet"))) == 1
+    assert len(list(Path(cache_path).glob("variable-borrow-*.parquet"))) == 1
 
     df = client.fetch_lending_candles_by_reserve_id(3, TimeBucket.d1, candle_type=LendingCandleType.supply_apr)
     assert len(df) > 50
-    assert len(list(Path(cache_path).glob("supply-apr-jsonl-1d-between-any-and-any-*.parquet"))) == 1
+    assert len(list(Path(cache_path).glob("supply-apr-*.parquet"))) == 1
 
 
 def test_resolve_lending_reserve(persistent_test_client):
