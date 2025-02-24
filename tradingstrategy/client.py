@@ -17,7 +17,7 @@ from abc import abstractmethod, ABC
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Final, Optional, Union, Collection, Dict
+from typing import Final, Optional, Union, Collection, Dict, Literal
 
 import pandas as pd
 
@@ -63,6 +63,8 @@ RETRY_DELAY: Final[int] = 30  # seconds
 
 MAX_ATTEMPTS: Final[int] = 3
 
+#: Default HTTP timeout conn/read
+DEFAULT_TIMEOUT = (89.0, 89.0)
 
 def _retry_corrupted_parquet_fetch(method):
     """A helper decorator to down with download/Parquet corruption issues.
@@ -496,6 +498,93 @@ class Client(BaseClient):
             bucket,
             start_time,
             end_time,
+            progress_bar_description=progress_bar_description,
+        )
+
+    def fetch_tvl(self,
+        bucket: TimeBucket,
+        mode: Literal["min_tvl", "pair_ids"],
+        exchange_ids: Collection[PrimaryKey] = None,
+        pair_ids: Collection[PrimaryKey] = None,
+        start_time: Optional[AnyTimestamp] = None,
+        end_time: Optional[AnyTimestamp] = None,
+        min_tvl: Optional[USDollarAmount] = None,
+        progress_bar_description: Optional[str] = "Downloading TVL data",
+    ) -> pd.DataFrame:
+        """Fetch TVL data.
+
+        - Get TVL data for given trading pairs
+
+        ... or ...
+
+        - Filter out exchange trading pairs by minimum TVL amount
+
+        .. note ::
+
+            If you ask too large number of pairs, or have ``min_tvl`` condition set too low,
+            the endpoint will timeout because it can only serve limited amount of information.
+            At this kind of cases use :py:meth:`fetch_all_liquidity_samples` static Parquet
+            file download and filter down pairs yourself.
+
+        :param bucket:
+            Candle time frame.
+
+            Ask `TimeBucket.d1` or lower. `TimeBucket.m1` is most useful for LP backtesting.
+
+        :param mode:
+            Query all exchange data by min_tvl (mode = "min_tvl"), or use given pair list (mode = "pair_ids").
+
+        :param exchange_ids:
+            Exchange internal ids for min_tvl query.
+
+        :param pair_ids:
+            Trading pairs internal ids we query data for.
+            Get internal ids from pair dataset.
+
+            Only works with Uniswap v3 pairs.
+
+        :param start_time:
+            All candles after this.
+
+            Inclusive.
+
+        :param end_time:
+            All candles before this.
+
+            Inclusive.
+
+        :param min_tvl:
+            Any pair must have this minimum TVL reached during the start - end period to be included.
+
+            One sided. I.e. only counts /WETH or /USDC in Uniswap v3 pools.
+
+        :param progress_bar_description:
+            Display a download progress bar using `tqdm_loggable` if given.
+
+            Set to `None` to disable.
+
+        :return:
+            TVL dataframe.
+
+            See :py:mod:`tradingstrategy.clmm` for details.
+        """
+
+        assert bucket <= TimeBucket.d1, f"It does not make sense to fetch CLMM data with higher frequency than a 1 day, got {bucket}"
+
+        if isinstance(start_time, pd.Timestamp):
+            start_time = start_time.to_pydatetime()
+
+        if isinstance(end_time, pd.Timestamp):
+            end_time = end_time.to_pydatetime()
+
+        return self.transport.fetch_tvl(
+            mode=mode,
+            time_bucket=bucket,
+            pair_ids=pair_ids,
+            exchange_ids=exchange_ids,
+            min_tvl=min_tvl,
+            start_time=start_time,
+            end_time=end_time,
             progress_bar_description=progress_bar_description,
         )
 
@@ -1070,7 +1159,7 @@ class Client(BaseClient):
         return Client(env, transport)
 
     @classmethod
-    def create_test_client(cls, cache_path=None) -> "Client":
+    def create_test_client(cls, cache_path=None, timeout=DEFAULT_TIMEOUT) -> "Client":
         """Create a new Trading Strategy client to be used with automated test suites.
 
         Reads the API key from the environment variable `TRADING_STRATEGY_API_KEY`.
@@ -1090,7 +1179,13 @@ class Client(BaseClient):
 
         env = DefaultClientEnvironment(cache_path=cache_path, settings_path=None)
         config = Configuration(api_key=api_key)
-        transport = CachedHTTPTransport(download_with_progress_plain, "https://tradingstrategy.ai/api", api_key=config.api_key, cache_path=env.get_cache_path(), timeout=15)
+        transport = CachedHTTPTransport(
+            download_with_progress_plain,
+            "https://tradingstrategy.ai/api",
+            api_key=config.api_key,
+            cache_path=env.get_cache_path(),
+            timeout=timeout,  # Likely first timeouter /tvl endpoint
+        )
         return Client(env, transport)
 
     @classmethod
@@ -1099,6 +1194,7 @@ class Client(BaseClient):
         api_key: Optional[str] = None,
         cache_path: Optional[Path] = None,
         settings_path: Path | None = DEFAULT_SETTINGS_PATH,
+        timeout=DEFAULT_TIMEOUT,
     ) -> "Client":
         """Create a live trading instance of the client.
 
@@ -1172,6 +1268,8 @@ class Client(BaseClient):
             "https://tradingstrategy.ai/api",
             cache_path=cache_path,
             api_key=config.api_key,
-            add_exception_hook=False)
+            add_exception_hook=False,
+            timeout=DEFAULT_TIMEOUT,
+        )
 
         return Client(env, transport)

@@ -17,7 +17,6 @@ from typing import List, Set, Tuple, Collection
 import pandas as pd
 import numpy as np
 
-from eth_defi.token_analysis.tokensniffer import KNOWN_GOOD_TOKENS
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE, STABLECOIN_LIKE
@@ -26,10 +25,27 @@ from tradingstrategy.types import Slug, TokenSymbol, Percent, IntBasisPoint, Pri
 
 logger = logging.getLogger(__name__)
 
-#: The pair must be quoted in one of these tokens
+#: Manually whitelist some custodian tokens
+#: Always include these tokens no matter what TokenSniffer risk score we get for them.
 #:
-#: We know can route trades for these tokens
-DEFAULT_GOOD_QUOTE_TOKENS = (
+#: Copied from eth_defi package.
+#:
+KNOWN_GOOD_TOKENS = {
+    "USDC",
+    "USDT",
+    "USDS",  # Dai rebranded
+    "MKR",
+    "DAI",
+    "WBTC",
+    "NEXO",
+    "PEPE",
+    "NEXO",
+    "AAVE",
+    "SYN",
+    "SNX",
+    "FLOKI",
+    "WETH",
+    "cbBTC",
     "USDC",
     "USDT",
     "WETH",
@@ -37,7 +53,7 @@ DEFAULT_GOOD_QUOTE_TOKENS = (
     "WAVAX",
     "WBNB",
     "WARB",
-)
+}
 
 
 #: List of DEXes we know are not scams and can be routed
@@ -524,7 +540,7 @@ def filter_pairs_default(
     verbose_print=lambda x, y: print(x, y),
     max_trading_pair_fee_bps: IntBasisPoint | None = 100,
     blacklisted_token_symbols: Collection[TokenSymbol] | None = None,
-    good_quote_tokes: Collection[TokenSymbol] = DEFAULT_GOOD_QUOTE_TOKENS,
+    good_quote_tokes: Collection[TokenSymbol] = KNOWN_GOOD_TOKENS,
     exchanges: Collection[Exchange] | None = None,
     exchange_ids: Collection[PrimaryKey] | None = None,
     pair_ids_in_candles: Collection[PrimaryKey] | pd.Series | None = None,
@@ -665,8 +681,11 @@ def add_base_quote_address_columns(pairs_df: pd.DataFrame) -> pd.DataFrame:
 
     token0_is_base_token_mask = pairs_df["base_token_symbol"] == pairs_df["token0_symbol"]
 
-    pairs_df["base_token_address"] = np.where(token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
-    pairs_df["quote_token_address"] = np.where(~token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
+    #pairs_df["base_token_address"] = np.where(token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
+    #pairs_df["quote_token_address"] = np.where(~token0_is_base_token_mask, pairs_df["token0_address"], pairs_df["token1_address"])
+
+    pairs_df.loc[token0_is_base_token_mask, "base_token_address"] = pairs_df.loc[token0_is_base_token_mask, "token0_address"]
+    pairs_df.loc[~token0_is_base_token_mask, "base_token_address"] = pairs_df.loc[~token0_is_base_token_mask, "token1_address"]    
     return pairs_df
 
 
