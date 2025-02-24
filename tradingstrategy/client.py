@@ -509,7 +509,20 @@ class Client(BaseClient):
         min_tvl: Optional[USDollarAmount] = None,
         progress_bar_description: Optional[str] = "Downloading TVL data",
     ) -> pd.DataFrame:
-        """Fetch TVL data
+        """Fetch TVL data.
+
+        - Get TVL data for given trading pairs
+
+        ... or ...
+
+        - Filter out exchange trading pairs by minimum TVL amount
+
+        .. note ::
+
+            If you ask too large number of pairs, or have ``min_tvl`` condition set too low,
+            the endpoint will timeout because it can only serve limited amount of information.
+            At this kind of cases use :py:meth:`fetch_all_liquidity_samples` static Parquet
+            file download and filter down pairs yourself.
 
         :param bucket:
             Candle time frame.
@@ -540,6 +553,8 @@ class Client(BaseClient):
 
         :param min_tvl:
             Any pair must have this minimum TVL reached during the start - end period to be included.
+
+            One sided. I.e. only counts /WETH or /USDC in Uniswap v3 pools.
 
         :param progress_bar_description:
             Display a download progress bar using `tqdm_loggable` if given.

@@ -47,7 +47,7 @@ def test_load_tvl_parquet(
         min_tvl=5_000_000,
     )
     assert df.attrs["cached"] is False, f"Cached at {df.attrs['path']}"
-    assert len(df) == 64
+    assert len(df) == 562
 
     assert "pair_id" in df.columns
     assert "bucket" in df.columns
@@ -63,6 +63,7 @@ def test_load_tvl_parquet(
         start_time=start,
         end_time=end,
         exchange_ids={base_uni_v2.exchange_id, base_uni_v3.exchange_id},
+        min_tvl=5_000_000,
     )
     assert df.attrs["cached"] is True
     assert df.attrs["filesize"] > 0
