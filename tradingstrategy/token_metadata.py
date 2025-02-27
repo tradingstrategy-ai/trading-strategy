@@ -65,6 +65,12 @@ class TokenMetadata:
     #:
     token_sniffer_data: dict | None
 
+    #: TokenSniffer API error if the sniff data could not be loaded.
+    #:
+    #: Usually rate limit or such temporary error.
+    #:
+    token_sniffer_error: str | None
+
     #: Coingecko metadata
     #:
     #: Passed as is https://docs.coingecko.com/reference/coins-contract-address.
