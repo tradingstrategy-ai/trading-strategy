@@ -342,6 +342,8 @@ def load_token_metadata(
         token_addresses
     )
 
+    logger.info("Got data back for %d tokens", len(token_metadata))
+
     def _map_meta(address):
         data = token_metadata.get(address)
         if data:
@@ -379,6 +381,6 @@ def load_token_metadata(
     missing_meta_df = df[missing_meta_mask]
     if len(missing_meta_df) > 0:
         display_df = missing_meta_df[["pair_id", "base_token_symbol", "base_token_address"]]
-        assert not df["token_metadata"].isna().any().any(), f"NA detected in token metadata {len(missing_meta_df)}:\n{display_df}"
+        assert not df["token_metadata"].isna().any().any(), f"NA detected in token metadata, {len(missing_meta_df)} entries missing\nDid metadata download crash?:\n{display_df}"
 
     return df
