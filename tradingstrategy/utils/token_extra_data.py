@@ -385,7 +385,7 @@ def load_token_metadata(
     df["buy_tax"] = df["token_metadata"].apply(_map_buy_tax)
     df["sell_tax"] = df["token_metadata"].apply(_map_sell_tax)
 
-    logger.info("TokenSniffer has %d missing entries", df["tokensniffer_error"].notna().sum())
+    logger.info("TokenSniffer has %d error entries", df["tokensniffer_error"].notna().sum())
 
     missing_meta_mask = df["token_metadata"].isna()
     missing_meta_df = df[missing_meta_mask]

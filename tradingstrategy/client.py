@@ -531,6 +531,60 @@ class Client(BaseClient):
             When ``min_tvl`` is used, the date range ``start`` - ``end`` is approximation. Entries outside this range
             may be returned.
 
+        Example how to create a trading univers that picks all Uniswap pairs with ``min_tvl`` during the period:
+
+        .. code-block:: python
+
+            class Parameters:
+                exchanges = {"uniswap-v2", "uniswap-v3"}
+                min_tvl = 1_500_000
+                backtest_start = datetime.datetime(2024, 1, 1)
+                backtest_end = datetime.datetime(2024, 2, 4)
+
+            SUPPORTING_PAIRS = [
+                (ChainId.base, "uniswap-v2", "WETH", "USDC", 0.0030),
+                (ChainId.base, "uniswap-v3", "WETH", "USDC", 0.0005),
+                (ChainId.base, "uniswap-v3", "cbBTC", "WETH", 0.0030),    # Only trading since October
+            ]
+
+            exchange_universe = client.fetch_exchange_universe()
+            targeted_exchanges = [exchange_universe.get_by_chain_and_slug(ChainId.base, slug) for slug in Parameters.exchanges]
+
+            all_pairs_df = client.fetch_pair_universe().to_pandas()
+            all_pairs_df = filter_for_exchange_slugs(all_pairs_df, Parameters.exchanges)
+            pair_universe = PandasPairUniverse(
+                all_pairs_df,
+                exchange_universe=exchange_universe,
+                build_index=False,
+            )
+
+            #
+            # Do exchange and TVL prefilter pass for the trading universe
+            #
+            tvl_df = client.fetch_tvl(
+                mode="min_tvl",
+                bucket=TimeBucket.d1,
+                start_time=Parameters.backtest_start,
+                end_time=Parameters.backtest_end,
+                exchange_ids=[exc.exchange_id for exc in targeted_exchanges],
+                min_tvl=Parameters.min_tvl,
+            )
+
+            tvl_filtered_pair_ids = tvl_df["pair_id"].unique()
+            benchmark_pair_ids = [pair_universe.get_pair_by_human_description(desc).pair_id for desc in SUPPORTING_PAIRS]
+            needed_pair_ids = set(benchmark_pair_ids) | set(tvl_filtered_pair_ids)
+            pairs_df = all_pairs_df[all_pairs_df["pair_id"].isin(needed_pair_ids)]
+
+            dataset = load_partial_data(
+                client=client,
+                time_bucket=Parameters.candle_time_bucket,
+                pairs=pairs_df,
+                execution_context=execution_context,
+                universe_options=universe_options,
+                lending_reserves=LENDING_RESERVES,
+                preloaded_tvl_df=tvl_df,
+            )
+
         :param bucket:
             Candle time frame.
 
