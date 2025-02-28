@@ -177,6 +177,7 @@ def load_extra_metadata(
     chain_id = ChainId(pairs_df.iloc[0]["chain_id"])
     token_addresses = query_pairs_df["base_token_address"].unique()
 
+    logger.info("Querying %d unique base tokens", len(token_addresses))
 
     # Load data if not given
     if top_pair_reply is None:
@@ -317,6 +318,7 @@ def load_token_metadata(
         - "token_metadata" containing token metadata object.
         - "coingecko_categories" containing CoinGecko categories
         - "tokensniffer_score" containing TokenSniffer risk score
+        - "tokensniffer_error" containing error message if TokenSniffer data could not be fetched for a token
         - "buy_tax" containing buy tax
         - "sell_tax" containing sell tax
 
@@ -370,12 +372,20 @@ def load_token_metadata(
             return meta.get_sell_tax()
         return None
 
+    def _map_sniff_error(meta: TokenMetadata | None):
+        if meta:
+            return meta.token_sniffer_error
+        return None
+
     df = pairs_df
     df["token_metadata"] = df["base_token_address"].apply(_map_meta)
     df["tokensniffer_score"] = df["token_metadata"].apply(_map_risk_score)
+    df["tokensniffer_error"] = df["token_metadata"].apply(_map_sniff_error)
     df["coingecko_categories"] = df["token_metadata"].apply(_map_categories)
     df["buy_tax"] = df["token_metadata"].apply(_map_buy_tax)
     df["sell_tax"] = df["token_metadata"].apply(_map_sell_tax)
+
+    logger.info("TokenSniffer has %d missing entries", df["tokensniffer_error"].notna().sum())
 
     missing_meta_mask = df["token_metadata"].isna()
     missing_meta_df = df[missing_meta_mask]

@@ -47,7 +47,7 @@ def test_load_tvl_parquet(
         min_tvl=5_000_000,
     )
     assert df.attrs["cached"] is False, f"Cached at {df.attrs['path']}"
-    assert len(df) == 562
+    assert len(df) >= 562  # TODO: server may optimise actual candle amount
 
     assert "pair_id" in df.columns
     assert "bucket" in df.columns
