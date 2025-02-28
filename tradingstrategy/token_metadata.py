@@ -65,11 +65,6 @@ class TokenMetadata:
     #:
     token_sniffer_data: dict | None
 
-    #: TokenSniffer API error if the sniff data could not be loaded.
-    #:
-    #: Usually rate limit or such temporary error.
-    #:
-    token_sniffer_error: str | None
 
     #: Coingecko metadata
     #:
@@ -80,6 +75,12 @@ class TokenMetadata:
 
     #: Was this item loaded from the disk or server
     cached: bool = None
+
+    #: TokenSniffer API error if the sniff data could not be loaded.
+    #:
+    #: Usually rate limit or such temporary error.
+    #:
+    token_sniffer_error: str | None = None
 
     def get_persistent_id(self) -> str:
         """Stable id over long period of time and across different systems."""
