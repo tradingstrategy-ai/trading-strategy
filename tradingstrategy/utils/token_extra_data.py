@@ -318,6 +318,7 @@ def load_token_metadata(
         - "token_metadata" containing token metadata object.
         - "coingecko_categories" containing CoinGecko categories
         - "tokensniffer_score" containing TokenSniffer risk score
+        - "tokensniffer_error" containing error message if TokenSniffer data could not be fetched for a token
         - "buy_tax" containing buy tax
         - "sell_tax" containing sell tax
 
