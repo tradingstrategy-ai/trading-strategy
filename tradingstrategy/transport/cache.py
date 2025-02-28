@@ -1155,6 +1155,18 @@ class CachedHTTPTransport:
             df.attrs["cached"] = cached is not None
             df.attrs["filesize"] = size
             df.attrs["path"] = path
+
+            range_start = df["bucket"].min()
+            range_end = df["bucket"].max()
+
+            logger.info(
+                "Got TVL data for range %s - %s (requested %s - %s)",
+                range_start,
+                range_end,
+                start_time,
+                end_time,
+            )
+
             return df
 
     def fetch_trading_data_availability(self,
