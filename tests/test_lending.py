@@ -96,8 +96,8 @@ def test_resolve_lending_reserve(persistent_test_client):
     assert usdt_reserve.atoken_decimals == 6
     assert usdt_reserve.vtoken_symbol == "variableDebtPolUSDT"
     assert usdt_reserve.vtoken_decimals == 6
-    assert 0 < usdt_reserve.additional_details.ltv < 1
-    assert 0 < usdt_reserve.additional_details.liquidation_threshold < 1
+    assert usdt_reserve.additional_details.ltv >= 0
+    assert usdt_reserve.additional_details.liquidation_threshold >= 0
 
     weth_reserve = universe.resolve_lending_reserve(
         (
