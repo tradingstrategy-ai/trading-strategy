@@ -1,6 +1,7 @@
-# Current
+# 0.26
 
 - Add: `Client.fetch_tvl()` endpoint to stream TVL data efficiently
+- Add: `365d` time bucket
 
 # 0.25.4
 
