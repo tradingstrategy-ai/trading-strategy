@@ -58,7 +58,13 @@ class TimeBucket(enum.Enum):
 
     #: We do not have "yearly" candles, but some trade statistics are calculated
     #: for 360 days, thus we need a corresponding time bucket for them.
+    #:
+    #: TOOD: Use `d365` instead.
+    #:
     d360 = "360d"
+
+    #: Yearly candles, using standard 365d year
+    d365 = "365d"
 
     #: Some statistics like "all time high", for example, only make sense if a "bucket"
     #: spans across the entire timeline.
