@@ -5,7 +5,6 @@ import logging
 from _decimal import Decimal
 from pathlib import Path
 
-import flaky
 import pandas as pd
 import pytest
 
@@ -76,7 +75,6 @@ def test_client_fetch_lending_candles(client: Client, cache_path: str):
 
 
 # assert 0 < usdt_reserve.additional_details.ltv < 1
-@flaky.flaky
 def test_resolve_lending_reserve(persistent_test_client):
     """Look up lending reserve by a human description"""
     client = persistent_test_client
