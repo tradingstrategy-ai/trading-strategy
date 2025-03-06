@@ -1067,8 +1067,13 @@ class CachedHTTPTransport:
         end_time: Optional[AnyTimestamp] = None,
         min_tvl: Optional[USDollarAmount] = None,
         progress_bar_description: Optional[str] = "Downloading TVL data",
+        min_tvl_timeout=(240, 240),
     ) -> pd.DataFrame:
         """Stream TVL Parquet data from the server.
+
+        :param timeout:
+            We need to override the default timeout with longer one,
+            because the min_tvl prefilter step is heavy.
 
         :return:
             TVL dataframe.
@@ -1087,6 +1092,7 @@ class CachedHTTPTransport:
                     candle_type="tvl",
                     ftype="parquet",
                 )
+                timeout = self.timeout
             case "min_tvl":
                 assert exchange_ids
                 assert type(exchange_ids) in (list, tuple, set)
@@ -1096,6 +1102,7 @@ class CachedHTTPTransport:
                     candle_type=f"min-tvl-{min_tvl}",
                     ftype="parquet",
                 )
+                timeout = min_tvl_timeout
             case _:
                 raise NotImplementedError(f"Unsupported mode: {mode}")
 
@@ -1130,14 +1137,20 @@ class CachedHTTPTransport:
                 if min_tvl:
                     params["min_tvl"] = str(min_tvl)
 
-                logger.info("fetch_tvl(): no cache hit for %s, loading %s", path, params)
+                logger.info(
+                    "fetch_tvl(): no cache hit, timeout %s\nparams: %s\ncache path: %s",
+
+                    timeout,
+                    params,
+                    path,
+                )
 
                 download_with_tqdm_progress_bar(
                     session=self.requests,
                     path=path,
                     url=url,
                     params=params,
-                    timeout=self.timeout,
+                    timeout=timeout,
                     human_readable_hint=progress_bar_description,
                 )
 

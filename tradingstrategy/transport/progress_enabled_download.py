@@ -8,12 +8,13 @@ from tqdm_loggable.auto import tqdm
 
 
 def download_with_tqdm_progress_bar(
-        session: Session,
-        path: str,
-        url: str,
-        params: dict,
-        timeout: float,
-        human_readable_hint: Optional[str]):
+    session: Session,
+    path: str,
+    url: str,
+    params: dict,
+    timeout: float | tuple,
+    human_readable_hint: Optional[str]
+):
     """Use tqdm library to raw a graphical progress bar in notebooks for long downloads.
 
     Autodetects the Python execution environment
