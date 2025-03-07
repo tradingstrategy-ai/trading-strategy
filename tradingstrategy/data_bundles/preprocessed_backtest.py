@@ -48,14 +48,13 @@ class Dataset:
     min_tokensniffer_score: int | None = None
 
 
+@dataclass
 class SavedDataset:
     set: Dataset
-    pair_count: int
     parquet_path: Path
     csv_path: Path
     df: pd.DataFrame
     pairs_df: pd.DataFrame
-
 
 
 def make_full_ticker(row: pd.Series) -> str:
@@ -247,7 +246,6 @@ def prepare_dataset(
 
     return SavedDataset(
         set=dataset,
-        pair_count=len(pairs_df),
         csv_path=csv_file,
         parquet_path=parquet_file,
         df=price_df,
@@ -265,7 +263,7 @@ PREPACKAGED_SETS = [
         time_bucket=TimeBucket.d1,
         exchanges={"pancakeswap-v2"},
         always_included_pairs=[
-            (ChainId.binance, "panscakeswap-v2", "WBNB", "USDT"),
+            (ChainId.binance, "pancakeswap-v2", "WBNB", "USDT"),
         ]
     ),
 
@@ -278,7 +276,7 @@ PREPACKAGED_SETS = [
         min_tvl=250_000,
         exchanges={"pancakeswap-v2"},
         always_included_pairs=[
-            (ChainId.binance, "panscakeswap-v2", "WBNB", "USDT"),
+            (ChainId.binance, "pancakeswap-v2", "WBNB", "USDT"),
         ]
     )
 ]

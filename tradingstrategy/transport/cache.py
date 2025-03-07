@@ -28,6 +28,7 @@ import requests
 from filelock import FileLock
 from requests import Response
 from requests.adapters import HTTPAdapter
+import pyarrow as pa
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
@@ -1068,6 +1069,7 @@ class CachedHTTPTransport:
         min_tvl: Optional[USDollarAmount] = None,
         progress_bar_description: Optional[str] = "Downloading TVL data",
         min_tvl_timeout=(240, 240),
+        max_attempts=2,
     ) -> pd.DataFrame:
         """Stream TVL Parquet data from the server.
 
@@ -1110,77 +1112,94 @@ class CachedHTTPTransport:
 
         url = f"{self.endpoint}/tvl"
 
-        with wait_other_writers(full_fname):
+        attempt = 0
+        while attempt < max_attempts:
+            with wait_other_writers(full_fname):
 
-            cached = self.get_cached_item(cache_fname)
-            path = self.get_cached_file_path(cache_fname)
+                cached = self.get_cached_item(cache_fname)
+                path = self.get_cached_file_path(cache_fname)
 
-            if not cached:
+                if not cached:
 
-                params = {
-                    "time_bucket": time_bucket.value,
-                    "mode": mode,
-                }
+                    params = {
+                        "time_bucket": time_bucket.value,
+                        "mode": mode,
+                    }
 
-                if pair_ids:
-                    params["pair_ids"] = ",".join([str(i) for i in pair_ids]),  # OpenAPI comma delimited array
+                    if pair_ids:
+                        params["pair_ids"] = ",".join([str(i) for i in pair_ids]),  # OpenAPI comma delimited array
 
-                if exchange_ids:
-                    params["exchange_ids"] = ",".join([str(i) for i in exchange_ids]),  # OpenAPI comma delimited array
+                    if exchange_ids:
+                        params["exchange_ids"] = ",".join([str(i) for i in exchange_ids]),  # OpenAPI comma delimited array
 
-                if start_time:
-                    params["start"] = start_time.isoformat()
+                    if start_time:
+                        params["start"] = start_time.isoformat()
 
-                if end_time:
-                    params["end"] = end_time.isoformat()
+                    if end_time:
+                        params["end"] = end_time.isoformat()
 
-                if min_tvl:
-                    params["min_tvl"] = str(min_tvl)
+                    if min_tvl:
+                        params["min_tvl"] = str(min_tvl)
 
-                logger.info(
-                    "fetch_tvl(): no cache hit, timeout %s\nparams: %s\ncache path: %s",
+                    logger.info(
+                        "fetch_tvl(): no cache hit, timeout %s\nparams: %s\ncache path: %s",
 
-                    timeout,
-                    params,
-                    path,
-                )
+                        timeout,
+                        params,
+                        path,
+                    )
 
-                download_with_tqdm_progress_bar(
-                    session=self.requests,
-                    path=path,
-                    url=url,
-                    params=params,
-                    timeout=timeout,
-                    human_readable_hint=progress_bar_description,
-                )
+                    download_with_tqdm_progress_bar(
+                        session=self.requests,
+                        path=path,
+                        url=url,
+                        params=params,
+                        timeout=timeout,
+                        human_readable_hint=progress_bar_description,
+                    )
 
-                size = pathlib.Path(path).stat().st_size
-                logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+                    size = pathlib.Path(path).stat().st_size
+                    logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
 
-            else:
-                logger.info("fetch_tvl(): cache hit for %s", path)
-                size = pathlib.Path(path).stat().st_size
-                logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
+                else:
+                    logger.info("fetch_tvl(): cache hit for %s", path)
+                    size = pathlib.Path(path).stat().st_size
+                    logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
 
-            df = pandas.read_parquet(path)
+                try:
+                    df = pandas.read_parquet(path)
+                    break
+                except pa.ArrowInvalid as e:
+                    attempt += 1
+                    msg = f"Parquet file {path} with size {size:,} bytes invalid, cached is {cached}: {e}"
+                    if attempt >= max_attempts:
+                        raise RuntimeError(msg) from e
+                    else:
+                        logger.warning(msg)
+                        pathlib.Path(path).unlink()
+                        logger.warning("Cache cleared: %s", path)
 
-            # Export cache metadata
-            df.attrs["cached"] = cached is not None
-            df.attrs["filesize"] = size
-            df.attrs["path"] = path
+        # Export cache metadata
+        df.attrs["cached"] = cached is not None
+        df.attrs["filesize"] = size
+        df.attrs["path"] = path
 
-            range_start = df["bucket"].min()
-            range_end = df["bucket"].max()
+        range_start = df["bucket"].min()
+        range_end = df["bucket"].max()
 
-            logger.info(
-                "Got TVL data for range %s - %s (requested %s - %s)",
-                range_start,
-                range_end,
-                start_time,
-                end_time,
-            )
+        pair_count = len(df["pair_id"].unique())
 
-            return df
+        logger.info(
+            "Got TVL data for range %s - %s (requested %s - %s), pair count: %d, candle count: %d",
+            range_start,
+            range_end,
+            start_time,
+            end_time,
+            pair_count,
+            len(df)
+        )
+
+        return df
 
     def fetch_trading_data_availability(self,
           pair_ids: Collection[PrimaryKey],

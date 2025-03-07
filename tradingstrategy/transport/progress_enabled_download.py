@@ -43,7 +43,7 @@ def download_with_tqdm_progress_bar(
     desc = human_readable_hint or ""
 
     # Add warning about missing Content-Length header
-    desc += "(Unknown total file size)" if file_size == 0 else ""
+    desc += " (Unknown total file size)" if file_size == 0 else ""
 
     r.raw.read = functools.partial(r.raw.read, decode_content=True)  # Decompress if needed
     with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc) as r_raw:
