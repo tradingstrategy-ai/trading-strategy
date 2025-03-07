@@ -828,7 +828,7 @@ def filter_by_token_sniffer_score(
 
         E.g. some Coinbase tokens on Base.
     """
-    assert type(risk_score) == int
+    assert type(risk_score) == int, f"Expected int risk score, got: {risk_score}"
     assert risk_score >= 0
     assert isinstance(pairs_df, pd.DataFrame)
     assert "tokensniffer_score" in pairs_df.columns, "tokensniffer_score column not available. Please call load_token_metadata() for the data"
