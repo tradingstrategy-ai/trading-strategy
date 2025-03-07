@@ -15,7 +15,6 @@ import logging
 from typing import List, Set, Tuple, Collection
 
 import pandas as pd
-import numpy as np
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
@@ -540,7 +539,8 @@ def filter_pairs_default(
     verbose_print=lambda x, y: print(x, y),
     max_trading_pair_fee_bps: IntBasisPoint | None = 100,
     blacklisted_token_symbols: Collection[TokenSymbol] | None = None,
-    good_quote_tokes: Collection[TokenSymbol] = KNOWN_GOOD_TOKENS,
+    good_quote_tokens: Collection[TokenSymbol] = None,
+    good_quote_token_addresses: Collection[str] = None,
     exchanges: Collection[Exchange] | None = None,
     exchange_ids: Collection[PrimaryKey] | None = None,
     pair_ids_in_candles: Collection[PrimaryKey] | pd.Series | None = None,
@@ -564,8 +564,15 @@ def filter_pairs_default(
     :param verbose_print:
         Output function to print out information about narroving the dataset
 
-    :param good_quote_tokes:
+    :param good_quote_tokens:
         Only allow trading pairs that trade against these tokens.
+
+        By token symbol. Unsafe.
+
+    :param good_quote_token_addresses:
+        Only allow trading pairs that trade against these tokens.
+
+        List of 0x addresses. Usually WETH and USDC/USDT.
 
     :param blacklisted_token_symbols:
         Avoid these base tokens for some reason or another
@@ -628,8 +635,16 @@ def filter_pairs_default(
     tradeable_pairs_df = filter_for_rebases(tradeable_pairs_df)
     verbose_print("Pairs that are not rebase tokens", len(tradeable_pairs_df))
 
-    tradeable_pairs_df = tradeable_pairs_df.loc[tradeable_pairs_df["quote_token_symbol"].isin(good_quote_tokes)]
-    verbose_print("Pairs with good quote token", len(tradeable_pairs_df))
+    if good_quote_tokens is not None:
+        tradeable_pairs_df = tradeable_pairs_df.loc[tradeable_pairs_df["quote_token_symbol"].isin(good_quote_tokens)]
+        verbose_print("Pairs with good quote token", len(tradeable_pairs_df))
+
+    if good_quote_token_addresses is not None:
+        assert "quote_token_address" in tradeable_pairs_df.columns, "quote_token_address column missing. Run add_base_quote_address_columns() on pairs dataframe first."
+        for address in good_quote_token_addresses:
+            assert address == address.lower(), f"good_quote_token_addresses: Address {address} must be lowercase"
+        tradeable_pairs_df = tradeable_pairs_df.loc[tradeable_pairs_df["quote_token_address"].isin(good_quote_token_addresses)]
+        verbose_print("Pairs with good quote token", len(tradeable_pairs_df))
 
     if blacklisted_token_symbols:
         tradeable_pairs_df = filter_for_blacklisted_tokens(tradeable_pairs_df, blacklisted_token_symbols)
