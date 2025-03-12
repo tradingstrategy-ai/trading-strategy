@@ -1101,7 +1101,7 @@ class CachedHTTPTransport:
                 assert type(min_tvl) in (float, int), f"min_tvl must be float, got {type(min_tvl)}: {min_tvl}"
                 cache_fname = self._generate_cache_name(
                     exchange_ids, time_bucket, start_time, end_time,
-                    candle_type=f"min-tvl-{min_tvl}",
+                    candle_type=f"{mode.replace('_', '-')}-{min_tvl}",
                     ftype="parquet",
                 )
                 timeout = min_tvl_timeout
