@@ -350,7 +350,12 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
 
         # https://pandas.pydata.org/docs/reference/api/pandas.Index.get_indexer.html
         # https://stackoverflow.com/questions/71027193/datetimeindex-get-loc-is-deprecated
-        indexer = timestamp_index.get_indexer([when], method="pad")
+        try:
+            indexer = timestamp_index.get_indexer([when], method="pad")
+        except ValueError as e:
+            first_sample = candles_per_pair.index[0]
+            last_sample = candles_per_pair.index[-1]
+            raise LiquidityDataUnavailable(f"Pair {pair_id} has an error when accessing indexer: {e}.\nTried to look up {when}. First sample is: {first_sample}. Last sample is: {last_sample}") from e
 
         if indexer[0] != -1:
             discrete_ts_idx = indexer[0]
@@ -364,7 +369,10 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
         latest_value = candles_per_pair.iloc[discrete_ts_idx][kind]
 
         distance = when - sample_timestamp
-        assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a timestamp {sample_timestamp} that is newer than asked {when}"
+        first_sample = candles_per_pair.index[0]
+        last_sample = candles_per_pair.index[-1]
+        index_len = len(candles_per_pair.index)
+        assert distance >= _ZERO_TIMEDELTA, f"Somehow we managed to get a timestamp {sample_timestamp} that is newer than asked {when}\nPair id: {pair_id}. First sample is: {first_sample}. Last sample is: {last_sample}. Index has {index_len} entries."
 
         if sample_timestamp >= last_allowed_timestamp:
             # Return the chosen price column of the sample

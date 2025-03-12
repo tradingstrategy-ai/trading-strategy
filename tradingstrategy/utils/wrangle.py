@@ -247,7 +247,7 @@ def fix_prices_in_between_time_frames(
             logger.info("Healed OHLCV data for pair %s - detected issues", pair_id)
             replacements[pair_id] = healed_ohlcv_df
 
-    healed = dfgb.apply(lambda x: _replace_for_groups(x, replacements))
+    healed = dfgb.apply(lambda x: _replace_for_groups(x, replacements), include_groups=True)
     healed = healed.set_index("timestamp", drop=False)
     return healed.groupby(pair_id_column)
 

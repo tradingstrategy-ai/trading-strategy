@@ -124,7 +124,12 @@ def load_trading_strategy_like_jsonl_data(
 
     param_str = str(params)[0:256]
 
-    logger.info("Loading JSON data, endpoint:%s, params:%s", api_url, param_str)
+    logger.info(
+        "Loading JSON data, endpoint:%s, bucket: %s, params (shortened):%s",
+        api_url,
+        time_bucket.value,
+        param_str
+    )
     if len(params) >= 256:
         # Avoid excessive logging
         logger.debug("Full params are %s", params)

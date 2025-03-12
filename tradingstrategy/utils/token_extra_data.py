@@ -334,6 +334,7 @@ def load_token_metadata(
     token_addresses = set(pd.concat([pairs_df["token0_address"], pairs_df["token1_address"]]))
 
     chain_ids = pairs_df["chain_id"].unique()
+    assert len(chain_ids) != 0, "No pairs to load in load_token_metadata()"
     assert len(chain_ids) == 1, f"Mixed chain_ids: {chain_ids}"
     chain_id = ChainId(chain_ids[0])
 
