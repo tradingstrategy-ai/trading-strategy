@@ -252,6 +252,7 @@ class GroupedLiquidityUniverse(PairGroupedUniverse):
             forward_fill_until=forward_fill_until,
             remove_candles_with_zero_volume=False,
             bad_open_close_threshold=None,
+            min_max_price=None,
         )
 
     def get_liquidity_samples_by_pair(self, pair_id: PrimaryKey) -> Optional[pd.DataFrame]:

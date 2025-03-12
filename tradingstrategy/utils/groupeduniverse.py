@@ -28,8 +28,7 @@ from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA
 
-from .wrangle import fix_dex_price_data
-
+from .wrangle import fix_dex_price_data, DEFAULT_MIN_MAX_RANGE
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +81,7 @@ class PairGroupedUniverse:
         bad_open_close_threshold: float | None=3.0,
         autoheal_pair_limit=500,
         forward_fill_until: datetime.datetime | pd.Timestamp | None = None,
+        min_max_price=DEFAULT_MIN_MAX_RANGE,
     ):
         """Set up new candle universe where data is grouped by trading pair.
 
@@ -160,7 +160,7 @@ class PairGroupedUniverse:
             })
 
         logger.info(
-            f"Creating candle/liquidity universe with {len(self.df):,} rows",
+            f"Creating {self.__class__.__name__} universe with {len(self.df):,} rows, forward fill is {forward_fill} until {forward_fill_until}",
         )
 
         #: This contains DataFrameGroupBy
@@ -169,7 +169,7 @@ class PairGroupedUniverse:
         self.pairs = groups = self.df.groupby(by=self.primary_key_column)
 
         if len(self.pairs) < autoheal_pair_limit:
-            if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume:
+            if fix_wick_threshold or bad_open_close_threshold or fix_inbetween_threshold or remove_candles_with_zero_volume or forward_fill:
 
                 # We can only forward fill data if we know the freq
                 if forward_fill:
@@ -194,11 +194,20 @@ class PairGroupedUniverse:
                     remove_candles_with_zero_volume=remove_candles_with_zero_volume,
                     forward_fill=forward_fill,
                     forward_fill_until=forward_fill_until,
+                    min_max_price=min_max_price,
                 )
 
                 assert isinstance(fix_result, DataFrameGroupBy)
                 self.df = fix_result.obj
                 self.pairs = fix_result
+
+        else:
+            logger.warning(
+                "%s: auto-heal pair limit %d exceeded with %d pairs",
+                self.__class__.__name__,
+                autoheal_pair_limit,
+                len(self.pairs),
+            )
 
         #: Grouped DataFrame cache for faster lookup
         self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}

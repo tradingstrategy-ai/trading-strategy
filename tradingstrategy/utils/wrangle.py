@@ -439,7 +439,7 @@ def fix_dex_price_data(
         if isinstance(forward_fill_until, datetime.datetime):
             forward_fill_until = pd.Timestamp(forward_fill_until)
 
-        logger.info("Forward filling price data, until %s, freq %s", forward_fill_until, freq)
+        logger.info("Forward filling OHLCV data, until %s, freq %s", forward_fill_until, freq)
         assert freq, "freq argument must be given if forward_fill=True"
 
         if "volume" in ff_df.obj.columns:

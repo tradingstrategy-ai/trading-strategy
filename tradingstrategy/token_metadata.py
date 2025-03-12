@@ -117,6 +117,7 @@ class TokenMetadata:
         """
         if self.token_sniffer_data is not None:
             return "swap_simulation" in self.token_sniffer_data
+        return False
 
     def get_buy_tax(self, epsilon=0.0001, rounding=4) -> float | None:
         """What was the TokenSniffer buy tax for the base token.
@@ -141,6 +142,7 @@ class TokenMetadata:
 
         raw_buy_fee = self.token_sniffer_data["swap_simulation"].get("buy_fee")
         if raw_buy_fee is None:
+            # {'is_sellable': None, 'buy_fee': None, 'sell_fee': None, 'message': 'not available'}
             return None
 
         fee = float(raw_buy_fee) / 100
