@@ -79,7 +79,7 @@ class PairGroupedUniverse:
         remove_candles_with_zero_volume: bool = True,
         forward_fill: bool = False,
         bad_open_close_threshold: float | None=3.0,
-        autoheal_pair_limit=500,
+        autoheal_pair_limit=1_000,
         forward_fill_until: datetime.datetime | pd.Timestamp | None = None,
         min_max_price=DEFAULT_MIN_MAX_RANGE,
     ):

@@ -756,7 +756,7 @@ class CachedHTTPTransport:
                 max_bytes=max_bytes,
                 progress_bar_description=progress_bar_description,
                 # temp increase sanity check count
-                sanity_check_count=500,
+                sanity_check_count=750,
             )
 
             # Update cache
@@ -1061,7 +1061,7 @@ class CachedHTTPTransport:
     def fetch_tvl(
         self,
         time_bucket: TimeBucket,
-        mode: Literal["min_tvl", "pair_ids"],
+        mode: Literal["min_tvl", "min_tvl_low", "pair_ids"],
         exchange_ids: Collection[PrimaryKey] = None,
         pair_ids: Collection[PrimaryKey] = None,
         start_time: Optional[AnyTimestamp] = None,
@@ -1095,13 +1095,13 @@ class CachedHTTPTransport:
                     ftype="parquet",
                 )
                 timeout = self.timeout
-            case "min_tvl":
+            case "min_tvl" | "min_tvl_low":
                 assert exchange_ids
                 assert type(exchange_ids) in (list, tuple, set)
                 assert type(min_tvl) in (float, int), f"min_tvl must be float, got {type(min_tvl)}: {min_tvl}"
                 cache_fname = self._generate_cache_name(
                     exchange_ids, time_bucket, start_time, end_time,
-                    candle_type=f"min-tvl-{min_tvl}",
+                    candle_type=f"{mode.replace('_', '-')}",
                     ftype="parquet",
                 )
                 timeout = min_tvl_timeout
