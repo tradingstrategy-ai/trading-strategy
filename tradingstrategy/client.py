@@ -503,7 +503,7 @@ class Client(BaseClient):
 
     def fetch_tvl(self,
         bucket: TimeBucket,
-        mode: Literal["min_tvl", "pair_ids"],
+        mode: Literal["min_tvl", "min_tvl_low", "pair_ids"],
         exchange_ids: Collection[PrimaryKey] = None,
         pair_ids: Collection[PrimaryKey] = None,
         start_time: Optional[AnyTimestamp] = None,
@@ -592,6 +592,10 @@ class Client(BaseClient):
 
         :param mode:
             Query all exchange data by min_tvl (mode = "min_tvl"), or use given pair list (mode = "pair_ids").
+
+            ``min_tvl`` filters by the highest TVL value. But price because this is easy to manipulate with MEV,
+            this often grabs too many pairs that have no real TVL. ``min_tvl_low`` filters by daily TVL low value,
+            which often reflects the real TVL better.
 
         :param exchange_ids:
             Exchange internal ids for min_tvl query.
