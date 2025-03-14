@@ -12,7 +12,7 @@ import orjson
 import pandas as pd
 
 import datetime
-from typing import Optional, Dict, Set, Collection
+from typing import Optional, Dict, Set, Collection, Iterable
 
 import requests
 import jsonlines
@@ -308,7 +308,7 @@ def load_token_metadata_jsonl(
     progress_bar_description: Optional[str] = None,
     attempts=5,
     sleep=30,
-) -> dict[str, dict]:
+) -> Iterable[dict]:
     """Read data from /token-metadata JSONL endpoint.
 
     `See OpenAPI spec for details on the format <https://tradingstrategy.ai/api/explorer/>`_.
@@ -334,7 +334,14 @@ def load_token_metadata_jsonl(
             "addresses": ",".join(addresses_left)
         }
         param_str = str(params)[0:256]
-        logger.info("Loading JSON data, endpoint:%s, params:%s, total: %d, attempt %d", api_url, param_str, total, attempt)
+        logger.info(
+            "Loading JSON data, endpoint:%s, address left: %d, params:%s, total: %d, attempt %d",
+            api_url,
+            len(addresses_left),
+            param_str,
+            total,
+            attempt
+        )
         resp = session.post(api_url, data=params, stream=True)  # Need to use POST here
 
         # Deal with errors from the server
@@ -364,6 +371,8 @@ def load_token_metadata_jsonl(
                 data[metadata_dict["token_address"]] = metadata_dict
                 addresses_left.remove(metadata_dict["token_address"])
 
+                yield metadata_dict
+
                 progress_bar.update()
 
             # Success, get out of attempts
@@ -390,4 +399,4 @@ def load_token_metadata_jsonl(
         progress_bar.close()
 
     logger.info("Loaded %d rows", len(data))
-    return data
+

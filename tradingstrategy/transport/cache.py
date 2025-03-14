@@ -1058,7 +1058,7 @@ class CachedHTTPTransport:
             df.attrs["path"] = path
             return df
 
-    def fetch_tvl(
+    def     fetch_tvl(
         self,
         time_bucket: TimeBucket,
         mode: Literal["min_tvl", "min_tvl_low", "pair_ids"],
@@ -1279,23 +1279,27 @@ class CachedHTTPTransport:
         cached = {a for a in addresses if get_cache_path(a).exists()}
         uncached = addresses - cached
 
+        fresh_load = {}
         # Load items we have not locally
         if len(uncached) > 0:
-            fresh_load = load_token_metadata_jsonl(
+            fresh_load_iter = load_token_metadata_jsonl(
                 session=self.requests,
                 server_url=self.endpoint,
                 chain_id=chain_id,
                 addresses=uncached,
                 progress_bar_description=progress_bar_description,
             )
-        else:
-            fresh_load = {}
 
-        # Save cached
-        for address, data in fresh_load.items():
-            data["cached"] = False
-            with open(get_cache_path(address), "wb") as f:
-                f.write(orjson.dumps(data))
+            # Save cached as we iterate,
+            # so we have these items if we need to restart
+            for data in fresh_load_iter:
+                address = data["token_address"]
+                data["cached"] = False
+                with open(get_cache_path(address), "wb") as f:
+                    logger.info("Saved token metadata for %s: %s", data["symbol"], address)
+                    f.write(orjson.dumps(data))
+
+                fresh_load[address] = data
 
         # Load existing
         cached_load = {}
