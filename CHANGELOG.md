@@ -1,3 +1,7 @@
+# Current
+
+- Add: `Client.fetch_tvl(mode="min_tvl_low")` filtering mode
+
 # 0.26
 
 - Add: `Client.fetch_tvl()` endpoint to stream TVL data efficiently

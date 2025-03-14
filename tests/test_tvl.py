@@ -16,7 +16,7 @@ def test_load_tvl_parquet(
     persistent_test_client: Client,
     default_pair_universe,
 ):
-    """Load CLMM data for two pairs on Uniswap v3."""
+    """Load TVL data for two pairs on Uniswap v3."""
 
     client = persistent_test_client
 
@@ -68,4 +68,42 @@ def test_load_tvl_parquet(
     assert df.attrs["cached"] is True
     assert df.attrs["filesize"] > 0
     assert df.attrs["path"] is not None
+
+
+def test_load_tvl_low_threshold_parquet(
+    persistent_test_client: Client,
+    default_pair_universe,
+):
+    """Load TVL data using daily low threshold filter."""
+
+    client = persistent_test_client
+
+    # Clean cache before first download attempt
+    for p in Path(client.transport.cache_path).glob("min-tvl-*"):
+        p.unlink()
+
+    exchange_universe = client.fetch_exchange_universe()
+    base_uni_v2 = exchange_universe.get_by_chain_and_slug(ChainId.base, "uniswap-v2")
+    base_uni_v3 = exchange_universe.get_by_chain_and_slug(ChainId.base, "uniswap-v3")
+
+    start = datetime.datetime(2025, 1, 1)
+    end = datetime.datetime(2025, 2, 1)
+
+    # Disable retries, as we want to fail on the first request
+    retry_policy = Retry(
+        total=0,
+    )
+    adapter = HTTPAdapter(max_retries=retry_policy)
+    client.transport.requests.mount('https://', adapter)
+
+    df = client.fetch_tvl(
+        mode="min_tvl_low",
+        bucket=TimeBucket.d1,
+        start_time=start,
+        end_time=end,
+        exchange_ids={base_uni_v2.exchange_id, base_uni_v3.exchange_id},
+        min_tvl=5_000_000,
+    )
+    assert df.attrs["cached"] is False, f"Cached at {df.attrs['path']}"
+    assert len(df) >= 128  # Much smaller number than with min_tvl filtering above
 
