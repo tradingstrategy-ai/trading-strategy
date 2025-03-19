@@ -1,3 +1,8 @@
+# 0.26.2
+
+- Bump again to fix broken release
+
+
 # 0.26.1
 
 - Update chains submodule: Unichain, Berachain
