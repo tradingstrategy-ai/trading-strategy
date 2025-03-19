@@ -1,3 +1,7 @@
+# 0.26.1
+
+- Update chains submodule: Unichain, Berachain
+
 # 0.26
 
 - Add: `Client.fetch_tvl()` endpoint to stream TVL data efficiently
