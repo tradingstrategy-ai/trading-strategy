@@ -10,6 +10,7 @@ import platform
 import re
 import time
 from contextlib import contextmanager
+from http.client import IncompleteRead
 from importlib.metadata import version
 from json import JSONDecodeError
 from pprint import pformat
@@ -1169,7 +1170,7 @@ class CachedHTTPTransport:
                 try:
                     df = pandas.read_parquet(path)
                     break
-                except pa.ArrowInvalid as e:
+                except (pa.ArrowInvalid, IncompleteRead) as e:
                     attempt += 1
                     msg = f"Parquet file {path} with size {size:,} bytes invalid, cached is {cached}: {e}"
                     if attempt >= max_attempts:
