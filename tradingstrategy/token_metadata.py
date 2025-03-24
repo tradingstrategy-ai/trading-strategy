@@ -4,7 +4,12 @@
 
 """
 import datetime
+import json
 from dataclasses import dataclass
+from pathlib import Path
+from pprint import pformat
+
+import orjson
 
 
 @dataclass(slots=True, frozen=True)
@@ -65,7 +70,6 @@ class TokenMetadata:
     #:
     token_sniffer_data: dict | None
 
-
     #: Coingecko metadata
     #:
     #: Passed as is https://docs.coingecko.com/reference/coins-contract-address.
@@ -115,8 +119,15 @@ class TokenMetadata:
         :return:
             True/False is TokenSniffer data is available, otherwise None.
         """
-        if self.token_sniffer_data is not None:
-            return "swap_simulation" in self.token_sniffer_data
+        token_sniffer_data = self.token_sniffer_data
+        if token_sniffer_data is not None:
+            try:
+                if ("swap_simulation" in token_sniffer_data) and (token_sniffer_data["swap_simulation"].get("buy_fee") is not None):
+                    return True
+            except Exception as e:
+                # {'is_sellable': True}
+                # import ipdb ; ipdb.set_trace()
+                raise
         return False
 
     def get_buy_tax(self, epsilon=0.0001, rounding=4) -> float | None:
@@ -179,3 +190,18 @@ class TokenMetadata:
         if fee < epsilon:
             return 0
         return round(fee, rounding)
+
+    @staticmethod
+    def read_json(path: Path) -> "TokenMetadata":
+        """Read token metadata from JSON file."""
+
+        assert isinstance(path, Path)
+        assert path.is_file()
+
+        data = orjson.loads(path.read_bytes())
+        try:
+            metadata = TokenMetadata(**data)
+        except TypeError as e:
+            raise TypeError(f"Not valid metadata {path}:\n{pformat(data)}") from e
+
+        return metadata
