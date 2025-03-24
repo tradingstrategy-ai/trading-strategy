@@ -88,8 +88,11 @@ def calculate_token_cache_summary(cached_entries: Iterable[TokenCacheEntry]) -> 
         stats["tax_data"] += 1 if entry.has_tax_data() else 0
         stats["tax"] += 1 if entry.has_tax() else 0
         if entry.has_tax():
-            buy_tax.append(entry.metadata.get_buy_tax())
-            sell_tax.append(entry.metadata.get_sell_tax())
+            # Scam tokens have tax at 100%
+            if entry.metadata.token_sniffer_score != 0:
+                buy_tax.append(entry.metadata.get_buy_tax())
+            if entry.metadata.token_sniffer_score != 0:
+                sell_tax.append(entry.metadata.get_sell_tax())
         sizes.append(entry.file_size)
         timestamps.append(entry.updated_at)
 
