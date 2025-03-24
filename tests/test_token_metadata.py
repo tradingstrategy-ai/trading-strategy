@@ -1,17 +1,10 @@
-"""CLMM data tests."""
-
-import datetime
-from pathlib import Path
+"""Token metadata and TokenSniffer tests."""
 
 import pytest
-from requests.adapters import HTTPAdapter
-from urllib3 import Retry
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse
-from tradingstrategy.timebucket import TimeBucket
-from tradingstrategy.transport.cache import APIError
 from tradingstrategy.utils.token_extra_data import load_token_metadata
 from tradingstrategy.utils.token_filter import add_base_quote_address_columns, filter_for_stablecoins, StablecoinFilteringMode, filter_for_derivatives, filter_for_quote_tokens, deduplicate_pairs_by_volume, filter_by_token_sniffer_score
 
@@ -34,7 +27,6 @@ def test_load_token_metadata(
     assert "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9".lower() in metadata
 
     usdc = metadata["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"]
-    print(usdc)
 
 
 @pytest.mark.skip(reason="Server-side error messages must be fine-tuned")
@@ -52,7 +44,6 @@ def test_load_metadata_single_bad_token(
     assert len(metadata) == 1
 
 
-@pytest.mark.skip(reason="Unfinished")
 def test_create_trading_universe_with_token_metadata(
     persistent_test_client: Client,
     default_pair_universe,
@@ -61,8 +52,9 @@ def test_create_trading_universe_with_token_metadata(
     client = persistent_test_client
 
     chain_id = ChainId.avalanche
-    exchanges = {"trader-joe", "pangolin"}
+    exchanges = {"pangolin"}
 
+    exchange_universe = client.fetch_exchange_universe()
     pairs_df = client.fetch_pair_universe().to_pandas()
 
     # Drop other chains to make the dataset smaller to work with
@@ -79,8 +71,8 @@ def test_create_trading_universe_with_token_metadata(
 
     # Take pairs only in supported quote token
     allowed_quotes = {
-        "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",  # USDC
-        "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",  # WAVAX
+        "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E".lower(),  # USDC
+        "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7".lower(),  # WAVAX
     }
     category_df = filter_for_quote_tokens(category_df, allowed_quotes)
     category_pair_ids = category_df["pair_id"]
@@ -100,6 +92,11 @@ def test_create_trading_universe_with_token_metadata(
     pairs_df = deduplicated_df
     print(f"Dropped duplicates length is {len(deduplicated_df)} pairs")
 
+    # Shorten for the unit test, real count >300
+    pairs_df = add_base_quote_address_columns(pairs_df)
+    pairs_df = pairs_df.sort_values("base_token_address")
+    pairs_df = pairs_df.iloc[0:10]
+
     # Load metadata
     pairs_df = load_token_metadata(pairs_df, client)
 
@@ -112,18 +109,14 @@ def test_create_trading_universe_with_token_metadata(
     print(f"After TokenSniffer risk score filter we have {len(pairs_df)} pairs left")
 
     # Pull out categories for a singke token
-    pairs_universe = PandasPairUniverse(pairs_df)
-    joe_usdc = pairs_universe.get_pair_by_human_description(
-        (ChainId.avalanche, "trader-joe", "JOE", "USDC.e"),
+    pairs_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+    acre = pairs_universe.get_pair_by_human_description(
+        (ChainId.avalanche, "pangolin", "ACRE", "WAVAX"),
     )
 
     # Check metadata object has gone through all transformations
-    assert joe_usdc.metadata
-    assert joe_usdc.token_sniffer_data
-    assert joe_usdc.coingecko_data
-    categories = joe_usdc.metadata.get_coingecko_categories()
-
-
-
-
-
+    assert acre.metadata
+    assert acre.token_sniffer_data
+    assert acre.coingecko_data is None
+    categories = acre.metadata.get_coingecko_categories()
+    assert categories is None
