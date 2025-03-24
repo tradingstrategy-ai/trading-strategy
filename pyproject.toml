@@ -46,7 +46,7 @@ plotly = "^5.1.0"
 jsonlines = "^3.1.0"
 requests = "^2.28.1"
 tqdm-loggable = ">=0.2"
-web3-ethereum-defi = {version=">=0.24.1", extras=["data", "test"]}
+web3-ethereum-defi = {version=">=0.28.1", extras=["data", "test"]}
 #web3-ethereum-defi = {path = "../web3-ethereum-defi", develop = true, extras=["data", "test"]}
 
 # Legacy strategy and trading engines

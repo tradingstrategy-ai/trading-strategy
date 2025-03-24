@@ -214,8 +214,8 @@ class CachedHTTPTransport:
             }
         return session
 
-    def get_abs_cache_path(self):
-        return os.path.abspath(self.cache_path)
+    def get_abs_cache_path(self) -> Path:
+        return Path(os.path.abspath(self.cache_path))
 
     def get_cached_file_path(self, fname):
         path = os.path.join(self.get_abs_cache_path(), fname)
