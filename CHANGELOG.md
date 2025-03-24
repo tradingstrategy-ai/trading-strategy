@@ -1,3 +1,8 @@
+# Current
+
+- Add: `max_buy_tax` and `max_sell_tax` filters for `filter_by_token_sniffer_score`
+- Update: More TokenMetadata code
+
 # 0.26.2
 
 - Bump again to fix broken release

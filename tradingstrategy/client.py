@@ -184,7 +184,7 @@ class Client(BaseClient):
         assert path.exists(), f"Does not exist: {path}"
         size = path.stat().st_size
         assert size > 0, f"Parquest file size is zero {path}"
-        logger.info("Fetched pair universe to %s, file size is %d bytes", path, size)
+        # logger.info("Fetched pair universe to %s, file size is %d bytes", path, size)
 
         if size < 1024:
             # Broken file, hack to display info to user what goes wrong

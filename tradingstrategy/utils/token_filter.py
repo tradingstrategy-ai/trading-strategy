@@ -168,8 +168,8 @@ def filter_for_base_tokens(
 
 
 def filter_for_quote_tokens(
-        pairs: pd.DataFrame,
-        quote_token_addresses: List[str] | Set[str]
+    pairs: pd.DataFrame,
+    quote_token_addresses: List[str] | Set[str],
 ) -> pd.DataFrame:
     """Filter dataset so that it only contains data for the trading pairs that have a certain quote tokens.
 
@@ -808,7 +808,10 @@ def filter_by_token_sniffer_score(
     risk_score: int,
     drop_tokens_with_missing_data=True,
     known_good_tokens=KNOWN_GOOD_TOKENS,
-):
+    max_buy_tax=0.03,
+    max_sell_tax=0.03,
+    printer=lambda x: logger.info(x),
+) -> pd.DataFrame:
     """Filter out tokens by their TokenSniffer risk score.
 
     - See :py:func:`tradingstrategy.utils.token_extra_data.load_token_metadata`.
@@ -827,6 +830,22 @@ def filter_by_token_sniffer_score(
         These are set of tokens we know are good, but TokenSniffer gives them bad score.
 
         E.g. some Coinbase tokens on Base.
+
+    :param max_buy_tax:
+        Drop tokens with too high buy tax.
+
+        Currently missing tax entries are passed through filter.
+
+    :param max_sell_tax:
+        Drop tokens with too high sell tax
+
+        Currently missing tax entries are passed through filter.
+
+    :param printer:
+        Diagnostics output callback, logger.info() or print.
+
+    :return:
+        Pairs DataFrame with too risky pairs removed
     """
     assert type(risk_score) == int, f"Expected int risk score, got: {risk_score}"
     assert risk_score >= 0
@@ -844,11 +863,18 @@ def filter_by_token_sniffer_score(
 
     after_filter = len(pairs_df)
 
-    logger.info(
-        "Filtered by TokenSniffer risk score %d, before %d, after NA %d, after risk score %d",
-        risk_score,
-        before,
-        after_drop,
-        after_filter,
+    printer(
+        f"Filtered by TokenSniffer risk score {risk_score}, before {before}, after NA {after_drop}, after risk score {after_filter}",
     )
+
+    if max_buy_tax is not None:
+        pairs_df = pairs_df[pairs_df["buy_tax"].isna() | (pairs_df["buy_tax"] <= max_buy_tax)]
+
+    if max_sell_tax is not None:
+        pairs_df = pairs_df[pairs_df["sell_tax"].isna() | (pairs_df["sell_tax"] <= max_sell_tax)]
+
+    printer(
+        f"Filtered by buy tax {max_buy_tax or 0:.2%} and sell tax {max_sell_tax or 0:.2%}, before {after_filter}, after tax filter {len(pairs_df)}",
+    )
+
     return pairs_df

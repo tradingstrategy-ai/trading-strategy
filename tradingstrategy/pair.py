@@ -584,7 +584,7 @@ class DEXPair:
         # Alternative path
         token_metadata = self.metadata
         if token_metadata:
-            return token_metadata["token_sniffer_data"]
+            return token_metadata.token_sniffer_data
 
         return None
 
@@ -597,7 +597,7 @@ class DEXPair:
         # Alternative path
         token_metadata = self.metadata
         if token_metadata:
-            return token_metadata["coingecko_data"]
+            return token_metadata.coingecko_data
         return None
 
     def is_tradeable(

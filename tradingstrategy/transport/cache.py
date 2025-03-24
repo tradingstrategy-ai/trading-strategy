@@ -214,8 +214,8 @@ class CachedHTTPTransport:
             }
         return session
 
-    def get_abs_cache_path(self):
-        return os.path.abspath(self.cache_path)
+    def get_abs_cache_path(self) -> Path:
+        return Path(os.path.abspath(self.cache_path))
 
     def get_cached_file_path(self, fname):
         path = os.path.join(self.get_abs_cache_path(), fname)
@@ -471,9 +471,12 @@ class CachedHTTPTransport:
         with wait_other_writers(path):
 
             if cached:
+                logger.info("Using cached pair universe %s", path)
                 return cached
 
+            logger.info("Downloading pair universe data from the server %s", path)
             self.save_response(path, "pair-universe", human_readable_hint="Downloading trading pair dataset")
+
             return self.get_cached_item(fname)
 
     def fetch_exchange_universe(self) -> pathlib.Path:

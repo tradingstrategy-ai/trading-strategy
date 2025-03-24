@@ -107,3 +107,20 @@ def calculate_token_cache_summary(cached_entries: Iterable[TokenCacheEntry]) -> 
     return stats
 
 
+def display_token_metadata(cached_entries: Iterable[TokenCacheEntry]) -> list[dict]:
+    """Print stored metadata in human readable format."""
+
+    data = []
+    for entry in cached_entries:
+        metadata = entry.metadata
+        data.append({
+            "Symbol": metadata.symbol,
+            "Address": metadata.token_address,
+            "Updated": entry.updated_at,
+            "Risk score": entry.metadata.token_sniffer_score,
+            "Buy tax": f"{metadata.get_buy_tax() or 0:,.2%}",
+            "Sell tax": f"{metadata.get_sell_tax() or 0:,.2%}",
+        })
+
+    return data
+
