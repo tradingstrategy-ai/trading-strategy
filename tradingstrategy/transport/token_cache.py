@@ -84,7 +84,7 @@ def calculate_token_cache_summary(cached_entries: Iterable[TokenCacheEntry]) -> 
     for entry in cached_entries:
         stats["count"] += 1
         stats["tokensniffer_data"] += 1 if entry.has_tokensniffer_data() else 0
-        stats["coingecko_data"] += 1 if entry.has_tokensniffer_data() else 0
+        stats["coingecko_data"] += 1 if entry.has_coingecko_data() else 0
         stats["tax_data"] += 1 if entry.has_tax_data() else 0
         stats["tax"] += 1 if entry.has_tax() else 0
         if entry.has_tax():
