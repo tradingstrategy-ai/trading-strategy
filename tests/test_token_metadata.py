@@ -2,6 +2,7 @@
 
 import pytest
 
+from eth_defi.token import USDC_NATIVE_TOKEN, WRAPPED_NATIVE_TOKEN
 from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.pair import PandasPairUniverse
@@ -44,15 +45,19 @@ def test_load_metadata_single_bad_token(
     assert len(metadata) == 1
 
 
-def test_create_trading_universe_with_token_metadata(
+def test_create_trading_universe_tax_filter(
     persistent_test_client: Client,
     default_pair_universe,
 ):
-    """Create a trading universe using /token-metadata endpoint for filtering scams"""
+    """Filter by tax in filter_by_token_sniffer_score(max_buy_tax)"""
     client = persistent_test_client
 
-    chain_id = ChainId.avalanche
-    exchanges = {"pangolin"}
+    # BETS
+    # https://tradingstrategy.ai/trading-view/base/tokens/0x42069de48741db40aef864f8764432bbccbd0b69
+    # 0x42069de48741db40aef864f8764432bbccbd0b69
+    # 3% buy//sell tax
+
+    chain_id = ChainId.base
 
     exchange_universe = client.fetch_exchange_universe()
     pairs_df = client.fetch_pair_universe().to_pandas()
@@ -60,42 +65,11 @@ def test_create_trading_universe_with_token_metadata(
     # Drop other chains to make the dataset smaller to work with
     chain_mask = pairs_df["chain_id"] == chain_id.value
     pairs_df = pairs_df[chain_mask]
-
-    # Build subset of pairs we are going to use.
-    # - Remove stable/stable airs
-    # - Remove derivative tokens like staked ETH
-    category_df = pairs_df
-    category_df = add_base_quote_address_columns(category_df)
-    category_df = filter_for_stablecoins(category_df, StablecoinFilteringMode.only_volatile_pairs)
-    category_df = filter_for_derivatives(category_df)
-
-    # Take pairs only in supported quote token
-    allowed_quotes = {
-        "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E".lower(),  # USDC
-        "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7".lower(),  # WAVAX
-    }
-    category_df = filter_for_quote_tokens(category_df, allowed_quotes)
-    category_pair_ids = category_df["pair_id"]
-
-    print(f"Starting with {len(category_pair_ids)} tradeable pairs")
-    our_pair_ids = list(category_pair_ids)
-
-    # From these pair ids, see what trading pairs we have on Ethereum mainnet
-    pairs_df = pairs_df[pairs_df["pair_id"].isin(our_pair_ids)]
-
-    # Limit by supported DEX
-    pairs_df = pairs_df[pairs_df["exchange_slug"].isin(exchanges)]
-    print(f"After DEX filtering we have {len(pairs_df)} tradeable pairs")
-
-    # Deduplicate trading pairs - Choose the best pair with the best volume
-    deduplicated_df = deduplicate_pairs_by_volume(pairs_df)
-    pairs_df = deduplicated_df
-    print(f"Dropped duplicates length is {len(deduplicated_df)} pairs")
-
-    # Shorten for the unit test, real count >300
     pairs_df = add_base_quote_address_columns(pairs_df)
-    pairs_df = pairs_df.sort_values("base_token_address")
-    pairs_df = pairs_df.iloc[0:10]
+
+    #
+    pairs_df = pairs_df.loc[pairs_df.base_token_address == "0x42069de48741db40aef864f8764432bbccbd0b69"]
+    assert 0 < len(pairs_df) < 5
 
     # Load metadata
     pairs_df = load_token_metadata(pairs_df, client)
@@ -104,19 +78,11 @@ def test_create_trading_universe_with_token_metadata(
     assert "coingecko_categories" in pairs_df.columns
 
     # Scam filter using TokenSniffer
-    pairs_df = filter_by_token_sniffer_score(pairs_df, 25)
-    pairs_df = pairs_df.sort_values("volume", ascending=False)
-    print(f"After TokenSniffer risk score filter we have {len(pairs_df)} pairs left")
-
-    # Pull out categories for a singke token
-    pairs_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
-    acre = pairs_universe.get_pair_by_human_description(
-        (ChainId.avalanche, "pangolin", "ACRE", "WAVAX"),
-    )
-
-    # Check metadata object has gone through all transformations
-    assert acre.metadata
-    assert acre.token_sniffer_data
-    assert acre.coingecko_data is None
-    categories = acre.metadata.get_coingecko_categories()
-    assert categories is None
+    none_filtered = filter_by_token_sniffer_score(pairs_df, risk_score=0, max_buy_tax=None)
+    zero_filtered = filter_by_token_sniffer_score(pairs_df, risk_score=0, max_buy_tax=0.00)
+    all_filtered = filter_by_token_sniffer_score(pairs_df, risk_score=0, max_buy_tax=0.01)
+    high_filtered = filter_by_token_sniffer_score(pairs_df, risk_score=0, max_buy_tax=0.05)
+    assert len(none_filtered) == 2
+    assert len(zero_filtered) == 0
+    assert len(all_filtered) == 0
+    assert len(high_filtered) == 2
