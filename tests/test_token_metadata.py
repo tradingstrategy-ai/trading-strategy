@@ -55,11 +55,10 @@ def test_create_trading_universe_tax_filter(
     # BETS
     # https://tradingstrategy.ai/trading-view/base/tokens/0x42069de48741db40aef864f8764432bbccbd0b69
     # 0x42069de48741db40aef864f8764432bbccbd0b69
-    # 3% buy//sell tax
+    # 3% buy/sell tax
 
     chain_id = ChainId.base
 
-    exchange_universe = client.fetch_exchange_universe()
     pairs_df = client.fetch_pair_universe().to_pandas()
 
     # Drop other chains to make the dataset smaller to work with
@@ -67,7 +66,7 @@ def test_create_trading_universe_tax_filter(
     pairs_df = pairs_df[chain_mask]
     pairs_df = add_base_quote_address_columns(pairs_df)
 
-    #
+    # Should give two pairs
     pairs_df = pairs_df.loc[pairs_df.base_token_address == "0x42069de48741db40aef864f8764432bbccbd0b69"]
     assert 0 < len(pairs_df) < 5
 
