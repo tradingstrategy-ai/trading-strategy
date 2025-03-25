@@ -339,7 +339,7 @@ def load_token_metadata(
     assert len(chain_ids) == 1, f"Mixed chain_ids: {chain_ids}"
     chain_id = ChainId(chain_ids[0])
 
-    printer(f"Loading metadata for {len(token_addresses)} base tokens")
+    printer(f"Loading metadata for {len(token_addresses)} base tokens in {len(pairs_df)} trading pairs")
 
     token_metadata = client.fetch_token_metadata(
         chain_id,
