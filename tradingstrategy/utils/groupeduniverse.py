@@ -202,12 +202,13 @@ class PairGroupedUniverse:
                 self.pairs = fix_result
 
         else:
-            logger.warning(
-                "%s: auto-heal pair limit %d exceeded with %d pairs",
-                self.__class__.__name__,
-                autoheal_pair_limit,
-                len(self.pairs),
-            )
+            if autoheal_pair_limit != 0:
+                logger.warning(
+                    "%s: auto-heal pair limit %d exceeded with %d pairs",
+                    self.__class__.__name__,
+                    autoheal_pair_limit,
+                    len(self.pairs),
+                )
 
         #: Grouped DataFrame cache for faster lookup
         self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}

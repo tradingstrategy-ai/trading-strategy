@@ -811,6 +811,7 @@ def filter_by_token_sniffer_score(
     max_buy_tax=0.03,
     max_sell_tax=0.03,
     printer=lambda x: logger.info(x),
+    taxless_exchanges={"uniswap-v3"},
 ) -> pd.DataFrame:
     """Filter out tokens by their TokenSniffer risk score.
 
@@ -844,6 +845,9 @@ def filter_by_token_sniffer_score(
     :param printer:
         Diagnostics output callback, logger.info() or print.
 
+    :param taxless_exchanges:
+        Exchange ids that cannot carry taxed tokens.
+
     :return:
         Pairs DataFrame with too risky pairs removed
     """
@@ -854,24 +858,30 @@ def filter_by_token_sniffer_score(
 
     before = len(pairs_df)
 
+    metadata_na_count = pairs_df["token_metadata"].isna().sum()
+    sniffer_na_count = pairs_df["tokensniffer_metadata"].isna().sum()
+    sniffer_error = pairs_df["tokensniffer_error"].notna().sum()
+    print(f"filter_by_token_sniffer_score(): total {before}, missing metadata {metadata_na_count}, missing TokenSniffer data {sniffer_na_count}, TokenSniffer error'ed: {sniffer_error}")
+
     if drop_tokens_with_missing_data:
-        pairs_df["tokensniffer_score"].dropna(inplace=True)
+        pairs_df["token_metadata"].dropna(inplace=True)
+
+    below_threshold = len(pairs_df[(pairs_df["tokensniffer_score"] < risk_score)])
+    zero_threshold = len(pairs_df[(pairs_df["tokensniffer_score"] == 0)])
 
     after_drop = len(pairs_df)
-
     pairs_df = pairs_df[(pairs_df["tokensniffer_score"] >= risk_score) | (pairs_df["base_token_symbol"].isin(known_good_tokens))]
-
     after_filter = len(pairs_df)
 
     printer(
-        f"Filtered by TokenSniffer risk score {risk_score}, before {before}, after NA {after_drop}, after risk score {after_filter}",
+        f"Filtered by TokenSniffer risk score: {risk_score}, before: {before}, after NA: {after_drop}, after risk score: {after_filter}, entries below threshold: {below_threshold}, zero scored: {zero_threshold}",
     )
 
     if max_buy_tax is not None:
-        pairs_df = pairs_df[pairs_df["buy_tax"].isna() | (pairs_df["buy_tax"] <= max_buy_tax)]
+        pairs_df = pairs_df[pairs_df["buy_tax"].isna() | (pairs_df["buy_tax"] <= max_buy_tax) | (pairs_df["exchange_id"].isin(taxless_exchanges))]
 
     if max_sell_tax is not None:
-        pairs_df = pairs_df[pairs_df["sell_tax"].isna() | (pairs_df["sell_tax"] <= max_sell_tax)]
+        pairs_df = pairs_df[pairs_df["sell_tax"].isna() | (pairs_df["sell_tax"] <= max_sell_tax) | (pairs_df["exchange_id"].isin(taxless_exchanges))]
 
     printer(
         f"Filtered by buy tax {max_buy_tax or 0:.2%} and sell tax {max_sell_tax or 0:.2%}, before {after_filter}, after tax filter {len(pairs_df)}",

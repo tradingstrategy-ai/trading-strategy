@@ -303,6 +303,7 @@ def filter_scams(
 def load_token_metadata(
     pairs_df: pd.DataFrame,
     client: Client,
+    printer=lambda x: logger.info(x),
 ) -> pd.DataFrame:
     """Load token metadata for all trading pairs.
 
@@ -338,19 +339,24 @@ def load_token_metadata(
     assert len(chain_ids) == 1, f"Mixed chain_ids: {chain_ids}"
     chain_id = ChainId(chain_ids[0])
 
-    logger.info("Loading metadata for %d tokens", len(token_addresses))
+    printer(f"Loading metadata for {len(token_addresses)} base tokens")
 
     token_metadata = client.fetch_token_metadata(
         chain_id,
         token_addresses
     )
 
-    logger.info("Got data back for %d tokens", len(token_metadata))
+    printer(f"Got data back for {len(token_metadata)} tokens")
 
     def _map_meta(address):
         data = token_metadata.get(address)
         if data:
             return data
+        return None
+
+    def _map_sniffer_data(meta: TokenMetadata | None):
+        if meta:
+            return meta.token_sniffer_data
         return None
 
     def _map_risk_score(meta: TokenMetadata | None):
@@ -380,13 +386,15 @@ def load_token_metadata(
 
     df = pairs_df
     df["token_metadata"] = df["base_token_address"].apply(_map_meta)
+    df["tokensniffer_metadata"] = df["token_metadata"].apply(_map_sniffer_data)
     df["tokensniffer_score"] = df["token_metadata"].apply(_map_risk_score)
     df["tokensniffer_error"] = df["token_metadata"].apply(_map_sniff_error)
     df["coingecko_categories"] = df["token_metadata"].apply(_map_categories)
     df["buy_tax"] = df["token_metadata"].apply(_map_buy_tax)
     df["sell_tax"] = df["token_metadata"].apply(_map_sell_tax)
 
-    logger.info("TokenSniffer has %d error entries", df["tokensniffer_error"].notna().sum())
+    error_count = df["tokensniffer_error"].notna().sum()
+    printer(f"TokenSniffer has {error_count} error entries")
 
     missing_meta_mask = df["token_metadata"].isna()
     missing_meta_df = df[missing_meta_mask]

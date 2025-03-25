@@ -509,7 +509,7 @@ class Client(BaseClient):
         start_time: Optional[AnyTimestamp] = None,
         end_time: Optional[AnyTimestamp] = None,
         min_tvl: Optional[USDollarAmount] = None,
-        progress_bar_description: Optional[str] = "Downloading TVL data",
+        progress_bar_description: Optional[str] = "...",
     ) -> pd.DataFrame:
         """Fetch TVL data.
 
@@ -639,6 +639,12 @@ class Client(BaseClient):
 
         if isinstance(end_time, pd.Timestamp):
             end_time = end_time.to_pydatetime()
+
+        if progress_bar_description == "...":
+            if end_time:
+                progress_bar_description = f"Downloading TVL data until {end_time.strftime('%Y-%m-%d')}"
+            else:
+                progress_bar_description = f"Downloading TVL data"
 
         return self.transport.fetch_tvl(
             mode=mode,

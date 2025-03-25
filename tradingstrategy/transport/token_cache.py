@@ -80,6 +80,7 @@ def calculate_token_cache_summary(cached_entries: Iterable[TokenCacheEntry]) -> 
     timestamps = []
     buy_tax = []
     sell_tax = []
+    chains = set()
 
     for entry in cached_entries:
         stats["count"] += 1
@@ -95,7 +96,10 @@ def calculate_token_cache_summary(cached_entries: Iterable[TokenCacheEntry]) -> 
                 sell_tax.append(entry.metadata.get_sell_tax())
         sizes.append(entry.file_size)
         timestamps.append(entry.updated_at)
+        chains.add(entry.metadata.chain_id)
 
+
+    stats["chains"] = ", ".join([str(i) for i in chains])
     stats["avg_file_size"] = f"{int(sum(sizes) / len(sizes)):,}"
     if timestamps:
         stats["oldest"] = min(timestamps)
