@@ -5,8 +5,9 @@
 
 """
 
-# Maintenance of stablecoin list moved to eth_defi package
-from eth_defi.token import ALL_STABLECOIN_LIKE
+# Maintenance of stablecoin list moved to eth_defi package.
+# Allow alias import here.
+from eth_defi.token import ALL_STABLECOIN_LIKE, STABLECOIN_LIKE
 
 def is_stablecoin_like(token_symbol: str, symbol_list=ALL_STABLECOIN_LIKE) -> bool:
     """Check if specific token symbol is likely a stablecoin.
