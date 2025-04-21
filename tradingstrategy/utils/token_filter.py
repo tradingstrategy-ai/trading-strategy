@@ -86,7 +86,26 @@ ALL_DERIVATIVE_TOKENS = set(AAVE_TOKENS + LIQUID_RESTAKING_TOKENS + ETH_2_STAKIN
 
 #: Tokens that are known to rebase
 #:
-REBASE_TOKENS = ["OHM", "KLIMA"]
+REBASE_TOKENS = [
+    "OHM",
+    "KLIMA",
+    # On EAI:
+    #     /**
+    #     * @notice Converts the given reflection amount to its equivalent token amount.
+    #     * @dev Reflections are often used in tokenomics to calculate rewards or balances.
+    #     * This function converts a reflection amount to its corresponding token amount
+    #     * based on the current rate.
+    #     * @param rAmount The reflection amount to be converted to tokens.
+    #     * @return The equivalent token amount corresponding to the given reflection amount.
+    #     */
+    #
+    #     function tokenFromReflection(uint256 rAmount) public view returns(uint256) {
+    #         require(rAmount <= _rTotal, "Amount must be less than total reflections");
+    #         uint256 currentRate =  _getRate();
+    #         return rAmount / currentRate;
+    #     }
+    "EAI",
+]
 
 #: Trading pair native quote tokens we need to deal with
 #:
