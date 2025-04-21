@@ -231,6 +231,19 @@ class DataDecodeFailed(Exception):
     """The parquet file has damaged data for this trading pair."""
 
 
+class PairMapEntryMissing(Exception):
+    """The trading pair id is not in pair_map cache dict.
+
+    - Usually the reason is that pair failed to meet some sort of inclusion criteria and is not present in the final data.
+    - This could be also a caching issue and you have inconsistent files in the cache:
+      delete `~/.cache/tradingstrategy/pair-universe.parquet`::
+
+    .. code-block:: shell
+
+        rm ~/.cache/tradingstrategy/pair-universe.parquet
+
+    """
+
 
 
 @dataclass_json
@@ -963,7 +976,8 @@ class PandasPairUniverse:
                 # We do not initially construct these objects,
                 # as we do not know what pairs a strategy might access.
                 data = self.pair_map.get(pair_id)
-                assert data is not None, f"pair_map lacks entry for: {pair_id}, we have {len(self.pair_map)} entries"
+                if data is None:
+                    raise PairMapEntryMissing(f"pair_map lacks entry for: {pair_id}, we have {len(self.pair_map)} entries")
                 obj = _convert_to_dex_pair(data, self.exchange_universe)
 
                 self.dex_pair_obj_cache[pair_id] = obj
