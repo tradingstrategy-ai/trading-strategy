@@ -712,6 +712,20 @@ def add_base_quote_address_columns(pairs_df: pd.DataFrame) -> pd.DataFrame:
 
     - This function follows the hint from the server
 
+    Columns added:
+
+    - base_token_address
+    - quote_token_address
+    - base_token_decimals
+    - quote_token_decimals
+
+    Example:
+
+    .. code-block:: python
+
+        from tradingstrategy.utils.token_filter import add_base_quote_address_columns
+        pairs_df = add_base_quote_address_columns(pairs_df)
+
     :return:
         The same pairs DataFrame, with new columns `base_token_address` and `quote_token_address`.
     """
@@ -729,6 +743,12 @@ def add_base_quote_address_columns(pairs_df: pd.DataFrame) -> pd.DataFrame:
     pairs_df.loc[token0_is_base_token_mask, "quote_token_address"] = pairs_df["token1_address"]
     pairs_df.loc[~token0_is_base_token_mask, "base_token_address"] = pairs_df["token1_address"]    
     pairs_df.loc[~token0_is_base_token_mask, "quote_token_address"] = pairs_df["token0_address"]    
+
+    pairs_df.loc[token0_is_base_token_mask, "base_token_decimals"] = pairs_df["token0_decimals"]
+    pairs_df.loc[token0_is_base_token_mask, "quote_token_decimals"] = pairs_df["token1_decimals"]
+    pairs_df.loc[~token0_is_base_token_mask, "base_token_decimals"] = pairs_df["token1_decimals"]    
+    pairs_df.loc[~token0_is_base_token_mask, "quote_token_decimals"] = pairs_df["token0_decimals"]    
+
     return pairs_df
 
 

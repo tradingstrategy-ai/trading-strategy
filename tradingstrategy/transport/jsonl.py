@@ -136,8 +136,6 @@ def load_trading_strategy_like_jsonl_data(
         logger.debug("Full params are %s", params)
 
     for attempt in range(attempts):
-        resp = session.get(api_url, params=params, stream=True)
-        reader = jsonlines.Reader(resp.raw)
         candle_data = defaultdict(list)
 
         # Figure out how to plot candle download progress using TQDM
@@ -152,6 +150,10 @@ def load_trading_strategy_like_jsonl_data(
         logger.info("Download attempt %d", attempt+1)
 
         try:
+
+            resp = session.get(api_url, params=params, stream=True)
+            reader = jsonlines.Reader(resp.raw)
+
             # Massage the format good for pandas
             for idx, item in enumerate(reader):
 
