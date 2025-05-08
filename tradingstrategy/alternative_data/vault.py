@@ -1,9 +1,13 @@
 """Vault data sideloading"""
 import pickle
 from pathlib import Path
+from typing import Iterable
+
+import pandas as pd
 
 from eth_defi.erc_4626.core import ERC4262VaultDetection
 from tradingstrategy.chain import ChainId
+from tradingstrategy.exchange import Exchange
 from tradingstrategy.vault import VaultUniverse, Vault
 
 
@@ -22,7 +26,7 @@ def load_vault_database(path: Path | None = None) -> VaultUniverse:
         If not given use the default location.
     """
 
-    if not path:
+    if path is None:
         path = Path("~/.tradingstrategy/vaults/vault-db.pickle").expanduser()
 
     assert path.exists(), f"No vault file: {path}"
@@ -52,20 +56,29 @@ def load_vault_database(path: Path | None = None) -> VaultUniverse:
         try:
             detection: ERC4262VaultDetection = entry["_detection_data"]
 
-            if entry["Name"] == "" or entry["Denomination"] is None or entry["Denomination"] == "":
+            if (not entry["Name"]) or (not entry["Denomination"]):
                 # Skip invalid entries as all other requird data is missing
                 continue
+
+            if "unknown" in entry["Name"]:
+                # Skip nameless / broken entries
+                continue
+
+            protocol_slug = entry["Protocol"].lower().replace(" ", "-")
 
             vault = Vault(
                 chain_id=ChainId(detection.chain),
                 name=entry["Name"],
-                token=entry["Symbol"],
+                token_symbol=entry["Symbol"],
                 vault_address=entry["Address"],
                 denomination_token_address=entry["_denomination_token"]["address"],
                 denomination_token_symbol=entry["_denomination_token"]["symbol"],
+                denomination_token_decimals=entry["_denomination_token"]["decimals"],
                 share_token_address=entry["_share_token"]["address"],
                 share_token_symbol=entry["_share_token"]["symbol"],
-                protocol_slug=entry["Protocol"],
+                share_token_decimals=entry["_share_token"]["decimals"],
+                protocol_name=entry["Protocol"],
+                protocol_slug=protocol_slug,
                 performance_fee=entry["Perf fee"],
                 management_fee=entry["Mgmt fee"],
                 deployed_at=detection.first_seen_at,
@@ -80,3 +93,24 @@ def load_vault_database(path: Path | None = None) -> VaultUniverse:
         vaults.append(vault)
 
     return VaultUniverse(vaults)
+
+
+def convert_vaults_to_trading_pairs(
+    vaults: Iterable[Vault]
+) -> tuple[list[Exchange], pd.DataFrame]:
+    """Create a dataframe that contains vaults as trading pairs to be included alongside real trading pairs.
+
+    - Generates :py:class:`tradingstrategy.pair.PandasPairUniverse` compatible dataframe for all vaults
+    - Adds
+
+    :return:
+        Exchange data, pair dataframe tuple
+    """
+
+    exchanges = list(Exchange(**v.export_as_exchange()) for v in vaults)
+    rows = [v.export_as_trading_pair() for v in vaults]
+    pairs_df = pd.DataFrame(rows)
+
+    return exchanges, pairs_df
+
+

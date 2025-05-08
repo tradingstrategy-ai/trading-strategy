@@ -227,7 +227,12 @@ class ChainId(enum.IntEnum):
 
     def get_slug(self) -> str:
         """Get URL slug for this chain"""
-        return self.data["slug"]
+        slug = self.data.get("slug")
+        if not slug:
+            name = self.data.get("name")
+            slug = name.lower()
+
+        return slug
 
     def get_homepage(self) -> str:
         """Get homepage link for this blockchain"""

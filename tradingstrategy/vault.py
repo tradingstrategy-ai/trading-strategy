@@ -1,11 +1,14 @@
 """"Vault data for EIP-4626 and other digital asset management protocols."""
 import datetime
 from dataclasses import dataclass, field
+from typing import Iterable, Any
 
 from eth_defi.erc_4626.core import ERC4626Feature
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.exchange import ExchangeType
 from tradingstrategy.types import Percent, NonChecksummedAddress
+from tradingstrategy.pair import SPECIAL_PAIR_ID_RANGE
 
 
 @dataclass(slots=True, frozen=True)
@@ -30,6 +33,9 @@ class Vault:
     #: "USDC"
     denomination_token_symbol: str
 
+    #: 8 - 18
+    denomination_token_decimals: int
+
     #: Share token address
     #:
     #: Differs for multitoken vaults from vaults address.
@@ -38,6 +44,12 @@ class Vault:
     #: "MyVault1"
     share_token_symbol: str
 
+    #: 8 - 18
+    share_token_decimals: int
+
+    #: Protocol human readable name
+    protocol_name: str
+
     #: Protocol slug for this vault
     protocol_slug: str
 
@@ -45,7 +57,7 @@ class Vault:
     name: str
 
     #: Vault share token symbol
-    token: str
+    token_symbol: str
 
     #: Feature flags
     features: set[ERC4626Feature] = field(default_factory=set)
@@ -73,8 +85,70 @@ class Vault:
     #: Total number of shares minted
     issued_shares: float | None = None
 
+    def __post_init__(self):
+        assert self.name, "Vault instance requires name"
+        # assert self.token_symbol, "Vault instance requires symbol"
+
     def is_4626(self) -> bool:
         return ERC4626Feature.erc_4626 in self.features
+
+    def export_as_trading_pair(self) -> dict:
+        """EXport data of this vault as compatible for a trading pair.
+
+        - Vaults can be modelled as trading pairs
+
+        :return:
+            Trading pair data.
+
+            :py:class:`tradingstrategy.pair.DEXPair` compatible dict.
+        """
+
+        assert self.name
+        assert "unknown" not in self.name
+
+        return {
+            "pair_id": _derive_pair_id(self),
+            "pair_slug": _derive_pair_slug(self),
+            "exchange_id": _derive_exchange_id(self),
+            "address": self.vault_address,
+            "token0_address": self.denomination_token_address,
+            "token0_symbol": self.denomination_token_symbol,
+            "token0_decimals": self.denomination_token_decimals,
+            "token1_address": self.share_token_address,
+            "token1_symbol": self.share_token_symbol,
+            "token1_decimals": self.share_token_decimals,
+            "dex_type": ExchangeType.erc_4626_vault,
+            "base_token_symbol": self.share_token_symbol,
+            "quote_token_symbol": self.denomination_token_symbol,
+            "exchange_slug": self.protocol_slug,
+            "exchange_name": self.name,
+            "fee": 0,
+            "chain_id": self.chain_id,
+            "buy_volume_all_time": 0,
+        }
+
+    def export_as_exchange(self) -> dict:
+        """EXport data of this vault as compatible for an exchange.
+
+        - Vaults can be modelled as trading pairs
+        - Trading pair needs an exchange
+        - We generate exchange entries based on the protocol of the vault
+
+        :return:
+            Trading pair data.
+
+            :py:class:`tradingstrategy.pair.DEXPair` compatible dict.
+        """
+        return {
+            "chain_id": self.chain_id,
+            "chain_slug": self.chain_id.get_slug(),
+            "exchange_id": _derive_exchange_id(self),
+            "exchange_slug": self.protocol_slug,
+            "name": self.protocol_name,
+            "address": "0x0000000000000000000000000000000000000000",
+            "exchange_type": ExchangeType.erc_4626_vault,
+            "pair_count": 0,
+        }
 
 
 class VaultUniverse:
@@ -97,3 +171,21 @@ class VaultUniverse:
     def get_vault_count(self) -> int:
         """Get number of vaults in the universe."""
         return len(self.vaults)
+
+    def export_all_vaults(self) -> Iterable[Vault]:
+        return self.vaults
+
+
+def _derive_pair_id(vault: Vault) -> int:
+    """Derive a pair id from the vault address."""
+    return SPECIAL_PAIR_ID_RANGE + int(vault.vault_address, 16) % (2**31 - 1)
+
+
+def _derive_exchange_id(vault: Vault) -> int:
+    """Derive a exchange id from the vault address."""
+    return SPECIAL_PAIR_ID_RANGE + abs(hash(vault.protocol_slug))
+
+
+def _derive_pair_slug(vault: Vault) -> str:
+    """Derive a pair slug from the vault address."""
+    return vault.name.lower().replace(" ", "-")
