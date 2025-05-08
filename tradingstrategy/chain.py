@@ -72,7 +72,11 @@ def _ensure_chain_data_lazy_init():
 
         # Build slug -> chain id reverse mapping
         for chain_id, data in _chain_data.items():
-            _slug_map[data["slug"]] = chain_id
+            slug = data.get("slug")
+            if not slug:
+                name = data.get("name")
+                slug = name.lower()
+            _slug_map[slug] = chain_id
 
 
 def _get_chain_data(chain_id: int):
