@@ -153,10 +153,36 @@ class ChainId(enum.IntEnum):
     #: https://github.com/ethereum/eth-tester
     ethereum_classic = 61
 
+    #: Mode L2
+    mode = 34443
+
+    #: Hyperliquid EVM
+    hyperliquid = 999
+
+    #: Blast L2
+    blast = 81457
+
+    #: Celo
+    celo = 42220
+
+    #: Sony L2
+    soneium = 1868
+
+    #: Optimism L2
+    optimism = 10
+
+    #: ZKSync
+    zksync = 324
+
+    #: Gnosis chain L1
+    gnosis = 100
+
+
     #: Ganache test chain.
     #:
     #: This is the chain id for Ganache local tester / mainnet forks.
     ganache = 1337
+
 
     #: Anvil test chain.
     #:
@@ -183,6 +209,8 @@ class ChainId(enum.IntEnum):
     #:
     #: See https://github.com/ethereum/eth-tester/blob/84378ee7eb714633fbb3169378812ccfcbbd495a/eth_tester/backends/pyevm/main.py#L197
     ethereum_tester = 131277322940537
+
+
 
     @property
     def data(self) -> dict:

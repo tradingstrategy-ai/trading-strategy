@@ -49,23 +49,33 @@ def load_vault_database(path: Path | None = None) -> VaultUniverse:
     #         }
 
     for address, entry in vault_db.items():
-        detection: ERC4262VaultDetection = entry["_detection_data"]
-        vault = Vault(
-            chain_id=ChainId(detection.chain),
-            name=entry["Name"],
-            token=entry["Symbol"],
-            vault_address=entry["Address"],
-            denomination_token_address=entry["_denomination_token"].address,
-            share_token_address=entry["_share_token"].address,
-            protocol_slug=entry["Protocol"],
-            performance_fee=entry["Perf fee"],
-            management_fee=entry["Mgmt fee"],
-            deployed_at=detection.first_seen_at,
-            features=detection.features,
-            denormalised_data_updated_at=detection.updated_at,
-            tvl=entry["NAV"],
-            issued_shares=entry["Shares"],
-        )
+        try:
+            detection: ERC4262VaultDetection = entry["_detection_data"]
+
+            if entry["Name"] == "" or entry["Denomination"] is None or entry["Denomination"] == "":
+                # Skip invalid entries as all other requird data is missing
+                continue
+
+            vault = Vault(
+                chain_id=ChainId(detection.chain),
+                name=entry["Name"],
+                token=entry["Symbol"],
+                vault_address=entry["Address"],
+                denomination_token_address=entry["_denomination_token"]["address"],
+                denomination_token_symbol=entry["_denomination_token"]["symbol"],
+                share_token_address=entry["_share_token"]["address"],
+                share_token_symbol=entry["_share_token"]["symbol"],
+                protocol_slug=entry["Protocol"],
+                performance_fee=entry["Perf fee"],
+                management_fee=entry["Mgmt fee"],
+                deployed_at=detection.first_seen_at,
+                features=detection.features,
+                denormalised_data_updated_at=detection.updated_at,
+                tvl=entry["NAV"],
+                issued_shares=entry["Shares"],
+            )
+        except Exception as e:
+            raise RuntimeError(f"Could not decode entry: {entry}") from e
 
         vaults.append(vault)
 

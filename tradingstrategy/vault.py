@@ -1,8 +1,9 @@
 """"Vault data for EIP-4626 and other digital asset management protocols."""
+import datetime
 from dataclasses import dataclass, field
-from datetime import datetime
 
 from eth_defi.erc_4626.core import ERC4626Feature
+
 from tradingstrategy.chain import ChainId
 from tradingstrategy.types import Percent, NonChecksummedAddress
 
@@ -26,10 +27,16 @@ class Vault:
     #:
     denomination_token_address: NonChecksummedAddress
 
+    #: "USDC"
+    denomination_token_symbol: str
+
     #: Share token address
     #:
     #: Differs for multitoken vaults from vaults address.
     share_token_address: NonChecksummedAddress
+
+    #: "MyVault1"
+    share_token_symbol: str
 
     #: Protocol slug for this vault
     protocol_slug: str
@@ -48,7 +55,7 @@ class Vault:
 
     #: When fee, TVL and such data was updated.
     #:
-    denormalised_data_updated_at: datetime.dateitme | None = None
+    denormalised_data_updated_at: datetime.datetime | None = None
 
     #: Latest management fee.
     #:
@@ -80,6 +87,8 @@ class VaultUniverse:
 
     def get_by_chain_and_name(self, chain_id: ChainId, name: str) -> Vault | None:
         """Get vault by chain id and name."""
+        assert isinstance(chain_id, ChainId)
+        assert type(name) == str
         for vault in self.vaults:
             if vault.chain_id == chain_id and vault.name == name:
                 return vault
