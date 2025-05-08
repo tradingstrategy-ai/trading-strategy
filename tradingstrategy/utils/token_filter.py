@@ -18,7 +18,7 @@ import pandas as pd
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
-from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE, STABLECOIN_LIKE
+from tradingstrategy.stablecoin import ALL_STABLECOIN_LIKE
 from tradingstrategy.types import Slug, TokenSymbol, Percent, IntBasisPoint, PrimaryKey
 
 
@@ -124,7 +124,7 @@ POPULAR_NATIVE_TOKENS = {
 #: Used by
 #:
 #:
-POPULAR_QUOTE_TOKENS = POPULAR_NATIVE_TOKENS | STABLECOIN_LIKE
+POPULAR_QUOTE_TOKENS = POPULAR_NATIVE_TOKENS | ALL_STABLECOIN_LIKE
 
 
 def filter_for_base_tokens(
