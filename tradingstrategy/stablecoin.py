@@ -30,7 +30,7 @@ def is_stablecoin_like(token_symbol: str, symbol_list=ALL_STABLECOIN_LIKE) -> bo
         Which filtering list we use.
     """
 
-    assert ALL_STABLECOIN_LIKE is not None, "eth_defi package must be installed to get the list of stablecoins"
+    assert ALL_STABLECOIN_LIKE, "eth_defi package must be installed to get the list of stablecoins"
 
     assert isinstance(token_symbol, str), f"We got {token_symbol}"
     return (token_symbol in symbol_list)
