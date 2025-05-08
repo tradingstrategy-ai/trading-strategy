@@ -83,6 +83,9 @@ class ExchangeType(str, enum.Enum):
     #: Uniswap v3 style exchange
     uniswap_v3 = "uniswap_v3"
 
+    #: ERC-4626 vault
+    erc_4626_vault = "erc_4626_vault"
+
     # Uniswap v2 style exchange (same as above `uniswap_v2`)
     # NOTE: Do not use this member as it is deprecated and only kept for backward 
     # compatibility, it will be removed in the future
@@ -90,7 +93,7 @@ class ExchangeType(str, enum.Enum):
 
 
 @dataclass_json
-@dataclass
+@dataclass(slots=True)
 class Exchange:
     """A decentralised exchange.
 
@@ -341,4 +344,13 @@ class ExchangeUniverse:
         """Remove all but named exchanges from the """
         assert type(slugs) in (tuple, set, list)
         return ExchangeUniverse({k: v for k, v in self.exchanges.items() if v.exchange_slug in slugs})
+
+    def add(self, exchanges: list[Exchange]):
+        """Add more exchanges to the universe.
+
+        - Mostly done to support vault faux data
+        """
+        data = {e.exchange_id: e for e in exchanges}
+        self.exchanges.update(data)
+
 

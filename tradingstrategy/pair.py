@@ -58,8 +58,6 @@ For exploring the trading pairs through web you can use
 
 """
 
-import logging
-import enum
 import pprint
 import warnings
 from collections import Counter
@@ -76,7 +74,7 @@ from numpy import isnan
 from tradingstrategy.token import Token
 from tradingstrategy.exchange import ExchangeUniverse, ExchangeType, ExchangeNotFoundError
 from tradingstrategy.token_metadata import TokenMetadata
-from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, PrimaryKey, Percent, \
+from tradingstrategy.types import NonChecksummedAddress, BlockNumber, UNIXTimestamp, BasisPoint, \
     USDollarAmount, URL
 from tradingstrategy.utils.columnar import iterate_columnar_dicts
 from tradingstrategy.utils.schema import create_pyarrow_schema_for_dataclass, create_columnar_work_buffer, \
@@ -155,6 +153,14 @@ FeePair: TypeAlias = Tuple[ChainId, str | None, str, str, Percent]
 #:
 HumanReadableTradingPairDescription: TypeAlias = FeePair | FeelessPair
 
+
+#: Pair ids above this number are generaed.
+#:
+#: This is used for pairs that do not have internal pair id, but
+#: must have stable pair ids across runs.
+#:
+#: See :py:func:`tradingstrategy.vault._derive_pair_id` for more information.
+SPECIAL_PAIR_ID_RANGE = 2**32
 
 
 class PairNotFoundError(DataNotFoundError):
@@ -1372,10 +1378,11 @@ class PandasPairUniverse:
 
         return self.get_pair_by_human_description(eu, desc)
 
-    def get_pair_by_human_description(self,
-                                      desc: HumanReadableTradingPairDescription | ExchangeUniverse,
-                                      exchange_universe: ExchangeUniverse | HumanReadableTradingPairDescription = None,
-                                      ) -> DEXPair:
+    def get_pair_by_human_description(
+        self,
+        desc: HumanReadableTradingPairDescription | ExchangeUniverse,
+        exchange_universe: ExchangeUniverse | HumanReadableTradingPairDescription = None,
+    ) -> DEXPair:
         """Get pair by its human readable description.
 
         Look up a trading pair by chain, exchange, base, quote token tuple.
