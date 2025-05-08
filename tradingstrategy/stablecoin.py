@@ -10,7 +10,7 @@
 try:
     from eth_defi.token import ALL_STABLECOIN_LIKE
 except ImportError:
-    ALL_STABLECOIN_LIKE = None
+    ALL_STABLECOIN_LIKE = set()
 
 
 def is_stablecoin_like(token_symbol: str, symbol_list=ALL_STABLECOIN_LIKE) -> bool:
