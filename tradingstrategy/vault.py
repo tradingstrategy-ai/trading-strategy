@@ -1,9 +1,13 @@
 """"Vault data for EIP-4626 and other digital asset management protocols."""
 import datetime
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import Iterable, TypeAlias
 
-from eth_defi.erc_4626.core import ERC4626Feature
+try:
+    from eth_defi.erc_4626.core import ERC4626Feature
+except ImportError:
+    # Spoof for soft imports
+    ERC4626Feature: TypeAlias = str
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
