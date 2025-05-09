@@ -20,8 +20,11 @@ class VaultMetadata:
     """User in pair dataframe for vault specific data.
     """
 
+    #: Like "Ipor"
+    protocol_name: str
+
     #: Vault protocol slug e.g. "ipor"
-    vault_protocol: str
+    protocol_slug: str
 
     #: Supported features by this vault
     #:
@@ -146,7 +149,7 @@ class Vault:
             "fee": 0,
             "chain_id": self.chain_id,
             "buy_volume_all_time": 0,
-            "token_metadata": VaultMetadata(features=list(self.features), vault_protocol=self.protocol_slug),
+            "token_metadata": VaultMetadata(features=list(self.features), protocol_slug=self.protocol_slug, protocol_name=self.protocol_name),
         }
 
     def export_as_exchange(self) -> dict:

@@ -2189,7 +2189,7 @@ def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=
                 obj.sell_tax = meta.get_sell_tax()
             case VaultMetadata():
                 obj.other_data["token_metadata"] = meta
-                obj.other_data["vault_protocol"] = meta.vault_protocol
+                obj.other_data["vault_protocol"] = meta.protocol_slug
                 obj.other_data["vault_features"] = meta.features
             case None:
                 pass
