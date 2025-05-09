@@ -10,6 +10,7 @@ import zstandard
 from eth_defi.erc_4626.core import ERC4262VaultDetection
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
+from tradingstrategy.types import NonChecksummedAddress
 from tradingstrategy.vault import VaultUniverse, Vault
 
 
@@ -149,4 +150,22 @@ def load_single_vault(
     return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
 
+def load_multiple_vaults(
+    vaults: list[tuple[ChainId, NonChecksummedAddress]],
+    path=DEFAULT_VAULT_BUNDLE,
+) -> tuple[list[Exchange], pd.DataFrame]:
+    """Load a single bundled vault entry and return as pairs data.
+
+    Example:
+
+    .. code-block:: python
+
+        vault_exchanges, vault_pairs_df = load_multiple_vaults([ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216"])
+        exchange_universe.add(vault_exchanges)
+        pairs_df = pd.concat([pairs_df, vault_pairs_df])
+
+    """
+    vault_universe = load_vault_database(path)
+    vault_universe.limit_to_vaults(vaults)
+    return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
