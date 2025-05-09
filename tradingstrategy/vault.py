@@ -125,6 +125,7 @@ class Vault:
             "fee": 0,
             "chain_id": self.chain_id,
             "buy_volume_all_time": 0,
+            "other_data": {"vault_features": self.features},
         }
 
     def export_as_exchange(self) -> dict:
@@ -174,6 +175,12 @@ class VaultUniverse:
 
     def export_all_vaults(self) -> Iterable[Vault]:
         return self.vaults
+
+    def limit_to_single(self, chain_id: ChainId, address: str):
+        """Drop all but single vault entry."""
+        self.vaults = [vault for vault in self.vaults if vault.chain_id == chain_id and vault.vault_address == address]
+        assert len(self.vaults) == 1, f"Expected single vault, got {len(self.vaults)}"
+
 
 
 def _derive_pair_id(vault: Vault) -> int:

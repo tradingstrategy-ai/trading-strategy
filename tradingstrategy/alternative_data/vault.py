@@ -1,14 +1,20 @@
 """Vault data sideloading"""
+
 import pickle
 from pathlib import Path
 from typing import Iterable
 
 import pandas as pd
+import zstandard
 
 from eth_defi.erc_4626.core import ERC4262VaultDetection
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.vault import VaultUniverse, Vault
+
+
+#: Path to the bundled vault database
+DEFAULT_VAULT_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-db.pickle.zstd"
 
 
 def load_vault_database(path: Path | None = None) -> VaultUniverse:
@@ -24,6 +30,8 @@ def load_vault_database(path: Path | None = None) -> VaultUniverse:
         Path to the pickle file.
 
         If not given use the default location.
+
+        Can be zstd compressed with .zstd suffix.
     """
 
     if path is None:
@@ -32,7 +40,13 @@ def load_vault_database(path: Path | None = None) -> VaultUniverse:
     assert path.exists(), f"No vault file: {path}"
 
     vault_db: dict
-    vault_db = pickle.load(path.open("rb"))
+
+    if path.suffix == ".zstd":
+        with zstandard.open(path, "rb") as inp:
+            vault_db = pickle.load(inp)
+    else:
+        # Normal pickle
+        vault_db = pickle.load(path.open("rb"))
 
     vaults = []
 
@@ -112,5 +126,19 @@ def convert_vaults_to_trading_pairs(
     pairs_df = pd.DataFrame(rows)
 
     return exchanges, pairs_df
+
+
+def load_single_vault(
+    chain_id: ChainId,
+    vault_address: str,
+    path=DEFAULT_VAULT_BUNDLE,
+) -> tuple[list[Exchange], pd.DataFrame]:
+    """Load a single bundled vault entry and return as pairs data.
+
+    """
+    vault_universe = load_vault_database(path)
+    vault_universe.limit_to_single(chain_id, vault_address)
+    return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
+
 
 
