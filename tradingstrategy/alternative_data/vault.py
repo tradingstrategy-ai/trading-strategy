@@ -35,7 +35,7 @@ def load_vault_database(path: Path | None = None) -> VaultUniverse:
     """
 
     if path is None:
-        path = Path("~/.tradingstrategy/vaults/vault-db.pickle").expanduser()
+        path = DEFAULT_VAULT_BUNDLE
 
     assert path.exists(), f"No vault file: {path}"
 
@@ -134,6 +134,14 @@ def load_single_vault(
     path=DEFAULT_VAULT_BUNDLE,
 ) -> tuple[list[Exchange], pd.DataFrame]:
     """Load a single bundled vault entry and return as pairs data.
+
+    Example:
+
+    .. code-block:: python
+
+        vault_exchanges, vault_pairs_df = load_single_vault(ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")
+        exchange_universe.add(vault_exchanges)
+        pairs_df = pd.concat([pairs_df, vault_pairs_df])
 
     """
     vault_universe = load_vault_database(path)

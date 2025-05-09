@@ -83,7 +83,7 @@ from tradingstrategy.exceptions import DataNotFoundError
 
 # Legacy compatibility
 from tradingstrategy.utils.token_filter import *
-
+from tradingstrategy.vault import VaultMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -153,14 +153,6 @@ FeePair: TypeAlias = Tuple[ChainId, str | None, str, str, Percent]
 #:
 HumanReadableTradingPairDescription: TypeAlias = FeePair | FeelessPair
 
-
-#: Pair ids above this number are generaed.
-#:
-#: This is used for pairs that do not have internal pair id, but
-#: must have stable pair ids across runs.
-#:
-#: See :py:func:`tradingstrategy.vault._derive_pair_id` for more information.
-SPECIAL_PAIR_ID_RANGE = 2**32
 
 
 class PairNotFoundError(DataNotFoundError):
@@ -2183,16 +2175,30 @@ def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=
         obj = DEXPair.from_dict(preprocessed_data)
         obj.exchange_name = exchange_name
 
-        meta: TokenMetadata
         meta = data.get("token_metadata")
-        if meta:
-            assert isinstance(meta, TokenMetadata), f"Expected TokenMetadata, got {type(meta)}: {meta}"
-            obj.other_data["token_metadata"] = meta
-            obj.buy_tax =  meta.get_buy_tax()
-            obj.sell_tax = meta.get_sell_tax()
+
+        match meta:
+            case TokenMetadata():
+                assert isinstance(meta, TokenMetadata), f"Expected TokenMetadata, got {type(meta)}: {meta}"
+
+                if obj.other_data is None:
+                    obj.other_data = {}
+
+                obj.other_data["token_metadata"] = meta
+                obj.buy_tax =  meta.get_buy_tax()
+                obj.sell_tax = meta.get_sell_tax()
+            case VaultMetadata():
+                obj.other_data["token_metadata"] = meta
+                obj.other_data["vault_protocol"] = meta.vault_protocol
+                obj.other_data["vault_features"] = meta.features
+            case None:
+                pass
+            case _:
+                raise NotImplementedError(f"Unknown token metadata type: {type(meta)}")
 
     except Exception as e:
         pretty = pprint.pformat(data)
+        pretty = pretty[0:1000] + "..." if len(pretty) > 1000 else pretty
         raise DataDecodeFailed(f"Could not decode trading pair data:\n{pretty}") from e
     return obj
 

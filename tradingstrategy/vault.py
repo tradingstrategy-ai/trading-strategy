@@ -1,14 +1,25 @@
 """"Vault data for EIP-4626 and other digital asset management protocols."""
 import datetime
 from dataclasses import dataclass, field
-from typing import Iterable, Any
+from typing import Iterable
 
 from eth_defi.erc_4626.core import ERC4626Feature
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
 from tradingstrategy.types import Percent, NonChecksummedAddress
-from tradingstrategy.pair import SPECIAL_PAIR_ID_RANGE
+from tradingstrategy.types import SPECIAL_PAIR_ID_RANGE
+
+
+@dataclass(slots=True, frozen=True)
+class VaultMetadata:
+    """User in pair dataframe for vault specific data"""
+
+    #: Vault protocol slug e.g. "ipor"
+    vault_protocol: str
+
+    #: Supported features by this vault
+    features: set[ERC4626Feature]
 
 
 @dataclass(slots=True, frozen=True)
@@ -125,7 +136,7 @@ class Vault:
             "fee": 0,
             "chain_id": self.chain_id,
             "buy_volume_all_time": 0,
-            "other_data": {"vault_features": self.features},
+            "token_metadata": VaultMetadata(features=self.features, vault_protocol=self.protocol_slug),
         }
 
     def export_as_exchange(self) -> dict:

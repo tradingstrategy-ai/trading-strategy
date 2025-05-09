@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from eth_defi.erc_4626.core import ERC4626Feature
-from tradingstrategy.alternative_data.vault import load_vault_database, convert_vaults_to_trading_pairs, load_single_vault
+from tradingstrategy.alternative_data.vault import load_vault_database, convert_vaults_to_trading_pairs, load_single_vault, DEFAULT_VAULT_BUNDLE
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType, ExchangeUniverse
 from tradingstrategy.pair import PandasPairUniverse
@@ -14,7 +14,7 @@ from tradingstrategy.pair import PandasPairUniverse
 @pytest.fixture
 def vault_database() -> Path:
     """Path to the test vault database."""
-    return Path(__file__).parent / "vault-db.pickle"
+    return DEFAULT_VAULT_BUNDLE
 
 
 def test_sideload_vaults(vault_database):
@@ -84,5 +84,7 @@ def test_vaults_as_trading_pairs(
 
 
 def test_load_single_vault():
-    exchange_universe, df = load_single_vault(ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")
+    """Check load_single_vault()"""
+    exchanges, df = load_single_vault(ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")
     assert len(df) == 1
+    assert len(exchanges) == 1

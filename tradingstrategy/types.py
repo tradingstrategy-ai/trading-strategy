@@ -100,3 +100,12 @@ URL: TypeAlias = str
 #: and doing conversions will also slow down the code a bit.
 #:
 AnyTimestamp: TypeAlias = Union[datetime.datetime, pd.Timestamp]
+
+
+#: Pair ids above this number are generaed.
+#:
+#: This is used for pairs that do not have internal pair id, but
+#: must have stable pair ids across runs.
+#:
+#: See :py:func:`tradingstrategy.vault._derive_pair_id` for more information.
+SPECIAL_PAIR_ID_RANGE = 2**32
