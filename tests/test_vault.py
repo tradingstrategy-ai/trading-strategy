@@ -80,7 +80,7 @@ def test_vaults_as_trading_pairs(
 
     assert ipor.address == "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216"
     assert ipor.get_ticker() == "ipUSDCfusion-USDC"
-    assert ipor.other_data["vault_features"] == {ERC4626Feature.ipor_like}
+    assert ipor.other_data["vault_features"] == [ERC4626Feature.ipor_like]
 
 
 def test_load_single_vault():
