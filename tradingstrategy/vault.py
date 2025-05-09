@@ -13,18 +13,24 @@ from tradingstrategy.types import SPECIAL_PAIR_ID_RANGE
 
 @dataclass(slots=True, frozen=True)
 class VaultMetadata:
-    """User in pair dataframe for vault specific data"""
+    """User in pair dataframe for vault specific data.
+    """
 
     #: Vault protocol slug e.g. "ipor"
     vault_protocol: str
 
     #: Supported features by this vault
-    features: set[ERC4626Feature]
+    #:
+    #: Must be JSON serialisable, as this will be passed around to JSON state
+    features: list[ERC4626Feature]
+
+    def __post_init__(self):
+        assert type(self.features) == list
 
 
 @dataclass(slots=True, frozen=True)
 class Vault:
-    """Vault core data..
+    """Vault core data.
 
     - Normalised core dat across vaults
 
@@ -136,7 +142,7 @@ class Vault:
             "fee": 0,
             "chain_id": self.chain_id,
             "buy_volume_all_time": 0,
-            "token_metadata": VaultMetadata(features=self.features, vault_protocol=self.protocol_slug),
+            "token_metadata": VaultMetadata(features=list(self.features), vault_protocol=self.protocol_slug),
         }
 
     def export_as_exchange(self) -> dict:
