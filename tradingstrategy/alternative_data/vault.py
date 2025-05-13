@@ -11,7 +11,7 @@ from eth_defi.erc_4626.core import ERC4262VaultDetection
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.types import NonChecksummedAddress
-from tradingstrategy.utils.groupeduniverse import resample_candles
+from tradingstrategy.utils.groupeduniverse import resample_candles_multiple_pairs
 from tradingstrategy.vault import VaultUniverse, Vault, _derive_pair_id_from_address
 
 #: Path to the bundled vault database
@@ -246,7 +246,7 @@ def load_vault_price_data(
 def convert_vault_prices_to_candles(
     raw_prices_df: pd.DataFrame,
     frequency: str = "1d",
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Convert vault price data to candle format.
 
     - Partial support for price candle format to be used in backtesting
@@ -254,6 +254,54 @@ def convert_vault_prices_to_candles(
     - For the format see :py:func:`load_vault_price_data`
 
     - Only USD stablecoin denominated vaults supported for now
+
+    Example:
+
+    .. code-block: python
+
+        # Load data only for IPOR USDC vault on Base
+        exchanges, pairs_df = load_multiple_vaults([(ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")])
+        vault_prices_df = load_vault_price_data(pairs_df)
+        assert len(vault_prices_df) == 176  # IPOR has 176 days worth of data
+
+        # Create pair universe based on the vault data
+        exchange_universe = ExchangeUniverse({e.exchange_id: e for e in exchanges})
+        pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+        # Create price candles from vault share price scrape
+        candle_df, liquidity_df = convert_vault_prices_to_candles(vault_prices_df, "1h")
+        candle_universe = GroupedCandleUniverse(candle_df, time_bucket=TimeBucket.h1)
+        assert candle_universe.get_candle_count() == 4201
+        assert candle_universe.get_pair_count() == 1
+
+        liquidity_universe = GroupedLiquidityUniverse(liquidity_df, time_bucket=TimeBucket.h1)
+        assert liquidity_universe.get_sample_count() == 4201
+        assert liquidity_universe.get_pair_count() == 1
+
+        # Get share price as candles for a single vault
+        ipor_usdc = pair_universe.get_pair_by_smart_contract("0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")
+        prices = candle_universe.get_candles_by_pair(ipor_usdc)
+        assert len(prices) == 4201
+
+        # Query single price sample
+        timestamp = pd.Timestamp("2025-04-01 04:00")
+        price, when = candle_universe.get_price_with_tolerance(
+            pair=ipor_usdc,
+            when=timestamp,
+            tolerance=pd.Timedelta("2h"),
+        )
+        assert price == pytest.approx(1.0348826417292332)
+
+        # Query TVL
+        liquidity, when = liquidity_universe.get_liquidity_with_tolerance(
+            pair_id=ipor_usdc.pair_id,
+            when=timestamp,
+            tolerance=pd.Timedelta("2h"),
+        )
+        assert liquidity == pytest.approx(1429198.98104)
+
+    :return:
+        Prices dataframe, TVL dataframe
     """
 
     assert "chain" in raw_prices_df.columns, f"Got {raw_prices_df.columns}"
@@ -261,27 +309,44 @@ def convert_vault_prices_to_candles(
 
     assert frequency in ["1d", "1h"], f"Got {frequency}"
 
+    #
+    # Price candles
+    #
     df = raw_prices_df
     df["open"] = df["share_price"]
     df["low"] = df["share_price"]
     df["high"] = df["share_price"]
     df["close"] = df["share_price"]
-    df["pair_id"] = df["share_price"]
     df["volume"] = 0
     df["buy_volume"] = 0
     df["sell_volume"] = 0
     df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
 
-    df = df.set_index("timestamp")
+    if frequency == "1h":
+        df = _resample(df, frequency)
+
+    prices_df = df
+
+    #
+    # Liquidity candles
+    #
+    df = raw_prices_df
+    df["open"] = df["total_assets"]
+    df["low"] = df["total_assets"]
+    df["high"] = df["total_assets"]
+    df["close"] = df["total_assets"]
+    df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
 
     if frequency == "1h":
-        df = resample_candles(df, frequency)
-        df["open"] = df["open"].fillna(method="ffill")
-        df["high"] = df["high"].fillna(method="ffill")
-        df["low"] = df["low"].fillna(method="ffill")
-        df["close"] = df["close"].fillna(method="ffill")
-        df["volume"] = df["volume"].fillna(method="ffill")
+        df = _resample(df, frequency)
 
+    tvl_df = df
+    return prices_df, tvl_df
+
+
+def _resample(df: pd.DataFrame, frequency: str) -> pd.DataFrame:
+    """Multipair resample helper."""
+    df = resample_candles_multiple_pairs(df, frequency)
     return df
 
 

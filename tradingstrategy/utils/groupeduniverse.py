@@ -918,7 +918,10 @@ def resample_candles(
 
     E.g. upsample 1h candles to 1d candles.
 
-    See also: py:func:`resample_price_series`.
+    Limited to one pair per ``DataFrame``. See also: py:func:`resample_price_series`
+    and
+    :py:func:`tradeexecutor.strategy.pandas_trader.alternative_market_data.resample_multi_pair`
+    for resamping multipair data.
 
     Example:
 
@@ -1171,3 +1174,58 @@ def resample_price_series(
     series = series.resample(resample_freq).agg(func)
     return series
 
+
+def resample_candles_multiple_pairs(
+    df: pd.DataFrame,
+    frequency: str,
+    pair_id_column="pair_id",
+    copy_columns=["pair_id"],
+    forward_fill_columns=["open", "high", "low", "close", "volume"],
+    fix_and_sort_index=True,
+) -> pd.DataFrame:
+    """Upsample a OHLCV trading pair data to a lower time bucket.
+
+    - First group the DataFrame by pair
+    - Transform
+    - Resample in OHLCV manner
+    - Forward fill any gaps in data
+
+    :param pair_id_column:
+        DataFrame column to group the data by pair
+
+    :param copy_columns:
+        Columns we simply copy over.
+
+        We assume every pair has the same value for these columns.
+
+    :parma fix_and_sort_index:
+        Make sure we have a good timestamp index before proceeding.
+
+    :return:
+        Concatenated DataFrame of individually resampled pair data
+    """
+
+    if fix_and_sort_index:
+        df = df.set_index("timestamp")
+        df = df.sort_index()
+
+    by_pair = df.groupby(pair_id_column)
+    segments = []
+    for group_id in by_pair.groups:
+        pair_df = by_pair.get_group(group_id)
+        if len(pair_df) > 0:
+            segment = resample_candles(pair_df, frequency)
+
+            # Fill pair_id for all rows
+            for c in copy_columns:
+                if c in pair_df.columns:
+                    first_row = pair_df.iloc[0]
+                    segment[c] = first_row[c]
+
+            # Forward fill OHLCV if we went from 1d -> 1h
+            for ff_column in forward_fill_columns:
+                segment[ff_column] = segment[ff_column].fillna(method="ffill")
+
+            segments.append(segment)
+
+    return pd.concat(segments)
