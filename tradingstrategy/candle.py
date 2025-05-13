@@ -546,7 +546,7 @@ class GroupedCandleUniverse(PairGroupedUniverse):
             pair_name = pair_name_hint or str(pair_id)
             link = "<link unavailable>"
         else:
-            raise AssertionError(f"Unknown pair type: {pair.__class__}")
+            raise AssertionError(f"Unknown pair type: {pair.__class__}: {pair}")
 
         last_allowed_timestamp = when - tolerance
 

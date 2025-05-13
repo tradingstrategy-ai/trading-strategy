@@ -1,7 +1,7 @@
 """"Vault data for EIP-4626 and other digital asset management protocols."""
 import datetime
 from dataclasses import dataclass, field
-from typing import Iterable, TypeAlias
+from typing import Iterable, TypeAlias, Any
 
 try:
     from eth_defi.erc_4626.core import ERC4626Feature
@@ -175,6 +175,32 @@ class Vault:
             "pair_count": 0,
         }
 
+    @classmethod
+    def get_pandas_schema(cls) -> dict[str, Any]:
+        """Get Pandas schema types."""
+        import pandas as pd
+        dtype_schema = {
+            "pair_id": pd.Int64Dtype(),
+            "pair_slug": str,
+            "exchange_id": pd.Int64Dtype(),
+            "address": str,
+            "token0_address": str,
+            "token0_symbol": str,
+            "token0_decimals": pd.Int64Dtype(),  # Using nullable integer type
+            "token1_address": str,
+            "token1_symbol": str,
+            "token1_decimals": pd.Int64Dtype(),
+            "dex_type": str,  # Could use CategoricalDtype if ExchangeType values are known
+            "base_token_symbol": str,
+            "quote_token_symbol": str,
+            "exchange_slug": str,
+            "exchange_name": str,
+            "fee": pd.Float32Dtype(),
+            "chain_id": pd.Int32Dtype(),
+            "buy_volume_all_time": pd.Float64Dtype(),
+            "token_metadata": object  # Complex object, keeping as object type
+        }
+        return dtype_schema
 
 class VaultUniverse:
     """Vault universe of all accessible vaults."""
@@ -213,10 +239,14 @@ class VaultUniverse:
         assert len(self.vaults) == len(vaults), f"Expected {len(vaults)} vault, got {len(self.vaults)}. Maybe some vault data is mismatch, missing?"
 
 
-
 def _derive_pair_id(vault: Vault) -> int:
     """Derive a pair id from the vault address."""
-    return SPECIAL_PAIR_ID_RANGE + int(vault.vault_address, 16) % (2**31 - 1)
+    return _derive_pair_id_from_address(vault.vault_address)
+
+
+def _derive_pair_id_from_address(address: NonChecksummedAddress) -> int:
+    """Derive a pair id from the vault address."""
+    return SPECIAL_PAIR_ID_RANGE + int(address, 16) % (2**31 - 1)
 
 
 def _derive_exchange_id(vault: Vault) -> int:

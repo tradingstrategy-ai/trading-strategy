@@ -249,7 +249,8 @@ class ExchangeUniverse:
             raise ValueError(f"Could not map: {exchanges}") from e
         return ExchangeUniverse(exchanges=exchange_dict)
 
-    def get_by_id(self, id) -> Optional[Exchange]:
+    def get_by_id(self, id: int) -> Optional[Exchange]:
+        assert isinstance(id, int), f"Expected int, got {type(id)}: {id}"
         return self.exchanges.get(id)
 
     def get_exchange_count(self) -> int:

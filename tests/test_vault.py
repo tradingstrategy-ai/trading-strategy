@@ -2,13 +2,16 @@
 import datetime
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from eth_defi.erc_4626.core import ERC4626Feature
-from tradingstrategy.alternative_data.vault import load_vault_database, convert_vaults_to_trading_pairs, load_single_vault, DEFAULT_VAULT_BUNDLE, load_multiple_vaults
+from tradingstrategy.alternative_data.vault import load_vault_database, convert_vaults_to_trading_pairs, load_single_vault, DEFAULT_VAULT_BUNDLE, load_multiple_vaults, load_vault_price_data, convert_vault_prices_to_candles
+from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType, ExchangeUniverse
 from tradingstrategy.pair import PandasPairUniverse
+from tradingstrategy.timebucket import TimeBucket
 
 
 @pytest.fixture
@@ -95,3 +98,33 @@ def test_load_multiple_vaults():
     exchanges, df = load_multiple_vaults([(ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")])
     assert len(df) == 1
     assert len(exchanges) == 1
+
+
+def test_side_load_vault_price_data():
+    """Check load_vault_price_data()"""
+    exchanges, pairs_df = load_multiple_vaults([(ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")])
+    vault_prices_df = load_vault_price_data(pairs_df)
+    assert len(vault_prices_df) == 176  # IPOR has 176 days worth of data
+
+    # Create pair universe based on the vault data
+    exchange_universe = ExchangeUniverse({e.exchange_id: e for e in exchanges})
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    # Create price candles from vault share price scrape
+    candle_df = convert_vault_prices_to_candles(vault_prices_df, "1h")
+    candle_universe = GroupedCandleUniverse(candle_df, time_bucket=TimeBucket.h1)
+    assert candle_universe.get_candle_count() == 4201
+
+    # Get share price as candles for a single vault
+    ipor_usdc = pair_universe.get_pair_by_smart_contract("0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")
+    prices = candle_universe.get_candles_by_pair(ipor_usdc)
+    assert len(prices) == 4201
+
+    # Query single price sample
+    timestamp = pd.Timestamp("2025-04-01 04:00")
+    price, when = candle_universe.get_price_with_tolerance(
+        pair=ipor_usdc,
+        when=timestamp,
+        tolerance=pd.Timedelta("2h"),
+    )
+    assert price == pytest.approx(1.0348826417292332)
