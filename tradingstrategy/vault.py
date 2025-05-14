@@ -246,14 +246,20 @@ def _derive_pair_id(vault: Vault) -> int:
 
 def _derive_pair_id_from_address(address: NonChecksummedAddress) -> int:
     """Derive a pair id from the vault address."""
-    return SPECIAL_PAIR_ID_RANGE + int(address, 16) % (2**31 - 1)
+    id = SPECIAL_PAIR_ID_RANGE + int(address, 16) % (2**24)
+    assert id < _js_max_safe_int
+    return id
 
 
 def _derive_exchange_id(vault: Vault) -> int:
     """Derive a exchange id from the vault address."""
-    return SPECIAL_PAIR_ID_RANGE + abs(hash(vault.protocol_slug))
+    id = SPECIAL_PAIR_ID_RANGE + abs(hash(vault.protocol_slug)) % (2**24)
+    assert id < _js_max_safe_int
+    return id
 
 
 def _derive_pair_slug(vault: Vault) -> str:
     """Derive a pair slug from the vault address."""
     return vault.name.lower().replace(" ", "-")
+
+_js_max_safe_int = 2**53 - 1  # 9007199254740991

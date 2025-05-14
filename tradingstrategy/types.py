@@ -108,4 +108,4 @@ AnyTimestamp: TypeAlias = Union[datetime.datetime, pd.Timestamp]
 #: must have stable pair ids across runs.
 #:
 #: See :py:func:`tradingstrategy.vault._derive_pair_id` for more information.
-SPECIAL_PAIR_ID_RANGE = 2**32
+SPECIAL_PAIR_ID_RANGE = 2**28

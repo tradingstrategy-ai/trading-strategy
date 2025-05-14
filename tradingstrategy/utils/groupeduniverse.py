@@ -1224,7 +1224,7 @@ def resample_candles_multiple_pairs(
 
             # Forward fill OHLCV if we went from 1d -> 1h
             for ff_column in forward_fill_columns:
-                segment[ff_column] = segment[ff_column].fillna(method="ffill")
+                segment[ff_column] = segment[ff_column].ffill()
 
             segments.append(segment)
 
