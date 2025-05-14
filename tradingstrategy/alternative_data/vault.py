@@ -322,8 +322,9 @@ def convert_vault_prices_to_candles(
     df["sell_volume"] = 0
     df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
 
-    if frequency == "1h":
-        df = _resample(df, frequency)
+    # Even for daily data, we need to resample, because built-in vault price example
+    # data is not midnight aligned
+    df = _resample(df, frequency)
 
     prices_df = df
 
@@ -337,8 +338,9 @@ def convert_vault_prices_to_candles(
     df["close"] = df["total_assets"]
     df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
 
-    if frequency == "1h":
-        df = _resample(df, frequency)
+    # Even for daily data, we need to resample, because built-in vault price example
+    # data is not midnight aligned
+    df = _resample(df, frequency)
 
     tvl_df = df
     return prices_df, tvl_df

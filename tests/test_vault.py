@@ -101,8 +101,8 @@ def test_load_multiple_vaults():
     assert len(exchanges) == 1
 
 
-def test_side_load_vault_price_data():
-    """Check load_vault_price_data()"""
+def test_side_load_vault_price_data_hourly_resample():
+    """Check load_vault_price_data() with 1h resampling"""
 
     vaults = [
         (ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216"),  # IPOR
@@ -156,3 +156,36 @@ def test_side_load_vault_price_data():
         tolerance=pd.Timedelta("2h"),
     )
     assert liquidity == pytest.approx(3194564.625348)
+
+
+def test_side_load_vault_price_data_daily_resample():
+    """Check load_vault_price_data() with 1d resampling"""
+
+    vaults = [
+        (ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216"),  # IPOR
+        (ChainId.base, "0xad20523a7dc37babc1cc74897e4977232b3d02e5"),  # Gains
+    ]
+    exchanges, pairs_df = load_multiple_vaults(vaults)
+    vault_prices_df = load_vault_price_data(pairs_df)
+    assert len(vault_prices_df) == 403  # IPOR has 176 days worth of data
+
+    # Create pair universe based on the vault data
+    exchange_universe = ExchangeUniverse({e.exchange_id: e for e in exchanges})
+    pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
+
+    # Create price candles from vault share price scrape
+    candle_df, liquidity_df = convert_vault_prices_to_candles(vault_prices_df, "1d")
+    candle_universe = GroupedCandleUniverse(candle_df, time_bucket=TimeBucket.h1)
+    assert candle_universe.get_candle_count() == 403
+    assert candle_universe.get_pair_count() == 2
+
+    # Query single price sample
+    ipor_usdc = pair_universe.get_pair_by_smart_contract("0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")
+    timestamp = pd.Timestamp("2025-04-01 00:00")
+    price, diff = candle_universe.get_price_with_tolerance(
+        pair=ipor_usdc,
+        when=timestamp,
+        tolerance=pd.Timedelta("2h"),
+    )
+    assert price == pytest.approx(1.0350376272533817)
+    assert diff == pd.Timedelta(0)

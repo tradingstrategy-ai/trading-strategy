@@ -20,6 +20,9 @@ class VaultMetadata:
     """User in pair dataframe for vault specific data.
     """
 
+    #: Like "Harvest Autopilot"
+    vault_name: str
+
     #: Like "Ipor"
     protocol_name: str
 
@@ -30,6 +33,22 @@ class VaultMetadata:
     #:
     #: Must be JSON serialisable, as this will be passed around to JSON state
     features: list[ERC4626Feature]
+
+    #: Performance fee.
+    #:
+    #: .. note::
+    #:
+    #:   As this changes over time, never use this fixed value in backtesting or live trading.
+    #:
+    performance_fee: Percent | None = None
+
+    #: Management fee
+    #:
+    #: .. note::
+    #:
+    #:   As this changes over time, never use this fixed value in backtesting or live trading.
+    #:
+    management_fee: Percent | None = None
 
     def __post_init__(self):
         assert type(self.features) == list
@@ -130,6 +149,15 @@ class Vault:
         assert self.name
         assert "unknown" not in self.name
 
+        metadata = VaultMetadata(
+            vault_name=self.name,
+            features=list(self.features),
+            protocol_slug=self.protocol_slug,
+            protocol_name=self.protocol_name,
+            performance_fee=self.performance_fee,
+            management_fee=self.management_fee,
+        )
+
         return {
             "pair_id": _derive_pair_id(self),
             "pair_slug": _derive_pair_slug(self),
@@ -149,7 +177,7 @@ class Vault:
             "fee": 0,
             "chain_id": self.chain_id,
             "buy_volume_all_time": 0,
-            "token_metadata": VaultMetadata(features=list(self.features), protocol_slug=self.protocol_slug, protocol_name=self.protocol_name),
+            "token_metadata": metadata,
         }
 
     def export_as_exchange(self) -> dict:
