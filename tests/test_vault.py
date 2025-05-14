@@ -189,3 +189,14 @@ def test_side_load_vault_price_data_daily_resample():
     )
     assert price == pytest.approx(1.0350376272533817)
     assert diff == pd.Timedelta(0)
+
+    # Check our data is daily
+    prices = candle_universe.get_candles_by_pair(ipor_usdc)
+    assert len(prices) == 176
+    freq = pd.infer_freq(prices.index)
+    assert freq == "D"
+
+    # Check daily data is gapless
+    expected_delta = pd.Timedelta(days=1)
+    time_diff = prices.index.to_series().diff().dropna()
+    assert all(time_diff == expected_delta)
