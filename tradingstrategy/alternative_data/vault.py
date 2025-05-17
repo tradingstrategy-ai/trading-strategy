@@ -1,4 +1,14 @@
-"""Vault data sideloading"""
+"""Vault data sideloading.
+
+To repackage the vault bundle:
+
+.. code-block:: shell
+
+    # Copy scanned vault bundles to Python package data
+    ./scripts/repackage-vault-data.sh
+
+
+"""
 
 import pickle
 from pathlib import Path
