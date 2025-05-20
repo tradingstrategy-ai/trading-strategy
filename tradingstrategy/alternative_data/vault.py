@@ -350,9 +350,9 @@ def convert_vault_prices_to_candles(
 
     # Even for daily data, we need to resample, because built-in vault price example
     # data is not midnight aligned
-    df = _resample(df, frequency)
 
-    tvl_df = df
+    tvl_df = _resample(df, frequency)
+
     return prices_df, tvl_df
 
 
