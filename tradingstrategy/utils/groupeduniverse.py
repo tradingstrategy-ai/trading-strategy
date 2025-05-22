@@ -248,7 +248,11 @@ class PairGroupedUniverse:
             pair = self.pairs.get_group(pair_id)
         except KeyError as e:
             all_groups = list(self.pairs.groups.keys())
-            raise PairCandlesMissing(f"No OHLC samples for pair id {pair_id} in {self}.\nWe have internal ids: {all_groups}") from e
+            if len(all_groups) > 5:
+                all_groups_msg = f"We have data for: {len(all_groups)} pairs, first 5: {all_groups[:5]}"
+            else:
+                all_groups_msg = f"We have data for pair_ids: {all_groups}"
+            raise PairCandlesMissing(f"No OHLC samples for pair id {pair_id} in {self}.\n{all_groups_msg}") from e
         return pair
 
     def get_last_entries_by_pair_and_timestamp(self,
