@@ -477,7 +477,10 @@ class CachedHTTPTransport:
             logger.info("Downloading pair universe data from the server %s", path)
             self.save_response(path, "pair-universe", human_readable_hint="Downloading trading pair dataset")
 
-            return self.get_cached_item(fname)
+            # TODO: Some sort of race consition can be here?
+            path = self.get_cached_item(fname)
+            assert path is not None, f"Failed to get cached item {fname} in fetch_pair_universe()"
+            return path
 
     def fetch_exchange_universe(self) -> pathlib.Path:
         fname = "exchange-universe.json"
