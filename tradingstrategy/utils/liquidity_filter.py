@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_somewhat_realistic_max_liquidity(
-    liquidity_df,
+    liquidity_df: DataFrameGroupBy,
     pair_id,
     samples=10,
     broken_liquidity=100_000_000,
@@ -45,8 +45,13 @@ def get_somewhat_realistic_max_liquidity(
 
     """
     try:
-        liquidity_samples = liquidity_df.obj.loc[pair_id]["close"].nlargest(samples)
-        sample = min(liquidity_samples)
+        # TODO: Do not assume liquidity_df.obj has pair_id index here
+        liquidity_samples = liquidity_df.get_group(pair_id)["close"]
+
+        if not isinstance(liquidity_samples, pd.Series):
+            assert isinstance(liquidity_samples, pd.Series), f"Got: {type(liquidity_df)} for liquidity_df, expected pd.Series for pair {pair_id}"
+        largest = liquidity_samples.nlargest(samples)
+        sample = min(largest)
         if sample > broken_liquidity:
             # Filter out bad data
             return -1
@@ -57,7 +62,7 @@ def get_somewhat_realistic_max_liquidity(
 
 
 def get_liquidity_today(
-    liquidity_df,
+    liquidity_df: DataFrameGroupBy,
     pair_id,
     delay=pd.Timedelta(days=30)
 ) -> float:
@@ -74,7 +79,8 @@ def get_liquidity_today(
 
     try:
         timestamp = floor_pandas_week(pd.Timestamp.now() - delay)
-        sample = liquidity_df.obj.loc[pair_id]["close"][timestamp]
+        close_series = liquidity_df.get_group(pair_id)["close"]
+        sample = close_series[timestamp]
         return sample
     except KeyError:
         # Pair not available, because liquidity data is not there, or zero, or broken
@@ -216,6 +222,7 @@ def build_liquidity_summary(
     for pair_id in pair_ids:
         pair_liquidity_max_historical[pair_id] = get_somewhat_realistic_max_liquidity(liquidity_df, pair_id)
         pair_liquidity_today[pair_id] = get_liquidity_today(liquidity_df, pair_id, delay=delay)
+
     return pair_liquidity_max_historical, pair_liquidity_today
 
 

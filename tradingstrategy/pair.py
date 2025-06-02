@@ -1041,6 +1041,7 @@ class PandasPairUniverse:
             or None if not found.
         """
 
+        assert type(address) == str, f"Expected address to be a string, got {type(address)}"
         address = address.lower()
 
         token: Optional[Token] = None

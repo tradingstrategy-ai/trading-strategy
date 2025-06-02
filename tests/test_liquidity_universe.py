@@ -217,10 +217,18 @@ def test_build_liquidity_summary(
     liquidity_df = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
     liquidity_df = liquidity_df.loc[liquidity_df["pair_id"].isin(pairs_df["pair_id"])]  # Filter to our pair set before forward fill
     liquidity_df = liquidity_df.set_index("timestamp").groupby("pair_id")
-    liquidity_df = forward_fill(liquidity_df, TimeBucket.d7.to_frequency(), columns=("close",))
-    historical_max, today = build_liquidity_summary(liquidity_df, pairs_df["pair_id"])
+    ff_liquidity_df = forward_fill(liquidity_df, TimeBucket.d7.to_frequency(), columns=("close",))
+
+    # assert isinstance(liquidity_df.obj.index, type(ff_liquidity_df.obj.index)), f"Index type changes: {type(liquidity_df.index)} -> {type(ff_liquidity_df.index)}"
+
+    # TODO: We lose some pairs because they have no data?
+    pairs_original = sorted(pairs_df["pair_id"].unique())
+    pairs_after_ff = sorted(ff_liquidity_df.obj["pair_id"].unique())
+    # assert pairs_original == pairs_after_ff, "Pair IDs do not match after forward fill"
+
+    historical_max, today = build_liquidity_summary(ff_liquidity_df, pairs_df["pair_id"])
     assert len(historical_max) > 100
-    print(historical_max.most_common(10))
+
     for pair_id, liquidity_usd in historical_max.most_common(10):
         assert liquidity_usd > 0, f"Got zero liquidity for pair {pair_id}"
 

@@ -27,8 +27,11 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.time import assert_compatible_timestamp, ZERO_TIMEDELTA
-
 from .wrangle import fix_dex_price_data, DEFAULT_MIN_MAX_RANGE
+
+#: Legacy import alais
+from tradingstrategy.utils.forward_fill import resample_candles_multiple_pairs
+from tradingstrategy.utils.forward_fill import resample_candles
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +215,13 @@ class PairGroupedUniverse:
 
         #: Grouped DataFrame cache for faster lookup
         self.candles_cache: dict[PrimaryKey, pd.DataFrame] = {}
+
+    def is_forward_filled(self) -> bool:
+        """Check if the data was forward filled after the data loading.
+
+        :return: True if the data is forward filled, False otherwise.
+        """
+        return "forward_filled" in self.df.columns
 
     def clear_cache(self):
         """Clear candles cached by pair."""
@@ -423,7 +433,11 @@ class PairGroupedUniverse:
         samples = self.get_all_samples_by_range(start, end)
         return samples.groupby(self.primary_key_column)
 
-    def get_timestamp_range(self, use_timezone=False) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
+    def get_timestamp_range(
+        self,
+        use_timezone=False,
+        exclude_forward_fill=False,
+    ) -> Tuple[Optional[pd.Timestamp], Optional[pd.Timestamp]]:
         """Return the time range of data we have for.
 
         .. note ::
@@ -443,23 +457,34 @@ class PairGroupedUniverse:
             If the data frame is empty, return `None, None`.
         """
 
-        if len(self.df) == 0:
+        df = self.df
+
+        if len(df) == 0:
             return None, None
+
+        if exclude_forward_fill:
+            # Because we forward fill the OHLCV data,
+            # for any timerange based alerts, we need
+            # to use real data range, not the forward filled
+            # time range
+            # See forward_fill()
+            if "forward_filled" in df.columns:
+                df = df.loc[~(df["forward_filled"] == True)]
 
         if(self.index_automatically == True):
             if use_timezone:
-                start = (self.df[self.timestamp_column].iat[0]).tz_localize(tz='UTC')
-                end = (self.df[self.timestamp_column].iat[-1]).tz_localize(tz='UTC')
+                start = (df[self.timestamp_column].iat[0]).tz_localize(tz='UTC')
+                end = (df[self.timestamp_column].iat[-1]).tz_localize(tz='UTC')
             else:
-                start = self.df[self.timestamp_column].iat[0]
-                end = self.df[self.timestamp_column].iat[-1]
+                start = df[self.timestamp_column].iat[0]
+                end = df[self.timestamp_column].iat[-1]
         else:
             if use_timezone:
-                start = min(self.df[self.timestamp_column]).tz_localize(tz='UTC')
-                end = max(self.df[self.timestamp_column]).tz_localize(tz='UTC')
+                start = min(df[self.timestamp_column]).tz_localize(tz='UTC')
+                end = max(df[self.timestamp_column]).tz_localize(tz='UTC')
             else:
-                start = min(self.df[self.timestamp_column])
-                end = max(self.df[self.timestamp_column])
+                start = min(df[self.timestamp_column])
+                end = max(df[self.timestamp_column])
 
         return start, end
 
@@ -912,133 +937,6 @@ def resample_series(
     return candles
 
 
-def resample_candles(
-    df: pd.DataFrame,
-    resample_freq: pd.Timedelta | str,
-    shift: int | None=None,
-    origin: str | None=None,
-) -> pd.DataFrame:
-    """Downsample or upsample OHLCV candles or liquidity samples.
-
-    E.g. upsample 1h candles to 1d candles.
-
-    Limited to one pair per ``DataFrame``. See also: py:func:`resample_price_series`
-    and
-    :py:func:`tradeexecutor.strategy.pandas_trader.alternative_market_data.resample_multi_pair`
-    for resamping multipair data.
-
-    Example:
-
-    .. code-block:: python
-
-        # Transform daily candles to monthly candles
-        from tradingstrategy.utils.groupeduniverse import resample_candles
-
-        single_pair_candles = raw_candles.loc[raw_candles["pair_id"] == pair.pair_id]
-        single_pair_candles = single_pair_candles.set_index("timestamp", drop=False)
-        monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
-        monthly_candles = resample_candles(single_pair_candles, TimeBucket.d30)
-        assert len(monthly_candles) <= len(single_pair_candles) / 4
-
-    :param df:
-        DataFrame of price, liquidity or lending rate candles.
-
-        Must contain candles only for a single trading pair.
-
-        Supported columns: open, high, low, close.
-        Optional: pair_id, volume.
-
-        Any other columns in DataFrame are destroyed in the resampling process.
-
-    :param resample_freq:
-        Resample frequency.
-
-        Timedelta or Pandas alias string e.g. "D".
-
-        E.g.`pd.Timedelta(days=1)` create daily candles from hourly candles.
-
-    :param shift:
-        Before resampling, shift candles to left or right.
-
-        The shift is measured in number of candles, not time.
-        Make sure the DataFrame is forward filled first,
-        see :py:func:`forward_fill`.
-
-        Set to `1` to shift candles one step right,
-        `-1` to shift candles one step left.
-
-        There might not be enough rows to shift. E.g. shift=-1 or shift=1 and len(df) == 1.
-        In this case, an empty data frame is returned.
-
-    :param origin:
-        For daily resample, the starting hour.
-
-        Use `origin="end"` for a rolling resample.
-
-    :return:
-        Resampled candles in a new DataFrame.
-
-        Contains an added `timestamp` column that is also the index.
-
-        If the input DataFrame is zero-length, then return it as is.
-
-    """
-
-    if not type(resample_freq) == str:
-        assert isinstance(resample_freq, pd.Timedelta), f"We got {resample_freq}, supposed to be pd.Timedelta. E.g. pd.Timedelta(hours=2)"
-
-    if len(df) == 0:
-        return df
-
-    # Sanity check we don't try to resample mixed data of multiple pairs
-    if "pair_id" in df.columns:
-        pair_ids = df["pair_id"].unique()
-        assert len(pair_ids) == 1, f"resample_candles() can do only a single pair. Data must have single pair_id only. We got {len(pair_ids)} pair ids: {pair_ids}, columns: {df.columns}"
-        pair_id = pair_ids[0]
-    else:
-        pair_id = None
-
-    ohlc_dict = {}
-
-    if "open" in df.columns:
-        ohlc_dict["open"] = "first"
-
-    if "high" in df.columns:
-        ohlc_dict["high"] = "max"
-
-    if "low" in df.columns:
-        ohlc_dict["low"] = "min"
-
-    if "close" in df.columns:
-        ohlc_dict["close"] = "last"
-
-    if "volume" in df.columns:
-        ohlc_dict["volume"] = "sum"
-
-    columns = df.columns.tolist()
-    assert all(item in columns for item in list(ohlc_dict.keys())), \
-        f"{list(ohlc_dict.keys())} needs to be in the column names\n" \
-        f"We got columns: {df.columns.tolist()}"
-
-    if shift:
-        df = df.shift(shift).dropna()
-
-    if origin:
-        candles = df.resample(resample_freq, origin=origin).agg(ohlc_dict)
-    else:
-        # https://stackoverflow.com/questions/21140630/resampling-trade-data-into-ohlcv-with-pandas
-        candles = df.resample(resample_freq).agg(ohlc_dict)
-
-    # TODO: Figure out right way to preserve timestamp column,
-    # resample seems to destroy it
-    candles["timestamp"] = candles.index
-
-    if pair_id:
-        candles["pair_id"] = pair_id
-
-    return candles
-
-
 def resample_dataframe(
     df: pd.DataFrame,
     resample_freq: pd.Timedelta,
@@ -1178,58 +1076,3 @@ def resample_price_series(
     series = series.resample(resample_freq).agg(func)
     return series
 
-
-def resample_candles_multiple_pairs(
-    df: pd.DataFrame,
-    frequency: str,
-    pair_id_column="pair_id",
-    copy_columns=["pair_id"],
-    forward_fill_columns=["open", "high", "low", "close", "volume"],
-    fix_and_sort_index=True,
-) -> pd.DataFrame:
-    """Upsample a OHLCV trading pair data to a lower time bucket.
-
-    - First group the DataFrame by pair
-    - Transform
-    - Resample in OHLCV manner
-    - Forward fill any gaps in data
-
-    :param pair_id_column:
-        DataFrame column to group the data by pair
-
-    :param copy_columns:
-        Columns we simply copy over.
-
-        We assume every pair has the same value for these columns.
-
-    :parma fix_and_sort_index:
-        Make sure we have a good timestamp index before proceeding.
-
-    :return:
-        Concatenated DataFrame of individually resampled pair data
-    """
-
-    if fix_and_sort_index:
-        df = df.set_index("timestamp")
-        df = df.sort_index()
-
-    by_pair = df.groupby(pair_id_column)
-    segments = []
-    for group_id in by_pair.groups:
-        pair_df = by_pair.get_group(group_id)
-        if len(pair_df) > 0:
-            segment = resample_candles(pair_df, frequency)
-
-            # Fill pair_id for all rows
-            for c in copy_columns:
-                if c in pair_df.columns:
-                    first_row = pair_df.iloc[0]
-                    segment[c] = first_row[c]
-
-            # Forward fill OHLCV if we went from 1d -> 1h
-            for ff_column in forward_fill_columns:
-                segment[ff_column] = segment[ff_column].ffill()
-
-            segments.append(segment)
-
-    return pd.concat(segments)
