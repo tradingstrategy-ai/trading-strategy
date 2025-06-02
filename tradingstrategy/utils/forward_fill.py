@@ -270,6 +270,8 @@ def forward_fill(
         grouped = False
         df = single_or_multipair_data
 
+    original_index = df.index
+
     df = resample_candles_multiple_pairs(
         df,
         frequency=freq,
@@ -280,7 +282,7 @@ def forward_fill(
     # Regroup by pair, as this was the original data format
     if grouped:
         # Not really needed, but some legacy code epends on this
-        df = df.set_index("pair_id", drop=False)
+        df = df.set_index(["pair_id", "timestamp"], drop=False)
         dfgb = df.groupby(level="pair_id")
         return dfgb
     else:
@@ -456,10 +458,6 @@ def xxx_forward_fill(
             new_index = single_or_multipair_data.index
             ff_df = single_or_multipair_data
 
-        forward_filled_indices = original_index.difference(new_index)
-        logger.info("Forward-filling %d timestamp index slots", len(forward_filled_indices))
-        ff_df.loc[ff_df.index.isin(forward_filled_indices), "forward_filled"] = True
-
         single_or_multipair_data = ff_df
 
     # Fill missing timestamps with NaN
@@ -477,7 +475,7 @@ def xxx_forward_fill(
 
     columns = set(columns)
 
-    for column in ("close", "open", "high", "low", "volume", "timestamp", "forward_filled"):
+    for column in ("close", "open", "high", "low", "volume", "timestamp"):
         if column in columns:
             columns.remove(column)
 

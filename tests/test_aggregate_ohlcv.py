@@ -8,7 +8,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.utils.aggregate_ohlcv import calculate_volume_weighted_ohlcv, aggregate_ohlcv_across_pairs
-from tradingstrategy.utils.forward_fill import forward_fill
+from tradingstrategy.utils.forward_fill import forward_fill, xxx_forward_fill
 
 # pair_id, timestamp, open, high, low, close, liquidity
 example_data = [
@@ -80,12 +80,13 @@ def test_aggregate_ohlcv_across_pairs(persistent_test_client):
     liquidity_df = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
     liquidity_df = liquidity_df.loc[liquidity_df["pair_id"].isin(pair_ids)]
     liquidity_df = liquidity_df.set_index("timestamp").groupby("pair_id")
-    liquidity_df = forward_fill(liquidity_df, "W", columns=("close",))  # Only close liquidity column needd
+    liquidity_df_ff = forward_fill(liquidity_df, "W", columns=("close",))  # Only close liquidity column needd
+
 
     aggregated_df = aggregate_ohlcv_across_pairs(
         pair_universe,
         candles_df,
-        liquidity_df["close"],
+        liquidity_df_ff["close"],
     )
 
     #                    open         high          low        close        volume     liquidity                                       aggregate_id  base quote                     pair_ids
