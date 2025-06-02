@@ -267,7 +267,6 @@ def forward_fill(
         df = single_or_multipair_data.obj
         grouped = True
     else:
-        df = single_or_multipair_data
         grouped = False
         df = single_or_multipair_data
 
@@ -275,11 +274,14 @@ def forward_fill(
         df,
         frequency=freq,
         forward_fill_until=forward_fill_until,
+        forward_fill_columns=columns,
     )
 
     # Regroup by pair, as this was the original data format
     if grouped:
-        dfgb = df.groupby("pair_id")
+        # Not really needed, but some legacy code epends on this
+        df = df.set_index("pair_id", drop=False)
+        dfgb = df.groupby(level="pair_id")
         return dfgb
     else:
         return df
@@ -524,7 +526,7 @@ def resample_candles_multiple_pairs(
     frequency: str,
     pair_id_column="pair_id",
     copy_columns=["pair_id"],
-    forward_fill_columns=["open", "high", "low", "close", "volume"],
+    forward_fill_columns: Collection[str]=("open", "high", "low", "close", "volume",),
     fix_and_sort_index=True,
     forward_fill_until: datetime.datetime | None = None,
 ) -> pd.DataFrame:
@@ -551,8 +553,10 @@ def resample_candles_multiple_pairs(
     """
 
     if fix_and_sort_index:
-        df = df.set_index("timestamp")
-        df = df.sort_index()
+        # Make sure timestamp is used as index, not as a column, beyond this point
+        if not isinstance(df.index, pd.DatetimeIndex) and "timestamp" in df.columns:
+            df = df.set_index("timestamp")
+            df = df.sort_index()
 
     by_pair = df.groupby(pair_id_column)
     segments = []
