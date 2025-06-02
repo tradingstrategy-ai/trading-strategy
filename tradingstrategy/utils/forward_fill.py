@@ -263,6 +263,9 @@ def forward_fill(
     assert isinstance(single_or_multipair_data, (pd.DataFrame, DataFrameGroupBy))
     assert isinstance(freq, (pd.DateOffset, str)), f"Expected pd.DateOffset, got: {freq}"
 
+    if isinstance(forward_fill_until, datetime.datetime):
+        forward_fill_until = pd.Timestamp(forward_fill_until)
+
     if isinstance(single_or_multipair_data, DataFrameGroupBy):
         df = single_or_multipair_data.obj
         grouped = True
@@ -772,25 +775,19 @@ def forward_fill_ohlcv_single_pair(
 
     assert isinstance(df.index, pd.DatetimeIndex), "DataFrame must have a DatetimeIndex."
 
-    forward_fill_until = pd.Timestamp(forward_fill_until)
+    if forward_fill_until is not None:
+        forward_fill_until = pd.Timestamp(forward_fill_until)
 
     # Resample
     original_index = df.index
     df = df.resample(freq).mean(numeric_only=True)
 
-    df = pad_dataframe_to_frequency(
-        df,
-        freq,
-        end_timestamp=forward_fill_until,
-    )
-
-    # Add a 'forward_filled' column, initially set to False
-    df["forward_filled"] = False
-
-    # Resample the DataFrame to the specified frequency
-
-    # Get the index where NaN values exist before forward filling
-    nan_index = df[df.isna().any(axis=1)].index
+    if forward_fill_until is not None:
+        df = pad_dataframe_to_frequency(
+            df,
+            freq,
+            end_timestamp=forward_fill_until,
+        )
 
     # Forward fill 'close' values
     if "close" in df.columns:
@@ -821,6 +818,11 @@ def forward_fill_ohlcv_single_pair(
         df["timestamp"] = df.index
 
     if "pair_id" in df.columns:
+        if not pair_id:
+            pair_ids = df["pair_id"].dropna().unique()
+            assert len(pair_ids) == 1, f"Expected single pair_id, got {len(pair_ids)}: {pair_ids}"
+            pair_id = pair_ids[0]
+
         assert pair_id
         df["pair_id"] = pair_id
 
