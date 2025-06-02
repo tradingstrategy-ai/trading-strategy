@@ -814,8 +814,7 @@ def forward_fill_ohlcv_single_pair(
     df.loc[df.index.isin(forward_filled_indices), "forward_filled"] = True
     df.loc[~df.index.isin(forward_filled_indices), "forward_filled"] = False
 
-    if "timestamp" in df.columns:
-        df["timestamp"] = df.index
+    df["timestamp"] = df.index
 
     if "pair_id" in df.columns:
         if not pair_id:
