@@ -536,6 +536,7 @@ def resample_candles_multiple_pairs(
     - Transform
     - Resample in OHLCV manner
     - Forward fill any gaps in data
+    - Set `forward_fill_until` attribute on DataFrame to refect how much forward fill was done
 
     :param pair_id_column:
         DataFrame column to group the data by pair
@@ -589,8 +590,9 @@ def resample_candles_multiple_pairs(
 
             segments.append(segment)
 
-    return pd.concat(segments)
-
+    df = pd.concat(segments)
+    df.attrs["forward_filled_until"] = forward_fill_until
+    return df
 
 
 def resample_candles(
@@ -780,7 +782,9 @@ def forward_fill_ohlcv_single_pair(
     df["low"] = df["low"].fillna(df["close"])
 
     # Set 'volume' to 0
-    df["volume"] = df["volume"].fillna(0)
+    if "volume" in df.columns:
+        # Volume not present in TVL OHLC data
+        df["volume"] = df["volume"].fillna(0)
 
     # Mark the rows that were forward-filled
     ff_index = df[df.isna().any(axis=1)].index
