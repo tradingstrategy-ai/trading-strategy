@@ -124,8 +124,8 @@ def forward_fill(
     columns: Collection[str] = ("open", "high", "low", "close", "volume", "timestamp"),
     drop_other_columns = True,
     forward_fill_until: pd.Timestamp | datetime.datetime | None = None,
-) -> pd.DataFrame:
-    """Forward-fill OHLCV data for multiple trading pairs.
+) -> pd.DataFrame | DataFrameGroupBy:
+    """Forward-fill OHLCV data for single or multiple trading pairs.
 
     :py:term:`Forward fill` certain candle columns. Forward
 
@@ -291,6 +291,10 @@ def forward_fill(
         # Not really needed, but some legacy code depends on this.
         # We will index the underlying DataFrame by MultiIndex(pair_id, timestamp)
         # and then create groupby by pair_id.
+        if "timestamp" not in df.columns and isinstance(df.index, pd.DatetimeIndex):
+            # If we have timestamp index, then we can use it
+            df["timestamp"] = df.index
+
         df = df.set_index(["pair_id", "timestamp"], drop=False)
         dfgb = df.groupby(level="pair_id")
         return dfgb
