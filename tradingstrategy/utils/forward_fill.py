@@ -123,7 +123,7 @@ def forward_fill(
     freq: pd.DateOffset | str,
     columns: Collection[str] = ("open", "high", "low", "close", "volume", "timestamp"),
     drop_other_columns = True,
-    forward_fill_until: pd.Timestamp | None = None,
+    forward_fill_until: pd.Timestamp | datetime.datetime | None = None,
 ) -> pd.DataFrame:
     """Forward-fill OHLCV data for multiple trading pairs.
 
@@ -270,14 +270,21 @@ def forward_fill(
         grouped = False
         df = single_or_multipair_data
 
-    original_index = df.index
-
-    df = resample_candles_multiple_pairs(
-        df,
-        frequency=freq,
-        forward_fill_until=forward_fill_until,
-        forward_fill_columns=columns,
-    )
+    if grouped:
+        # We do multiple pairs
+        df = resample_candles_multiple_pairs(
+            df,
+            frequency=freq,
+            forward_fill_until=forward_fill_until,
+            forward_fill_columns=columns,
+        )
+    else:
+        # Data is only for a single pair
+        df = forward_fill_ohlcv_single_pair(
+            df,
+            freq=freq,
+            forward_fill_until=forward_fill_until,
+        )
 
     # Regroup by pair, as this was the original data format
     if grouped:
@@ -529,6 +536,7 @@ def resample_candles_multiple_pairs(
     forward_fill_columns: Collection[str]=("open", "high", "low", "close", "volume",),
     fix_and_sort_index=True,
     forward_fill_until: datetime.datetime | None = None,
+    multipair: bool = True,
 ) -> pd.DataFrame:
     """Upsample a OHLCV trading pair data to a lower time bucket.
 
@@ -558,6 +566,9 @@ def resample_candles_multiple_pairs(
         if not isinstance(df.index, pd.DatetimeIndex) and "timestamp" in df.columns:
             df = df.set_index("timestamp")
             df = df.sort_index()
+
+
+    assert pair_id_column in df.columns, f"Trying to break multipair data to individual pairs, but {pair_id_column} is not in the DataFrame columns {df.columns.tolist()}."
 
     by_pair = df.groupby(pair_id_column)
     segments = []
@@ -729,7 +740,7 @@ def forward_fill_ohlcv_single_pair(
     df: pd.DataFrame,
     freq: pd.DateOffset | str,
     forward_fill_until: pd.Timestamp | datetime.datetime,
-    pair_id: int,
+    pair_id: int | None = None,
 ) -> pd.DataFrame:
     """Forward-fill OHLCV data in a Pandas DataFrame, ensuring OHCLV logical consistency.
 
@@ -759,6 +770,10 @@ def forward_fill_ohlcv_single_pair(
 
     forward_fill_until = pd.Timestamp(forward_fill_until)
 
+    # Resample
+    original_index = df.index
+    df = df.resample(freq).mean(numeric_only=True)
+
     df = pad_dataframe_to_frequency(
         df,
         freq,
@@ -774,12 +789,18 @@ def forward_fill_ohlcv_single_pair(
     nan_index = df[df.isna().any(axis=1)].index
 
     # Forward fill 'close' values
-    df["close"] = df["close"].ffill()
+    if "close" in df.columns:
+        df["close"] = df["close"].ffill()
 
     # Set 'open', 'high', and 'low' to the forward-filled 'close' value
-    df["open"] = df["open"].fillna(df["close"])
-    df["high"] = df["high"].fillna(df["close"])
-    df["low"] = df["low"].fillna(df["close"])
+    if "open" in df.columns:
+        df["open"] = df["open"].fillna(df["close"])
+
+    if "high" in df.columns:
+        df["high"] = df["high"].fillna(df["close"])
+
+    if "low" in df.columns:
+        df["low"] = df["low"].fillna(df["close"])
 
     # Set 'volume' to 0
     if "volume" in df.columns:
@@ -787,12 +808,17 @@ def forward_fill_ohlcv_single_pair(
         df["volume"] = df["volume"].fillna(0)
 
     # Mark the rows that were forward-filled
-    ff_index = df[df.isna().any(axis=1)].index
-    forward_filled_indices = nan_index.intersection(ff_index)
+    new_index = df.index
+    forward_filled_indices = new_index.difference(original_index)
     df.loc[df.index.isin(forward_filled_indices), "forward_filled"] = True
+    df.loc[~df.index.isin(forward_filled_indices), "forward_filled"] = False
 
-    df["timestamp"] = df.index
-    df["pair_id"] = pair_id
+    if "timestamp" in df.columns:
+        df["timestamp"] = df.index
+
+    if "pair_id" in df.columns:
+        assert pair_id
+        df["pair_id"] = pair_id
 
     return df
 
