@@ -281,7 +281,9 @@ def forward_fill(
 
     # Regroup by pair, as this was the original data format
     if grouped:
-        # Not really needed, but some legacy code epends on this
+        # Not really needed, but some legacy code depends on this.
+        # We will index the underlying DataFrame by MultiIndex(pair_id, timestamp)
+        # and then create groupby by pair_id.
         df = df.set_index(["pair_id", "timestamp"], drop=False)
         dfgb = df.groupby(level="pair_id")
         return dfgb
