@@ -471,7 +471,7 @@ class PairGroupedUniverse:
             if "forward_filled" in df.columns:
                 df = df.loc[~(df["forward_filled"] == True)]
 
-        if(self.index_automatically == True):
+        if(self.index_automatically == True) and not exclude_forward_fill:
             if use_timezone:
                 start = (df[self.timestamp_column].iat[0]).tz_localize(tz='UTC')
                 end = (df[self.timestamp_column].iat[-1]).tz_localize(tz='UTC')
