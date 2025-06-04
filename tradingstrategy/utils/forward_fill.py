@@ -811,8 +811,6 @@ def forward_fill_ohlcv_single_pair(
     # Mark the rows that were forward-filled
     new_index = df.index
     forward_filled_indices = new_index.difference(original_index)
-    df.loc[df.index.isin(forward_filled_indices), "forward_filled"] = True
-    df.loc[~df.index.isin(forward_filled_indices), "forward_filled"] = False
 
     df["timestamp"] = df.index
 
@@ -838,6 +836,8 @@ def pad_dataframe_to_frequency(
     Pads a Pandas DataFrame with NaN entries for all columns up to a given end timestamp,
     using the inferred frequency of the DataFrame.
 
+    - Also sets `forward_filled` column to True/False for generated rows.
+
     :param df:
         The Pandas DataFrame to pad. Must have a DatetimeIndex.
     :param freq:
@@ -853,18 +853,33 @@ def pad_dataframe_to_frequency(
     assert isinstance(df.index, pd.DatetimeIndex), "DataFrame must have a DatetimeIndex."
     assert isinstance(end_timestamp, pd.Timestamp), "end_timestamp must be a Pandas Timestamp."
 
+    if len(df) == 0:
+        return df
+    
+    df["forward_filled"] = False
+    
     # Generate a date range from the last timestamp in the DataFrame to the end_timestamp
     # with the specified frequency
     last_timestamp = df.index[-1]
     new_index = pd.date_range(start=last_timestamp, end=end_timestamp, freq=freq)
 
-    # Filter out the existing index to only get the new dates
-    new_index = new_index.difference(df.index)
+    if len(new_index) > 0:
+        # Filter out the existing index to only get the new dates
+        new_index = new_index.difference(df.index)
 
-    # Create a new DataFrame with the new index and NaN values for all columns
-    new_df = pd.DataFrame(index=new_index, columns=df.columns)
+        # Create a new DataFrame with the new index and NaN values for all columns
+        new_df = pd.DataFrame(index=new_index, columns=df.columns).astype(df.dtypes)
 
-    # Concatenate the original DataFrame with the new DataFrame
-    padded_df = pd.concat([df, new_df])
+        if len(new_df) > 0:
+            new_df["forward_filled"] = True  # Cannot have all NA entries            
 
-    return padded_df
+            try:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("error")
+                    padded_df = pd.concat([df, new_df])
+            except Exception as e:
+                raise RuntimeError(f"df: {df}\nnew_df: {new_df}\nError: {e}") from e
+            return padded_df
+
+    # Nothing to add
+    return df
