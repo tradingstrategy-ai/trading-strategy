@@ -13,22 +13,26 @@ You are likely to working with candle datasets that are presented by
 For more information about candles see :term:`candle` in glossary.
 """
 
+import logging
 import datetime
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, TypedDict, Iterable, cast
+from typing import List, Optional, Tuple, TypedDict, cast
 
 import pandas as pd
 import pyarrow as pa
 from dataclasses_json import dataclass_json
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.pair import DEXPair, HumanReadableTradingPairDescription
-from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.pair import DEXPair
 from tradingstrategy.types import UNIXTimestamp, USDollarAmount, BlockNumber, PrimaryKey, NonChecksummedAddress
 from tradingstrategy.utils.df_index import flatten_dataframe_datetime_index
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
 from tradingstrategy.utils.time import ZERO_TIMEDELTA
+
+
+logger = logging.getLogger(__name__)
+
 
 class CandleSampleUnavailable(Exception):
     """We tried to look up price for a trading pair, but count not find a candle close to the timestamp."""
@@ -558,9 +562,6 @@ class GroupedCandleUniverse(PairGroupedUniverse):
 
         candles_per_pair = self.get_candles_by_pair(pair_id)
 
-        if ignore_forward_fill:
-            candles_per_pair = candles_per_pair[candles_per_pair["forward_filled"] != True]
-
         if candles_per_pair is None:
             uniq_pairs = self.get_pair_count()
             raise CandleSampleUnavailable(
@@ -569,6 +570,14 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                 f"Did you load price data for this trading pair?\n"
                 f"We have price feed data loaded for {uniq_pairs} trading pairs\n"
             )
+
+        if len(candles_per_pair) > 0:
+            if ignore_forward_fill:
+                if "forward_filled" in candles_per_pair.columns:
+                    candles_per_pair = candles_per_pair[candles_per_pair["forward_filled"] != True]
+                else:
+                    logger.warning("get_price_with_tolerance(ignore_forward_fill=True) called, but no 'forward_filled' column found in the candles dataframe.")
+
 
         samples_per_kind = candles_per_pair[kind]
 
