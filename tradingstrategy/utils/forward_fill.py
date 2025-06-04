@@ -298,6 +298,7 @@ def forward_fill(
             # If we have timestamp index, then we can use it
             df["timestamp"] = df.index
 
+        df = df.sort_values(by=["pair_id", "timestamp"])
         df = df.set_index(["pair_id", "timestamp"], drop=False)
         dfgb = df.groupby(level="pair_id")
         return dfgb
