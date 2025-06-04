@@ -778,9 +778,14 @@ def forward_fill_ohlcv_single_pair(
     if forward_fill_until is not None:
         forward_fill_until = pd.Timestamp(forward_fill_until)
 
+    # Check if the DataFrame is empty
+    df["forward_filled"] = False
+
     # Resample
     original_index = df.index
     df = df.resample(freq).mean(numeric_only=True)
+
+    df["forward_filled"] = df["forward_filled"].fillna(True)
 
     if forward_fill_until is not None:
         df = pad_dataframe_to_frequency(
@@ -855,9 +860,7 @@ def pad_dataframe_to_frequency(
 
     if len(df) == 0:
         return df
-    
-    df["forward_filled"] = False
-    
+
     # Generate a date range from the last timestamp in the DataFrame to the end_timestamp
     # with the specified frequency
     last_timestamp = df.index[-1]
