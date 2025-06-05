@@ -291,13 +291,18 @@ def forward_fill(
 
     # Regroup by pair, as this was the original data format
     if grouped:
+
         # Not really needed, but some legacy code depends on this.
         # We will index the underlying DataFrame by MultiIndex(pair_id, timestamp)
         # and then create groupby by pair_id.
-        if "timestamp" not in df.columns and isinstance(df.index, pd.DatetimeIndex):
+        #if "timestamp" not in df.columns and isinstance(df.index, pd.DatetimeIndex):
             # If we have timestamp index, then we can use it
-            df["timestamp"] = df.index
+        # df["timestamp"] = df.index
 
+        if df.index.name == "timestamp" and "timestamp" in df.columns:
+            df = df.reset_index(drop=True)
+        else:
+            df = df.reset_index()
         df = df.sort_values(by=["pair_id", "timestamp"])
         df = df.set_index(["pair_id", "timestamp"], drop=False)
         dfgb = df.groupby(level="pair_id")
