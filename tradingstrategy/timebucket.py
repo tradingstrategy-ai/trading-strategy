@@ -116,6 +116,20 @@ class TimeBucket(enum.Enum):
 
         return timestamp.floor(self.to_frequency())
 
+    def ceil(self, timestamp: pd.Timestamp) -> pd.Timestamp:
+        """Round up the time bucket to the nearest value.
+
+        - Handle business week as d7
+        """
+        if self == TimeBucket.d7:
+            # Floor down to the business week start
+            return floor_pandas_week(timestamp)
+        elif self == TimeBucket.d30:
+            return floor_pandas_month(timestamp)
+
+        return timestamp.ceil(self.to_frequency())
+
+
     @staticmethod
     def from_pandas_timedelta(td: pd.Timedelta) -> "TimeBucket":
         """Map Pandas timedelta to a well-known time bucket enum.
