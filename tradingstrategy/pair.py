@@ -2178,6 +2178,10 @@ def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=
 
         meta = data.get("token_metadata")
 
+        # Received NaN as token metadata column, should probably be None?"
+        if meta == np.nan:
+            meta = None
+
         match meta:
             case TokenMetadata():
                 assert isinstance(meta, TokenMetadata), f"Expected TokenMetadata, got {type(meta)}: {meta}"
