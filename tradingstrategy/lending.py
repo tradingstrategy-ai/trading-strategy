@@ -391,7 +391,7 @@ class LendingReserveUniverse:
 
         return LendingReserveUniverse(new_reserves)
 
-    def resolve_lending_reserve(self, reserve_decription: LendingReserveDescription) -> LendingReserve:
+    def resolve_lending_reserve(self, reserve_description: LendingReserveDescription) -> LendingReserve:
         """Looks up a lending reserve by a data match.
 
         Example:
@@ -411,7 +411,19 @@ class LendingReserveUniverse:
             assert usdt_reserve.atoken_symbol == "aPolUSDT"
             assert usdt_reserve.atoken_decimals == 6
 
-        :param reserve_decription:
+
+        Or with strings:
+
+        .. code-block:: python
+
+            usdt_reserve = universe.resolve_lending_reserve(
+                "polygon",
+                "aave-v3",
+                "USDT")
+            )
+            assert isinstance(usdt_reserve, LendingReserve)
+
+        :param reserve_description:
             Human-readable tuple to resolve the lending reserve.
 
         :return:
@@ -421,10 +433,17 @@ class LendingReserveUniverse:
             If the loaded data does not contain the reserve
         """
 
-        assert type(reserve_decription) == tuple, f"Lending reserve must be described as tuple, got {reserve_decription}"
-        chain_id, slug, symbol, *optional = reserve_decription
+        assert type(reserve_description) in (tuple, list), f"Lending reserve must be described as tuple, got {reserve_description}"
+        chain_id, slug, symbol, *optional = reserve_description
 
         # Validate hard-coded inputs
+
+        if type(chain_id) == str:
+            chain_id = ChainId.get_by_slug(chain_id)
+
+        if type(slug) == str:
+            slug = LendingProtocolType(slug.lower().replace("-", "_"))
+
         assert isinstance(chain_id, ChainId), f"Got {chain_id}"
         assert isinstance(slug, LendingProtocolType), f"Got {slug}"
 
@@ -447,7 +466,10 @@ class LendingReserveUniverse:
                         reserve.asset_symbol == symbol:
                     return reserve
 
-        raise UnknownLendingReserve(f"Could not find lending reserve {reserve_decription}. We have {len(self.reserves)} reserves loaded.")
+
+        reserve_description_msg = "\n".join([str(x) for x in self.reserves.values()])
+
+        raise UnknownLendingReserve(f"Could not find lending reserve {reserve_description}. We have reserves loaded:\n{reserve_description_msg}")
 
     def get_asset_addresses(self) -> Set[NonChecksummedAddress]:
         """Get all the token addresses in this dataset.
