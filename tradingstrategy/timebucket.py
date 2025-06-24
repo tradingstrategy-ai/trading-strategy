@@ -116,6 +116,13 @@ class TimeBucket(enum.Enum):
 
         return timestamp.floor(self.to_frequency())
 
+    def floor_datetime(self, timestamp: datetime.datetime) -> datetime:
+        """Floor the time bucket to the nearest value.
+
+        - See :py:meth:`floor` for details.
+        """
+        return self.floor(pd.Timestamp(timestamp)).to_pydatetime()
+
     def ceil(self, timestamp: pd.Timestamp) -> pd.Timestamp:
         """Round up the time bucket to the nearest value.
 
