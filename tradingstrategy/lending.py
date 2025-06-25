@@ -32,6 +32,9 @@ class LendingProtocolType(str, Enum):
     aave_v2 = "aave_v2"
     aave_v3 = "aave_v3"
 
+    def get_url_slug(self) -> str:
+        return self.value
+
 
 class LendingCandleType(str, Enum):
     """What kind of lending price feeds we have."""
@@ -196,7 +199,7 @@ class LendingReserve:
 
     def get_link(self) -> URL:
         """Get the market data page link"""
-        return f"https://tradingstrategy.ai/trading-view/{self.chain_id.get_slug()}/lending/{self.protocol_slug}/{self.asset_symbol.lower()}"
+        return f"https://tradingstrategy.ai/trading-view/{self.chain_id.get_slug()}/lending/{self.protocol_slug.get_url_slug()}/{self.asset_symbol.lower()}"
 
 #: How to symbolically identify a lending reserve.
 #:
