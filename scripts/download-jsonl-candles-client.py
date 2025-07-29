@@ -13,6 +13,7 @@ from tradingstrategy.timebucket import TimeBucket
 logging.basicConfig(level=logging.DEBUG, handlers=[logging.StreamHandler()])
 logging.getLogger("matplotlib").disabled = True
 
+
 api_url = "https://tradingstrategy.ai/api"
 
 bnb_busd_params = {

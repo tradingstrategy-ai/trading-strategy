@@ -442,7 +442,8 @@ def fix_dex_price_data(
         logger.info("Forward filling OHLCV data, until %s, freq %s", forward_fill_until, freq)
         assert freq, "freq argument must be given if forward_fill=True"
 
-        if "volume" in ff_df.obj.columns:
+        columns = ff_df.obj.columns if isinstance(ff_df, DataFrameGroupBy) else ff_df.columns
+        if "volume" in columns:
             # Price
             df = _forward_fill(ff_df, freq, forward_fill_until=forward_fill_until)
         else:
