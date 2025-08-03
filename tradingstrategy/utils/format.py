@@ -1,10 +1,6 @@
 """Value formatting utilities."""
 
 import datetime
-from typing import Collection
-from web3 import Web3
-
-import pandas as pd
 
 
 def format_price(v: float, decimals=6) -> str:
@@ -55,6 +51,7 @@ def string_to_eth_address(input_string) -> str:
     :param input_string: Input string to convert to an Ethereum address.
     :return: Ethereum address.
     """
+    from web3 import Web3  # Soft dependency
     hashed_bytes = Web3.keccak(text=input_string)
     eth_address = hashed_bytes[-20:].hex()
     return eth_address
