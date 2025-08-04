@@ -4,6 +4,7 @@
 - Add: Support for ERC-4626 vaults. Currently supports sideloaded and manually passed data, with a built-in vault database.
 - Add: `max_buy_tax` and `max_sell_tax` filters for `filter_by_token_sniffer_score`
 - Update: More TokenMetadata code
+- Fix: Various data edge cases
 
 
 # 0.26.2
