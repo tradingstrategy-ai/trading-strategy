@@ -5,7 +5,8 @@ from tradingstrategy.utils.format import string_to_eth_address
 
 BINANCE_CHAIN_ID = ChainId.centralised_exchange
 BINANCE_CHAIN_SLUG = ChainId(BINANCE_CHAIN_ID)
-BINANCE_EXCHANGE_ADDRESS = string_to_eth_address("binance")
+#: Randomly generated address, only a market, not a real address
+BINANCE_EXCHANGE_ADDRESS = "0x7bF2a9446aA4dF3dB6E8d76a7693e2C6f9a4B3c8"
 BINANCE_EXCHANGE_SLUG = "binance"
 BINANCE_EXCHANGE_ID = 129875571
 BINANCE_EXCHANGE_TYPE = ExchangeType.uniswap_v2
