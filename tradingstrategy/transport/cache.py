@@ -878,7 +878,7 @@ class CachedHTTPTransport:
             else:
                 logger.debug(f"No cached candles partition directory found: {full_fname}")
                 metadata = {}
-                latest_end_ts = to_unix_timestamp(naive_utcnow())
+                latest_end_ts = 0
 
             full_fetch_pair_ids = []
             delta_fetch_pair_ids = []
@@ -907,7 +907,13 @@ class CachedHTTPTransport:
 
             logger.info(f"Trading pair candles to be fetched: full: {len(full_fetch_pair_ids)}, delta: {len(delta_fetch_pair_ids)}")
 
-            ceil_end_time = min(ceil_month(end_time), naive_utcnow())
+            latest_end_time = naive_utcfromtimestamp(latest_end_ts)
+            ceil_end_time = ceil_month(end_time)
+
+            if latest_end_time <= ceil_end_time:
+                fetch_end_time = max(end_time, latest_end_time)
+            else:
+                fetch_end_time = ceil_end_time
 
             # Load full_time_window_pairs from API and save to cache
             if full_fetch_pair_ids:
@@ -917,21 +923,21 @@ class CachedHTTPTransport:
                     full_fetch_pair_ids,
                     time_bucket,
                     floor_month(start_time),
-                    ceil_end_time,
+                    fetch_end_time,
                     max_bytes,
                     progress_bar_description,
                     attempts=attempts
                 )
 
             # Load delta_time_window_pairs from API and save to cache
-            if delta_fetch_pair_ids:
+            if delta_fetch_pair_ids and end_time > latest_end_time:
                 self._fetch_and_cache_candles(
                     cache_fname,
                     metadata,
                     delta_fetch_pair_ids,
                     time_bucket,
-                    floor_month(naive_utcfromtimestamp(latest_end_ts)),
-                    ceil_end_time,
+                    floor_month(latest_end_time),
+                    fetch_end_time,
                     max_bytes,
                     progress_bar_description,
                     attempts=attempts
