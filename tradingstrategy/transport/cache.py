@@ -1,9 +1,10 @@
-"""A HTTP API transport that offers optional local caching of the results."""
+"""An HTTP API transport that offers optional local caching of the results."""
 
 import datetime
 import enum
 import hashlib
 import json
+import math
 import os
 import pathlib
 import platform
@@ -14,7 +15,7 @@ from http.client import IncompleteRead
 from importlib.metadata import version, PackageNotFoundError
 from json import JSONDecodeError
 from pprint import pformat
-from typing import Optional, Callable, Union, Collection, Dict, Tuple, Literal
+from typing import Optional, Callable, Union, Collection, Dict, Tuple, Literal, TypeAlias
 import shutil
 import logging
 from pathlib import Path
@@ -23,15 +24,15 @@ from orjson import orjson
 from requests.exceptions import ChunkedEncodingError
 from urllib3 import Retry
 
-import pandas
 import pandas as pd
 import requests
 from filelock import FileLock
 from requests import Response
 from requests.adapters import HTTPAdapter
 import pyarrow as pa
+import pyarrow.parquet as pq
 
-from tradingstrategy.candle import TradingPairDataAvailability
+from tradingstrategy.candle import Candle, TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
 from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
@@ -40,6 +41,7 @@ from tradingstrategy.transport.jsonl import load_candles_jsonl, load_token_metad
 from tradingstrategy.types import PrimaryKey, USDollarAmount, AnyTimestamp
 from tradingstrategy.lending import LendingCandle, LendingCandleType
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
+from tradingstrategy.utils.time import naive_utcfromtimestamp, naive_utcnow, floor_month, ceil_month, to_unix_timestamp
 
 
 from tqdm_loggable.auto import tqdm
@@ -48,6 +50,7 @@ from tradingstrategy.utils.logging_retry import LoggingRetry
 
 logger = logging.getLogger(__name__)
 
+CandleMetadata: TypeAlias = Dict[str, Dict[str, int]]
 
 class OHLCVCandleType(enum.Enum):
     """Candle types for /candles endpoint
@@ -286,6 +289,49 @@ class CachedHTTPTransport:
 
         return f, CacheStatus.cached
 
+    def load_cached_candles(
+        self,
+        cache_dir: str,
+        pair_ids: Collection[PrimaryKey],
+        start_time: datetime.datetime | None = None,
+        end_time: datetime.datetime | None = None,
+    ) -> pd.DataFrame:
+        """TODO: add documentation
+
+        - load partitions in the requested time window into DataFrame `candles_df` (using start_time/end_time values to select correct partitions)
+        """
+        filters: list[tuple[str, str, int | list[int]]] = []
+
+        # Always filter by pair_ids (required)
+        filters.append(('pair_id', 'in', list(pair_ids)))
+
+        # Add start time filter if provided
+        if start_time:
+            filters.append(('year', '>=', start_time.year))
+            filters.append(('month', '>=', start_time.month))
+
+        # Add end time filter if provided
+        if end_time:
+            filters.append(('year', '<=', end_time.year))
+            filters.append(('month', '<=', end_time.month))
+
+        # Read with partition pruning
+            table = pq.read_table(cache_dir, filters=filters)
+            return table.to_pandas()
+
+
+    def load_candles_metadata(self, base_fname: str) -> CandleMetadata:
+        full_fname = self.get_cached_file_path(f"{base_fname}.json")
+        with open(full_fname, "rb") as f:
+            json_data = f.read()
+            return orjson.loads(json_data)
+
+    def save_candles_metadata(self, base_fname: str, metadata: CandleMetadata):
+        full_fname = self.get_cached_file_path(f"{base_fname}.json")
+        json_data = orjson.dumps(metadata)
+        with open(full_fname, "wb") as f:
+            f.write(json_data)
+
     def _generate_cache_name(
         self,
         pair_ids: Collection[PrimaryKey] | PrimaryKey,
@@ -504,7 +550,7 @@ class CachedHTTPTransport:
             _check_good_json(path, "fetch_exchange_universe() failed")
 
             return self.get_cached_item(fname)
-    
+
     def fetch_lending_reserve_universe(self) -> pathlib.Path:
         fname = "lending-reserve-universe.json"
         cached = self.get_cached_item(fname)
@@ -596,7 +642,7 @@ class CachedHTTPTransport:
             item, status = self.get_cached_item_with_status(path)
             assert status.is_readable(), f"File not readable after save cached:{cached} fname:{fname} path:{path}"
             return item
-    
+
     def fetch_lending_candles_by_reserve_id(
         self,
         reserve_id: int,
@@ -649,7 +695,7 @@ class CachedHTTPTransport:
 
             if cached:
                 logger.debug("Using cached data file %s", full_fname)
-                return pandas.read_parquet(cached)
+                return pd.read_parquet(cached)
 
             api_url = f"{self.endpoint}/lending-reserve/candles"
 
@@ -704,15 +750,85 @@ class CachedHTTPTransport:
         reply = self.post_json_response("register", params={"first_name": first_name, "last_name": last_name, "email": email})
         return reply
 
+
+    def _fetch_and_cache_candles(
+        self,
+        cache_fname: str,
+        metadata: CandleMetadata,
+        pair_ids: Collection[PrimaryKey],
+        time_bucket: TimeBucket,
+        start_time: datetime.datetime,
+        end_time: datetime.datetime,
+        max_bytes: int | None = None,
+        progress_bar_description: str | None = None,
+        attempts: int = 5
+    ):
+        """TODO: document method
+        """
+        df: pd.DataFrame = load_candles_jsonl(
+            self.requests,
+            self.endpoint,
+            pair_ids,
+            time_bucket,
+            start_time,
+            end_time,
+            max_bytes=max_bytes,
+            progress_bar_description=progress_bar_description,
+            # temp increase sanity check count
+            sanity_check_count=1_500,
+            attempts=attempts
+        )
+
+        # Add partitioning columns
+        df['year'] = pd.to_datetime(df['timestamp'], unit='ms').dt.year
+        df['month'] = pd.to_datetime(df['timestamp'], unit='ms').dt.month
+
+        # Convert to Arrow table
+        table = pa.Table.from_pandas(df)
+
+        # Write to partitioned dataset
+        pq.write_to_dataset(
+            table,
+            schema=table.schema,
+            root_path=self.get_cached_file_path(cache_fname),
+            partition_cols=['pair_id', 'year', 'month'],
+            existing_data_behavior='delete_matching',
+            max_partitions=50000,
+            compression='none'
+        )
+
+        # TODO: log info about candles written to cache (modify below from "simple cache")
+        # size = pathlib.Path(path).stat().st_size
+        # logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+
+        # Update pair metadata
+        for pair_id in pair_ids:
+            pair_key = str(pair_id)
+
+            # Get existing metadata or initialize
+            pair_metadata = metadata.get(pair_key, {})
+            start_timestamp = pair_metadata.get('start_timestamp', math.inf)
+            end_timestamp = pair_metadata.get('end_timestamp', 0)
+
+            # Set new start/end timestamp values
+            metadata[pair_key] = {
+                "start_timestamp": min(to_unix_timestamp(start_time), start_timestamp),
+                "end_timestamp": max(to_unix_timestamp(end_time), end_timestamp)
+            }
+
+        # Save updated metadata
+        self.save_candles_metadata(cache_fname, metadata)
+
+
     def fetch_candles_by_pair_ids(
         self,
         pair_ids: Collection[PrimaryKey],
         time_bucket: TimeBucket,
-        start_time: Optional[datetime.datetime] = None,
-        end_time: Optional[datetime.datetime] = None,
-        max_bytes: Optional[int] = None,
-        progress_bar_description: Optional[str] = None,
-        attempts=5,
+        start_time: datetime.datetime | None = None,
+        end_time: datetime.datetime | None = None,
+        max_bytes: int | None = None,
+        progress_bar_description: str | None = None,
+        attempts: int = 5
     ) -> pd.DataFrame:
         """Load particular set of the candles and cache the result.
 
@@ -745,42 +861,88 @@ class CachedHTTPTransport:
         :return:
             Candles dataframe
         """
-        cache_fname = self._generate_cache_name(
-            pair_ids, time_bucket, start_time, end_time, max_bytes
-        )
+        # FIXME: start_time and end_time are optional
+        # - if end_time not included, set to current
+        # - if start_time not included, skip cache
+
+        cache_fname = f"candles-{time_bucket.value}"
 
         full_fname = self.get_cached_file_path(cache_fname)
 
         with wait_other_writers(full_fname):
 
-            cached = self.get_cached_item(cache_fname)
+            if os.path.exists(full_fname):
+                logger.debug(f"Using cached candles partition directory {full_fname}")
+                metadata: CandleMetadata = self.load_candles_metadata(cache_fname)
+                latest_end_ts = max(metadata[pair_id]['end_timestamp'] for pair_id in metadata)
+            else:
+                logger.debug(f"No cached candles partition directory found: {full_fname}")
+                metadata = {}
+                latest_end_ts = to_unix_timestamp(naive_utcnow())
 
-            if cached:
-                logger.debug("Using cached JSONL data file %s", full_fname)
-                return pandas.read_parquet(cached)
+            full_fetch_pair_ids = []
+            delta_fetch_pair_ids = []
 
-            df: pd.DataFrame = load_candles_jsonl(
-                self.requests,
-                self.endpoint,
-                pair_ids,
-                time_bucket,
-                start_time,
-                end_time,
-                max_bytes=max_bytes,
-                progress_bar_description=progress_bar_description,
-                # temp increase sanity check count
-                sanity_check_count=1_500,
-                attempts=attempts,
-            )
+            start_ts = to_unix_timestamp(start_time)
+            end_ts = to_unix_timestamp(end_time)
 
-            # Update cache
-            path = self.get_cached_file_path(cache_fname)
-            df.to_parquet(path)
+            for pair_id in pair_ids:
+                pair_metadata = metadata.get(str(pair_id))
 
-            size = pathlib.Path(path).stat().st_size
-            logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+                if not pair_metadata:
+                    # New pair - need full history
+                    full_fetch_pair_ids.append(pair_id)
+                elif start_ts < pair_metadata["start_timestamp"]:
+                    # Need data before what we have cached - full fetch required
+                    full_fetch_pair_ids.append(pair_id)
+                elif end_ts <= pair_metadata["end_timestamp"]:
+                    # All requested data already cached - no fetch needed
+                    pass  # Add to neither list
+                elif latest_end_ts > pair_metadata["end_timestamp"]:
+                    # Gap between cached data and latest_requested - need full fetch
+                    full_fetch_pair_ids.append(pair_id)
+                else:
+                    # Only need recent delta from latest_requested to end_time
+                    delta_fetch_pair_ids.append(pair_id)
 
-            return df
+            logger.info(f"Trading pair candles to be fetched: full: {len(full_fetch_pair_ids)}, delta: {len(delta_fetch_pair_ids)}")
+
+            ceil_end_time = min(ceil_month(end_time), naive_utcnow())
+
+            # Load full_time_window_pairs from API and save to cache
+            if full_fetch_pair_ids:
+                self._fetch_and_cache_candles(
+                    cache_fname,
+                    metadata,
+                    full_fetch_pair_ids,
+                    time_bucket,
+                    floor_month(start_time),
+                    ceil_end_time,
+                    max_bytes,
+                    progress_bar_description,
+                    attempts=attempts
+                )
+
+            # Load delta_time_window_pairs from API and save to cache
+            if delta_fetch_pair_ids:
+                self._fetch_and_cache_candles(
+                    cache_fname,
+                    metadata,
+                    delta_fetch_pair_ids,
+                    time_bucket,
+                    floor_month(naive_utcfromtimestamp(latest_end_ts)),
+                    ceil_end_time,
+                    max_bytes,
+                    progress_bar_description,
+                    attempts=attempts
+                )
+
+            # Load all the requested candles from cache (includes full month partitions)
+            candles_df = self.load_cached_candles(full_fname, pair_ids, start_time, end_time)
+            return candles_df[
+                (candles_df['timestamp'] >= pd.to_datetime(start_time)) &
+                (candles_df['timestamp'] <= pd.to_datetime(end_time))
+            ]
 
     def _fetch_tvl_by_pair_id(
         self,
@@ -828,7 +990,7 @@ class CachedHTTPTransport:
             if cached:
                 # We have a locally cached version
                 logger.debug("Using cached Parquet data file %s", full_fname)
-                df = pandas.read_parquet(cached)
+                df = pd.read_parquet(cached)
             else:
                 # Read from the server, store in the disk
                 params = {
@@ -1064,7 +1226,7 @@ class CachedHTTPTransport:
                 size = pathlib.Path(path).stat().st_size
                 logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
 
-            df = pandas.read_parquet(path)
+            df = pd.read_parquet(path)
 
             # Export cache metadata
             df.attrs["cached"] = cached is not None
@@ -1181,7 +1343,7 @@ class CachedHTTPTransport:
                     logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
 
                 try:
-                    df = pandas.read_parquet(path)
+                    df = pd.read_parquet(path)
                     break
                 except (pa.ArrowInvalid, IncompleteRead) as e:
                     attempt += 1
@@ -1419,4 +1581,3 @@ def _check_good_json(path: Path, exception_message: str):
     if broken_data:
         os.remove(path)
         raise RuntimeError(f"{exception_message}\nJSON data is: {data}")
-
