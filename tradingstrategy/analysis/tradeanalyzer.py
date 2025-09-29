@@ -16,15 +16,14 @@ from typing import List, Dict, Iterable, Optional, Tuple, Callable
 
 import numpy as np
 import pandas as pd
-from pandas.io.formats.style import Styler
+
 
 from tradingstrategy.analysis.tradehint import TradeHint, TradeHintType
 from tradingstrategy.exchange import ExchangeUniverse
-from tradingstrategy.pair import LegacyPairUniverse, PandasPairUniverse
+from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.types import PrimaryKey, USDollarAmount
-from tradingstrategy.utils.format import format_value, format_percent, format_price, format_duration_days_hours_mins, \
+from tradingstrategy.utils.format import format_value, format_price, format_duration_days_hours_mins, \
     format_percent_2_decimals
-from tradingstrategy.utils.summarydataframe import as_dollar, as_integer, create_summary_table, as_percent, as_missing
 
 
 @dataclass

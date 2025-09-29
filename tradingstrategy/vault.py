@@ -259,12 +259,24 @@ class VaultUniverse:
         self.vaults = [vault for vault in self.vaults if vault.chain_id == chain_id and vault.vault_address == address]
         assert len(self.vaults) == 1, f"Expected single vault, got {len(self.vaults)}"
 
-    def limit_to_vaults(self, vaults: list[tuple[ChainId, NonChecksummedAddress]]):
-        """Drop all but designednated vault entries."""
+    def limit_to_vaults(
+        self,
+        vaults: list[tuple[ChainId, NonChecksummedAddress]],
+        check_all_vaults_found: bool = True,
+    ):
+        """Drop all but designednated vault entries.
+
+        :param check_all_vaults_found:
+            Check that we have metadata for all vaults in our local files.
+
+            If not set, skip and do not care if some vaults are missing.
+        """
         assert all(type(v) in (tuple, list) and isinstance(v[0], ChainId) and v[1].startswith("0x") for v in vaults), f"Bad vault descriptors: {vaults}"
         vaults = set(vaults)
         self.vaults = [vault for vault in self.vaults if (vault.chain_id, vault.vault_address) in vaults]
-        assert len(self.vaults) == len(vaults), f"Expected {len(vaults)} vault, got {len(self.vaults)}. Maybe some vault data is mismatch, missing?"
+
+        if check_all_vaults_found:
+            assert len(self.vaults) == len(vaults), f"Expected {len(vaults)} vault, got {len(self.vaults)}. Maybe some vault data is mismatch, missing?"
 
 
 def _derive_pair_id(vault: Vault) -> int:

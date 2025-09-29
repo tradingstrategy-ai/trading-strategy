@@ -165,6 +165,7 @@ def load_single_vault(
 def load_multiple_vaults(
     vaults: list[tuple[ChainId, NonChecksummedAddress]],
     path=DEFAULT_VAULT_BUNDLE,
+    check_all_vaults_found: bool = True,
 ) -> tuple[list[Exchange], pd.DataFrame]:
     """Load a single bundled vault entry and return as pairs data.
 
@@ -178,7 +179,7 @@ def load_multiple_vaults(
 
     """
     vault_universe = load_vault_database(path)
-    vault_universe.limit_to_vaults(vaults)
+    vault_universe.limit_to_vaults(vaults, check_all_vaults_found=check_all_vaults_found)
     return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
 
