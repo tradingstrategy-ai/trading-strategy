@@ -760,9 +760,27 @@ class CachedHTTPTransport:
         :return:
             Candles dataframe
         """
-        # FIXME: start_time and end_time are optional
-        # - if end_time not included, set to current
-        # - if start_time not included, skip cache
+        max_pairs = 1_500
+
+        # If start_time is not provided, there's no easy way determine what "deltas" to fetch
+        # relative to the current cache, so we bypass the cache and fetch all candles.
+        # This is an edge case and not recommended.
+        if not start_time:
+            return load_candles_jsonl(
+                self.requests,
+                self.endpoint,
+                pair_ids,
+                time_bucket,
+                start_time,
+                end_time,
+                max_bytes=max_bytes,
+                progress_bar_description=progress_bar_description,
+                sanity_check_count=max_pairs,
+                attempts=attempts
+            )
+
+        if not end_time:
+            end_time = naive_utcnow()
 
         base_fname = f"candles-{time_bucket.value}"
         cache_fname = f"{base_fname}.parquet"
@@ -823,7 +841,7 @@ class CachedHTTPTransport:
                     end_time,
                     max_bytes=max_bytes,
                     progress_bar_description=progress_bar_description,
-                    sanity_check_count=1_500,
+                    sanity_check_count=max_pairs,
                     attempts=attempts
                 )
                 candle_updates.append(df)
@@ -839,7 +857,7 @@ class CachedHTTPTransport:
                     end_time,
                     max_bytes=max_bytes,
                     progress_bar_description=progress_bar_description,
-                    sanity_check_count=1_500,
+                    sanity_check_count=max_pairs,
                     attempts=attempts
                 )
                 candle_updates.append(df)
