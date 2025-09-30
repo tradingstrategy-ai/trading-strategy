@@ -708,8 +708,22 @@ class CachedHTTPTransport:
         return reply
 
     def _load_pair_candle_metadata(self, base_fname: str) -> CandleMetadata:
-        """Load pair candle metadata
-        TODO: document method
+        """Load pair candle metadata JSON file.
+
+        This file stores a map of pair_ids, with a start_timestamp and end_timestamp for
+        each pair_id. These values represent the start and end dates of candles that have
+        been fetched per-pair. These dates may be different than the earliest or latest
+        candle entry for the corresponding pair - e.g. if the pair's trading activity
+        began at a date later than the earliest requested start date.
+
+        :param base_fname:
+            Base file name for the metadata file - e.g., "candles_1h".
+            A ".json" suffix is appended and this is converted into an
+            absolute file path in the cache directory.
+
+        :return:
+            A CandleMetadata dict with entries for every pair_id in the
+            corresponding pair candle cache.
         """
         full_fname = self.get_cached_file_path(f"{base_fname}.json")
         with open(full_fname, "rb") as f:
@@ -724,9 +738,30 @@ class CachedHTTPTransport:
         start_time: datetime.datetime,
         end_time: datetime.datetime
     ):
-        """Update pair metadata
+        """Update pair candle metadata JSON file.
 
-        TODO: Document method / params
+        Each pair_id entry is updated with the provided start_time and end_time values.
+        If the existing pair entry has an earlier start or later end, the furthest extent
+        values are retained.
+
+        See _load_pair_candle_metadata for info about the matadata file.
+
+        :param base_fname:
+            Base file name for the metadata file - e.g., "candles_1h".
+            A ".json" suffix is appended and this is converted into an
+            absolute file path in the cache directory.
+
+        :param metadata:
+            The existing metadata values to be updated.
+
+        :param pair_ids:
+            Trading pairs internal ids that are included in the pair candle cache.
+
+        :param start_time:
+            The new start_time that candles were fetched with.
+
+        :param end_time:
+            The new end_time that candles were fetched with.
         """
         for pair_id in pair_ids:
             pair_key = str(pair_id)
@@ -759,9 +794,16 @@ class CachedHTTPTransport:
         latest_end_ts: int | float,
         metadata: CandleMetadata,
     ) -> tuple[set[PrimaryKey], set[PrimaryKey]]:
-        """Partition pair candle fetch
+        """Partition pair_ids into two distinct sets for pair candle fetch.
 
-        TODO: Document method / params
+        The partition is determined based on the existing cache metadata and
+        the requested start and end times.
+
+        The first set in the returned tuple are pairs that require a full
+        data fetch for the entire time horizon.
+
+        The second set are pairs that only require a "delta" fetch of new
+        candles since the latest_end_ts value.
         """
         start_ts = to_unix_timestamp(start_time)
         end_ts = to_unix_timestamp(end_time)
@@ -834,7 +876,7 @@ class CachedHTTPTransport:
         """
         max_pairs = 1_500
 
-        # If start_time is not provided, there's no easy way determine what "deltas" to fetch
+        # If no start_time is provided, there's no easy way determine what "deltas" to fetch
         # relative to the current cache, so we bypass the cache and fetch all candles.
         # This is an edge case and not recommended.
         if not start_time:
