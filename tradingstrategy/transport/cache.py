@@ -824,8 +824,8 @@ class CachedHTTPTransport:
             # Append updated candles, remove duplicates, and sort
             candles_df = (
                 pd.concat([candles_df, *candle_updates], ignore_index=True)
-                  .drop_duplicates(subset=['pair_id', 'timestamp'], keep='last')
-                  .sort_values(['pair_id', 'timestamp']) # type: ignore
+                  .drop_duplicates(subset=["pair_id", "timestamp"], keep="last")
+                  .sort_values(["pair_id", "timestamp"]) # type: ignore
             )
 
             # Save cache
@@ -839,9 +839,9 @@ class CachedHTTPTransport:
 
             # Filter final result (since cache may include pairs/dates outside requested range)
             return candles_df[
-                (candles_df['pair_id'].isin(pair_ids)) & # type: ignore
-                (candles_df['timestamp'] >= start_time) &
-                (candles_df['timestamp'] <= end_time)
+                (candles_df["pair_id"].isin(pair_ids)) & # type: ignore
+                (candles_df["timestamp"] >= start_time) &
+                (candles_df["timestamp"] <= end_time)
             ]
 
     def _fetch_tvl_by_pair_id(
