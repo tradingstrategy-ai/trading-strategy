@@ -4,7 +4,6 @@ import datetime
 import enum
 import hashlib
 import json
-import math
 import os
 import pathlib
 import platform
@@ -15,7 +14,7 @@ from http.client import IncompleteRead
 from importlib.metadata import version, PackageNotFoundError
 from json import JSONDecodeError
 from pprint import pformat
-from typing import Optional, Callable, Union, Collection, Dict, Tuple, Literal, TypeAlias
+from typing import Optional, Callable, Union, Collection, Dict, Tuple, Literal
 import shutil
 import logging
 from pathlib import Path
@@ -30,27 +29,24 @@ from filelock import FileLock
 from requests import Response
 from requests.adapters import HTTPAdapter
 import pyarrow as pa
-import pyarrow.parquet as pq
 
 from tradingstrategy.candle import Candle, TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
+from tradingstrategy.lending import LendingCandle, LendingCandleType
 from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.transport.jsonl import load_candles_jsonl, load_token_metadata_jsonl
-from tradingstrategy.types import PrimaryKey, USDollarAmount, AnyTimestamp
-from tradingstrategy.lending import LendingCandle, LendingCandleType
+from tradingstrategy.transport.pair_candle_metadata import PairCandleMetadata
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
-from tradingstrategy.utils.time import naive_utcfromtimestamp, naive_utcnow, floor_month, ceil_month, to_unix_timestamp
-
+from tradingstrategy.types import PrimaryKey, USDollarAmount, AnyTimestamp
+from tradingstrategy.utils.time import naive_utcnow
 
 from tqdm_loggable.auto import tqdm
 
 from tradingstrategy.utils.logging_retry import LoggingRetry
 
 logger = logging.getLogger(__name__)
-
-CandleMetadata: TypeAlias = dict[str, Dict[str, int | float]]
 
 class OHLCVCandleType(enum.Enum):
     """Candle types for /candles endpoint
@@ -707,132 +703,6 @@ class CachedHTTPTransport:
         reply = self.post_json_response("register", params={"first_name": first_name, "last_name": last_name, "email": email})
         return reply
 
-    def _load_pair_candle_metadata(self, base_fname: str) -> CandleMetadata:
-        """Load pair candle metadata JSON file.
-
-        This file stores a map of pair_ids, with a start_timestamp and end_timestamp for
-        each pair_id. These values represent the start and end dates of candles that have
-        been fetched per-pair. These dates may be different than the earliest or latest
-        candle entry for the corresponding pair - e.g. if the pair's trading activity
-        began at a date later than the earliest requested start date.
-
-        :param base_fname:
-            Base file name for the metadata file - e.g., "candles_1h".
-            A ".json" suffix is appended and this is converted into an
-            absolute file path in the cache directory.
-
-        :return:
-            A CandleMetadata dict with entries for every pair_id in the
-            corresponding pair candle cache.
-        """
-        full_fname = self.get_cached_file_path(f"{base_fname}.json")
-        with open(full_fname, "rb") as f:
-            json_data = f.read()
-            return orjson.loads(json_data)
-
-    def _update_pair_candle_metadata(
-        self,
-        base_fname: str,
-        metadata: CandleMetadata,
-        pair_ids: Collection[PrimaryKey],
-        start_time: datetime.datetime,
-        end_time: datetime.datetime
-    ):
-        """Update pair candle metadata JSON file.
-
-        Each pair_id entry is updated with the provided start_time and end_time values.
-        If the existing pair entry has an earlier start or later end, the furthest extent
-        values are retained.
-
-        See _load_pair_candle_metadata for info about the matadata file.
-
-        :param base_fname:
-            Base file name for the metadata file - e.g., "candles_1h".
-            A ".json" suffix is appended and this is converted into an
-            absolute file path in the cache directory.
-
-        :param metadata:
-            The existing metadata values to be updated.
-
-        :param pair_ids:
-            Trading pairs internal ids that are included in the pair candle cache.
-
-        :param start_time:
-            The new start_time that candles were fetched with.
-
-        :param end_time:
-            The new end_time that candles were fetched with.
-        """
-        for pair_id in pair_ids:
-            pair_key = str(pair_id)
-
-            # Get existing metadata or initialize
-            pair_metadata = metadata.get(pair_key, {})
-            start_timestamp = pair_metadata.get('start_timestamp', math.inf)
-            end_timestamp = pair_metadata.get('end_timestamp', 0)
-
-            # Set new start/end timestamp values
-            metadata[pair_key] = {
-                "start_timestamp": min(to_unix_timestamp(start_time), start_timestamp),
-                "end_timestamp": max(to_unix_timestamp(end_time), end_timestamp)
-            }
-
-        # Save updated metadata
-        fname = f"{base_fname}.json"
-        full_fname = self.get_cached_file_path(fname)
-        json_data = orjson.dumps(metadata)
-        with open(full_fname, "wb") as f:
-            f.write(json_data)
-
-        logger.debug(f"Write {fname}, updated {len(pair_ids):,} pairs of {len(metadata):,} total")
-
-    def _partition_pair_candle_fetch(
-        self,
-        pair_ids: Collection[PrimaryKey],
-        start_time: datetime.datetime,
-        end_time: datetime.datetime,
-        latest_end_ts: int | float,
-        metadata: CandleMetadata,
-    ) -> tuple[set[PrimaryKey], set[PrimaryKey]]:
-        """Partition pair_ids into two distinct sets for pair candle fetch.
-
-        The partition is determined based on the existing cache metadata and
-        the requested start and end times.
-
-        The first set in the returned tuple are pairs that require a full
-        data fetch for the entire time horizon.
-
-        The second set are pairs that only require a "delta" fetch of new
-        candles since the latest_end_ts value.
-        """
-        start_ts = to_unix_timestamp(start_time)
-        end_ts = to_unix_timestamp(end_time)
-
-        full_fetch_pair_ids: set[PrimaryKey] = set()
-        delta_fetch_pair_ids: set[PrimaryKey] = set()
-
-        for pair_id in pair_ids:
-            pair_info = metadata.get(str(pair_id))
-
-            if not pair_info:
-                # New pair - need full history
-                full_fetch_pair_ids.add(pair_id)
-            elif start_ts < pair_info["start_timestamp"]:
-                # Need data before what we have cached - full fetch required
-                full_fetch_pair_ids.add(pair_id)
-            elif end_ts <= pair_info["end_timestamp"]:
-                # All requested data already cached - no fetch needed
-                pass  # Add to neither list
-            elif latest_end_ts > pair_info["end_timestamp"]:
-                # Gap between cached data and latest_requested - need full fetch
-                full_fetch_pair_ids.add(pair_id)
-            else:
-                # Only need recent delta from latest_requested to end_time
-                delta_fetch_pair_ids.add(pair_id)
-
-        logger.info(f"Trading pair candles to be fetched: full: {len(full_fetch_pair_ids)}, delta: {len(delta_fetch_pair_ids)}")
-        return full_fetch_pair_ids, delta_fetch_pair_ids
-
     def fetch_candles_by_pair_ids(
         self,
         pair_ids: Collection[PrimaryKey],
@@ -897,39 +767,29 @@ class CachedHTTPTransport:
             end_time = naive_utcnow()
 
         base_fname = f"candles-{time_bucket.value}"
-        cache_fname = f"{base_fname}.parquet"
-        full_fname = self.get_cached_file_path(cache_fname)
+        cache_fname = self.get_cached_file_path(f"{base_fname}.parquet")
 
         with wait_other_writers(self.get_cached_file_path(base_fname)):
-            if os.path.exists(full_fname):
-                logger.debug(f"Using cached candles file {full_fname}")
-                metadata = self._load_pair_candle_metadata(base_fname)
-                candles_df = pd.read_parquet(full_fname) # type: ignore
-                latest_end_ts = max(metadata[pair_id]['end_timestamp'] for pair_id in metadata)
+            if os.path.exists(cache_fname):
+                logger.debug(f"Using cached candles file {cache_fname}")
+                candles_df = pd.read_parquet(cache_fname) # type: ignore
             else:
-                logger.debug(f"No cached candles file found: {full_fname}")
+                logger.debug(f"No cached candles file found: {cache_fname}")
                 candles_df = pd.DataFrame()
-                metadata: CandleMetadata = {}
-                latest_end_ts = 0
 
-            full_fetch_pair_ids, delta_fetch_pair_ids = self._partition_pair_candle_fetch(
-                pair_ids,
-                start_time,
-                end_time,
-                latest_end_ts,
-                metadata
-            )
+            metadata = PairCandleMetadata.load(self.get_cached_file_path(f"{base_fname}.json"))
+            latest_end_time = metadata.latest_end_time()
 
-            latest_end_time = naive_utcfromtimestamp(latest_end_ts)
+            full_fetch_ids, delta_fetch_ids = metadata.partition_for_fetch(pair_ids, start_time, end_time)
 
             candle_updates: list[pd.DataFrame] = []
 
             # Load full_fetch_pair_ids from API
-            if full_fetch_pair_ids:
+            if full_fetch_ids:
                 df = load_candles_jsonl(
                     self.requests,
                     self.endpoint,
-                    full_fetch_pair_ids,
+                    full_fetch_ids,
                     time_bucket,
                     start_time,
                     end_time,
@@ -941,11 +801,11 @@ class CachedHTTPTransport:
                 candle_updates.append(df)
 
             # Load delta_fetch_pair_ids from API
-            if delta_fetch_pair_ids and end_time > latest_end_time:
+            if delta_fetch_ids and end_time > latest_end_time:
                 df = load_candles_jsonl(
                     self.requests,
                     self.endpoint,
-                    delta_fetch_pair_ids,
+                    delta_fetch_ids,
                     time_bucket,
                     latest_end_time,
                     end_time,
@@ -964,18 +824,13 @@ class CachedHTTPTransport:
             )
 
             # Save cache
-            candles_df.to_parquet(full_fname, index=False)
-            size = pathlib.Path(full_fname).stat().st_size
-            logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+            candles_df.to_parquet(cache_fname, index=False)
+            size = pathlib.Path(cache_fname).stat().st_size
+            logger.debug(f"Wrote {base_fname}.parquet, disk size is {size:,}b")
 
-            # Update metadata
-            self._update_pair_candle_metadata(
-                base_fname,
-                metadata,
-                pair_ids,
-                start_time,
-                end_time
-            )
+            # Update and save metadata
+            metadata.update(pair_ids, start_time, end_time)
+            metadata.save()
 
             # Filter final result (since cache may include pairs/dates outside requested range)
             return candles_df[
