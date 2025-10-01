@@ -715,9 +715,13 @@ class CachedHTTPTransport:
     ) -> pd.DataFrame:
         """Load particular set of the candles and cache the result.
 
-        If there is no cached result, load using JSONL.
+        The cache is time_bucket-specific. Requested pair_id's not included
+        in the catche will be fetched using JSONL endpoint, as will delta
+        candles for existing pairs since the last fetch.
 
-        More information in :py:mod:`tradingstrategy.transport.jsonl`.
+        More information in:
+            - :py:mod:`tradingstrategy.transport.pair_candle_metadata`
+            - :py:mod:`tradingstrategy.transport.jsonl`
 
         For the candles format see :py:mod:`tradingstrategy.candle`.
 
@@ -778,7 +782,6 @@ class CachedHTTPTransport:
                 candles_df = pd.DataFrame()
 
             metadata = PairCandleMetadata.load(self.get_cached_file_path(f"{base_fname}.json"))
-            latest_end_time = metadata.latest_end_time()
 
             full_fetch_ids, delta_fetch_ids = metadata.partition_for_fetch(pair_ids, start_time, end_time)
 
@@ -800,14 +803,16 @@ class CachedHTTPTransport:
                 )
                 candle_updates.append(df)
 
+            delta_start_time = metadata.delta_fetch_start_time()
+
             # Load delta_fetch_pair_ids from API
-            if delta_fetch_ids and end_time > latest_end_time:
+            if delta_fetch_ids and delta_start_time and end_time > delta_start_time:
                 df = load_candles_jsonl(
                     self.requests,
                     self.endpoint,
                     delta_fetch_ids,
                     time_bucket,
-                    latest_end_time,
+                    delta_start_time,
                     end_time,
                     max_bytes=max_bytes,
                     progress_bar_description=progress_bar_description,

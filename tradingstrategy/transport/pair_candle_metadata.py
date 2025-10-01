@@ -3,7 +3,7 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json, config
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import os
 from typing import Collection, NamedTuple
@@ -14,6 +14,7 @@ from tradingstrategy.utils.time import naive_utcfromtimestamp, to_unix_timestamp
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_CANDLE_LOOKBACK_HOURS = 48
 
 def encode_datetime(dt: datetime | None) -> float | None:
     """Convert datetime to timestamp, handling None"""
@@ -213,3 +214,23 @@ class PairCandleMetadata:
             full_fetch_ids=full_fetch_ids,
             delta_fetch_ids=delta_fetch_ids
         )
+
+    def delta_fetch_start_time(self, lookback_hours: int = DEFAULT_CANDLE_LOOKBACK_HOURS) -> datetime | None:
+        """Calculate the start time for delta fetches, accounting for data freshness.
+
+        Returns the earlier of:
+        - last_modified_at minus lookback window (to refetch potentially incomplete data)
+        - latest_end_time (to avoid gaps)
+
+        Returns None if metadata has never been saved.
+        """
+        if self.last_modified_at is None:
+            return None
+
+        freshness_cutoff = self.last_modified_at - timedelta(hours=lookback_hours)
+        latest_end_time = self.latest_end_time()
+
+        if latest_end_time is None:
+            return freshness_cutoff
+
+        return min(freshness_cutoff, latest_end_time)
