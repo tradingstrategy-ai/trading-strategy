@@ -1359,7 +1359,6 @@ class PandasPairUniverse:
         assert type(base_token) == str
         assert type(quote_token) == str
 
-
         assert self.exchange_universe is not None or exchange_universe is not None, "You need to provide exchange_universe argument to use this method"
 
         eu = exchange_universe or self.exchange_universe

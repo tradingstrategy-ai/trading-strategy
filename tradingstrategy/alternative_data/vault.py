@@ -17,7 +17,6 @@ from typing import Iterable
 import pandas as pd
 import zstandard
 
-from eth_defi.erc_4626.core import ERC4262VaultDetection
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.types import NonChecksummedAddress
@@ -25,6 +24,8 @@ from tradingstrategy.utils.groupeduniverse import resample_candles_multiple_pair
 from tradingstrategy.vault import VaultUniverse, Vault, _derive_pair_id_from_address
 
 #: Path to the bundled vault database
+#:
+#: To regenerate the bundle: `zstd -f -o tradingstrategy/alternative_data/vault-db.pickle.zstd ~/.tradingstrategy/vaults/vault-db.pickle`
 DEFAULT_VAULT_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-db.pickle.zstd"
 
 #: Path to the example vault price data
@@ -82,7 +83,7 @@ def load_vault_database(path: Path | None = None) -> VaultUniverse:
 
     for address, entry in vault_db.items():
         try:
-            detection: ERC4262VaultDetection = entry["_detection_data"]
+            detection: "eth_defi.erc_4626.core.ERC4262VaultDetection" = entry["_detection_data"]
 
             if (not entry["Name"]) or (not entry["Denomination"]):
                 # Skip invalid entries as all other requird data is missing

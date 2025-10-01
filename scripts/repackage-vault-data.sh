@@ -8,3 +8,4 @@ set -e
 cp ~/.tradingstrategy/vaults/vault-prices.parquet tradingstrategy/alternative_data/
 zstd -f -o tradingstrategy/alternative_data/vault-db.pickle.zstd ~/.tradingstrategy/vaults/vault-db.pickle
 
+python -c 'from tradingstrategy.alternative_data.vault import load_vault_database ; db = load_vault_database() ; print(f"We have metadata for {db.get_vault_count()} vaults")'
