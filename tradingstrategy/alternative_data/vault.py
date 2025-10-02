@@ -32,7 +32,10 @@ DEFAULT_VAULT_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-db
 DEFAULT_VAULT_PRICE_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-prices.parquet"
 
 
-def load_vault_database(path: Path | None = None) -> VaultUniverse:
+def load_vault_database(
+    path: Path | None = None,
+    filter_bad_entries: bool = True,
+) -> VaultUniverse:
     """Load pickled vault metadata database generated with an offline script.
 
     - For sideloading vault data
@@ -81,31 +84,38 @@ def load_vault_database(path: Path | None = None) -> VaultUniverse:
     #             "_share_token": vault.share_token.export() if vault.share_token else None,
     #         }
 
+    def _safe_get(d: dict, key: str, key2: str, default=None):
+        try:
+            return (d.get(key, {}) or {}).get(key2, default)
+        except Exception:
+            return default
+
     for address, entry in vault_db.items():
         try:
             detection: "eth_defi.erc_4626.core.ERC4262VaultDetection" = entry["_detection_data"]
 
-            if (not entry["Name"]) or (not entry["Denomination"]):
-                # Skip invalid entries as all other requird data is missing
-                continue
+            if filter_bad_entries:
+                if (not entry["Name"]) or (not entry["Denomination"]):
+                    # Skip invalid entries as all other required data is missing
+                    continue
 
-            if "unknown" in entry["Name"]:
-                # Skip nameless / broken entries
-                continue
+                if "unknown" in entry["Name"]:
+                    # Skip nameless / broken entries
+                    continue
 
             protocol_slug = entry["Protocol"].lower().replace(" ", "-")
 
             vault = Vault(
                 chain_id=ChainId(detection.chain),
-                name=entry["Name"],
+                name=entry.get("Name") or "<unknown>",
                 token_symbol=entry["Symbol"],
                 vault_address=entry["Address"],
-                denomination_token_address=entry["_denomination_token"]["address"],
-                denomination_token_symbol=entry["_denomination_token"]["symbol"],
-                denomination_token_decimals=entry["_denomination_token"]["decimals"],
-                share_token_address=entry["_share_token"]["address"],
-                share_token_symbol=entry["_share_token"]["symbol"],
-                share_token_decimals=entry["_share_token"]["decimals"],
+                denomination_token_address=_safe_get(entry,"_denomination_token", "address"),
+                denomination_token_symbol=_safe_get(entry,"_denomination_token", "symbol"),
+                denomination_token_decimals=_safe_get(entry,"_denomination_token", "decimals"),
+                share_token_address=_safe_get(entry,"_share_token", "address"),
+                share_token_symbol=_safe_get(entry,"_share_token", "symbol"),
+                share_token_decimals=_safe_get(entry,"_share_token", "decimals"),
                 protocol_name=entry["Protocol"],
                 protocol_slug=protocol_slug,
                 performance_fee=entry["Perf fee"],

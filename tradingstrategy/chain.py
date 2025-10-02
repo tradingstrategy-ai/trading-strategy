@@ -181,6 +181,13 @@ class ChainId(enum.IntEnum):
     #: Gnosis chain L1
     gnosis = 100
 
+    #: Ink from Kraken
+    ink = 57073
+
+    sonic = 146
+
+    abstract = 2741
+
 
     #: Ganache test chain.
     #:
