@@ -9,20 +9,12 @@ import os
 from typing import Collection, NamedTuple
 
 from tradingstrategy.types import PrimaryKey
-from tradingstrategy.utils.time import naive_utcfromtimestamp, to_unix_timestamp
+from tradingstrategy.utils.time import naive_utcfromtimestamp, from_iso, to_iso
 
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CANDLE_LOOKBACK_HOURS = 48
-
-def encode_datetime(dt: datetime | None) -> float | None:
-    """Convert datetime to timestamp, handling None"""
-    return to_unix_timestamp(dt) if dt is not None else None
-
-def decode_datetime(ts: float | None) -> datetime | None:
-    """Convert timestamp to datetime, handling None"""
-    return naive_utcfromtimestamp(ts) if ts is not None else None
 
 
 @dataclass_json
@@ -31,17 +23,17 @@ class PairCandleInfo:
     """Single pair candle info item (see PairCandleMetadata class below)"""
     start_time: datetime | None = field(
         default=None,
-        metadata=config(  # type: ignore
-            encoder=encode_datetime,
-            decoder=decode_datetime
+        metadata=config(
+            encoder=to_iso, # type: ignore
+            decoder=from_iso
         )
     )
 
     end_time: datetime | None = field(
         default=None,
-        metadata=config(  # type: ignore
-            encoder=encode_datetime,
-            decoder=decode_datetime
+        metadata=config(
+            encoder=to_iso, # type: ignore
+            decoder=from_iso
         )
     )
 

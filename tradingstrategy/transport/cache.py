@@ -37,7 +37,7 @@ from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.transport.jsonl import load_candles_jsonl, load_token_metadata_jsonl
-from tradingstrategy.transport.pair_candle_metadata import PairCandleMetadata
+from tradingstrategy.transport.pair_candle_cache import PairCandleMetadata
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
 from tradingstrategy.types import PrimaryKey, USDollarAmount, AnyTimestamp
 from tradingstrategy.utils.time import naive_utcnow

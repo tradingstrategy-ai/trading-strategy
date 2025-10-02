@@ -35,6 +35,48 @@ def to_int_unix_timestamp(dt: datetime.datetime) -> int:
     # https://stackoverflow.com/a/5499906/315168
     return int(calendar.timegm(dt.utctimetuple()))
 
+def to_iso(dt: datetime.datetime | None) -> str | None:
+    """Convert naive UTC datetime to ISO format string.
+
+    Useful as an encoder for dataclasses_json serialization.
+
+    Example:
+
+    .. code-block:: python
+
+        @dataclass_json
+        @dataclass
+        class SomeEntity:
+            updated_at: datetime.datetime | None = field(
+                metadata=config(
+                    encoder=to_iso,
+                    decoder=from_iso,
+                )
+            )
+
+    :param dt:
+        Datetime to convert, or None
+
+    :return:
+        ISO format string, or None if input was None
+    """
+    return None if dt is None else dt.isoformat()
+
+
+def from_iso(iso_str: str | None) -> datetime.datetime | None:
+    """Parse ISO format string to naive UTC datetime.
+
+    Useful as a decoder for dataclasses_json deserialization.
+    See :py:func:`to_iso` for usage example.
+
+    :param iso_str:
+        ISO format string, or None
+
+    :return:
+        Naive UTC datetime, or None if input was None
+    """
+    return None if iso_str is None else datetime.datetime.fromisoformat(iso_str)
+
 
 def generate_monthly_timestamps(start: datetime.datetime, end: datetime.datetime) -> list[int]:
     """Generate timestamps from the start to the end. One timestamp per month.
