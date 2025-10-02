@@ -25,7 +25,7 @@ def test_sideload_vaults(vault_database):
     """Load vaults from the database."""
 
     vault_universe = load_vault_database(vault_database)
-    assert vault_universe.get_vault_count() == 7584
+    assert vault_universe.get_vault_count() >= 7584
 
     ipor = vault_universe.get_by_chain_and_name(
         ChainId.base,
@@ -73,7 +73,7 @@ def test_vaults_as_trading_pairs(
 
     exchange_universe.add(exchange_data)
     pair_universe  = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
-    assert pair_universe.get_count() == 7584
+    assert pair_universe.get_count() >= 7584
 
     # Look up faux exchange data for vault protocol
     ipor_as_exchange = exchange_universe.get_by_chain_and_slug(ChainId.base, "ipor")

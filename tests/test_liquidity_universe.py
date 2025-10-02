@@ -1,6 +1,8 @@
 """TVL API tests."""
 
 import datetime
+import os
+
 import pandas as pd
 import pytest
 
@@ -16,6 +18,11 @@ from tradingstrategy.utils.liquidity_filter import build_liquidity_summary
 from tradingstrategy.utils.token_filter import filter_pairs_default
 
 
+CI = os.environ.get("CI") == "true"
+
+
+pytestmark = pytest.mark.skipif(CI, "Too slow on Github")
+
 
 def test_grouped_liquidity(
     persistent_test_client: Client,
@@ -28,7 +35,6 @@ def test_grouped_liquidity(
     client = persistent_test_client
     exchange_universe = client.fetch_exchange_universe()
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
-
 
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
 

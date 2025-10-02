@@ -194,15 +194,15 @@ def load_trading_strategy_like_jsonl_data(
         except Exception as e:
             # Deal with all sort of errors, some not related to HTTP status code
             # base-memex  | urllib3.exceptions.ProtocolError: Response ended prematurely
-            logger.warning(
-                "load_trading_strategy_like_jsonl_data(): encountered %s, attempt %d / %d, sleeping %f seconds",
-                e,
-                attempt+1,
-                attempts,
-                sleep,
-            )
-            time.sleep(sleep)
             if attempt < attempts - 1:
+                logger.warning(
+                    "load_trading_strategy_like_jsonl_data(): encountered %s, attempt %d / %d, sleeping %f seconds",
+                    e,
+                    attempt+1,
+                    attempts,
+                    sleep,
+                )
+                time.sleep(sleep)
                 continue
             raise
 
@@ -241,6 +241,7 @@ def load_candles_jsonl(
     max_bytes: Optional[int] = None,
     progress_bar_description: Optional[str] = None,
     sanity_check_count=75,
+    attempts=5,
 ) -> pd.DataFrame:
     """Load candles using JSON API and produce a DataFrame.
 
@@ -281,6 +282,7 @@ def load_candles_jsonl(
         end_time,
         max_bytes,
         progress_bar_description,
+        attempts=attempts,
     )
 
     # Not supported at the momemnt
@@ -373,16 +375,16 @@ def load_token_metadata_jsonl(
         except Exception as e:
             # Deal with all sort of errors, some not related to HTTP status code
             # base-memex  | urllib3.exceptions.ProtocolError: Response ended prematurely
-            logger.warning(
-                "load_token_metadata_jsonl(): encountered %s, attempt %d / %d, sleeping %f seconds",
-                e,
-                attempt+1,
-                attempts,
-                sleep,
-            )
-            time.sleep(sleep)
-            progress_bar = None
             if attempt < attempts - 1:
+                logger.warning(
+                    "load_token_metadata_jsonl(): encountered %s, attempt %d / %d, sleeping %f seconds",
+                    e,
+                    attempt+1,
+                    attempts,
+                    sleep,
+                )
+                time.sleep(sleep)
+                progress_bar = None
                 continue
             raise
 

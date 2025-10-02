@@ -1024,6 +1024,10 @@ class PandasPairUniverse:
 
         Get a token details for a token that is base or quotetoken of any trading pair.
 
+        .. warning::
+
+            Extremely slow method on full pair universes - do not use.
+
         ..note ::
 
             TODO: Not a final implementation subject to chage.

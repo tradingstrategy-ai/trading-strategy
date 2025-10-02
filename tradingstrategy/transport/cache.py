@@ -11,7 +11,7 @@ import re
 import time
 from contextlib import contextmanager
 from http.client import IncompleteRead
-from importlib.metadata import version
+from importlib.metadata import version, PackageNotFoundError
 from json import JSONDecodeError
 from pprint import pformat
 from typing import Optional, Callable, Union, Collection, Dict, Tuple, Literal
@@ -197,7 +197,12 @@ class CachedHTTPTransport:
             assert api_key.startswith("secret-token:"), f"API key must start with secret-token: - we got: {api_key[0:8]}..."
 
         # - Add default HTTP request retry policy to the client
-        package_version = version("trading-strategy")
+        try:
+            package_version = version("trading-strategy")
+        except PackageNotFoundError:
+            # No idea why this is this is happening on local
+            package_version = "<unknown version>"
+
         system = platform.system()
         release = platform.release()
         session.headers.update({"User-Agent": f"trading-strategy {package_version} on {system} {release}"})
@@ -707,6 +712,7 @@ class CachedHTTPTransport:
         end_time: Optional[datetime.datetime] = None,
         max_bytes: Optional[int] = None,
         progress_bar_description: Optional[str] = None,
+        attempts=5,
     ) -> pd.DataFrame:
         """Load particular set of the candles and cache the result.
 
@@ -764,6 +770,7 @@ class CachedHTTPTransport:
                 progress_bar_description=progress_bar_description,
                 # temp increase sanity check count
                 sanity_check_count=1_500,
+                attempts=attempts,
             )
 
             # Update cache
