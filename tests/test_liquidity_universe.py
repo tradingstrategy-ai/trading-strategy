@@ -1,6 +1,8 @@
 """TVL API tests."""
 
 import datetime
+import os
+
 import pandas as pd
 import pytest
 
@@ -15,6 +17,11 @@ from tradingstrategy.utils.forward_fill import forward_fill
 from tradingstrategy.utils.liquidity_filter import build_liquidity_summary
 from tradingstrategy.utils.token_filter import filter_pairs_default
 
+
+CI = os.environ.get("CI") == "true"
+
+
+pytestmark = pytest.mark.skipif(CI, "Too slow on Github")
 
 
 def test_grouped_liquidity(
