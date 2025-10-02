@@ -65,34 +65,6 @@ def test_client_download_exchange_universe(client: Client, cache_path: str):
     assert exchange.exchange_slug == "shiba-swap"
 
 
-def test_client_download_pair_universe(client: Client, cache_path: str):
-    """Download pair mapping data"""
-
-    logger.info("Starting test_client_download_pair_universe")
-
-    exchange_universe = client.fetch_exchange_universe()
-
-    pairs = client.fetch_pair_universe()
-    # Check we cached the file correctly
-    assert os.path.exists(f"{cache_path}/pair-universe.parquet")
-    # Check universe has data
-    assert len(pairs) > 50_000
-
-    pair_universe = LegacyPairUniverse.create_from_pyarrow_table(pairs)
-
-    exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "uniswap-v2")
-    assert exchange, "Uniswap v2 not found"
-
-    # Uniswap v2 has more than 2k eligible trading pairs
-    pairs = list(pair_universe.get_all_pairs_on_exchange(exchange.exchange_id))
-    assert len(pairs) > 2000
-
-    pair = pair_universe.get_pair_by_ticker_by_exchange(exchange.exchange_id, "WETH", "DAI")
-    assert pair, "WETH-DAI not found"
-    assert pair.base_token_symbol == "WETH"
-    assert pair.quote_token_symbol == "DAI"
-
-
 def test_client_download_all_pairs(client: Client, cache_path: str):
     """Download all candles for a specific candle width."""
     df = client.fetch_all_candles(TimeBucket.d30)

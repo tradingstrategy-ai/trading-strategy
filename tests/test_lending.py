@@ -2,6 +2,7 @@
 """Client lending dataset download and integrity tests"""
 
 import logging
+import os
 from _decimal import Decimal
 from pathlib import Path
 
@@ -20,6 +21,10 @@ from tradingstrategy.utils.time import ZERO_TIMEDELTA
 logger = logging.getLogger(__name__)
 
 
+CI = os.environ.get("CI") == "true"
+
+
+@pytest.mark.skipif(CI, "Skipping slow tests on CI: this downloads > 2 GB")
 def test_client_download_lending_reserves_all_time(client: Client, cache_path: str):
     """Download all available data on lending protocol reserves."""
     df = client.fetch_lending_reserves_all_time()
