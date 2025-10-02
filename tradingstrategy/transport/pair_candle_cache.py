@@ -1,4 +1,4 @@
-""""""
+"""Pair candle caching utilities."""
 
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -6,8 +6,12 @@ from dataclasses_json import dataclass_json, config
 from datetime import datetime, timedelta
 import logging
 import os
+import pathlib
 from typing import Collection, NamedTuple
 
+import pandas as pd
+
+from tradingstrategy.transport.cache_utils import wait_other_writers
 from tradingstrategy.types import PrimaryKey
 from tradingstrategy.utils.time import naive_utcfromtimestamp, from_iso, to_iso
 
@@ -226,3 +230,118 @@ class PairCandleMetadata:
             return freshness_cutoff
 
         return min(freshness_cutoff, latest_end_time)
+
+
+class PairCandleCache:
+    """Context manager for pair candle cache operations.
+
+    Handles loading, updating, and saving of cached candle data and metadata.
+    Designed to be used as a context manager to ensure proper file locking.
+
+    Example usage:
+        with PairCandleCache(cache_path) as cache:
+            partition = cache.metadata.partition_for_fetch(pair_ids, start_time, end_time)
+            # ... perform fetches ...
+            cache.update([df1, df2])  # Update cache with new data
+            return cache.data[] # filter as needed
+    """
+
+    def __init__(self, base_path: str):
+        """Initialize cache with base file path.
+
+        :param base_path:
+            Absolute path without extension (e.g., "/path/to/candles-1h").
+            Extensions .parquet, .json, .lock will be appended as needed.
+        """
+        self.base_path = base_path
+        self.parquet_path = f"{base_path}.parquet"
+        self.metadata_path = f"{base_path}.json"
+
+        self._lock_context = None
+        self._data = None
+        self._metadata = None
+
+    def __enter__(self) -> "PairCandleCache":
+        """Enter context manager, acquiring file lock."""
+        self._lock_context = wait_other_writers(self.base_path)
+        self._lock_context.__enter__()
+
+        # Load existing data and metadata
+        self._load_data()
+        self._load_metadata()
+
+        return self
+
+
+    def __exit__(self, *args: object):
+        """Exit context manager, releasing file lock."""
+        if self._lock_context:
+            self._lock_context.__exit__(*args)  # type: ignore
+
+    def _load_data(self) -> None:
+        """Load existing parquet data if available."""
+        if os.path.exists(self.parquet_path):
+            logger.debug(f"Using cached candles file {self.parquet_path}")
+            self._data = pd.read_parquet(self.parquet_path)  # type: ignore
+        else:
+            logger.debug(f"No cached candles file found: {self.parquet_path}")
+            self._data = pd.DataFrame()
+
+    def _load_metadata(self) -> None:
+        """Load metadata from JSON file."""
+        self._metadata = PairCandleMetadata.load(self.metadata_path)
+
+    @property
+    def data(self) -> pd.DataFrame:
+        """Access to the cached candle DataFrame."""
+        assert self._data is not None, "Cache not properly initialized - use as context manager"
+        return self._data
+
+    @property
+    def metadata(self) -> PairCandleMetadata:
+        """Access to the cache metadata."""
+        assert self._metadata is not None, "Cache not properly initialized - use as context manager"
+        return self._metadata
+
+    def update(
+        self,
+        new_dataframes: list[pd.DataFrame],
+        pair_ids: Collection[PrimaryKey],
+        start_time: datetime,
+        end_time: datetime
+    ) -> None:
+        """Update cache with new candle data.
+
+        Concatenates new data with existing, removes duplicates, sorts, and saves
+        both the parquet file and metadata.
+
+        :param new_dataframes:
+            List of DataFrames containing new candle data to add to cache.
+
+        :param pair_ids:
+            Trading pairs that were included in the fetch operation.
+
+        :param start_time:
+            Start time used for the fetch operation.
+
+        :param end_time:
+            End time used for the fetch operation.
+        """
+        # Only update parquet data if there are new dataframes to add
+        if new_dataframes:
+            # Append updated candles, remove duplicates, and sort
+            assert self._data is not None, "Data should be initialized"
+            self._data = (
+                pd.concat([self._data, *new_dataframes], ignore_index=True)
+                .drop_duplicates(subset=["pair_id", "timestamp"], keep="last")
+                .sort_values(["pair_id", "timestamp"])  # type: ignore
+            )
+
+            # Save updated parquet data
+            self._data.to_parquet(self.parquet_path, index=False)  # type: ignore
+            size = pathlib.Path(self.parquet_path).stat().st_size
+            logger.debug(f"Wrote {os.path.basename(self.parquet_path)}, disk size is {size:,}b")
+
+        # Always update and save metadata for tracking
+        self.metadata.update(pair_ids, start_time, end_time)
+        self.metadata.save()

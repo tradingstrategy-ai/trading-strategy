@@ -24,12 +24,11 @@ from urllib3 import Retry
 
 import pandas as pd
 import requests
-from filelock import FileLock
 from requests import Response
 from requests.adapters import HTTPAdapter
 import pyarrow as pa
 
-from tradingstrategy.candle import Candle, TradingPairDataAvailability
+from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
 from tradingstrategy.lending import LendingCandle, LendingCandleType
 from tradingstrategy.liquidity import XYLiquidity
@@ -37,7 +36,7 @@ from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.transport.cache_utils import wait_other_writers
 from tradingstrategy.transport.jsonl import load_candles_jsonl, load_token_metadata_jsonl
-from tradingstrategy.transport.pair_candle_cache import PairCandleMetadata
+from tradingstrategy.transport.pair_candle_cache import PairCandleCache
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
 from tradingstrategy.types import PrimaryKey, USDollarAmount, AnyTimestamp
 from tradingstrategy.utils.time import naive_utcnow
@@ -770,29 +769,19 @@ class CachedHTTPTransport:
         if not end_time:
             end_time = naive_utcnow()
 
-        base_fname = f"candles-{time_bucket.value}"
-        cache_fname = self.get_cached_file_path(f"{base_fname}.parquet")
+        cache_path = self.get_cached_file_path(f"candles-{time_bucket.value}")
 
-        with wait_other_writers(self.get_cached_file_path(base_fname)):
-            if os.path.exists(cache_fname):
-                logger.debug(f"Using cached candles file {cache_fname}")
-                candles_df = pd.read_parquet(cache_fname) # type: ignore
-            else:
-                logger.debug(f"No cached candles file found: {cache_fname}")
-                candles_df = pd.DataFrame()
-
-            metadata = PairCandleMetadata.load(self.get_cached_file_path(f"{base_fname}.json"))
-
-            full_fetch_ids, delta_fetch_ids = metadata.partition_for_fetch(pair_ids, start_time, end_time)
+        with PairCandleCache(cache_path) as cache:
+            partition = cache.metadata.partition_for_fetch(pair_ids, start_time, end_time)
 
             candle_updates: list[pd.DataFrame] = []
 
             # Load full_fetch_pair_ids from API
-            if full_fetch_ids:
+            if partition.full_fetch_ids:
                 df = load_candles_jsonl(
                     self.requests,
                     self.endpoint,
-                    full_fetch_ids,
+                    partition.full_fetch_ids,
                     time_bucket,
                     start_time,
                     end_time,
@@ -803,14 +792,14 @@ class CachedHTTPTransport:
                 )
                 candle_updates.append(df)
 
-            delta_start_time = metadata.delta_fetch_start_time()
+            delta_start_time = cache.metadata.delta_fetch_start_time()
 
             # Load delta_fetch_pair_ids from API
-            if delta_fetch_ids and delta_start_time and end_time > delta_start_time:
+            if partition.delta_fetch_ids and delta_start_time and end_time > delta_start_time:
                 df = load_candles_jsonl(
                     self.requests,
                     self.endpoint,
-                    delta_fetch_ids,
+                    partition.delta_fetch_ids,
                     time_bucket,
                     delta_start_time,
                     end_time,
@@ -821,27 +810,14 @@ class CachedHTTPTransport:
                 )
                 candle_updates.append(df)
 
-            # Append updated candles, remove duplicates, and sort
-            candles_df = (
-                pd.concat([candles_df, *candle_updates], ignore_index=True)
-                  .drop_duplicates(subset=["pair_id", "timestamp"], keep="last")
-                  .sort_values(["pair_id", "timestamp"]) # type: ignore
-            )
+            # Update cache with new data
+            cache.update(candle_updates, pair_ids, start_time, end_time)
 
-            # Save cache
-            candles_df.to_parquet(cache_fname, index=False)
-            size = pathlib.Path(cache_fname).stat().st_size
-            logger.debug(f"Wrote {base_fname}.parquet, disk size is {size:,}b")
-
-            # Update and save metadata
-            metadata.update(pair_ids, start_time, end_time)
-            metadata.save()
-
-            # Filter final result (since cache may include pairs/dates outside requested range)
-            return candles_df[
-                (candles_df["pair_id"].isin(pair_ids)) & # type: ignore
-                (candles_df["timestamp"] >= start_time) &
-                (candles_df["timestamp"] <= end_time)
+            # Return filtered result (since cache may include pairs/dates outside requested range)
+            return cache.data[
+                (cache.data["pair_id"].isin(pair_ids)) &  # type: ignore
+                (cache.data["timestamp"] >= start_time) &
+                (cache.data["timestamp"] <= end_time)
             ]
 
     def _fetch_tvl_by_pair_id(
