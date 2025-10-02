@@ -200,6 +200,7 @@ class CachedHTTPTransport:
         try:
             package_version = version("trading-strategy")
         except PackageNotFoundError:
+            # No idea why this is this is happening on local
             package_version = "<unknown version>"
 
         system = platform.system()

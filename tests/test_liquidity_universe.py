@@ -29,7 +29,6 @@ def test_grouped_liquidity(
     exchange_universe = client.fetch_exchange_universe()
     raw_liquidity_samples = client.fetch_all_liquidity_samples(TimeBucket.d7).to_pandas()
 
-
     liquidity_universe = GroupedLiquidityUniverse(raw_liquidity_samples)
 
     # Do some test calculations for a single pair

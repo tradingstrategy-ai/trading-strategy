@@ -83,6 +83,7 @@ backtrader = ["trading-strategy-backtrader"]
 
 [tool.poetry.group.dev.dependencies]
 importchecker = "^3.0"
+pytest-timeout = "^2.4.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -90,7 +91,7 @@ build-backend = "poetry.core.masonry.api"
 
 # https://docs.pytest.org/en/6.2.x/customize.html
 [tool.pytest.ini_options]
-addopts = "-s --tb=native"
+addopts = "-s --tb=native --timeout=240"
 testpaths = [
     "tests",
 ]
