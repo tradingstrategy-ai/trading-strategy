@@ -563,6 +563,7 @@ def test_load_candles_using_jsonl_max_bytes(persistent_test_client: Client, defa
             [pair.pair_id],
             TimeBucket.h1,
             max_bytes=5_000, # 5kBytes
+            attempts=1,
         )
 
 

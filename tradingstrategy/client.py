@@ -229,6 +229,7 @@ class Client(BaseClient):
           end_time: Optional[datetime.datetime | pd.Timestamp] = None,
           max_bytes: Optional[int] = None,
           progress_bar_description: Optional[str] = None,
+          attempts=5,
         ) -> pd.DataFrame:
         """Fetch candles for particular trading pairs.
 
@@ -282,6 +283,7 @@ class Client(BaseClient):
             end_time,
             max_bytes=max_bytes,
             progress_bar_description=progress_bar_description,
+            attempts=attempts,
         )
 
     def fetch_tvl_by_pair_ids(self,

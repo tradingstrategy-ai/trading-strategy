@@ -712,6 +712,7 @@ class CachedHTTPTransport:
         end_time: Optional[datetime.datetime] = None,
         max_bytes: Optional[int] = None,
         progress_bar_description: Optional[str] = None,
+        attempts=5,
     ) -> pd.DataFrame:
         """Load particular set of the candles and cache the result.
 
@@ -769,6 +770,7 @@ class CachedHTTPTransport:
                 progress_bar_description=progress_bar_description,
                 # temp increase sanity check count
                 sanity_check_count=1_500,
+                attempts=attempts,
             )
 
             # Update cache
