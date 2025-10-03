@@ -2,13 +2,16 @@
 
 import datetime as dt
 import json
+import os
+from unittest.mock import Mock, patch
 
+import pandas as pd
 import pytest
 
 from tradingstrategy.transport.pair_candle_cache import (
     PairCandleInfo,
     PairCandleMetadata,
-    PairFetchPartition
+    PairCandleCache
 )
 
 
@@ -434,3 +437,383 @@ class TestPairCandleMetadata:
         # Private fields should remain unset
         assert restored._file_path == ""
         assert restored._last_modified_at is None
+
+
+class TestPairCandleCache:
+    """Test PairCandleCache context manager functionality."""
+
+    @pytest.fixture
+    def sample_candle_df(self):
+        """Create sample candle DataFrame for testing."""
+        return pd.DataFrame({
+            "timestamp": pd.to_datetime([
+                "2023-01-01 00:00:00", "2023-01-01 01:00:00",
+                "2023-01-02 00:00:00", "2023-01-02 01:00:00"
+            ]),
+            "pair_id": [1, 1, 2, 2],
+            "open": [100.0, 101.0, 200.0, 201.0],
+            "high": [102.0, 103.0, 202.0, 203.0],
+            "low": [99.0, 100.0, 199.0, 200.0],
+            "close": [101.0, 102.0, 201.0, 202.0],
+            "volume": [1000.0, 1100.0, 2000.0, 2100.0]
+        })
+
+    @pytest.fixture
+    def sample_parquet_file(self, tmp_path, sample_candle_df):
+        """Create sample parquet file for testing."""
+        parquet_file = tmp_path / "test_cache.parquet"
+        sample_candle_df.to_parquet(parquet_file, index=False)
+        return parquet_file
+
+    def test_initialization_paths(self, tmp_path):
+        """Test PairCandleCache initialization sets correct file paths."""
+        base_path = str(tmp_path / "test_cache")
+        cache = PairCandleCache(base_path)
+
+        assert cache.base_path == base_path
+        assert cache.parquet_path == f"{base_path}.parquet"
+        assert cache.metadata_path == f"{base_path}.json"
+        assert cache._lock_context is None
+        assert cache._data is None
+        assert cache._metadata is None
+
+    def test_context_manager_initialization(self, tmp_path):
+        """Test context manager properly initializes and provides access to data/metadata."""
+        base_path = str(tmp_path / "empty_cache")
+
+        with PairCandleCache(base_path) as cache:
+            # Should have initialized data and metadata
+            assert cache._data is not None
+            assert cache._metadata is not None
+            assert isinstance(cache.data, pd.DataFrame)
+            assert isinstance(cache.metadata, PairCandleMetadata)
+
+            # Empty cache should have empty DataFrame
+            assert len(cache.data) == 0
+
+    @patch('tradingstrategy.transport.pair_candle_cache.wait_other_writers')
+    def test_context_manager_file_locking(self, mock_wait_writers, tmp_path):
+        """Test context manager properly handles file locking."""
+        mock_lock = Mock()
+        mock_lock.__enter__ = Mock(return_value=mock_lock)
+        mock_lock.__exit__ = Mock(return_value=None)
+        mock_wait_writers.return_value = mock_lock
+
+        base_path = str(tmp_path / "test_cache")
+
+        with PairCandleCache(base_path) as cache:
+            # Should have called wait_other_writers and entered context
+            mock_wait_writers.assert_called_once_with(base_path)
+            mock_lock.__enter__.assert_called_once()
+
+        # Should have exited context on exit
+        mock_lock.__exit__.assert_called_once()
+
+    def test_load_existing_parquet_data_with_timestamp_index(self, tmp_path, sample_candle_df):
+        """Test loading existing parquet data correctly sets timestamp index."""
+        base_path = str(tmp_path / "existing_cache")
+        parquet_path = f"{base_path}.parquet"
+
+        # Save sample data without index (as the cache does)
+        sample_candle_df.to_parquet(parquet_path, index=False)
+
+        with PairCandleCache(base_path) as cache:
+            # Verify data was loaded
+            assert len(cache.data) == 4
+
+            # Verify timestamp index is properly set
+            assert cache.data.index.name == "timestamp"
+            assert "timestamp" in cache.data.columns  # Should keep column too (drop=False)
+
+            # Verify data integrity
+            assert list(cache.data["pair_id"]) == [1, 1, 2, 2]
+            assert cache.data.loc[pd.Timestamp("2023-01-01 00:00:00"), "open"] == 100.0
+
+    def test_load_nonexistent_parquet_creates_empty_dataframe(self, tmp_path):
+        """Test loading from non-existent parquet creates empty DataFrame."""
+        base_path = str(tmp_path / "nonexistent_cache")
+
+        with PairCandleCache(base_path) as cache:
+            assert isinstance(cache.data, pd.DataFrame)
+            assert len(cache.data) == 0
+
+    def test_load_existing_metadata(self, tmp_path):
+        """Test loading existing metadata file."""
+        base_path = str(tmp_path / "existing_metadata_cache")
+        metadata_path = f"{base_path}.json"
+
+        # Create test metadata file
+        test_metadata = {
+            "pairs": {
+                "1": {
+                    "start_time": "2023-01-01T00:00:00",
+                    "end_time": "2023-01-31T23:59:59"
+                }
+            }
+        }
+        with open(metadata_path, "w") as f:
+            json.dump(test_metadata, f)
+
+        with PairCandleCache(base_path) as cache:
+            assert len(cache.metadata.pairs) == 1
+            assert "1" in cache.metadata.pairs
+            assert cache.metadata.pairs["1"].start_time == dt.datetime(2023, 1, 1)
+
+    def test_update_with_new_dataframes(self, tmp_path, sample_candle_df):
+        """Test update method adds new data and maintains timestamp index."""
+        base_path = str(tmp_path / "update_cache")
+
+        # Create new data to add
+        new_df = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2023-01-03 00:00:00", "2023-01-03 01:00:00"]),
+            "pair_id": [1, 2],
+            "open": [105.0, 205.0],
+            "high": [106.0, 206.0],
+            "low": [104.0, 204.0],
+            "close": [105.0, 205.0],
+            "volume": [1200.0, 2200.0]
+        })
+
+        with PairCandleCache(base_path) as cache:
+            # Initial state - empty
+            assert len(cache.data) == 0
+
+            # Update with sample data
+            cache.update(
+                [sample_candle_df],
+                [1, 2],
+                dt.datetime(2023, 1, 1),
+                dt.datetime(2023, 1, 2, 1)
+            )
+
+            # Should have 4 rows
+            assert len(cache.data) == 4
+
+            # Verify timestamp index is maintained after update
+            assert cache.data.index.name == "timestamp"
+            assert "timestamp" in cache.data.columns
+
+            # Update with additional data
+            cache.update(
+                [new_df],
+                [1, 2],
+                dt.datetime(2023, 1, 3),
+                dt.datetime(2023, 1, 3, 1)
+            )
+
+            # Should have 6 rows total
+            assert len(cache.data) == 6
+
+            # Verify index still correct after second update
+            assert cache.data.index.name == "timestamp"
+            assert "timestamp" in cache.data.columns
+
+            # Verify data is sorted by pair_id, then timestamp
+            # Expected order: pair 1 data first, then pair 2 data
+            expected_order = [
+                pd.Timestamp("2023-01-01 00:00:00"),  # pair 1
+                pd.Timestamp("2023-01-01 01:00:00"),  # pair 1
+                pd.Timestamp("2023-01-03 00:00:00"),  # pair 1 (new data)
+                pd.Timestamp("2023-01-02 00:00:00"),  # pair 2
+                pd.Timestamp("2023-01-02 01:00:00"),  # pair 2
+                pd.Timestamp("2023-01-03 01:00:00")   # pair 2 (new data)
+            ]
+            timestamps = cache.data["timestamp"].tolist()
+            assert timestamps == expected_order
+
+    def test_update_deduplication_logic(self, tmp_path):
+        """Test update method properly deduplicates data."""
+        base_path = str(tmp_path / "dedup_cache")
+
+        # Create original data
+        original_df = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2023-01-01 00:00:00"]),
+            "pair_id": [1],
+            "open": [100.0],
+            "high": [102.0],
+            "low": [99.0],
+            "close": [101.0],
+            "volume": [1000.0]
+        })
+
+        # Create duplicate with different values (should replace original)
+        duplicate_df = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2023-01-01 00:00:00"]),
+            "pair_id": [1],
+            "open": [100.5],  # Different value
+            "high": [102.5],
+            "low": [99.5],
+            "close": [101.5],
+            "volume": [1050.0]
+        })
+
+        with PairCandleCache(base_path) as cache:
+            # Add original data
+            cache.update([original_df], [1], dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 1))
+            assert len(cache.data) == 1
+            assert cache.data.iloc[0]["open"] == 100.0
+
+            # Add duplicate (should replace with keep="last")
+            cache.update([duplicate_df], [1], dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 1))
+            assert len(cache.data) == 1  # Still just one row
+            assert cache.data.iloc[0]["open"] == 100.5  # Updated value
+
+    def test_update_empty_dataframes_list(self, tmp_path):
+        """Test update with empty dataframes list only updates metadata."""
+        base_path = str(tmp_path / "empty_update_cache")
+
+        with PairCandleCache(base_path) as cache:
+            initial_len = len(cache.data)
+
+            # Update with empty list of dataframes
+            cache.update(
+                [],  # Empty list
+                [1, 2],
+                dt.datetime(2023, 1, 1),
+                dt.datetime(2023, 1, 31)
+            )
+
+            # Data should be unchanged
+            assert len(cache.data) == initial_len
+
+            # Metadata should be updated
+            assert len(cache.metadata.pairs) == 2
+            assert cache.metadata.pairs["1"].start_time == dt.datetime(2023, 1, 1)
+            assert cache.metadata.pairs["2"].end_time == dt.datetime(2023, 1, 31)
+
+    def test_data_property_outside_context_manager_raises_assertion(self, tmp_path):
+        """Test accessing data property outside context manager raises AssertionError."""
+        base_path = str(tmp_path / "test_cache")
+        cache = PairCandleCache(base_path)
+
+        with pytest.raises(AssertionError, match="Cache not properly initialized"):
+            _ = cache.data
+
+    def test_metadata_property_outside_context_manager_raises_assertion(self, tmp_path):
+        """Test accessing metadata property outside context manager raises AssertionError."""
+        base_path = str(tmp_path / "test_cache")
+        cache = PairCandleCache(base_path)
+
+        with pytest.raises(AssertionError, match="Cache not properly initialized"):
+            _ = cache.metadata
+
+    def test_save_data_creates_parquet_file(self, tmp_path, sample_candle_df):
+        """Test _save_data creates parquet file correctly."""
+        base_path = str(tmp_path / "save_test_cache")
+        parquet_path = f"{base_path}.parquet"
+
+        with PairCandleCache(base_path) as cache:
+            # Add some data
+            cache.update(
+                [sample_candle_df],
+                [1, 2],
+                dt.datetime(2023, 1, 1),
+                dt.datetime(2023, 1, 2, 1)
+            )
+
+        # File should exist after context exit
+        assert os.path.exists(parquet_path)
+
+        # Verify we can load it back and it has correct structure
+        loaded_df = pd.read_parquet(parquet_path)
+        assert len(loaded_df) == 4
+        assert "timestamp" in loaded_df.columns
+        assert list(loaded_df.columns) == list(sample_candle_df.columns)
+
+    def test_full_workflow_integration(self, tmp_path):
+        """Test complete workflow: create cache, add data, close, reopen, verify persistence."""
+        base_path = str(tmp_path / "workflow_cache")
+
+        # Create initial data
+        initial_df = pd.DataFrame({
+            "timestamp": pd.to_datetime(["2023-01-01 00:00:00", "2023-01-01 01:00:00"]),
+            "pair_id": [1, 1],
+            "open": [100.0, 101.0],
+            "high": [102.0, 103.0],
+            "low": [99.0, 100.0],
+            "close": [101.0, 102.0],
+            "volume": [1000.0, 1100.0]
+        })
+
+        # Phase 1: Create cache and add initial data
+        with PairCandleCache(base_path) as cache:
+            cache.update([initial_df], [1], dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 1, 1))
+
+            assert len(cache.data) == 2
+            assert cache.data.index.name == "timestamp"
+            assert len(cache.metadata.pairs) == 1
+
+        # Phase 2: Reopen cache and verify persistence
+        with PairCandleCache(base_path) as cache:
+            # Data should be loaded from parquet
+            assert len(cache.data) == 2
+            assert cache.data.index.name == "timestamp"  # CRITICAL: Index preserved
+            assert "timestamp" in cache.data.columns
+
+            # Metadata should be loaded from JSON
+            assert len(cache.metadata.pairs) == 1
+            assert cache.metadata.pairs["1"].start_time == dt.datetime(2023, 1, 1)
+
+            # Add more data
+            additional_df = pd.DataFrame({
+                "timestamp": pd.to_datetime(["2023-01-02 00:00:00"]),
+                "pair_id": [2],
+                "open": [200.0],
+                "high": [202.0],
+                "low": [199.0],
+                "close": [201.0],
+                "volume": [2000.0]
+            })
+
+            cache.update([additional_df], [2], dt.datetime(2023, 1, 2), dt.datetime(2023, 1, 2))
+
+            assert len(cache.data) == 3
+            assert len(cache.metadata.pairs) == 2
+
+        # Phase 3: Final verification
+        with PairCandleCache(base_path) as cache:
+            assert len(cache.data) == 3
+            assert cache.data.index.name == "timestamp"
+            assert len(cache.metadata.pairs) == 2
+
+            # Verify data integrity
+            pair_1_data = cache.data[cache.data["pair_id"] == 1]
+            pair_2_data = cache.data[cache.data["pair_id"] == 2]
+            assert len(pair_1_data) == 2
+            assert len(pair_2_data) == 1
+
+    def test_data_sorting_after_update(self, tmp_path):
+        """Test that data is properly sorted after updates."""
+        base_path = str(tmp_path / "sorting_cache")
+
+        # Create data in non-chronological order
+        out_of_order_df = pd.DataFrame({
+            "timestamp": pd.to_datetime([
+                "2023-01-03 00:00:00",  # Later date first
+                "2023-01-01 00:00:00",  # Earlier date
+                "2023-01-02 00:00:00"   # Middle date
+            ]),
+            "pair_id": [1, 1, 1],
+            "open": [103.0, 101.0, 102.0],
+            "high": [104.0, 102.0, 103.0],
+            "low": [102.0, 100.0, 101.0],
+            "close": [103.0, 101.0, 102.0],
+            "volume": [1300.0, 1100.0, 1200.0]
+        })
+
+        with PairCandleCache(base_path) as cache:
+            cache.update([out_of_order_df], [1], dt.datetime(2023, 1, 1), dt.datetime(2023, 1, 3))
+
+            # Verify data is sorted by pair_id, then timestamp
+            timestamps = cache.data["timestamp"].tolist()
+            expected_timestamps = pd.to_datetime([
+                "2023-01-01 00:00:00",
+                "2023-01-02 00:00:00",
+                "2023-01-03 00:00:00"
+            ]).tolist()
+
+            assert timestamps == expected_timestamps
+
+            # Verify corresponding values are in correct order
+            opens = cache.data["open"].tolist()
+            assert opens == [101.0, 102.0, 103.0]
