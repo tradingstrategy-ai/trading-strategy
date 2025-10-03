@@ -65,6 +65,7 @@ class PairCandleInfo:
 
 
 class PairFetchPartition(NamedTuple):
+    """Return type for :py:meth:`PairCandleMetadata.partition_for_fetch`"""
     full_fetch_ids: set[PrimaryKey]
     delta_fetch_ids: set[PrimaryKey]
 
@@ -181,7 +182,7 @@ class PairCandleMetadata:
             The new end_time that candles will be fetched with.
 
         :return:
-            Tuple of (full_fetch_ids, delta_fetch_ids)
+            :py:class:`PairFetchPartition` - named tuple of `full_fetch_ids`, `delta_fetch_ids`
         """
         latest_end_time = self.latest_end_time()
 
@@ -297,7 +298,7 @@ class PairCandleCache:
         """Save the dataframe to parquet.
 
         The index is not saved for performance reasons.
-        See py:meth:`_load_data` for index restoration.
+        See :py:meth:`_load_data` for index restoration.
         """
         self._data.to_parquet(self.parquet_path, index=False) # type: ignore
         size = pathlib.Path(self.parquet_path).stat().st_size
