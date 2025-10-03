@@ -24,7 +24,10 @@ DEFAULT_CANDLE_LOOKBACK_HOURS = 48
 @dataclass_json
 @dataclass(slots=True)
 class PairCandleInfo:
-    """Single pair candle info item (see PairCandleMetadata class below)"""
+    """Single pair candle info item
+
+    See :py:class:`PairCandleMetadata`
+    """
     start_time: datetime | None = field(
         default=None,
         metadata=config(
@@ -279,13 +282,26 @@ class PairCandleCache:
             self._lock_context.__exit__(*args)  # type: ignore
 
     def _load_data(self) -> None:
-        """Load existing parquet data if available."""
+        """Load existing parquet data if available.
+
+        Restores "timestamp" index after loading.
+        """
         if os.path.exists(self.parquet_path):
             logger.debug(f"Using cached candles file {self.parquet_path}")
-            self._data = pd.read_parquet(self.parquet_path)  # type: ignore
+            self._data = pd.read_parquet(self.parquet_path).set_index("timestamp", drop=False) # type: ignore
         else:
             logger.debug(f"No cached candles file found: {self.parquet_path}")
             self._data = pd.DataFrame()
+
+    def _save_data(self) -> None:
+        """Save the dataframe to parquet.
+
+        The index is not saved for performance reasons.
+        See py:meth:`_load_data` for index restoration.
+        """
+        self._data.to_parquet(self.parquet_path, index=False) # type: ignore
+        size = pathlib.Path(self.parquet_path).stat().st_size
+        logger.debug(f"Wrote {os.path.basename(self.parquet_path)}, disk size is {size:,}b")
 
     def _load_metadata(self) -> None:
         """Load metadata from JSON file."""
@@ -327,20 +343,19 @@ class PairCandleCache:
         :param end_time:
             End time used for the fetch operation.
         """
+        assert self._data is not None, "Data should be initialized"
+
         # Only update parquet data if there are new dataframes to add
         if new_dataframes:
-            # Append updated candles, remove duplicates, and sort
-            assert self._data is not None, "Data should be initialized"
+            # Append updated candles, remove duplicates, sort, reset index
             self._data = (
                 pd.concat([self._data, *new_dataframes], ignore_index=True)
-                .drop_duplicates(subset=["pair_id", "timestamp"], keep="last")
-                .sort_values(["pair_id", "timestamp"])  # type: ignore
+                  .drop_duplicates(subset=["pair_id", "timestamp"], keep="last")
+                  .sort_values(["pair_id", "timestamp"])  # type: ignore
+                  .set_index("timestamp", drop=False)
             )
 
-            # Save updated parquet data
-            self._data.to_parquet(self.parquet_path, index=False)  # type: ignore
-            size = pathlib.Path(self.parquet_path).stat().st_size
-            logger.debug(f"Wrote {os.path.basename(self.parquet_path)}, disk size is {size:,}b")
+            self._save_data()
 
         # Always update and save metadata for tracking
         self.metadata.update(pair_ids, start_time, end_time)
