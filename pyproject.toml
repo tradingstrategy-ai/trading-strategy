@@ -96,5 +96,6 @@ testpaths = [
     "tests",
 ]
 filterwarnings = [
-    "ignore::FutureWarning"
+    "ignore::FutureWarning",
+    "ignore::DeprecationWarning"
 ]
