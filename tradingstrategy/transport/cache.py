@@ -1,4 +1,4 @@
-"""A HTTP API transport that offers optional local caching of the results."""
+"""An HTTP API transport that offers optional local caching of the results."""
 
 import datetime
 import enum
@@ -9,7 +9,6 @@ import pathlib
 import platform
 import re
 import time
-from contextlib import contextmanager
 from http.client import IncompleteRead
 from importlib.metadata import version, PackageNotFoundError
 from json import JSONDecodeError
@@ -19,35 +18,34 @@ import shutil
 import logging
 from pathlib import Path
 
-from orjson import orjson
+import orjson
 from requests.exceptions import ChunkedEncodingError
 from urllib3 import Retry
 
-import pandas
 import pandas as pd
 import requests
-from filelock import FileLock
 from requests import Response
 from requests.adapters import HTTPAdapter
 import pyarrow as pa
 
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
+from tradingstrategy.lending import LendingCandle, LendingCandleType
 from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.token_metadata import TokenMetadata
+from tradingstrategy.transport.cache_utils import wait_other_writers
 from tradingstrategy.transport.jsonl import load_candles_jsonl, load_token_metadata_jsonl
-from tradingstrategy.types import PrimaryKey, USDollarAmount, AnyTimestamp
-from tradingstrategy.lending import LendingCandle, LendingCandleType
+from tradingstrategy.transport.pair_candle_cache import PairCandleCache
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
-
+from tradingstrategy.types import PrimaryKey, USDollarAmount, AnyTimestamp
+from tradingstrategy.utils.time import naive_utcnow
 
 from tqdm_loggable.auto import tqdm
 
 from tradingstrategy.utils.logging_retry import LoggingRetry
 
 logger = logging.getLogger(__name__)
-
 
 class OHLCVCandleType(enum.Enum):
     """Candle types for /candles endpoint
@@ -222,7 +220,7 @@ class CachedHTTPTransport:
     def get_abs_cache_path(self) -> Path:
         return Path(os.path.abspath(self.cache_path))
 
-    def get_cached_file_path(self, fname):
+    def get_cached_file_path(self, fname: str):
         path = os.path.join(self.get_abs_cache_path(), fname)
         return path
 
@@ -504,7 +502,7 @@ class CachedHTTPTransport:
             _check_good_json(path, "fetch_exchange_universe() failed")
 
             return self.get_cached_item(fname)
-    
+
     def fetch_lending_reserve_universe(self) -> pathlib.Path:
         fname = "lending-reserve-universe.json"
         cached = self.get_cached_item(fname)
@@ -596,7 +594,7 @@ class CachedHTTPTransport:
             item, status = self.get_cached_item_with_status(path)
             assert status.is_readable(), f"File not readable after save cached:{cached} fname:{fname} path:{path}"
             return item
-    
+
     def fetch_lending_candles_by_reserve_id(
         self,
         reserve_id: int,
@@ -649,7 +647,7 @@ class CachedHTTPTransport:
 
             if cached:
                 logger.debug("Using cached data file %s", full_fname)
-                return pandas.read_parquet(cached)
+                return pd.read_parquet(cached)
 
             api_url = f"{self.endpoint}/lending-reserve/candles"
 
@@ -708,17 +706,21 @@ class CachedHTTPTransport:
         self,
         pair_ids: Collection[PrimaryKey],
         time_bucket: TimeBucket,
-        start_time: Optional[datetime.datetime] = None,
-        end_time: Optional[datetime.datetime] = None,
-        max_bytes: Optional[int] = None,
-        progress_bar_description: Optional[str] = None,
-        attempts=5,
+        start_time: datetime.datetime | None = None,
+        end_time: datetime.datetime | None = None,
+        max_bytes: int | None = None,
+        progress_bar_description: str | None = None,
+        attempts: int = 5
     ) -> pd.DataFrame:
         """Load particular set of the candles and cache the result.
 
-        If there is no cached result, load using JSONL.
+        The cache is time_bucket-specific. Requested pair_id's not included
+        in the catche will be fetched using JSONL endpoint, as will delta
+        candles for existing pairs since the last fetch.
 
-        More information in :py:mod:`tradingstrategy.transport.jsonl`.
+        More information in:
+            - :py:mod:`tradingstrategy.transport.pair_candle_metadata`
+            - :py:mod:`tradingstrategy.transport.jsonl`
 
         For the candles format see :py:mod:`tradingstrategy.candle`.
 
@@ -745,21 +747,13 @@ class CachedHTTPTransport:
         :return:
             Candles dataframe
         """
-        cache_fname = self._generate_cache_name(
-            pair_ids, time_bucket, start_time, end_time, max_bytes
-        )
+        max_pairs = 1_500
 
-        full_fname = self.get_cached_file_path(cache_fname)
-
-        with wait_other_writers(full_fname):
-
-            cached = self.get_cached_item(cache_fname)
-
-            if cached:
-                logger.debug("Using cached JSONL data file %s", full_fname)
-                return pandas.read_parquet(cached)
-
-            df: pd.DataFrame = load_candles_jsonl(
+        # If no start_time is provided, there's no easy way determine what "deltas" to fetch
+        # relative to the current cache, so we bypass the cache and fetch all candles.
+        # This is an edge case and not recommended.
+        if not start_time:
+            return load_candles_jsonl(
                 self.requests,
                 self.endpoint,
                 pair_ids,
@@ -768,19 +762,63 @@ class CachedHTTPTransport:
                 end_time,
                 max_bytes=max_bytes,
                 progress_bar_description=progress_bar_description,
-                # temp increase sanity check count
-                sanity_check_count=1_500,
-                attempts=attempts,
+                sanity_check_count=max_pairs,
+                attempts=attempts
             )
 
-            # Update cache
-            path = self.get_cached_file_path(cache_fname)
-            df.to_parquet(path)
+        if not end_time:
+            end_time = naive_utcnow()
 
-            size = pathlib.Path(path).stat().st_size
-            logger.debug(f"Wrote {cache_fname}, disk size is {size:,}b")
+        cache_path = self.get_cached_file_path(f"candles-{time_bucket.value}")
 
-            return df
+        with PairCandleCache(cache_path) as cache:
+            partition = cache.metadata.partition_for_fetch(pair_ids, start_time, end_time)
+
+            candle_updates: list[pd.DataFrame] = []
+
+            # Load full_fetch_pair_ids from API
+            if partition.full_fetch_ids:
+                df = load_candles_jsonl(
+                    self.requests,
+                    self.endpoint,
+                    partition.full_fetch_ids,
+                    time_bucket,
+                    start_time,
+                    end_time,
+                    max_bytes=max_bytes,
+                    progress_bar_description=progress_bar_description,
+                    sanity_check_count=max_pairs,
+                    attempts=attempts
+                )
+                candle_updates.append(df)
+
+            delta_start_time = cache.metadata.delta_fetch_start_time()
+
+            # Load delta_fetch_pair_ids from API
+            if partition.delta_fetch_ids and delta_start_time and end_time > delta_start_time:
+                df = load_candles_jsonl(
+                    self.requests,
+                    self.endpoint,
+                    partition.delta_fetch_ids,
+                    time_bucket,
+                    delta_start_time,
+                    end_time,
+                    max_bytes=max_bytes,
+                    progress_bar_description=progress_bar_description,
+                    sanity_check_count=max_pairs,
+                    attempts=attempts
+                )
+                candle_updates.append(df)
+
+            # Update cache with new data
+            cache.update(candle_updates, pair_ids, start_time, end_time)
+
+            # Return filtered result (since cache may include pairs/dates outside requested range)
+            return cache.data[
+                (cache.data["pair_id"].isin(pair_ids)) &  # type: ignore
+                (cache.data["timestamp"] >= start_time) &
+                (cache.data["timestamp"] <= end_time)
+            ]
 
     def _fetch_tvl_by_pair_id(
         self,
@@ -828,7 +866,7 @@ class CachedHTTPTransport:
             if cached:
                 # We have a locally cached version
                 logger.debug("Using cached Parquet data file %s", full_fname)
-                df = pandas.read_parquet(cached)
+                df = pd.read_parquet(cached)
             else:
                 # Read from the server, store in the disk
                 params = {
@@ -1064,7 +1102,7 @@ class CachedHTTPTransport:
                 size = pathlib.Path(path).stat().st_size
                 logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
 
-            df = pandas.read_parquet(path)
+            df = pd.read_parquet(path)
 
             # Export cache metadata
             df.attrs["cached"] = cached is not None
@@ -1181,7 +1219,7 @@ class CachedHTTPTransport:
                     logger.debug(f"Reading cached Parquet file {cache_fname}, disk size is {size:,}")
 
                 try:
-                    df = pandas.read_parquet(path)
+                    df = pd.read_parquet(path)
                     break
                 except (pa.ArrowInvalid, IncompleteRead) as e:
                     attempt += 1
@@ -1326,77 +1364,6 @@ class CachedHTTPTransport:
         return {address: TokenMetadata(**item) for address, item in full_set.items()}
 
 
-@contextmanager
-def wait_other_writers(path: Path | str, timeout=120):
-    """Wait other potential writers writing the same file.
-
-    - Work around issues when parallel unit tests and such
-      try to write the same file
-
-    Example:
-
-    .. code-block:: python
-
-        import urllib
-        import tempfile
-
-        import pytest
-        import pandas as pd
-
-        @pytest.fixture()
-        def my_cached_test_data_frame() -> pd.DataFrame:
-
-            # Al tests use a cached dataset stored in the /tmp directory
-            path = os.path.join(tempfile.gettempdir(), "my_shared_data.parquet")
-
-            with wait_other_writers(path):
-
-                # Read result from the previous writer
-                if not path.exists(path):
-                    # Download and write to cache
-                    urllib.request.urlretrieve("https://example.com", path)
-
-                return pd.read_parquet(path)
-
-    :param path:
-        File that is being written
-
-    :param timeout:
-        How many seconds wait to acquire the lock file.
-
-        Default 2 minutes.
-
-    :raise filelock.Timeout:
-        If the file writer is stuck with the lock.
-    """
-
-    if type(path) == str:
-        path = Path(path)
-
-    assert isinstance(path, Path), f"Not Path object: {path}"
-
-    assert path.is_absolute(), f"Did not get an absolute path: {path}\n" \
-                               f"Please use absolute paths for lock files to prevent polluting the local working directory."
-
-    # If we are writing to a new temp folder, create any parent paths
-    os.makedirs(path.parent, exist_ok=True)
-
-    # https://stackoverflow.com/a/60281933/315168
-    lock_file = path.parent / (path.name + '.lock')
-
-    lock = FileLock(lock_file, timeout=timeout)
-
-    if lock.is_locked:
-        logger.info(
-            "Parquet file %s locked for writing, waiting %f seconds",
-            path,
-            timeout,
-        )
-
-    with lock:
-        yield
-
-
 def _check_good_json(path: Path, exception_message: str):
     """Check that server gave us good JSON file.
 
@@ -1419,4 +1386,3 @@ def _check_good_json(path: Path, exception_message: str):
     if broken_data:
         os.remove(path)
         raise RuntimeError(f"{exception_message}\nJSON data is: {data}")
-
