@@ -288,10 +288,14 @@ class PairCandleCache:
         Restores "timestamp" index after loading.
         """
         if os.path.exists(self.parquet_path):
-            logger.debug(f"Using cached candles file {self.parquet_path}")
-            self._data = pd.read_parquet(self.parquet_path).set_index("timestamp", drop=False) # type: ignore
+            try:
+                logger.debug(f"Using cached candles file {self.parquet_path}")
+                self._data = pd.read_parquet(self.parquet_path).set_index("timestamp", drop=False)
+            except Exception as e:
+                logger.warning(f"Failed to load cached parquet file: {e}. Using empty DataFrame instead.")
+                self._data = pd.DataFrame()
         else:
-            logger.debug(f"No cached candles file found: {self.parquet_path}")
+            logger.debug(f"No cached candles file found: {self.parquet_path}. Using empty DataFrame instead.")
             self._data = pd.DataFrame()
 
     def _save_data(self) -> None:
