@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 CI = os.environ.get("CI") == "true"
 
 
-@pytest.mark.skipif(CI, "Skipping slow tests on CI: this downloads > 2 GB")
+@pytest.mark.skipif(CI, reason="Skipping slow tests on CI: this downloads > 2 GB")
 def test_client_download_lending_reserves_all_time(client: Client, cache_path: str):
     """Download all available data on lending protocol reserves."""
     df = client.fetch_lending_reserves_all_time()
@@ -362,10 +362,10 @@ def test_get_single_rate(persistent_test_client: Client):
     ),
 )
 def test_get_estimate_interest(
-    persistent_test_client: Client, 
-    start, 
-    end, 
-    interest_type, 
+    persistent_test_client: Client,
+    start,
+    end,
+    interest_type,
     expected_multiplier,
 ):
     """Estimate how much profit we make with USDC credit."""
