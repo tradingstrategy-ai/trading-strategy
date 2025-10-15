@@ -718,7 +718,7 @@ class Client(BaseClient):
         """
         path = self.transport.fetch_candles_all_time(bucket)
         return path
-    
+
     def fetch_lending_candles_by_reserve_id(
         self,
         reserve_id: PrimaryKey,
@@ -870,7 +870,7 @@ class Client(BaseClient):
         and is cached locally.
 
         The returned data is saved in PyArrow Parquet format.
-        
+
         For more information see :py:class:`tradingstrategy.liquidity.XYLiquidity`.
 
         If the download seems to be corrupted, it will be attempted 3 times.
@@ -917,10 +917,10 @@ class Client(BaseClient):
         chain_ids: Collection[ChainId],
         exchange_slugs: Collection[str] | None = None,
         addresses: Collection[str] | None = None,
-        limit: None = None,
+        limit: int | None = None,
         method: TopPairMethod = TopPairMethod.sorted_by_liquidity_with_filtering,
         min_volume_24h_usd: USDollarAmount | None = 1000,
-        risk_score_threshold=65,
+        risk_score_threshold: int = 65,
     ) -> TopPairsReply:
         """Get new trading pairs to be included in the trading universe.
 
