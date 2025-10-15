@@ -45,7 +45,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/trading-strategy-tests
-        key: cache-datasets
+        key: cache-datasets-v2
 
     - name: Run test scripts
       timeout-minutes: 15  # Set timeout for specific step
@@ -62,6 +62,3 @@ jobs:
       with:
         path: ~/.cache/trading-strategy-tests
         key: cache-datasets
-
-
-
