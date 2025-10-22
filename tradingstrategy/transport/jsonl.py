@@ -8,17 +8,17 @@ import logging
 import time
 from collections import defaultdict
 
-import orjson
 import pandas as pd
 
 import datetime
-from typing import Optional, Dict, Set, Collection
+from typing import Optional, Dict, Collection
 
 import requests
 import jsonlines
 from numpy import NaN
 from tqdm_loggable.auto import tqdm
 
+from tradingstrategy.types import PrimaryKey
 from tradingstrategy.candle import Candle
 from tradingstrategy.chain import ChainId
 from tradingstrategy.timebucket import TimeBucket
@@ -64,7 +64,7 @@ class JSONLEndpointError(Exception):
 def load_trading_strategy_like_jsonl_data(
     session: requests.Session,
     api_url: str,
-    pair_ids: Set[int],
+    pair_ids: Collection[PrimaryKey],
     time_bucket: TimeBucket,
     mappings: Dict[str, str],
     start_time: Optional[datetime.datetime] = None,
@@ -120,7 +120,7 @@ def load_trading_strategy_like_jsonl_data(
         params["end"] = end_time.isoformat()
 
     if max_bytes:
-        params["max_bytes"] = max_bytes
+        params["max_bytes"] = str(max_bytes)
 
     param_str = str(params)[0:256]
 
@@ -234,14 +234,14 @@ def load_trading_strategy_like_jsonl_data(
 def load_candles_jsonl(
     session: requests.Session,
     server_url: str,
-    pair_ids: Set[id],
+    pair_ids: Collection[PrimaryKey],
     time_bucket: TimeBucket,
     start_time: Optional[datetime.datetime] = None,
     end_time: Optional[datetime.datetime] = None,
     max_bytes: Optional[int] = None,
     progress_bar_description: Optional[str] = None,
-    sanity_check_count=75,
-    attempts=5,
+    sanity_check_count: int = 75,
+    attempts: int = 5
 ) -> pd.DataFrame:
     """Load candles using JSON API and produce a DataFrame.
 

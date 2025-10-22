@@ -35,10 +35,52 @@ def to_int_unix_timestamp(dt: datetime.datetime) -> int:
     # https://stackoverflow.com/a/5499906/315168
     return int(calendar.timegm(dt.utctimetuple()))
 
+def to_iso(dt: datetime.datetime | None) -> str | None:
+    """Convert naive UTC datetime to ISO format string.
+
+    Useful as an encoder for dataclasses_json serialization.
+
+    Example:
+
+    .. code-block:: python
+
+        @dataclass_json
+        @dataclass
+        class SomeEntity:
+            updated_at: datetime.datetime | None = field(
+                metadata=config(
+                    encoder=to_iso,
+                    decoder=from_iso,
+                )
+            )
+
+    :param dt:
+        Datetime to convert, or None
+
+    :return:
+        ISO format string, or None if input was None
+    """
+    return None if dt is None else dt.isoformat()
+
+
+def from_iso(iso_str: str | None) -> datetime.datetime | None:
+    """Parse ISO format string to naive UTC datetime.
+
+    Useful as a decoder for dataclasses_json deserialization.
+    See :py:func:`to_iso` for usage example.
+
+    :param iso_str:
+        ISO format string, or None
+
+    :return:
+        Naive UTC datetime, or None if input was None
+    """
+    return None if iso_str is None else datetime.datetime.fromisoformat(iso_str)
+
 
 def generate_monthly_timestamps(start: datetime.datetime, end: datetime.datetime) -> list[int]:
     """Generate timestamps from the start to the end. One timestamp per month.
-    
+
     :param start: Start date
     :param end: End date
 
@@ -140,3 +182,32 @@ def to_unix_timestamp(dt: datetime.datetime) -> float:
     """
     # https://stackoverflow.com/a/5499906/315168
     return calendar.timegm(dt.utctimetuple())
+
+
+def floor_month(dt: datetime.datetime) -> datetime.datetime:
+    """Get first day of the month at 00:00:00
+
+    :param dt:
+        Python datetime to convert
+
+    :return:
+        Python datetime for first day of month at 00:00:00
+    """
+    return dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def ceil_month(dt: datetime.datetime) -> datetime.datetime:
+    """Get last day of the month at 23:59:59.999999
+
+    :param dt:
+        Python datetime to convert
+
+    :return:
+        Python datetime for last day of month at 23:59:59.999999
+    """
+    if dt.month == 12:
+        next_month = dt.replace(year=dt.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        next_month = dt.replace(month=dt.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    return next_month - datetime.timedelta(microseconds=1)

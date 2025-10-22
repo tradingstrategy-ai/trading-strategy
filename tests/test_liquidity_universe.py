@@ -21,7 +21,7 @@ from tradingstrategy.utils.token_filter import filter_pairs_default
 CI = os.environ.get("CI") == "true"
 
 
-pytestmark = pytest.mark.skipif(CI, "Too slow on Github")
+pytestmark = pytest.mark.skipif(CI, reason="Too slow on Github")
 
 
 def test_grouped_liquidity(

@@ -27,6 +27,7 @@ def test_load_top_by_exchanges(persistent_test_client: Client):
         chain_ids={ChainId.ethereum},
         exchange_slugs={"uniswap-v2", "uniswap-v3"},
         limit=10,
+        risk_score_threshold=50
     )
 
     assert isinstance(top_reply, TopPairsReply)
