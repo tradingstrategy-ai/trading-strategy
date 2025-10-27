@@ -76,7 +76,8 @@ def test_vaults_as_trading_pairs(
     assert pair_universe.get_count() >= 7584
 
     # Look up faux exchange data for vault protocol
-    ipor_as_exchange = exchange_universe.get_by_chain_and_slug(ChainId.base, "ipor")
+    # NOTE: this test might not be reliable as faux exchanges on different chains have same exchange ID
+    ipor_as_exchange = exchange_universe.get_by_chain_and_slug(ChainId.ethereum, "ipor")
     assert ipor_as_exchange.address == "0x0000000000000000000000000000000000000000"
 
     # Look up vault using its address (symbolic lookup won't work)
