@@ -221,7 +221,8 @@ class ChainId(enum.IntEnum):
     #: See https://github.com/ethereum/eth-tester/blob/84378ee7eb714633fbb3169378812ccfcbbd495a/eth_tester/backends/pyevm/main.py#L197
     ethereum_tester = 131277322940537
 
-
+    #: Arbitrum Sepolia testnet
+    arbitrum_sepolia = 421614
 
     @property
     def data(self) -> dict:
