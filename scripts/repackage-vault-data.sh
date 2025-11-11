@@ -5,7 +5,10 @@
 set -u
 set -e
 
-cp ~/.tradingstrategy/vaults/vault-prices.parquet tradingstrategy/data_bundles/
+# Our tests use this fixed data set.
+# Please do not update.
+# cp ~/.tradingstrategy/vaults/vault-prices.parquet tradingstrategy/data_bundles/
+
 zstd -22 --ultra -f -o tradingstrategy/data_bundles/vault-db.pickle.zstd ~/.tradingstrategy/vaults/vault-db.pickle
 
 # Check the generated file loads good and has expected vault count
