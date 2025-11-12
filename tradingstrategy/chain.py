@@ -188,6 +188,17 @@ class ChainId(enum.IntEnum):
 
     abstract = 2741
 
+    katana = 747474
+
+    plasma = 9745
+
+    tac = 239
+
+    hemi = 43111
+
+    linea = 59144
+
+    zora = 7777777
 
     #: Ganache test chain.
     #:
@@ -201,6 +212,7 @@ class ChainId(enum.IntEnum):
     #:
     #: `See Foundry commit <https://github.com/foundry-rs/foundry/commit/7d6fd0ebe4caf54f1b24d379d3df2205af04fe33>`__.
     anvil = 31337
+
 
     #: Chain id not known
     unknown = 0
@@ -223,6 +235,9 @@ class ChainId(enum.IntEnum):
 
     #: Arbitrum Sepolia testnet
     arbitrum_sepolia = 421614
+
+    # More
+
 
     @property
     def data(self) -> dict:

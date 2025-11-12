@@ -26,7 +26,7 @@ from tradingstrategy.vault import VaultUniverse, Vault, _derive_pair_id_from_add
 #: Path to the bundled vault database
 #:
 #: To regenerate the bundle: `zstd -f -o tradingstrategy/alternative_data/vault-db.pickle.zstd ~/.tradingstrategy/vaults/vault-db.pickle`
-DEFAULT_VAULT_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-db.pickle.zstd"
+DEFAULT_VAULT_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-metadata-db.pickle.zstd"
 
 #: Path to the example vault price data
 DEFAULT_VAULT_PRICE_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-prices.parquet"
@@ -52,19 +52,21 @@ def load_vault_database(
         Can be zstd compressed with .zstd suffix.
     """
 
+    from eth_defi.vault.vaultdb import VaultDatabase
+
     if path is None:
         path = DEFAULT_VAULT_BUNDLE
 
     assert path.exists(), f"No vault file: {path}"
 
-    vault_db: dict
+    vault_db: VaultDatabase
 
     if path.suffix == ".zstd":
         with zstandard.open(path, "rb") as inp:
             vault_db = pickle.load(inp)
     else:
         # Normal pickle
-        vault_db = pickle.load(path.open("rb"))
+        vault_db = VaultDatabase.read(path)
 
     vaults = []
 
