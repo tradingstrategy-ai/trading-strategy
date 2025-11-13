@@ -250,6 +250,7 @@ class ChainId(enum.IntEnum):
 
     def get_slug(self) -> str:
         """Get URL slug for this chain"""
+
         slug = self.data.get("slug")
         if not slug:
             name = self.data.get("name")
