@@ -556,6 +556,37 @@ def filter_for_trading_fee(pairs: pd.DataFrame, fee: Percent) -> pd.DataFrame:
     return our_pairs
 
 
+
+def filter_for_selected_pairs(
+    pairs: pd.DataFrame, 
+    selected_pairs: list[tuple],
+) -> pd.DataFrame:
+    """Select only pairs with a specific trading fee.
+
+    - Only works with pairs with designed fee data
+
+    :param selected_pairs:
+        See `HumanReadableTradingPairDescription`.
+
+    :return:
+        Pairs dataframe for selected pairs only
+    """
+
+    def _filter(row):
+        for pair in selected_pairs:
+            fee = row["fee"]
+            # Normalize int bps fees
+            fee = fee / 10_000
+            assert 0 < fee < 1, f"Got fee: {fee}"
+            if (row['chain_id'], row['exchange_slug'], row['base_token_symbol'], row['quote_token_symbol'], fee) == pair:
+                return True            
+        return False
+
+    df = pairs[pairs.apply(_filter, axis=1)]
+    assert len(df) == len(selected_pairs), f"Filtered pairs {df} does not match selected pairs {selected_pairs}, some pair descriptions incorrect or missing"
+    return df
+
+
 def filter_pairs_default(
     pairs_df: pd.DataFrame,
     verbose_print=lambda x, y: print(x, y),

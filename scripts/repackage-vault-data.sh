@@ -5,7 +5,8 @@
 set -u
 set -e
 
-# Our tests use this fixed data set.
+# A POINT OF TIME SNAPSHOT.
+# Our tests use this fixed data set..
 # Please do not update.
 # cp ~/.tradingstrategy/vaults/vault-prices.parquet tradingstrategy/data_bundles/
 
