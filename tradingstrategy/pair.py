@@ -927,10 +927,19 @@ class PandasPairUniverse:
             does not index chain id and thus is invalid.
 
         """
-        # TODO: Slow - fix
-        # https://stackoverflow.com/a/73638890/315168
-        self.pair_map = self.df.T.to_dict()
-        self.smart_contract_map = {d["address"].lower(): d for d in self.pair_map.values()}
+
+        # TODO: No idea why index (pair_id) is not unique here, so we just work around it for now\
+        df = self.df
+        df = (
+            df.drop_duplicates(subset=['pair_id'], keep='first')
+            .set_index('pair_id', verify_integrity=True)
+        )
+        # df = df.drop(columns=['pair_id'])
+        # UserWarning: DataFrame columns are not unique, some columns will be omitted.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            self.pair_map = self.df.T.to_dict()
+            self.smart_contract_map = {d["address"].lower(): d for d in self.pair_map.values()}
 
     def get_all_pair_ids(self) -> Collection[PrimaryKey]:
         """Get all pair ids in the data frame."""
