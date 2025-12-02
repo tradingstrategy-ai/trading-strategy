@@ -182,7 +182,7 @@ def load_single_vault(
 
     """
     vault_universe = load_vault_database(path)
-    vault_universe.limit_to_single(chain_id, vault_address)
+    vault_universe = vault_universe.limit_to_single(chain_id, vault_address)
     return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
 
