@@ -328,6 +328,10 @@ class VaultUniverse:
         vault_list = (vault for vault in self.vaults.values() if vault.chain_id == chain_id)
         return VaultUniverse(vault_list)
 
+    def iterate_vaults(self) -> Iterable[Vault]:
+        """Iterate over all vaults."""
+        yield from self.vaults.values()
+
 
 def _derive_pair_id(vault: Vault) -> int:
     """Derive a pair id from the vault address."""

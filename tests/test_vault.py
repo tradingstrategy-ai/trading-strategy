@@ -39,7 +39,7 @@ def test_sideload_vaults(vault_database):
     assert ipor.vault_address == "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216"
     assert ipor.protocol_slug == "ipor"
 
-    for v in vault_universe.vaults:
+    for v in vault_universe.iterate_vaults():
         assert "unknown" not in v.name
 
 
