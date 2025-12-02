@@ -206,7 +206,7 @@ def load_multiple_vaults(
         vault_universe = vaults
     else:
         vault_universe = load_vault_database(path)
-        vault_universe.limit_to_vaults(vaults, check_all_vaults_found=check_all_vaults_found)
+        vault_universe = vault_universe.limit_to_vaults(vaults, check_all_vaults_found=check_all_vaults_found)
     return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
 
