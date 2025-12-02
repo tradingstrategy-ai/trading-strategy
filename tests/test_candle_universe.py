@@ -57,7 +57,7 @@ def test_grouped_candles(persistent_test_client: Client):
     # assert max_price == pytest.approx(24.120058)
 
     # Depends on real sushi price, let's give up testing this
-    assert min_price == pytest.approx(0.4128446016227597)
+    assert min_price < 1.0
 
 
 def test_empty_candle_universe():

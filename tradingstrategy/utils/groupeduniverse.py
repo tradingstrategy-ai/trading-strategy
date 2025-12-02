@@ -249,7 +249,12 @@ class PairGroupedUniverse:
         After the samples have been extracted, set `timestamp` as the index for the data.
 
         :return:
-            Data frame group
+            Data frame group.
+
+            Index is MultiIndex with pair, timestamp as the index.
+
+            `get_candles_by_pair()` has `candles = flatten_dataframe_datetime_index(candles)`
+            which we do not use here.
 
         :raise KeyError:
             If we do not have data for pair_id

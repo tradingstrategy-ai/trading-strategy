@@ -4,6 +4,8 @@ import datetime
 import pandas as pd
 import pytest
 
+import flaky
+
 from tradingstrategy.chain import ChainId
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -44,6 +46,9 @@ def test_calculate_volume_weighted_ohlc(pair_timestamp_df: pd.DataFrame):
 
 
 
+# Conflicts in parallel run?
+#  WARNING  tradingstrategy.transport.pair_candle_cache:pair_candle_cache.py:295 Failed to load cached parquet file: Could not open Parquet input source '<Buffer>': Parquet magic bytes not found in footer. Either the file is corrupted or this is not a parquet file.. Using empty DataFrame instead.
+@flaky.flaky
 def test_aggregate_ohlcv_across_pairs(persistent_test_client):
     """Create aggregated price/volume feed.
 

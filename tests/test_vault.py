@@ -39,7 +39,7 @@ def test_sideload_vaults(vault_database):
     assert ipor.vault_address == "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216"
     assert ipor.protocol_slug == "ipor"
 
-    for v in vault_universe.vaults:
+    for v in vault_universe.iterate_vaults():
         assert "unknown" not in v.name
 
 
@@ -60,16 +60,16 @@ def test_vaults_as_trading_pairs(
 
     assert exchange.address == "0x0000000000000000000000000000000000000000"
     assert exchange.exchange_type == ExchangeType.erc_4626_vault
-    assert exchange.name == "<unknown ERC-4626>"
+    assert exchange.name == "<protocol not yet identified>"
 
     pairs_df = pairs_df.sort_values(by=["address"])
-    row = pairs_df.iloc[0]
+    row = pairs_df[pairs_df.address == "0x000000000077ee1fcfe351df1ff22736e995806b"].iloc[0]
     assert row["token0_symbol"] == "wLOOKS"
     assert row["token1_symbol"] == "cLOOKS"
     assert row["fee"] == 0
     assert row["address"] == "0x000000000077ee1fcfe351df1ff22736e995806b"
     assert row["pair_slug"] == "compounding-looks"
-    assert row["exchange_slug"] == "<unknown-erc-4626>"
+    assert row["exchange_slug"] == "<protocol-not-yet-identified>"
 
     exchange_universe.add(exchange_data)
     pair_universe  = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)

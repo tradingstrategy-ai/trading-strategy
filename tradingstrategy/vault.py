@@ -1,7 +1,7 @@
 """"Vault data for EIP-4626 and other digital asset management protocols."""
 import datetime
 from dataclasses import dataclass, field
-from typing import Iterable, TypeAlias, Any
+from typing import Iterable, TypeAlias, Any, Collection
 
 try:
     from eth_defi.erc_4626.core import ERC4626Feature
@@ -11,7 +11,7 @@ except ImportError:
 
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
-from tradingstrategy.types import Percent, NonChecksummedAddress
+from tradingstrategy.types import Percent, NonChecksummedAddress, TokenSymbol
 from tradingstrategy.types import SPECIAL_PAIR_ID_RANGE
 
 
@@ -135,6 +135,10 @@ class Vault:
     def is_4626(self) -> bool:
         return ERC4626Feature.erc_4626 in self.features
 
+    def get_spec(self) -> tuple[ChainId, NonChecksummedAddress]:
+        """Get vault spec as (chain_id, address)."""
+        return (self.chain_id, self.vault_address.lower())
+
     def export_as_trading_pair(self) -> dict:
         """EXport data of this vault as compatible for a trading pair.
 
@@ -233,37 +237,56 @@ class Vault:
 class VaultUniverse:
     """Vault universe of all accessible vaults."""
 
-    def __init__(self, vaults: list[Vault]):
-        assert len(vaults) > 0
-        assert isinstance(vaults[0], Vault)
-        self.vaults = vaults
+    def __init__(self, vaults: Iterable[Vault]):
+        self.vaults: dict[tuple[ChainId, NonChecksummedAddress], Vault] = {v.get_spec(): v for v in vaults}
+        assert len(self.vaults) > 0, "Vault universe cannot be empty"
+        assert isinstance(next(iter(self.vaults.values())), Vault)
 
-    def get_by_chain_and_name(self, chain_id: ChainId, name: str) -> Vault | None:
+    def get_by_chain_and_name(self, chain_id: ChainId | int, name: str) -> Vault | None:
         """Get vault by chain id and name."""
+
+        if type(chain_id) == int:
+            chain_id = ChainId(chain_id)
+
         assert isinstance(chain_id, ChainId)
         assert type(name) == str
-        for vault in self.vaults:
+        for vault in self.vaults.values():
             if vault.chain_id == chain_id and vault.name == name:
                 return vault
         return None
+
+    def get_by_vault_spec(self, spec: tuple[ChainId | int, NonChecksummedAddress]) -> Vault | None:
+        """Get vault by chain id and name."""
+
+        chain_id = spec[0]
+        address = spec[1]
+
+        if type(chain_id) == int:
+            chain_id = ChainId(chain_id)
+
+        assert isinstance(chain_id, ChainId)
+        assert type(address) == str
+        assert address.startswith("0x")
+        return self.vaults.get((chain_id, address.lower()))
 
     def get_vault_count(self) -> int:
         """Get number of vaults in the universe."""
         return len(self.vaults)
 
     def export_all_vaults(self) -> Iterable[Vault]:
-        return self.vaults
+        return self.vaults.values()
 
-    def limit_to_single(self, chain_id: ChainId, address: str):
+    def limit_to_single(self, chain_id: ChainId, address: str) -> "VaultUniverse":
         """Drop all but single vault entry."""
-        self.vaults = [vault for vault in self.vaults if vault.chain_id == chain_id and vault.vault_address == address]
-        assert len(self.vaults) == 1, f"Expected single vault, got {len(self.vaults)}"
+        vault_list = [vault for vault in self.vaults.values() if vault.chain_id == chain_id and vault.vault_address == address]
+        assert len(vault_list) == 1, f"Expected single vault, got {len(self.vaults)}"
+        return VaultUniverse(vault_list)
 
     def limit_to_vaults(
         self,
         vaults: list[tuple[ChainId, NonChecksummedAddress]],
         check_all_vaults_found: bool = True,
-    ):
+    ) -> "VaultUniverse":
         """Drop all but designednated vault entries.
 
         :param check_all_vaults_found:
@@ -273,10 +296,41 @@ class VaultUniverse:
         """
         assert all(type(v) in (tuple, list) and isinstance(v[0], ChainId) and v[1].startswith("0x") for v in vaults), f"Bad vault descriptors: {vaults}"
         vaults = set(vaults)
-        self.vaults = [vault for vault in self.vaults if (vault.chain_id, vault.vault_address) in vaults]
 
         if check_all_vaults_found:
-            assert len(self.vaults) == len(vaults), f"Expected {len(vaults)} vault, got {len(self.vaults)}. Maybe some vault data is mismatch, missing?"
+            vault_list = [vault for vault in self.vaults.values() if (vault.chain_id, vault.vault_address) in vaults]
+            assert len(vault_list) == len(vaults), f"Expected {len(vaults)} vault, got {len(self.vaults)}. Maybe some vault data is mismatch, missing?"
+        else:
+            # Use iterator
+            vault_list = (vault for vault in self.vaults.values() if (vault.chain_id, vault.vault_address) in vaults)
+
+        return VaultUniverse(vault_list)
+
+    def limit_to_denomination(
+        self,
+        denomination_token_symbols: Collection[TokenSymbol],
+    ) -> "VaultUniverse":
+        """Drop all but designednated vault entries.
+
+        :param check_all_vaults_found:
+            Check that we have metadata for all vaults in our local files.
+
+            If not set, skip and do not care if some vaults are missing.
+        """
+        vault_list = (vault for vault in self.vaults.values() if vault.denomination_token_symbol in denomination_token_symbols)
+        return VaultUniverse(vault_list)
+
+    def limit_to_chain(self, chain_id: ChainId | int) -> "VaultUniverse":
+        """Drop all but single chain vault entries."""
+        if type(chain_id) == int:
+            chain_id = ChainId(chain_id)
+        assert isinstance(chain_id, ChainId)
+        vault_list = (vault for vault in self.vaults.values() if vault.chain_id == chain_id)
+        return VaultUniverse(vault_list)
+
+    def iterate_vaults(self) -> Iterable[Vault]:
+        """Iterate over all vaults."""
+        yield from self.vaults.values()
 
 
 def _derive_pair_id(vault: Vault) -> int:

@@ -32,6 +32,10 @@ DEFAULT_VAULT_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-me
 DEFAULT_VAULT_PRICE_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-prices.parquet"
 
 
+#: Cached loaded vault universe from our defaut bundle
+_cached_vault_universe: dict[Path, VaultUniverse] = {}
+
+
 def load_vault_database(
     path: Path | None = None,
     filter_bad_entries: bool = True,
@@ -58,6 +62,11 @@ def load_vault_database(
         path = DEFAULT_VAULT_BUNDLE
 
     assert path.exists(), f"No vault file: {path}"
+
+    existing = _cached_vault_universe.get(path)
+    if existing is not None:
+        return existing
+
 
     vault_db: VaultDatabase
 
@@ -133,7 +142,9 @@ def load_vault_database(
 
         vaults.append(vault)
 
-    return VaultUniverse(vaults)
+    vault_universe = VaultUniverse(vaults)
+    _cached_vault_universe[path] = vault_universe
+    return vault_universe
 
 
 def convert_vaults_to_trading_pairs(
@@ -171,12 +182,12 @@ def load_single_vault(
 
     """
     vault_universe = load_vault_database(path)
-    vault_universe.limit_to_single(chain_id, vault_address)
+    vault_universe = vault_universe.limit_to_single(chain_id, vault_address)
     return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
 
 def load_multiple_vaults(
-    vaults: list[tuple[ChainId, NonChecksummedAddress]],
+    vaults: list[tuple[ChainId, NonChecksummedAddress]] | VaultUniverse,
     path=DEFAULT_VAULT_BUNDLE,
     check_all_vaults_found: bool = True,
 ) -> tuple[list[Exchange], pd.DataFrame]:
@@ -191,8 +202,11 @@ def load_multiple_vaults(
         pairs_df = pd.concat([pairs_df, vault_pairs_df])
 
     """
-    vault_universe = load_vault_database(path)
-    vault_universe.limit_to_vaults(vaults, check_all_vaults_found=check_all_vaults_found)
+    if isinstance(vaults, VaultUniverse):
+        vault_universe = vaults
+    else:
+        vault_universe = load_vault_database(path)
+        vault_universe = vault_universe.limit_to_vaults(vaults, check_all_vaults_found=check_all_vaults_found)
     return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
 
@@ -259,7 +273,7 @@ def load_vault_price_data(
     assert prices_path.exists(), f"Vault price file does not exist: {prices_path}"
     vaults_to_match = [(row.chain_id, row.address) for idx, row in pairs_df.iterrows()]
 
-    assert len(vaults_to_match) < 1000, f"The vaults to load number looks too high: {len(vaults_to_match)}"
+    assert len(vaults_to_match) < 3000, f"The vaults to load number looks too high: {len(vaults_to_match)}"
     df = pd.read_parquet(prices_path)
     mask = df.apply(lambda r: (r["chain"], r["address"]) in vaults_to_match, axis=1)
     df = df[mask]
