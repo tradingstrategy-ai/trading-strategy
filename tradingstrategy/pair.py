@@ -929,12 +929,6 @@ class PandasPairUniverse:
         """
 
         # TODO: No idea why index (pair_id) is not unique here, so we just work around it for now\
-        df = self.df
-        df = (
-            df.drop_duplicates(subset=['pair_id'], keep='first')
-            .set_index('pair_id', verify_integrity=True)
-        )
-        # df = df.drop(columns=['pair_id'])
         # UserWarning: DataFrame columns are not unique, some columns will be omitted.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UserWarning)
