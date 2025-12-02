@@ -3,8 +3,6 @@ import datetime
 from dataclasses import dataclass, field
 from typing import Iterable, TypeAlias, Any, Collection
 
-from tradeexecutor.state.types import JSONHexAddress
-
 try:
     from eth_defi.erc_4626.core import ERC4626Feature
 except ImportError:
@@ -137,7 +135,7 @@ class Vault:
     def is_4626(self) -> bool:
         return ERC4626Feature.erc_4626 in self.features
 
-    def get_spec(self) -> tuple[ChainId, JSONHexAddress]:
+    def get_spec(self) -> tuple[ChainId, NonChecksummedAddress]:
         """Get vault spec as (chain_id, address)."""
         return (self.chain_id, self.vault_address.lower())
 
@@ -240,7 +238,7 @@ class VaultUniverse:
     """Vault universe of all accessible vaults."""
 
     def __init__(self, vaults: Iterable[Vault]):
-        self.vaults: dict[tuple[ChainId, JSONHexAddress], Vault] = {v.get_spec(): v for v in vaults}
+        self.vaults: dict[tuple[ChainId, NonChecksummedAddress], Vault] = {v.get_spec(): v for v in vaults}
         assert len(self.vaults) > 0, "Vault universe cannot be empty"
         assert isinstance(next(iter(self.vaults.values())), Vault)
 
@@ -257,7 +255,7 @@ class VaultUniverse:
                 return vault
         return None
 
-    def get_by_vault_spec(self, spec: tuple[ChainId | int, JSONHexAddress]) -> Vault | None:
+    def get_by_vault_spec(self, spec: tuple[ChainId | int, NonChecksummedAddress]) -> Vault | None:
         """Get vault by chain id and name."""
 
         chain_id = spec[0]
