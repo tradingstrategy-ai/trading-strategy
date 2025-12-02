@@ -96,6 +96,9 @@ class Universe:
     #:
     forward_filled: bool | None = None
 
+    #: Vault specifications (chain id, name) tuples we loaded
+    vault_specs: list[tuple[int, str]] = None
+
     def __post_init__(self):
         """Check that the constructor was called correctly.
 
