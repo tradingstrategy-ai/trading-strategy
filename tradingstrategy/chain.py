@@ -223,6 +223,9 @@ class ChainId(enum.IntEnum):
     #:
     centralised_exchange = -1
 
+    #: Special chain id indicating there are multiple chains involved
+    cross_chain = -2
+
     #: Osmosis on Cosmos
     #: Does not have chain registry entry,
     #: beacuse Cosmos maintains its own registry
@@ -459,6 +462,14 @@ _CHAIN_DATA_OVERRIDES = {
     ChainId.centralised_exchange.value: {
         "name": "Centralised exchange",
         "slug": "centralised-exchange",
+        "svg_icon": None,
+        "active": False,
+        "dataless": True,
+    },
+
+    ChainId.cross_chain.value: {
+        "name": "Cross-chain",
+        "slug": "cross-chain",
         "svg_icon": None,
         "active": False,
         "dataless": True,
