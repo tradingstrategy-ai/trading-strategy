@@ -1,3 +1,7 @@
+# 0.28
+
+- Vault data handling improvements
+- 
 # 0.27
 
 - Update package pindowns for Python version, Pyarrow and others
