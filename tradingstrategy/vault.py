@@ -297,9 +297,18 @@ class VaultUniverse:
         assert all(type(v) in (tuple, list) and isinstance(v[0], ChainId) and v[1].startswith("0x") for v in vaults), f"Bad vault descriptors: {vaults}"
         vaults = set(vaults)
 
-        if check_all_vaults_found:
+        if check_all_vaults_found:    
+            # Check if we have all given vault addresses in our vault universe        
             vault_list = [vault for vault in self.vaults.values() if (vault.chain_id, vault.vault_address) in vaults]
-            assert len(vault_list) == len(vaults), f"Expected {len(vaults)} vault, got {len(self.vaults)}. Maybe some vault data is mismatch, missing?"
+            if len(vault_list) != len(vaults):
+                found = {vault.vault_address for vault in vault_list}
+                missing_msg = ""
+                for v in vaults:
+                    if v[1] not in found:
+                        missing_msg += f"\n - Missing vault {v[1]} on chain {v[0]}"
+
+                msg= f"Expected {len(vaults)} vault, got {len(self.vaults)}. Maybe some vault data is mismatch, missing?\n"
+                raise AssertionError(msg + missing_msg)
         else:
             # Use iterator
             vault_list = (vault for vault in self.vaults.values() if (vault.chain_id, vault.vault_address) in vaults)
@@ -309,6 +318,7 @@ class VaultUniverse:
     def limit_to_denomination(
         self,
         denomination_token_symbols: Collection[TokenSymbol],
+        check_all_vaults_found: bool = False,
     ) -> "VaultUniverse":
         """Drop all but designednated vault entries.
 
@@ -317,7 +327,20 @@ class VaultUniverse:
 
             If not set, skip and do not care if some vaults are missing.
         """
-        vault_list = (vault for vault in self.vaults.values() if vault.denomination_token_symbol in denomination_token_symbols)
+
+        vault_list = []
+
+        if check_all_vaults_found:
+            # Check what vaults are not included            
+            for vault in self.vaults.values():
+                if vault.denomination_token_symbol in denomination_token_symbols:
+                    vault_list.append(vault)
+                else:
+                    raise AssertionError(f"Cannot include vault {vault.name} with denomination {vault.denomination_token_symbol}")
+            
+        else:
+            vault_list = (vault for vault in self.vaults.values() if vault.denomination_token_symbol in denomination_token_symbols)
+
         return VaultUniverse(vault_list)
 
     def limit_to_chain(self, chain_id: ChainId | int) -> "VaultUniverse":

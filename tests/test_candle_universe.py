@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 from pandas import Timestamp
 from pandas.core.groupby import DataFrameGroupBy
+import logging
 
 from tradingstrategy.candle import GroupedCandleUniverse, is_candle_green, is_candle_red
 from tradingstrategy.chain import ChainId
@@ -19,7 +20,15 @@ from tradingstrategy.utils.groupeduniverse import resample_candles, resample_dat
 from tradingstrategy.utils.wrangle import examine_anomalies, fix_prices_in_between_time_frames, examine_price_between_time_anomalies, fix_dex_price_data, normalise_volume
 
 
-def test_grouped_candles(persistent_test_client: Client):
+def logger():
+    """Get module logger."""
+    return logging.getLogger(__name__)
+
+
+def test_grouped_candles(
+    persistent_test_client: Client,
+    logger: logging.Logger,
+):
     """Group downloaded candles by a trading pair."""
 
     client = persistent_test_client
@@ -30,6 +39,9 @@ def test_grouped_candles(persistent_test_client: Client):
 
     pair_universe = PandasPairUniverse(raw_pairs, build_index=False)
     candle_universe = GroupedCandleUniverse(raw_candles)
+
+    assert len(candle_universe.df) > 0, f"Got {len(candle_universe.df)} candles"
+    logger.info("Got %d candles", len(candle_universe.df))
 
     # Do some test calculations for a single pair
     sushi_swap = exchange_universe.get_by_chain_and_name(ChainId.ethereum, "sushi")
