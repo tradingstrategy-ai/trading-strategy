@@ -213,7 +213,6 @@ class ChainId(enum.IntEnum):
     #: `See Foundry commit <https://github.com/foundry-rs/foundry/commit/7d6fd0ebe4caf54f1b24d379d3df2205af04fe33>`__.
     anvil = 31337
 
-
     #: Chain id not known
     unknown = 0
 
@@ -239,8 +238,10 @@ class ChainId(enum.IntEnum):
     #: Arbitrum Sepolia testnet
     arbitrum_sepolia = 421614
 
-    # More
+    # Monad buggy one
+    monad_testnet = 10143
 
+    monad = 143
 
     @property
     def data(self) -> dict:
