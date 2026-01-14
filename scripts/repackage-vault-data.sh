@@ -14,5 +14,6 @@ zstd -22 --ultra -f -o tradingstrategy/data_bundles/vault-metadata-db.pickle.zst
 
 # Check the generated file loads good and has expected vault count
 
+python -c 'from eth_defi import erc_4626'
 python -c 'from tradingstrategy.alternative_data.vault import DEFAULT_VAULT_BUNDLE ; print(f"Default vault bundle is {DEFAULT_VAULT_BUNDLE.resolve()}")'
 python -c 'from tradingstrategy.alternative_data.vault import load_vault_database ; db = load_vault_database(filter_bad_entries=False) ; print(f"We have metadata for {db.get_vault_count()} vaults")'
