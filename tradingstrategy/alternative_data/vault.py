@@ -10,7 +10,6 @@ To repackage the vault bundle:
 
 """
 
-import pickle
 from pathlib import Path
 from typing import Iterable
 
@@ -18,6 +17,7 @@ import pandas as pd
 import zstandard
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.utils.flexible_pickle import flexible_load, filter_broken_enum_values
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.types import NonChecksummedAddress
 from tradingstrategy.utils.groupeduniverse import resample_candles_multiple_pairs
@@ -72,10 +72,11 @@ def load_vault_database(
 
     if path.suffix == ".zstd":
         with zstandard.open(path, "rb") as inp:
-            vault_db = pickle.load(inp)
+            vault_db = flexible_load(inp)
     else:
         # Normal pickle
-        vault_db = VaultDatabase.read(path)
+        with path.open("rb") as f:
+            vault_db = flexible_load(f)
 
     vaults = []
 
@@ -132,7 +133,7 @@ def load_vault_database(
                 performance_fee=entry["Perf fee"],
                 management_fee=entry["Mgmt fee"],
                 deployed_at=detection.first_seen_at,
-                features=detection.features,
+                features=filter_broken_enum_values(detection.features),
                 denormalised_data_updated_at=detection.updated_at,
                 tvl=entry["NAV"],
                 issued_shares=entry["Shares"],

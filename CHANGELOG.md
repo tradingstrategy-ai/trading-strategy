@@ -1,7 +1,8 @@
 # 0.28
 
 - Vault data handling improvements
-- 
+- Add: Flexible pickle loader that handles missing enum values gracefully (2026-01-26)
+
 # 0.27
 
 - Update package pindowns for Python version, Pyarrow and others
