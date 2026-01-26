@@ -1,7 +1,7 @@
 """Flexible pickle implementation.
 
 - Don't crash on missing enum values
-- Log warnings about broken/missing values for developer awareness
+- Log info about broken/missing values for developer awareness
 """
 
 import enum
@@ -54,7 +54,7 @@ def _create_flexible_enum_loader(enum_class: type[enum.Enum]):
             try:
                 return enum_class(value)
             except ValueError:
-                logger.warning(
+                logger.info(
                     "Missing enum value during unpickling: %s.%s - "
                     "this value may have been removed from the codebase",
                     enum_class.__name__,
@@ -70,7 +70,7 @@ class FlexibleUnpickler(pickle.Unpickler):
 
     - Intercepts enum class lookups during unpickling
     - Wraps enum reconstruction with error handling
-    - Logs warnings about missing/broken values
+    - Logs info about missing/broken values
 
     Example usage::
 
@@ -98,7 +98,7 @@ def flexible_load(file: BinaryIO) -> object:
     """Load a pickle file with flexible enum handling.
 
     - Does not crash on missing enum values
-    - Logs warnings about broken/missing values
+    - Logs info about broken/missing values
 
     :param file:
         Binary file to read from
@@ -141,7 +141,7 @@ def filter_broken_enum_values(collection: set | list | frozenset) -> set | list 
     if isinstance(collection, set):
         broken = {v for v in collection if isinstance(v, BrokenEnumValue)}
         if broken:
-            logger.warning(
+            logger.info(
                 "Filtering %d broken enum values from set: %s",
                 len(broken),
                 broken,
@@ -150,7 +150,7 @@ def filter_broken_enum_values(collection: set | list | frozenset) -> set | list 
     elif isinstance(collection, frozenset):
         broken = frozenset(v for v in collection if isinstance(v, BrokenEnumValue))
         if broken:
-            logger.warning(
+            logger.info(
                 "Filtering %d broken enum values from frozenset: %s",
                 len(broken),
                 broken,
@@ -159,7 +159,7 @@ def filter_broken_enum_values(collection: set | list | frozenset) -> set | list 
     elif isinstance(collection, list):
         broken = [v for v in collection if isinstance(v, BrokenEnumValue)]
         if broken:
-            logger.warning(
+            logger.info(
                 "Filtering %d broken enum values from list: %s",
                 len(broken),
                 broken,
