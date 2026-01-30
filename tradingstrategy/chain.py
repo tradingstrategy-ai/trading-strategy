@@ -104,7 +104,7 @@ class ChainId(enum.IntEnum):
     present chain ids or all blockchains through this enum.
 
     Chain id is a 32-bit integer.
-    
+
     For non-EVM chains like ones on Cosmos or Solana we use negative values,
     so that they are not confused with chain.network database. Cosmos
     natively uses string ids for chains instead of integers.
@@ -243,6 +243,9 @@ class ChainId(enum.IntEnum):
 
     monad = 143
 
+    #: Derive chain (formerly Lyra)
+    derive = 957
+
     @property
     def data(self) -> dict:
         """Get chain data entry for this chain."""
@@ -362,7 +365,7 @@ _CHAIN_DATA_OVERRIDES = {
         "dataless": True,
     },
 
-    # 
+    #
     # Avalanche
     #
     ChainId.avalanche.value: {
@@ -371,7 +374,7 @@ _CHAIN_DATA_OVERRIDES = {
         "svg_icon": "https://cryptologos.cc/logos/avalanche-avax-logo.svg",
     },
 
-    # 
+    #
     # Arbitrum
     #
     ChainId.arbitrum.value: {
@@ -380,7 +383,7 @@ _CHAIN_DATA_OVERRIDES = {
         "svg_icon": "https://cryptologos.cc/logos/arbitrum-arb-logo.svg",
     },
 
-    # 
+    #
     # Base
     #
     ChainId.base.value: {
@@ -389,7 +392,7 @@ _CHAIN_DATA_OVERRIDES = {
         "svg_icon": "https://raw.githubusercontent.com/base-org/brand-kit/main/logo/in-product/Base_Network_Logo.svg",
     },
 
-    # 
+    #
     # Mantle
     #
     ChainId.mantle.value: {
@@ -398,7 +401,7 @@ _CHAIN_DATA_OVERRIDES = {
         "svg_icon": "https://cryptologos.cc/logos/mantle-mnt-logo.svg",
     },
 
-    # 
+    #
     # Berachain
     #
     ChainId.berachain.value: {
@@ -407,10 +410,23 @@ _CHAIN_DATA_OVERRIDES = {
         "svg_icon": None,
     },
 
+    #
+    # Unichain
+    #
     ChainId.unichain.value: {
         "name": "Unichain",
         "slug": "unichain",
         "svg_icon": None,
+    },
+
+    #
+    # Derive (formerly Lyra)
+    #
+    ChainId.derive.value: {
+        "name": "Derive",
+        "slug": "derive",
+        "svg_icon": None,
+        "dataless": True,
     },
 
     #
@@ -476,6 +492,4 @@ _CHAIN_DATA_OVERRIDES = {
         "dataless": True,
     },
 
-
 }
-
