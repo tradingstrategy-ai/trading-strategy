@@ -23,7 +23,16 @@ from tradingstrategy.types import SPECIAL_PAIR_ID_RANGE
 
 @dataclass(slots=True, frozen=True)
 class VaultMetadata:
-    """User in pair dataframe for vault specific data.
+    """Used in pair dataframe for vault specific data.
+
+    .. note::
+
+        The :py:attr:`period_results` field contains structured :py:class:`PeriodMetrics` objects
+        and should be preferred over the flat class-level performance fields (e.g., ``cagr``,
+        ``volatility``, ``sharpe``). The flat fields are provided for convenience and backward
+        compatibility, but ``period_results`` provides more complete and structured data including
+        metrics for multiple time periods (1W, 1M, 3M, 6M, 1Y, lifetime).
+
     """
 
     #: Like "Harvest Autopilot"
