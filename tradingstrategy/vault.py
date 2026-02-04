@@ -9,6 +9,12 @@ except ImportError:
     # Spoof for soft imports
     ERC4626Feature: TypeAlias = str
 
+try:
+    from eth_defi.research.vault_metrics import PeriodMetrics
+except ImportError:
+    # Spoof for soft imports
+    PeriodMetrics: TypeAlias = Any
+
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
 from tradingstrategy.types import Percent, NonChecksummedAddress, TokenSymbol
@@ -17,7 +23,16 @@ from tradingstrategy.types import SPECIAL_PAIR_ID_RANGE
 
 @dataclass(slots=True, frozen=True)
 class VaultMetadata:
-    """User in pair dataframe for vault specific data.
+    """Used in pair dataframe for vault specific data.
+
+    .. note::
+
+        The :py:attr:`period_results` field contains structured :py:class:`PeriodMetrics` objects
+        and should be preferred over the flat class-level performance fields (e.g., ``cagr``,
+        ``volatility``, ``sharpe``). The flat fields are provided for convenience and backward
+        compatibility, but ``period_results`` provides more complete and structured data including
+        metrics for multiple time periods (1W, 1M, 3M, 6M, 1Y, lifetime).
+
     """
 
     #: Like "Harvest Autopilot"
@@ -49,6 +64,426 @@ class VaultMetadata:
     #:   As this changes over time, never use this fixed value in backtesting or live trading.
     #:
     management_fee: Percent | None = None
+
+    #: Total lifetime gross returns.
+    #:
+    #: Calculated from inception to now.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_gross`` for lifetime period instead.
+    #:
+    lifetime_return: Percent | None = None
+
+    #: Total lifetime net returns (after fees).
+    #:
+    #: Calculated from inception to now, with management and performance fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_net`` for lifetime period instead.
+    #:
+    lifetime_return_net: Percent | None = None
+
+    #: Compound annual growth rate (gross).
+    #:
+    #: Annualised return based on lifetime performance.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_gross`` for lifetime period instead.
+    #:
+    cagr: Percent | None = None
+
+    #: Compound annual growth rate (net of fees).
+    #:
+    #: Annualised return based on lifetime performance, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_net`` for lifetime period instead.
+    #:
+    cagr_net: Percent | None = None
+
+    #: 3-month gross returns.
+    #:
+    #: Absolute return over the last 3 months.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_gross`` for 3M period instead.
+    #:
+    three_months_return: Percent | None = None
+
+    #: 3-month net returns.
+    #:
+    #: Absolute return over the last 3 months, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_net`` for 3M period instead.
+    #:
+    three_months_return_net: Percent | None = None
+
+    #: 3-month annualised gross returns.
+    #:
+    #: CAGR calculated from the last 3 months of data.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_gross`` for 3M period instead.
+    #:
+    three_months_cagr: Percent | None = None
+
+    #: 3-month annualised net returns.
+    #:
+    #: CAGR calculated from the last 3 months of data, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_net`` for 3M period instead.
+    #:
+    three_months_cagr_net: Percent | None = None
+
+    #: 3-month volatility (annualised).
+    #:
+    #: Standard deviation of daily returns, annualised.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.volatility`` for 3M period instead.
+    #:
+    volatility: Percent | None = None
+
+    #: 3-month Sharpe ratio.
+    #:
+    #: Risk-adjusted return metric calculated from the last 3 months.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.sharpe`` for 3M period instead.
+    #:
+    sharpe: float | None = None
+
+    #: Maximum drawdown.
+    #:
+    #: Largest peak-to-trough decline during the 3-month period.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.max_drawdown`` for 3M period instead.
+    #:
+    max_drawdown: Percent | None = None
+
+    #: Current total value locked (USD).
+    #:
+    #: The current assets under management in the vault.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.tvl_end`` instead.
+    #:
+    tvl: float | None = None
+
+    #: Peak TVL ever (USD).
+    #:
+    #: The highest TVL the vault has ever reached.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.tvl_high`` for lifetime period instead.
+    #:
+    tvl_peak: float | None = None
+
+    #: Vault age in years.
+    #:
+    #: Time since the vault was first seen or deployed.
+    age_years: float | None = None
+
+    #: When first price data was recorded.
+    #:
+    #: Timestamp of the earliest available price data.
+    first_updated_at: datetime.datetime | None = None
+
+    #: When last price data was recorded.
+    #:
+    #: Timestamp of the most recent price data update.
+    last_updated_at: datetime.datetime | None = None
+
+    #: Deposit fee.
+    #:
+    #: Fee charged when depositing into the vault.
+    deposit_fee: Percent | None = None
+
+    #: Withdrawal fee.
+    #:
+    #: Fee charged when withdrawing from the vault.
+    withdrawal_fee: Percent | None = None
+
+    #: Lock-up period in days.
+    #:
+    #: Estimated number of days funds are locked after deposit.
+    lockup_days: float | None = None
+
+    #: Risk classification name.
+    #:
+    #: Human-readable risk level (e.g. "low", "medium", "high", "blacklisted").
+    risk_level: str | None = None
+
+    #: Any notes about the vault.
+    #:
+    #: Additional information or warnings about this vault.
+    notes: str | None = None
+
+    #: Reason deposits are closed.
+    #:
+    #: If deposits are currently not accepted, this explains why.
+    deposit_closed_reason: str | None = None
+
+    #: Reason redemptions are closed.
+    #:
+    #: If redemptions are currently not accepted, this explains why.
+    redemption_closed_reason: str | None = None
+
+    #: When deposits will next be open.
+    #:
+    #: If deposits are currently closed, this indicates when they will reopen.
+    deposit_next_open: datetime.datetime | None = None
+
+    #: When redemptions will next be open.
+    #:
+    #: If redemptions are currently closed, this indicates when they will reopen.
+    redemption_next_open: datetime.datetime | None = None
+
+    #: 1-month gross returns.
+    #:
+    #: Absolute return over the last 1 month.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_gross`` for 1M period instead.
+    #:
+    one_month_return: Percent | None = None
+
+    #: 1-month net returns.
+    #:
+    #: Absolute return over the last 1 month, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_net`` for 1M period instead.
+    #:
+    one_month_return_net: Percent | None = None
+
+    #: 1-month annualised gross returns.
+    #:
+    #: CAGR calculated from the last 1 month of data.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_gross`` for 1M period instead.
+    #:
+    one_month_cagr: Percent | None = None
+
+    #: 1-month annualised net returns.
+    #:
+    #: CAGR calculated from the last 1 month of data, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_net`` for 1M period instead.
+    #:
+    one_month_cagr_net: Percent | None = None
+
+    #: URL-friendly vault name slug.
+    #:
+    #: Used for constructing URLs to the vault page.
+    vault_slug: str | None = None
+
+    #: Vault smart contract address.
+    #:
+    #: The main vault contract address (lowercase, non-checksummed).
+    address: NonChecksummedAddress | None = None
+
+    #: Chain name.
+    #:
+    #: Human-readable blockchain name (e.g., "Ethereum", "Arbitrum").
+    chain: str | None = None
+
+    #: Numeric chain ID.
+    #:
+    #: EVM chain ID (e.g., 1 for Ethereum, 42161 for Arbitrum).
+    chain_id: int | None = None
+
+    #: Share token contract address.
+    #:
+    #: Address of the ERC-20 share token (lowercase, non-checksummed).
+    share_token_address: NonChecksummedAddress | None = None
+
+    #: Denomination token contract address.
+    #:
+    #: Address of the underlying asset token (lowercase, non-checksummed).
+    denomination_token_address: NonChecksummedAddress | None = None
+
+    #: Denomination token symbol.
+    #:
+    #: Symbol of the underlying asset (e.g., "USDC", "WETH").
+    denomination: TokenSymbol | None = None
+
+    #: Share token symbol.
+    #:
+    #: Symbol of the vault's share token.
+    share_token: TokenSymbol | None = None
+
+    #: Number of deposit and redemption events.
+    #:
+    #: Total count of deposit and withdrawal transactions.
+    event_count: int | None = None
+
+    #: Current share price.
+    #:
+    #: Most recent share price in denomination token units.
+    last_share_price: float | None = None
+
+    #: Whether the denomination token is stablecoin-like.
+    #:
+    #: True if the underlying asset is a stablecoin (USDC, USDT, DAI, etc.).
+    stablecoinish: bool | None = None
+
+    #: Fee mode classification.
+    #:
+    #: How fees are structured (e.g., "externalised", "internalised").
+    fee_mode: str | None = None
+
+    #: Whether fees are internalised.
+    #:
+    #: True if fees are taken from the share price rather than charged separately.
+    fee_internalised: bool | None = None
+
+    #: Human-readable fee label.
+    #:
+    #: Formatted fee display (e.g., "2% / 20%" for mgmt/perf fees).
+    fee_label: str | None = None
+
+    #: External link to vault.
+    #:
+    #: URL to the vault's official page or interface.
+    link: str | None = None
+
+    #: Link to Trading Strategy vault page.
+    #:
+    #: URL to the vault's page on tradingstrategy.ai.
+    trading_strategy_link: str | None = None
+
+    #: Vault flags.
+    #:
+    #: Set of warning or status flags for the vault.
+    flags: list | None = None
+
+    #: Block number of first price update.
+    #:
+    #: The blockchain block when first price data was recorded.
+    first_updated_block: int | None = None
+
+    #: Block number of last price update.
+    #:
+    #: The blockchain block when most recent price data was recorded.
+    last_updated_block: int | None = None
+
+    #: Start timestamp of 1-month sample period.
+    #:
+    #: When the 1-month metric calculation period began.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_start_at`` for 1M period instead.
+    #:
+    one_month_start: datetime.datetime | None = None
+
+    #: End timestamp of 1-month sample period.
+    #:
+    #: When the 1-month metric calculation period ended.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_end_at`` for 1M period instead.
+    #:
+    one_month_end: datetime.datetime | None = None
+
+    #: Number of samples in 1-month period.
+    #:
+    #: Count of data points used for 1-month calculations.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.raw_samples`` for 1M period instead.
+    #:
+    one_month_samples: int | None = None
+
+    #: Start timestamp of 3-month sample period.
+    #:
+    #: When the 3-month metric calculation period began.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_start_at`` for 3M period instead.
+    #:
+    three_months_start: datetime.datetime | None = None
+
+    #: End timestamp of 3-month sample period.
+    #:
+    #: When the 3-month metric calculation period ended.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_end_at`` for 3M period instead.
+    #:
+    three_months_end: datetime.datetime | None = None
+
+    #: Number of samples in 3-month period.
+    #:
+    #: Count of data points used for 3-month calculations.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.raw_samples`` for 3M period instead.
+    #:
+    three_months_samples: int | None = None
+
+    #: Start timestamp of lifetime sample period.
+    #:
+    #: When the lifetime metric calculation period began.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_start_at`` for lifetime period instead.
+    #:
+    lifetime_start: datetime.datetime | None = None
+
+    #: End timestamp of lifetime sample period.
+    #:
+    #: When the lifetime metric calculation period ended.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_end_at`` for lifetime period instead.
+    #:
+    lifetime_end: datetime.datetime | None = None
+
+    #: Number of samples in lifetime period.
+    #:
+    #: Count of data points used for lifetime calculations.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.raw_samples`` for lifetime period instead.
+    #:
+    lifetime_samples: int | None = None
+
+    #: Structured period metrics results.
+    #:
+    #: List of PeriodMetrics objects for each time period (1W, 1M, 3M, 6M, 1Y, lifetime).
+    period_results: list[PeriodMetrics] | None = None
 
     def __post_init__(self):
         assert type(self.features) == list
@@ -160,6 +595,7 @@ class Vault:
             protocol_name=self.protocol_name,
             performance_fee=self.performance_fee,
             management_fee=self.management_fee,
+            tvl=self.tvl,
         )
 
         return {
