@@ -9,6 +9,12 @@ except ImportError:
     # Spoof for soft imports
     ERC4626Feature: TypeAlias = str
 
+try:
+    from eth_defi.research.vault_metrics import PeriodMetrics
+except ImportError:
+    # Spoof for soft imports
+    PeriodMetrics: TypeAlias = Any
+
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
 from tradingstrategy.types import Percent, NonChecksummedAddress, TokenSymbol
@@ -338,7 +344,7 @@ class VaultMetadata:
     #: Structured period metrics results.
     #:
     #: List of PeriodMetrics objects for each time period (1W, 1M, 3M, 6M, 1Y, lifetime).
-    period_results: Any | None = None
+    period_results: list[PeriodMetrics] | None = None
 
     def __post_init__(self):
         assert type(self.features) == list
