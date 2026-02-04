@@ -14,6 +14,8 @@ from tradingstrategy.pair import LegacyPairUniverse
 
 logger = logging.getLogger(__name__)
 
+CI = os.environ.get("CI") == "true"
+
 
 def test_client_ping(client: Client):
     """Unauthenticated ping"""
@@ -65,6 +67,7 @@ def test_client_download_exchange_universe(client: Client, cache_path: str):
     assert exchange.exchange_slug == "shiba-swap"
 
 
+@pytest.mark.skipif(CI, reason="Files are too large to handle on CI")
 def test_client_download_all_pairs(client: Client, cache_path: str):
     """Download all candles for a specific candle width."""
     df = client.fetch_all_candles(TimeBucket.d30)
@@ -73,6 +76,7 @@ def test_client_download_all_pairs(client: Client, cache_path: str):
     assert len(df) > 100
 
 
+@pytest.mark.skipif(CI, reason="Files are too large to handle on CI")
 def test_client_download_all_liquidity_samples(client: Client, cache_path: str):
     """Download all liquidity samples for a specific candle width."""
     df = client.fetch_all_liquidity_samples(TimeBucket.d30)
@@ -81,6 +85,7 @@ def test_client_download_all_liquidity_samples(client: Client, cache_path: str):
     assert len(df) > 100
 
 
+@pytest.mark.skipif(CI, reason="Files are too large to handle on CI")
 def test_client_convert_all_pairs_to_pandas(client: Client, cache_path: str):
     """We can convert the columnar Pyarrow data to Pandas format.
 
