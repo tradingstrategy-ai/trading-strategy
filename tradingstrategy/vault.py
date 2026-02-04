@@ -68,66 +68,131 @@ class VaultMetadata:
     #: Total lifetime gross returns.
     #:
     #: Calculated from inception to now.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_gross`` for lifetime period instead.
+    #:
     lifetime_return: Percent | None = None
 
     #: Total lifetime net returns (after fees).
     #:
     #: Calculated from inception to now, with management and performance fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_net`` for lifetime period instead.
+    #:
     lifetime_return_net: Percent | None = None
 
     #: Compound annual growth rate (gross).
     #:
     #: Annualised return based on lifetime performance.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_gross`` for lifetime period instead.
+    #:
     cagr: Percent | None = None
 
     #: Compound annual growth rate (net of fees).
     #:
     #: Annualised return based on lifetime performance, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_net`` for lifetime period instead.
+    #:
     cagr_net: Percent | None = None
 
     #: 3-month gross returns.
     #:
     #: Absolute return over the last 3 months.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_gross`` for 3M period instead.
+    #:
     three_months_return: Percent | None = None
 
     #: 3-month net returns.
     #:
     #: Absolute return over the last 3 months, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_net`` for 3M period instead.
+    #:
     three_months_return_net: Percent | None = None
 
     #: 3-month annualised gross returns.
     #:
     #: CAGR calculated from the last 3 months of data.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_gross`` for 3M period instead.
+    #:
     three_months_cagr: Percent | None = None
 
     #: 3-month annualised net returns.
     #:
     #: CAGR calculated from the last 3 months of data, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_net`` for 3M period instead.
+    #:
     three_months_cagr_net: Percent | None = None
 
     #: 3-month volatility (annualised).
     #:
     #: Standard deviation of daily returns, annualised.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.volatility`` for 3M period instead.
+    #:
     volatility: Percent | None = None
 
     #: 3-month Sharpe ratio.
     #:
     #: Risk-adjusted return metric calculated from the last 3 months.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.sharpe`` for 3M period instead.
+    #:
     sharpe: float | None = None
 
     #: Maximum drawdown.
     #:
     #: Largest peak-to-trough decline during the 3-month period.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.max_drawdown`` for 3M period instead.
+    #:
     max_drawdown: Percent | None = None
 
     #: Current total value locked (USD).
     #:
     #: The current assets under management in the vault.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.tvl_end`` instead.
+    #:
     tvl: float | None = None
 
     #: Peak TVL ever (USD).
     #:
     #: The highest TVL the vault has ever reached.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.tvl_high`` for lifetime period instead.
+    #:
     tvl_peak: float | None = None
 
     #: Vault age in years.
@@ -193,21 +258,41 @@ class VaultMetadata:
     #: 1-month gross returns.
     #:
     #: Absolute return over the last 1 month.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_gross`` for 1M period instead.
+    #:
     one_month_return: Percent | None = None
 
     #: 1-month net returns.
     #:
     #: Absolute return over the last 1 month, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.returns_net`` for 1M period instead.
+    #:
     one_month_return_net: Percent | None = None
 
     #: 1-month annualised gross returns.
     #:
     #: CAGR calculated from the last 1 month of data.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_gross`` for 1M period instead.
+    #:
     one_month_cagr: Percent | None = None
 
     #: 1-month annualised net returns.
     #:
     #: CAGR calculated from the last 1 month of data, with fees deducted.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.cagr_net`` for 1M period instead.
+    #:
     one_month_cagr_net: Percent | None = None
 
     #: URL-friendly vault name slug.
@@ -308,46 +393,91 @@ class VaultMetadata:
     #: Start timestamp of 1-month sample period.
     #:
     #: When the 1-month metric calculation period began.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_start_at`` for 1M period instead.
+    #:
     one_month_start: datetime.datetime | None = None
 
     #: End timestamp of 1-month sample period.
     #:
     #: When the 1-month metric calculation period ended.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_end_at`` for 1M period instead.
+    #:
     one_month_end: datetime.datetime | None = None
 
     #: Number of samples in 1-month period.
     #:
     #: Count of data points used for 1-month calculations.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.raw_samples`` for 1M period instead.
+    #:
     one_month_samples: int | None = None
 
     #: Start timestamp of 3-month sample period.
     #:
     #: When the 3-month metric calculation period began.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_start_at`` for 3M period instead.
+    #:
     three_months_start: datetime.datetime | None = None
 
     #: End timestamp of 3-month sample period.
     #:
     #: When the 3-month metric calculation period ended.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_end_at`` for 3M period instead.
+    #:
     three_months_end: datetime.datetime | None = None
 
     #: Number of samples in 3-month period.
     #:
     #: Count of data points used for 3-month calculations.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.raw_samples`` for 3M period instead.
+    #:
     three_months_samples: int | None = None
 
     #: Start timestamp of lifetime sample period.
     #:
     #: When the lifetime metric calculation period began.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_start_at`` for lifetime period instead.
+    #:
     lifetime_start: datetime.datetime | None = None
 
     #: End timestamp of lifetime sample period.
     #:
     #: When the lifetime metric calculation period ended.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.samples_end_at`` for lifetime period instead.
+    #:
     lifetime_end: datetime.datetime | None = None
 
     #: Number of samples in lifetime period.
     #:
     #: Count of data points used for lifetime calculations.
+    #:
+    #: .. deprecated::
+    #:
+    #:    Use :py:attr:`period_results` with ``PeriodMetrics.raw_samples`` for lifetime period instead.
+    #:
     lifetime_samples: int | None = None
 
     #: Structured period metrics results.
