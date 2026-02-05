@@ -15,7 +15,7 @@ from typing import Optional, Dict, Collection
 
 import requests
 import jsonlines
-from numpy import NaN
+from math import nan
 from tqdm_loggable.auto import tqdm
 
 from tradingstrategy.types import PrimaryKey
@@ -286,7 +286,7 @@ def load_candles_jsonl(
     )
 
     # Not supported at the momemnt
-    df.loc[:, "avg"] = NaN
+    df.loc[:, "avg"] = nan
 
     if "volume" not in df.columns:
         # Reconstruct normal volume column as expected for OHLCV data

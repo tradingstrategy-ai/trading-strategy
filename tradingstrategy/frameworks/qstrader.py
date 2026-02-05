@@ -208,7 +208,7 @@ class TradingStrategyDataSource:
         if complain:
             raise RuntimeError(f"Pair {pair} has no price using candles at {first_attempt_ts}, tried range {dt} - {first_attempt_ts}")
 
-        return np.NaN
+        return np.nan
 
     @functools.lru_cache(maxsize=1024 * 1024)
     def get_bid(self, dt: pd.Timestamp, pair_id: PrimaryKey, complain=False) -> float:
