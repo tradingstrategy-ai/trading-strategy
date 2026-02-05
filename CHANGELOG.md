@@ -3,6 +3,7 @@
 - Vault data handling improvements
 - Add: Flexible pickle loader that handles missing enum values gracefully (2026-01-26)
 - Add: Extended VaultMetadata with 64 fields from calculate_lifetime_metrics for performance, TVL, fees, and diagnostics (2026-02-04)
+- Fix: Replace deprecated `numpy.NaN` usage with `math.nan` and `np.nan` for NumPy 2.0 compatibility (2026-02-05)
 
 # 0.27
 
