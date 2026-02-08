@@ -563,6 +563,12 @@ class Vault:
     #: Total number of shares minted
     issued_shares: float | None = None
 
+    #: Rich metadata including performance metrics, fees, risk level, etc.
+    #:
+    #: Populated when loading from JSON blob via
+    #: :py:func:`tradingstrategy.alternative_data.vault.load_vault_database_with_metadata`
+    metadata: "VaultMetadata | None" = None
+
     def __post_init__(self):
         assert self.name, "Vault instance requires name"
         # assert self.token_symbol, "Vault instance requires symbol"
@@ -574,8 +580,39 @@ class Vault:
         """Get vault spec as (chain_id, address)."""
         return (self.chain_id, self.vault_address.lower())
 
+    def get_metadata(self) -> "VaultMetadata":
+        """Get vault metadata.
+
+        Returns stored metadata if available, otherwise constructs minimal metadata
+        from the available Vault fields.
+
+        :return:
+            VaultMetadata object with available fields populated.
+        """
+        if self.metadata is not None:
+            return self.metadata
+
+        return VaultMetadata(
+            vault_name=self.name,
+            features=list(self.features),
+            protocol_slug=self.protocol_slug,
+            protocol_name=self.protocol_name,
+            performance_fee=self.performance_fee,
+            management_fee=self.management_fee,
+            tvl=self.tvl,
+            address=self.vault_address,
+            chain_id=self.chain_id.value,
+            chain=self.chain_id.get_name(),
+            share_token_address=self.share_token_address,
+            share_token=self.share_token_symbol,
+            denomination_token_address=self.denomination_token_address,
+            denomination=self.denomination_token_symbol,
+            first_updated_at=self.deployed_at,
+            last_updated_at=self.denormalised_data_updated_at,
+        )
+
     def export_as_trading_pair(self) -> dict:
-        """EXport data of this vault as compatible for a trading pair.
+        """Export data of this vault as compatible for a trading pair.
 
         - Vaults can be modelled as trading pairs
 
@@ -588,15 +625,7 @@ class Vault:
         assert self.name
         assert "unknown" not in self.name
 
-        metadata = VaultMetadata(
-            vault_name=self.name,
-            features=list(self.features),
-            protocol_slug=self.protocol_slug,
-            protocol_name=self.protocol_name,
-            performance_fee=self.performance_fee,
-            management_fee=self.management_fee,
-            tvl=self.tvl,
-        )
+        metadata = self.get_metadata()
 
         return {
             "pair_id": _derive_pair_id(self),

@@ -1,8 +1,13 @@
+# Current 
+
+- TODO
+
 # 0.28
 
 - Vault data handling improvements
 - Add: Flexible pickle loader that handles missing enum values gracefully (2026-01-26)
 - Add: Extended VaultMetadata with 64 fields from calculate_lifetime_metrics for performance, TVL, fees, and diagnostics (2026-02-04)
+- Add: `Client.fetch_vault_universe()` loads vault universe with full metadata from JSON blob with 24h caching (2026-02-08)
 
 # 0.27
 

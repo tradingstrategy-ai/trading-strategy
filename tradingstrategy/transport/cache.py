@@ -4,30 +4,28 @@ import datetime
 import enum
 import hashlib
 import json
+import logging
 import os
 import pathlib
 import platform
 import re
+import shutil
 import time
 from http.client import IncompleteRead
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 from json import JSONDecodeError
-from pprint import pformat
-from typing import Optional, Callable, Union, Collection, Dict, Tuple, Literal
-import shutil
-import logging
 from pathlib import Path
+from pprint import pformat
+from typing import Callable, Collection, Dict, Literal, Optional, Tuple, Union
 
 import orjson
-from requests.exceptions import ChunkedEncodingError
-from urllib3 import Retry
-
 import pandas as pd
+import pyarrow as pa
 import requests
 from requests import Response
 from requests.adapters import HTTPAdapter
-import pyarrow as pa
-
+from requests.exceptions import ChunkedEncodingError
+from tqdm_loggable.auto import tqdm
 from tradingstrategy.candle import TradingPairDataAvailability
 from tradingstrategy.chain import ChainId
 from tradingstrategy.lending import LendingCandle, LendingCandleType
@@ -35,15 +33,15 @@ from tradingstrategy.liquidity import XYLiquidity
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.token_metadata import TokenMetadata
 from tradingstrategy.transport.cache_utils import wait_other_writers
-from tradingstrategy.transport.jsonl import load_candles_jsonl, load_token_metadata_jsonl
+from tradingstrategy.transport.jsonl import (load_candles_jsonl,
+                                             load_token_metadata_jsonl)
 from tradingstrategy.transport.pair_candle_cache import PairCandleCache
-from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
-from tradingstrategy.types import PrimaryKey, USDollarAmount, AnyTimestamp
-from tradingstrategy.utils.time import naive_utcnow
-
-from tqdm_loggable.auto import tqdm
-
+from tradingstrategy.transport.progress_enabled_download import \
+    download_with_tqdm_progress_bar
+from tradingstrategy.types import AnyTimestamp, PrimaryKey, USDollarAmount
 from tradingstrategy.utils.logging_retry import LoggingRetry
+from tradingstrategy.utils.time import naive_utcnow
+from urllib3 import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -526,6 +524,56 @@ class CachedHTTPTransport:
 
             assert status.is_readable(), f"Got status {status} for path"
             return path
+
+    def fetch_vault_universe(
+        self,
+        url: str | None = None,
+    ) -> pathlib.Path:
+        """Load cached vault universe metadata with performance metrics.
+
+        Downloads from the Trading Strategy vault metrics endpoint.
+        Uses 24-hour cache expiry.
+
+        :param url:
+            URL to fetch the vault metadata JSON from.
+            If not provided, uses :py:data:`tradingstrategy.alternative_data.vault.VAULT_JSON_BLOB_URL`.
+
+        :return:
+            Path to the cached JSON file.
+        """
+        from tradingstrategy.alternative_data.vault import VAULT_JSON_BLOB_URL
+
+        if url is None:
+            url = VAULT_JSON_BLOB_URL
+
+        fname = "vault-universe.json"
+        path = self.get_cached_file_path(fname)
+
+        with wait_other_writers(path):
+
+            # Check cache with 24-hour expiry
+            if os.path.exists(path):
+                mtime = datetime.datetime.fromtimestamp(pathlib.Path(path).stat().st_mtime)
+                cache_age = datetime.datetime.now() - mtime
+                if cache_age < datetime.timedelta(hours=24):
+                    return pathlib.Path(path)
+
+            # Download from the external vault metrics endpoint
+            os.makedirs(self.get_abs_cache_path(), exist_ok=True)
+
+            logger.debug("Downloading vault universe from %s to %s", url, path)
+            self.download_func(
+                self.requests,
+                path,
+                url,
+                None,  # No params
+                self.timeout,
+                "Downloading vault universe dataset"
+            )
+
+            _check_good_json(path, "fetch_vault_universe() failed")
+
+            return pathlib.Path(path)
 
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         """Load candles and return a cached file where they are stored.
