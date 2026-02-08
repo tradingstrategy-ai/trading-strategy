@@ -611,6 +611,22 @@ class DEXPair:
             return token_metadata.coingecko_data
         return None
 
+    def get_vault_metadata(self) -> "VaultMetadata | None":
+        """Get vault metadata if this pair represents a vault.
+
+        Must be separately loaded via vault data loading functions.
+        See :py:func:`tradingstrategy.alternative_data.vault.load_vault_database`
+        or :py:func:`tradingstrategy.client.Client.fetch_vault_universe`.
+
+        :return:
+            VaultMetadata if this is a vault pair, None otherwise.
+        """
+        from tradingstrategy.vault import VaultMetadata
+        meta = self.other_data.get("token_metadata")
+        if isinstance(meta, VaultMetadata):
+            return meta
+        return None
+
     def is_tradeable(
             self,
             liquidity_threshold=None,
