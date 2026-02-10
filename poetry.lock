@@ -7699,14 +7699,14 @@ telegram = ["requests"]
 
 [[package]]
 name = "tqdm-loggable"
-version = "0.2"
+version = "0.3"
 description = "TQDM progress bar helpers for logging and other headless application"
 optional = false
-python-versions = ">3.8"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "tqdm_loggable-0.2-py3-none-any.whl", hash = "sha256:9703046302b93a667166487759e6f3f49597e86c89eb132ba1f31caa07bf0941"},
-    {file = "tqdm_loggable-0.2.tar.gz", hash = "sha256:175abec3e1f63bbd2eac192fa5da075e80c7bb715d7ccf3cd1a29b7ab5af0617"},
+    {file = "tqdm_loggable-0.3-py3-none-any.whl", hash = "sha256:e5175d36927eb7453f9580cd7aee0eb145f06bc5c38874cca9b4ab7fa8ede345"},
+    {file = "tqdm_loggable-0.3.tar.gz", hash = "sha256:a01d634fea248aa21d0a8ed20f250438e19faf8f299461a1c77ae50b0c5bb872"},
 ]
 
 [package.dependencies]
@@ -8606,4 +8606,4 @@ qstrader = ["scipy", "trading-strategy-qstrader"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4"
-content-hash = "50cc170da4c54510fbf745fefd3c60a08253bdcefb2e9bab932d1cc710087f46"
+content-hash = "0e7bd478946824b4cb415696fd90c128c5d2d76025666502ef5ad9607c0eb319"
