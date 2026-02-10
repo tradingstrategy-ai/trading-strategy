@@ -18,6 +18,7 @@ from dataclasses_json import dataclass_json, config
 import pandas as pd
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.utils.time import naive_utcfromtimestamp
 from tradingstrategy.token import Token
 from tradingstrategy.types import UNIXTimestamp, PrimaryKey, TokenSymbol, Slug, NonChecksummedAddress, URL
 from tradingstrategy.utils.groupeduniverse import PairGroupedUniverse
@@ -538,7 +539,7 @@ class LendingCandle:
     ])
 
     def __repr__(self):
-        human_timestamp = datetime.utcfromtimestamp(self.timestamp)
+        human_timestamp = naive_utcfromtimestamp(self.timestamp)
         return f"@{human_timestamp} O:{self.open} H:{self.high} L:{self.low} C:{self.close}"
 
     @classmethod

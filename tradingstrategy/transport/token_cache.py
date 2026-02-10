@@ -15,6 +15,7 @@ from pprint import pformat
 from typing import Iterable
 
 from tradingstrategy.token_metadata import TokenMetadata
+from tradingstrategy.utils.time import naive_utcfromtimestamp
 from tradingstrategy.transport.cache import CachedHTTPTransport
 
 
@@ -30,7 +31,7 @@ class TokenCacheEntry:
 
     @property
     def updated_at(self):
-        return datetime.datetime.utcfromtimestamp(self.path.stat().st_mtime)
+        return naive_utcfromtimestamp(self.path.stat().st_mtime)
 
     @property
     def file_size(self) -> int:

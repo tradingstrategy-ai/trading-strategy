@@ -1,6 +1,6 @@
-# Current 
+# Current
 
-- TODO
+- Upgrade to Python 3.14 (2026-02-10)
 
 # 0.28
 
