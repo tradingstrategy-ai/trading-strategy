@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import TypedDict
 import datetime
 
+from tradingstrategy.utils.time import naive_utcnow
+
 import orjson
 import pandas as pd
 import requests
@@ -465,7 +467,7 @@ class CoingeckoClient:
                 raise CoingeckoError("Data returned by Coingecko was empty", resp=response)
 
             # Add timestamp for caches
-            data["queried_at"] = datetime.datetime.utcnow()
+            data["queried_at"] = naive_utcnow()
             return data
         except CoingeckoError as e:
             if e.resp.status_code == 404:

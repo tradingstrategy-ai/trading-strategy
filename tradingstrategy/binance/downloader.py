@@ -113,7 +113,7 @@ class BinanceDownloader:
             symbols = [symbols]
 
         if end_at is None:
-            end_at = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+            end_at = naive_utcnow() - datetime.timedelta(hours=24)
 
         dataframes = []
         total_size = 0
@@ -239,7 +239,7 @@ class BinanceDownloader:
         if end_at:
             assert start_at < end_at, "end_at must be after start_at"
         else:
-            end_at = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+            end_at = naive_utcnow() - datetime.timedelta(hours=24)
 
         # generate timestamps for each iteration
         dates = [start_at]
