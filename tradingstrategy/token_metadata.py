@@ -75,7 +75,7 @@ class TokenMetadata:
     #: Passed as is https://docs.coingecko.com/reference/coins-contract-address.
     #: market_data removed to keep download size smaller.
     #:
-    coingecko_data: dict | None
+    coingecko_data: dict | None = None
 
     #: Was this item loaded from the disk or server
     cached: bool = None

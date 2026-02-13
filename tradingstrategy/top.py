@@ -152,7 +152,7 @@ class TopPairData:
     #:
     #: This allows you to diagnose better why some trading pairs might not end up in the trading universe.
     #:
-    exclude_reason: str | None
+    exclude_reason: str | None = None
 
     #: TokenSniffer data for this token.
     #:
