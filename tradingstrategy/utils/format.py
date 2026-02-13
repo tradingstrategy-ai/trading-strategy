@@ -53,5 +53,5 @@ def string_to_eth_address(input_string) -> str:
     """
     from web3 import Web3  # Soft dependency
     hashed_bytes = Web3.keccak(text=input_string)
-    eth_address = hashed_bytes[-20:].hex()
+    eth_address = "0x" + hashed_bytes[-20:].hex()
     return eth_address

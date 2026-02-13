@@ -68,14 +68,14 @@ class TokenMetadata:
     #:
     #: `See more information here <https://web3-ethereum-defi.readthedocs.io/api/token_analysis/_autosummary_token_analysis/eth_defi.token_analysis.tokensniffer.html>`__.
     #:
-    token_sniffer_data: dict | None
+    token_sniffer_data: dict | None = None
 
     #: Coingecko metadata
     #:
     #: Passed as is https://docs.coingecko.com/reference/coins-contract-address.
     #: market_data removed to keep download size smaller.
     #:
-    coingecko_data: dict | None
+    coingecko_data: dict | None = None
 
     #: Was this item loaded from the disk or server
     cached: bool = None
