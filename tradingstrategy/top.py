@@ -163,7 +163,7 @@ class TopPairData:
     #:
     #: `See more information here <https://web3-ethereum-defi.readthedocs.io/api/token_analysis/_autosummary_token_analysis/eth_defi.token_analysis.tokensniffer.html>`__.
     #:
-    token_sniffer_data: dict | None
+    token_sniffer_data: dict | None = None
 
     def __repr__(self):
         return f"<Pair {self.base_token} - {self.quote_token} on {self.exchange_slug}, address {self.pool_address} - reason {self.exclude_reason}>"
