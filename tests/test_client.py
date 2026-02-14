@@ -108,11 +108,11 @@ def test_client_convert_all_pairs_to_pandas(client: Client, cache_path: str):
 #    assert isinstance(client, Client)
 
 
-def test_create_pyodide_client_detect():
+def test_create_pyodide_client_detect(tmp_path):
     """Test the special client used in Pyodide which use HTTP referral authentication."""
-    env = DefaultClientEnvironment()
+    env = DefaultClientEnvironment(settings_path=tmp_path)
     env.clear_configuration()
-    client = Client.create_jupyter_client(pyodide=True)
+    client = Client.create_jupyter_client(pyodide=True, settings_path=tmp_path)
 
     # See we can import important modules
     # Before we had:
