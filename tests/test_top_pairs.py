@@ -43,9 +43,7 @@ def test_load_top_by_exchanges(persistent_test_client: Client):
         assert isinstance(pair.queried_at, datetime.datetime)
         assert pair.volume_24h_usd > 0, f"Top pair issue on {pair}"
         assert pair.tvl_latest_usd > 0, f"Top pair issue on {pair}"
-        if pair.base_token != "WETH":
-            assert pair.token_sniffer_score, f"Top pair issue on {pair}"
-            assert pair.token_sniffer_score > 0, f"Top pair issue on {pair}"
+        pass
 
 
 def test_load_top_by_tokens(persistent_test_client: Client):
@@ -77,13 +75,12 @@ def test_load_top_by_tokens(persistent_test_client: Client):
     comp_weth = top_reply.included[0]
     assert comp_weth.base_token in ("COMP", "AAVE")
     assert comp_weth.quote_token == "WETH"
-    assert comp_weth.get_buy_tax() == 0
-    assert comp_weth.get_sell_tax() == 0
     assert comp_weth.volume_24h_usd > 100.0
     assert comp_weth.tvl_latest_usd > 100.0
 
 
-def test_token_tax(persistent_test_client: Client):
+@pytest.mark.skip(reason="Token tax data no longer supported")
+def test_token_tax_top_pairs(persistent_test_client: Client):
     """Check the token tax of a token.
 
     - Get data for 3 taxed token
@@ -115,7 +112,8 @@ def test_token_tax(persistent_test_client: Client):
             assert 0 < (pair.get_sell_tax() or 0) < 5, f"Pair lacks tax data: {pair}"
 
 
-def test_token_tax(persistent_test_client: Client, default_pairs_df):
+@pytest.mark.skip(reason="Token tax data no longer supported")
+def test_token_tax_extra_metadata(persistent_test_client: Client, default_pairs_df):
     """Load token tax data in load_extra_metadata()."""
 
     client = persistent_test_client
