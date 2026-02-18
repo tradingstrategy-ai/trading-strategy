@@ -45,6 +45,7 @@ def test_load_metadata_single_bad_token(
     assert len(metadata) == 1
 
 
+@pytest.mark.skip(reason="Token tax data no longer supported")
 def test_create_trading_universe_tax_filter(
     persistent_test_client: Client,
     default_pair_universe,

@@ -1,4 +1,5 @@
 """Helper class to manage trading universes."""
+import datetime
 import warnings
 from dataclasses import dataclass
 from typing import Tuple, Set, Optional
@@ -98,6 +99,18 @@ class Universe:
 
     #: Vault specifications (chain id, name) tuples we loaded
     vault_specs: list[tuple[int, str]] = None
+
+    #: Optional start date hint for the universe.
+    #:
+    #: Used when candle data is not available (e.g. exchange-account-only strategies).
+    #: Falls back to candle data range when not set.
+    start_hint: datetime.datetime | None = None
+
+    #: Optional end date hint for the universe.
+    #:
+    #: Used when candle data is not available (e.g. exchange-account-only strategies).
+    #: Falls back to candle data range when not set.
+    end_hint: datetime.datetime | None = None
 
     def __post_init__(self):
         """Check that the constructor was called correctly.
