@@ -86,6 +86,9 @@ class ExchangeType(str, enum.Enum):
     #: ERC-4626 vault
     erc_4626_vault = "erc_4626_vault"
 
+    #: Derive exchange (off-chain exchange account)
+    derive = "derive"
+
     # Uniswap v2 style exchange (same as above `uniswap_v2`)
     # NOTE: Do not use this member as it is deprecated and only kept for backward 
     # compatibility, it will be removed in the future
