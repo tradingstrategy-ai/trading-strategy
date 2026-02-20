@@ -1,6 +1,7 @@
 # Current
 
 - Upgrade to Python 3.14 (2026-02-10)
+- Add Hypercore and Grvt chain support (2026-02-21)
 
 # 0.28
 
