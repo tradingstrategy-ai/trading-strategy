@@ -243,6 +243,12 @@ class ChainId(enum.IntEnum):
 
     monad = 143
 
+    #: Hypercore
+    hypercore = 9999
+
+    #: Grvt
+    grvt = 325
+
     #: Derive chain (formerly Lyra)
     derive = 957
 
@@ -417,6 +423,26 @@ _CHAIN_DATA_OVERRIDES = {
         "name": "Unichain",
         "slug": "unichain",
         "svg_icon": None,
+    },
+
+    #
+    # Hypercore
+    #
+    ChainId.hypercore.value: {
+        "name": "Hypercore",
+        "slug": "hypercore",
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    #
+    # Grvt
+    #
+    ChainId.grvt.value: {
+        "name": "Grvt",
+        "slug": "grvt",
+        "svg_icon": None,
+        "dataless": True,
     },
 
     #
