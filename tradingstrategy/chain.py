@@ -238,6 +238,9 @@ class ChainId(enum.IntEnum):
     #: Arbitrum Sepolia testnet
     arbitrum_sepolia = 421614
 
+    #: Base Sepolia testnet
+    base_sepolia = 84532
+
     # Monad buggy one
     monad_testnet = 10143
 
@@ -451,6 +454,26 @@ _CHAIN_DATA_OVERRIDES = {
     ChainId.derive.value: {
         "name": "Derive",
         "slug": "derive",
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    #
+    # Arbitrum Sepolia testnet
+    #
+    ChainId.arbitrum_sepolia.value: {
+        "name": "Arbitrum Sepolia",
+        "slug": "arbitrum_sepolia",
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    #
+    # Base Sepolia testnet
+    #
+    ChainId.base_sepolia.value: {
+        "name": "Base Sepolia",
+        "slug": "base_sepolia",
         "svg_icon": None,
         "dataless": True,
     },
