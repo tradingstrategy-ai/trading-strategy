@@ -759,7 +759,7 @@ class VaultUniverse:
 
             If not set, skip and do not care if some vaults are missing.
         """
-        assert all(type(v) in (tuple, list) and isinstance(v[0], ChainId) and v[1].startswith("0x") for v in vaults), f"Bad vault descriptors: {vaults}"
+        assert all(type(v) in (tuple, list) and isinstance(v[0], (ChainId, int)) and v[1].startswith("0x") for v in vaults), f"Bad vault descriptors: {vaults}"
         vaults = set(vaults)
 
         if check_all_vaults_found:    
@@ -772,7 +772,8 @@ class VaultUniverse:
                     if v[1] not in found:
                         missing_msg += f"\n - Missing vault {v[1]} on chain {v[0]}"
 
-                msg= f"Expected {len(vaults)} vault, got {len(self.vaults)}. Maybe some vault data is mismatch, missing?\n"
+                missing_count = len(vaults) - len(vault_list)
+                msg = f"Expected {len(vaults)} vaults, found {len(vault_list)}, missing {missing_count} (vault database has {len(self.vaults)} total vaults).\n"
                 raise AssertionError(msg + missing_msg)
         else:
             # Use iterator
