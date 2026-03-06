@@ -246,8 +246,15 @@ class ChainId(enum.IntEnum):
 
     monad = 143
 
-    #: Hypercore
+    #: Hyperliquid native (Hypercore).
+    #:
+    #: Does not have a real chain id, so we use a synthetic in-house id.
     hypercore = 9999
+
+    #: Lighter native.
+    #:
+    #: Does not have a real chain id, so we use a synthetic in-house id.
+    lighter = 9998
 
     #: Grvt
     grvt = 325
