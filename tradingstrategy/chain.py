@@ -439,6 +439,16 @@ _CHAIN_DATA_OVERRIDES = {
     },
 
     #
+    # HyperEVM (Hyperliquid EVM)
+    # Chain data file contains "Wanchain Testnet" which is incorrect
+    #
+    ChainId.hyperliquid.value: {
+        "name": "HyperEVM",
+        "slug": "hyperliquid",
+        "svg_icon": None,
+    },
+
+    #
     # Hypercore
     #
     ChainId.hypercore.value: {
