@@ -84,8 +84,19 @@ class FlexibleUnpickler(pickle.Unpickler):
         """Override to intercept enum class lookups.
 
         When loading an enum class, wrap it with flexible error handling.
+
+        Also handles pandas version mismatches where internal
+        pickle helpers have been renamed between versions
+        (e.g. ``_nat_unpickle`` -> ``__nat_unpickle``).
         """
-        cls = super().find_class(module, name)
+        try:
+            cls = super().find_class(module, name)
+        except AttributeError:
+            # Handle pandas _nat_unpickle -> __nat_unpickle rename
+            if module == "pandas._libs.tslibs.nattype" and name == "_nat_unpickle":
+                cls = super().find_class(module, "__nat_unpickle")
+            else:
+                raise
 
         # Check if this is an enum class
         if isinstance(cls, type) and issubclass(cls, enum.Enum):

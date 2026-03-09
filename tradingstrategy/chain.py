@@ -163,6 +163,9 @@ class ChainId(enum.IntEnum):
     #: Hyperliquid EVM
     hyperliquid = 999
 
+    #: Hyperliquid EVM testnet
+    hyperliquid_testnet = 998
+
     #: Blast L2
     blast = 81457
 
@@ -441,6 +444,16 @@ _CHAIN_DATA_OVERRIDES = {
     ChainId.hypercore.value: {
         "name": "Hypercore",
         "slug": "hypercore",
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    #
+    # HyperEVM testnet
+    #
+    ChainId.hyperliquid_testnet.value: {
+        "name": "HyperEVM Testnet",
+        "slug": "hyperliquid_testnet",
         "svg_icon": None,
         "dataless": True,
     },

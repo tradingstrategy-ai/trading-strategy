@@ -797,13 +797,23 @@ class VaultUniverse:
         vault_list = []
 
         if check_all_vaults_found:
-            # Check what vaults are not included            
+            # Check what vaults are not included
+            excluded = []
             for vault in self.vaults.values():
                 if vault.denomination_token_symbol in denomination_token_symbols:
                     vault_list.append(vault)
                 else:
-                    raise AssertionError(f"Cannot include vault {vault.name} with denomination {vault.denomination_token_symbol}")
-            
+                    excluded.append(vault)
+
+            if excluded:
+                excluded_msg = "\n".join(
+                    f" - {vault.name} on chain {vault.chain_id} has denomination {vault.denomination_token_symbol}"
+                    for vault in excluded
+                )
+                raise AssertionError(
+                    f"{len(excluded)} vaults have denomination not in {denomination_token_symbols}:\n{excluded_msg}"
+                )
+
         else:
             vault_list = (vault for vault in self.vaults.values() if vault.denomination_token_symbol in denomination_token_symbols)
 

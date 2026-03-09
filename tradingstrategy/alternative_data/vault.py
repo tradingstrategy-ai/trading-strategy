@@ -120,19 +120,31 @@ def load_vault_database(
                     # Skip nameless / broken entries
                     continue
 
+                if detection.chain < 0:
+                    # Skip negative chain IDs (placeholder/sentinel values)
+                    continue
+
+            try:
+                chain_id = ChainId(detection.chain)
+            except ValueError:
+                if filter_bad_entries:
+                    # Skip vaults with unknown chain IDs
+                    continue
+                raise
+
             protocol_slug = entry["Protocol"].lower().replace(" ", "-")
 
             vault = Vault(
-                chain_id=ChainId(detection.chain),
+                chain_id=chain_id,
                 name=entry.get("Name") or "<unknown>",
                 token_symbol=entry["Symbol"],
                 vault_address=entry["Address"],
                 denomination_token_address=_safe_get(entry,"_denomination_token", "address"),
                 denomination_token_symbol=_safe_get(entry,"_denomination_token", "symbol"),
                 denomination_token_decimals=_safe_get(entry,"_denomination_token", "decimals"),
-                share_token_address=_safe_get(entry,"_share_token", "address"),
-                share_token_symbol=_safe_get(entry,"_share_token", "symbol"),
-                share_token_decimals=_safe_get(entry,"_share_token", "decimals"),
+                share_token_address=_safe_get(entry,"_share_token", "address") or entry["Address"],
+                share_token_symbol=_safe_get(entry,"_share_token", "symbol") or entry["Symbol"],
+                share_token_decimals=_safe_get(entry,"_share_token", "decimals") or 18,
                 protocol_name=entry["Protocol"],
                 protocol_slug=protocol_slug,
                 performance_fee=entry["Perf fee"],
