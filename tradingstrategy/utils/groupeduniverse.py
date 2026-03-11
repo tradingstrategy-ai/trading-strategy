@@ -481,8 +481,8 @@ class PairGroupedUniverse:
                 start = (df[self.timestamp_column].iat[0]).tz_localize(tz='UTC')
                 end = (df[self.timestamp_column].iat[-1]).tz_localize(tz='UTC')
             else:
-                start = min(df[self.timestamp_column])
-                end = max(df[self.timestamp_column])
+                start = df[self.timestamp_column].min()
+                end = df[self.timestamp_column].max()
 
                 # Raw index lookup does not work in multipair context.
                 # Does not work as some pairs might have earlier start data than otheres
@@ -491,11 +491,11 @@ class PairGroupedUniverse:
                 # end = df[self.timestamp_column].iat[-1]
         else:
             if use_timezone:
-                start = min(df[self.timestamp_column]).tz_localize(tz='UTC')
-                end = max(df[self.timestamp_column]).tz_localize(tz='UTC')
+                start = df[self.timestamp_column].min().tz_localize(tz='UTC')
+                end = df[self.timestamp_column].max().tz_localize(tz='UTC')
             else:
-                start = min(df[self.timestamp_column])
-                end = max(df[self.timestamp_column])
+                start = df[self.timestamp_column].min()
+                end = df[self.timestamp_column].max()
 
         return start, end
 
