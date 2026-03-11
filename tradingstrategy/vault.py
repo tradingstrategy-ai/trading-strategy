@@ -21,6 +21,21 @@ from tradingstrategy.types import Percent, NonChecksummedAddress, TokenSymbol
 from tradingstrategy.types import SPECIAL_PAIR_ID_RANGE
 
 
+def get_vault_page(vault_address: str) -> str:
+    """Get the Trading Strategy vault page URL by contract address.
+
+    Uses the address-based redirect endpoint that resolves to the
+    canonical slug-based URL via 301 redirect.
+
+    :param vault_address:
+        Vault contract address (EVM ``0x...``, GRVT ``vlt:...``, etc.).
+        Case-insensitive.
+    :return:
+        URL to the vault page on tradingstrategy.ai.
+    """
+    return f"https://tradingstrategy.ai/trading-view/vaults/address/{vault_address}"
+
+
 @dataclass(slots=True, frozen=True)
 class VaultMetadata:
     """Used in pair dataframe for vault specific data.
@@ -579,6 +594,10 @@ class Vault:
     def get_spec(self) -> tuple[ChainId, NonChecksummedAddress]:
         """Get vault spec as (chain_id, address)."""
         return (self.chain_id, self.vault_address.lower())
+
+    def get_page(self) -> str:
+        """Get the Trading Strategy page URL for this vault."""
+        return get_vault_page(self.vault_address)
 
     def get_metadata(self) -> "VaultMetadata":
         """Get vault metadata.
