@@ -21,7 +21,7 @@ from tradingstrategy.utils.flexible_pickle import flexible_load, filter_broken_e
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.types import NonChecksummedAddress
 from tradingstrategy.utils.groupeduniverse import resample_candles_multiple_pairs
-from tradingstrategy.vault import VaultUniverse, Vault, VaultMetadata, PeriodMetrics, _derive_pair_id_from_address
+from tradingstrategy.vault import VaultUniverse, Vault, VaultMetadata, _derive_pair_id_from_address
 
 #: Default URL for the vault metadata JSON blob
 #:
@@ -408,7 +408,7 @@ def _resample(df: pd.DataFrame, frequency: str) -> pd.DataFrame:
     return df
 
 
-def _parse_period_metrics(pm_dict: dict) -> PeriodMetrics:
+def _parse_period_metrics(pm_dict: dict):
     """Parse a PeriodMetrics object from JSON dict.
 
     :param pm_dict:
@@ -417,6 +417,7 @@ def _parse_period_metrics(pm_dict: dict) -> PeriodMetrics:
     :return:
         PeriodMetrics instance.
     """
+    from eth_defi.research.vault_metrics import PeriodMetrics
 
     def _parse_timestamp(val):
         if val is None:
