@@ -572,17 +572,22 @@ def filter_for_selected_pairs(
         Pairs dataframe for selected pairs only
     """
 
-    def _filter(row):
-        for pair in selected_pairs:
-            fee = row["fee"]
-            # Normalize int bps fees
-            fee = fee / 10_000
-            assert 0 < fee < 1, f"Got fee: {fee}"
-            if (row['chain_id'], row['exchange_slug'], row['base_token_symbol'], row['quote_token_symbol'], fee) == pair:
-                return True            
-        return False
+    # Build a set of normalised tuples for vectorised matching
+    selected_set = set(selected_pairs)
 
-    df = pairs[pairs.apply(_filter, axis=1)]
+    # Normalise fee column from bps to decimal once for all rows
+    fee_decimal = pairs["fee"] / 10_000
+
+    # Build a MultiIndex from the match columns and check membership
+    match_keys = pd.MultiIndex.from_arrays([
+        pairs["chain_id"],
+        pairs["exchange_slug"],
+        pairs["base_token_symbol"],
+        pairs["quote_token_symbol"],
+        fee_decimal,
+    ])
+    mask = match_keys.isin(selected_set)
+    df = pairs[mask]
     assert len(df) == len(selected_pairs), f"Filtered pairs {df} does not match selected pairs {selected_pairs}, some pair descriptions incorrect or missing"
     return df
 

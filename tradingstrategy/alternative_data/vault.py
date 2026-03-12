@@ -289,11 +289,11 @@ def load_vault_price_data(
     assert isinstance(pairs_df, pd.DataFrame)
 
     assert prices_path.exists(), f"Vault price file does not exist: {prices_path}"
-    vaults_to_match = [(row.chain_id, row.address) for idx, row in pairs_df.iterrows()]
+    vaults_to_match = {(row.chain_id, row.address) for idx, row in pairs_df.iterrows()}
 
     assert len(vaults_to_match) < 3000, f"The vaults to load number looks too high: {len(vaults_to_match)}"
     df = pd.read_parquet(prices_path)
-    mask = df.apply(lambda r: (r["chain"], r["address"]) in vaults_to_match, axis=1)
+    mask = pd.MultiIndex.from_arrays([df["chain"], df["address"]]).isin(vaults_to_match)
     df = df[mask]
     return df
 
