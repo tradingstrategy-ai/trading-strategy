@@ -67,6 +67,7 @@ class BinanceDownloader:
         self.cache_directory = cache_directory
         self.base_api_url = BASE_BINANCE_API_URL
         self.base_margin_api_url = BASE_BINANCE_MARGIN_API_URL
+        self._exchange_info_cache: dict | None = None
 
     def fetch_candlestick_data(
         self,
@@ -711,6 +712,21 @@ class BinanceDownloader:
 
         return lending_candle_type_map
     
+    def _get_exchange_info(self) -> dict:
+        """Fetch and cache Binance exchange info.
+
+        The /api/v3/exchangeInfo response is cached for the lifetime
+        of this downloader instance to avoid redundant API calls.
+        """
+        if self._exchange_info_cache is None:
+            url = f"{self.base_api_url}/api/v3/exchangeInfo"
+            resp = requests.get(url)
+            assert resp.status_code == 200, f"Binance URL {url} replied:\n{resp.status_code}: {resp.text}"
+            data = resp.json()
+            assert "symbols" in data, f"exchangeInfo did not contain symbols. Resp: {resp.status_code}. Keys: {data.keys()}"
+            self._exchange_info_cache = data
+        return self._exchange_info_cache
+
     def fetch_assets(self, market: Literal["SPOT"] | Literal["MARGIN"] | NoneType = "MARGIN") -> Iterable[str]:
         """Load available assets on binance.
         Example:
@@ -726,24 +742,16 @@ class BinanceDownloader:
         """
 
         # https://binance-docs.github.io/apidocs/spot/en/#exchange-information
-        url = f"{self.base_api_url}/api/v3/exchangeInfo"
-        resp = requests.get(url)
-
-        # HTTP 451 Unavailable For Legal Reasons
-        assert resp.status_code == 200, f"Binance URL {url} replied:\n{resp.status_code}: {resp.text}"
-
-        data = resp.json()
-
-        assert "symbols" in data, f"exchangeInfo did not contain symbols. Resp: {resp.status_code}. Keys: {data.keys()}"
-
+        data = self._get_exchange_info()
         symbols = data["symbols"]
 
         for s in symbols:
             if market:
+                permissions = list(s["permissions"])
                 for _list in s["permissionSets"]:
-                    s["permissions"].extend(_list)
+                    permissions.extend(_list)
 
-                if market not in s["permissions"]:
+                if market not in permissions:
                     continue
 
             yield s["symbol"]

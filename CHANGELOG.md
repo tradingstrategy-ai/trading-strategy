@@ -2,6 +2,7 @@
 
 - Upgrade to Python 3.14 (2026-02-10)
 - Add Hypercore and Grvt chain support (2026-02-21)
+- Lazy-import vault_metrics/ffn and cache Binance exchange info for faster notebook startup (2026-03-12)
 
 # 0.28
 

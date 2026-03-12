@@ -83,7 +83,9 @@ from tradingstrategy.exceptions import DataNotFoundError
 
 # Legacy compatibility
 from tradingstrategy.utils.token_filter import *
-from tradingstrategy.vault import VaultMetadata
+# VaultMetadata is imported lazily where needed to avoid pulling in
+# eth_defi.research.vault_metrics → ffn (~3s of import overhead).
+# See get_vault_metadata() and from_columnar_data().
 
 logger = logging.getLogger(__name__)
 
@@ -2206,6 +2208,8 @@ def _convert_to_dex_pair(data: dict, exchange_universe: ExchangeUniverse | None=
 
         if obj.other_data is None:
             obj.other_data = {}
+
+        from tradingstrategy.vault import VaultMetadata
 
         match meta:
             case TokenMetadata():

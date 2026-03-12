@@ -1,7 +1,9 @@
 """"Vault data for EIP-4626 and other digital asset management protocols."""
+from __future__ import annotations
+
 import datetime
 from dataclasses import dataclass, field
-from typing import Iterable, TypeAlias, Any, Collection
+from typing import Iterable, TypeAlias, Any, Collection, TYPE_CHECKING
 
 try:
     from eth_defi.erc_4626.core import ERC4626Feature
@@ -9,10 +11,9 @@ except ImportError:
     # Spoof for soft imports
     ERC4626Feature: TypeAlias = str
 
-try:
+if TYPE_CHECKING:
     from eth_defi.research.vault_metrics import PeriodMetrics
-except ImportError:
-    # Spoof for soft imports
+else:
     PeriodMetrics: TypeAlias = Any
 
 from tradingstrategy.chain import ChainId
@@ -858,7 +859,11 @@ def _derive_pair_id(vault: Vault) -> int:
 
 def _derive_pair_id_from_address(address: NonChecksummedAddress) -> int:
     """Derive a pair id from the vault address."""
-    id = SPECIAL_PAIR_ID_RANGE + int(address, 16) % (2**24)
+    try:
+        id = SPECIAL_PAIR_ID_RANGE + int(address, 16) % (2**24)
+    except ValueError:
+        # Non-hex addresses (e.g. "vlt:2zqo...") — fall back to hash
+        id = SPECIAL_PAIR_ID_RANGE + abs(hash(address)) % (2**24)
     assert id < _js_max_safe_int
     return id
 
