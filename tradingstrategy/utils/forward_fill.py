@@ -586,9 +586,10 @@ def resample_candles_multiple_pairs(
     by_pair = df.groupby(pair_id_column)
     segments = []
 
-    # Resample each pair separately
-    for group_id in by_pair.groups:
-        pair_df = by_pair.get_group(group_id)
+    # Resample each pair separately.
+    # Direct iteration avoids the redundant dict lookup that
+    # by_pair.groups + by_pair.get_group(group_id) performs.
+    for group_id, pair_df in by_pair:
 
         # Does this pair have any data to resample?
         if len(pair_df) > 0:
@@ -597,14 +598,13 @@ def resample_candles_multiple_pairs(
             # Fill pair_id for all rows
             for c in copy_columns:
                 if c in pair_df.columns:
-                    first_row = pair_df.iloc[0]
-                    segment[c] = first_row[c]
+                    segment[c] = pair_df.iloc[0][c]
 
             if forward_fill_until is not None:
                 segment = forward_fill_ohlcv_single_pair(
                     segment,
                     freq=frequency,
-                    forward_fill_until= forward_fill_until,
+                    forward_fill_until=forward_fill_until,
                     pair_id=group_id,
                 )
             else:
