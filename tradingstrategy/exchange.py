@@ -118,8 +118,8 @@ class Exchange:
     """
 
     #: The chain id on which chain this pair is trading. 1 for Ethereum.
-    #: For JSON, this is serialised as one of the name of enum memmbers of ChainId
-    #: e.g. `"ethereum"`.
+    #: In the JSON payload this is serialised as a numeric integer
+    #: (e.g. ``1``), matching the :py:class:`~tradingstrategy.chain.ChainId` int value.
     chain_id: ChainId
 
     #: The URL slug derived from the blockchain name.
@@ -222,6 +222,38 @@ class Exchange:
         # https://stackoverflow.com/a/12511715/315168
         return isinstance(other, self.__class__) and self.address == other.address
 
+    @classmethod
+    def from_dict_fast(cls, d: dict) -> "Exchange":
+        """Construct an Exchange from a raw JSON dict without dataclasses_json reflection.
+
+        Significantly faster than the default ``from_dict()`` when deserialising
+        thousands of exchanges, because it skips per-field type introspection.
+        """
+        return cls(
+            chain_id=ChainId(d["chain_id"]),
+            chain_slug=d["chain_slug"],
+            exchange_id=d["exchange_id"],
+            exchange_slug=d["exchange_slug"],
+            address=d["address"],
+            exchange_type=ExchangeType(d["exchange_type"]),
+            pair_count=d["pair_count"],
+            active_pair_count=d.get("active_pair_count"),
+            first_trade_at=d.get("first_trade_at"),
+            last_trade_at=d.get("last_trade_at"),
+            name=d.get("name"),
+            homepage=d.get("homepage"),
+            buy_count_all_time=d.get("buy_count_all_time"),
+            sell_count_all_time=d.get("sell_count_all_time"),
+            buy_volume_all_time=d.get("buy_volume_all_time"),
+            sell_volume_all_time=d.get("sell_volume_all_time"),
+            buy_count_30d=d.get("buy_count_30d"),
+            sell_count_30d=d.get("sell_count_30d"),
+            buy_volume_30d=d.get("buy_volume_30d"),
+            sell_volume_30d=d.get("sell_volume_30d"),
+            default_router_address=d.get("default_router_address"),
+            init_code_hash=d.get("init_code_hash"),
+        )
+
     @property
     def vol_30d(self):
         return (self.buy_volume_30d or 0) + (self.sell_volume_30d or 0)
@@ -235,12 +267,29 @@ class ExchangeUniverse:
     Contains look up for exchanges by their internal primary key ids.
     """
 
-    #: Exchange id -> Exchange data mapping
+    #: Exchange id -> Exchange data mapping.
+    #: In the JSON payload, keys are stringified integers (e.g. ``"1"``).
     exchanges: Dict[PrimaryKey, Exchange]
 
     def __post_init__(self):
         for exchange_id, exchange in self.exchanges.items():
             assert exchange_id == exchange.exchange_id, "Exchange id mismatch"
+
+    @classmethod
+    def from_json_fast(cls, data: str | bytes) -> "ExchangeUniverse":
+        """Deserialise exchange universe from JSON without dataclasses_json reflection.
+
+        Uses ``orjson`` for JSON parsing and direct dict-to-object construction,
+        bypassing the per-field type introspection that makes ``from_json()`` slow
+        for large exchange sets (~17k exchanges).
+        """
+        import orjson
+        raw = orjson.loads(data)
+        exchanges = {
+            int(k): Exchange.from_dict_fast(v)
+            for k, v in raw["exchanges"].items()
+        }
+        return cls(exchanges=exchanges)
 
     @staticmethod
     def from_collection(exchanges: Collection[Exchange]) -> "ExchangeUniverse":

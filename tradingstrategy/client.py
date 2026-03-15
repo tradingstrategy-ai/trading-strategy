@@ -195,13 +195,16 @@ class Client(BaseClient):
         return read_parquet(path)
 
     def fetch_exchange_universe(self) -> ExchangeUniverse:
-        """Fetch list of all exchanges form the :term:`dataset server`.
+        """Fetch list of all exchanges from the :term:`dataset server`.
+
+        Uses the fast JSON deserialiser that bypasses ``dataclasses_json``
+        reflection for significantly faster loading (~35x).
         """
         path = self.transport.fetch_exchange_universe()
         with path.open("rt", encoding="utf-8") as inp:
             data = inp.read()
             try:
-                return ExchangeUniverse.from_json(data)
+                return ExchangeUniverse.from_json_fast(data)
             except JSONDecodeError as e:
                 raise RuntimeError(f"Could not read ExchangeUniverse JSON file {path}\nData is {data}") from e
 

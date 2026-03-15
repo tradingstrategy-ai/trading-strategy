@@ -19,7 +19,7 @@ class BrokenData(Exception):
         self.path = path
 
 
-def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
+def read_parquet(path: Path, filters: Optional[List[Tuple]]=None, columns: Optional[List[str]]=None) -> pa.Table:
     """Reads compressed Parquet file of data to memory.
 
     File or stream can describe :py:class:`tradingstrategy.candle.Candle`
@@ -44,6 +44,11 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
     :param filters:
         Parquet read_table filters.
 
+    :param columns:
+        Subset of columns to read. If ``None``, all columns are read.
+        Parquet is columnar, so skipping unneeded columns reduces both
+        I/O and Arrow-to-pandas conversion time.
+
     """
 
     assert isinstance(path, Path), f"Expected path: {path}"
@@ -51,7 +56,7 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None) -> pa.Table:
     logger.debug("Reading Parquet %s", f)
     # https://arrow.apache.org/docs/python/parquet.html
     try:
-        table = pq.read_table(f, filters=filters, use_threads=True, pre_buffer=False, memory_map=True)
+        table = pq.read_table(f, filters=filters, columns=columns, use_threads=True, pre_buffer=False, memory_map=True)
     except ArrowInvalid as e:
         raise BrokenData(f"Could not read Parquet file: {f}\n"
                          f"Probably a corrupted download.\n"

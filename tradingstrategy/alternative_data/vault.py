@@ -256,6 +256,10 @@ def load_vault_price_data(
 ) -> pd.DataFrame:
     """Sideload price data for vaults.
 
+    Uses Arrow-native filtering before pandas conversion to avoid
+    converting the entire Parquet file to pandas when only a small
+    subset of vaults is needed.
+
     Schema sample:
 
     .. code-block:: plain
@@ -285,6 +289,9 @@ def load_vault_price_data(
         DataFrame with the columns as defined in the schema above.
 
     """
+    import pyarrow as pa
+    import pyarrow.compute as pc
+    import pyarrow.parquet as pq
 
     assert isinstance(pairs_df, pd.DataFrame)
 
@@ -292,7 +299,22 @@ def load_vault_price_data(
     vaults_to_match = {(row.chain_id, row.address) for idx, row in pairs_df.iterrows()}
 
     assert len(vaults_to_match) < 3000, f"The vaults to load number looks too high: {len(vaults_to_match)}"
-    df = pd.read_parquet(prices_path)
+
+    # Read as Arrow table without pandas conversion
+    table = pq.read_table(str(prices_path))
+
+    # Filter in Arrow by unique chains and addresses (much faster than
+    # converting everything to pandas first)
+    unique_chains = pa.array([int(c) for c, _ in vaults_to_match], type=pa.uint32())
+    unique_addresses = pa.array(list({a for _, a in vaults_to_match}))
+    table = table.filter(pc.is_in(table.column("chain"), unique_chains))
+    table = table.filter(pc.is_in(table.column("address"), unique_addresses))
+
+    # Convert only the filtered rows to pandas
+    df = table.to_pandas()
+
+    # The Arrow filters are an over-approximation (chain IN set AND address IN set),
+    # so apply exact (chain, address) tuple matching on the small result
     mask = pd.MultiIndex.from_arrays([df["chain"], df["address"]]).isin(vaults_to_match)
     df = df[mask]
     return df
