@@ -211,6 +211,7 @@ class Client(BaseClient):
     def fetch_vault_universe(
         self,
         url: str | None = None,
+        download_root: str | Path | None = None,
     ) -> "VaultUniverse":
         """Fetch vault universe with full metadata from the data server.
 
@@ -238,6 +239,11 @@ class Client(BaseClient):
             URL to fetch the vault metadata JSON from.
             If not provided, uses :py:data:`tradingstrategy.alternative_data.vault.VAULT_JSON_BLOB_URL`.
 
+        :param download_root:
+            Override the root directory used for vault metadata downloads.
+            If not provided, uses
+            :py:data:`tradingstrategy.alternative_data.vault.DEFAULT_VAULT_DOWNLOAD_ROOT`.
+
         :return:
             VaultUniverse containing Vault instances with full VaultMetadata.
         """
@@ -245,7 +251,7 @@ class Client(BaseClient):
         from tradingstrategy.vault import VaultUniverse
         from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
 
-        path = self.transport.fetch_vault_universe(url=url)
+        path = self.transport.fetch_vault_universe(url=url, download_root=download_root)
         with path.open("rt", encoding="utf-8") as inp:
             data = inp.read()
             try:
@@ -254,41 +260,101 @@ class Client(BaseClient):
             except JSONDecodeError as e:
                 raise RuntimeError(f"Could not read VaultUniverse JSON file {path}\nData is {data}") from e
 
+    @staticmethod
+    def _normalise_vault_price_history_frame(df: pd.DataFrame) -> pd.DataFrame:
+        """Normalise vault history into a stable tabular shape.
+
+        Why this exists:
+
+        The cleaned vault history parquet is produced by a separate data pipeline
+        and, at the time of writing, the live dataset stores ``timestamp`` in the
+        parquet index. When pandas reads that parquet back we do *not* get a
+        normal ``timestamp`` column. Instead we get a ``DatetimeIndex`` named
+        ``timestamp``.
+
+        That shape is awkward for the rest of the codebase. Downstream loaders and
+        strategy code work with datasets as plain tables and expect to be able to
+        do operations like ``df["timestamp"] >= some_date`` without caring how
+        the parquet happened to encode its index.
+
+        We deliberately fix the shape here, at the client boundary, because this
+        is the layer that should hide transport and serialisation quirks from
+        callers. If we left the DataFrame in its raw parquet form, every caller
+        would need to remember and support two representations:
+
+        - ``timestamp`` is a regular column
+        - ``timestamp`` lives in the DataFrame index
+
+        By normalising once here we keep the public method contract simple:
+
+        - ``fetch_vault_price_history()`` always returns a DataFrame with a
+          ``timestamp`` column
+        - callers do not need special-case logic for index-based timestamps
+        - if the upstream parquet format changes again later, we only need to fix
+          the adaptation code in one place
+        """
+        if "timestamp" not in df.columns:
+            # The live parquet currently comes back like this:
+            #
+            # - ``df.index`` is ``DatetimeIndex``
+            # - ``df.index.name`` is ``"timestamp"``
+            # - there is no ``df["timestamp"]`` column
+            #
+            # Resetting the index turns that hidden time axis back into an
+            # explicit column so the rest of the application can treat vault
+            # history like any other tabular dataset.
+            if "timestamp" in df.index.names:
+                df = df.reset_index()
+            elif isinstance(df.index, pd.DatetimeIndex):
+                # Be defensive as well: even if the upstream writer drops the
+                # index name and pandas returns a generic datetime index, we
+                # still want to preserve the same stable caller-facing schema.
+                df = df.reset_index()
+                first_column = df.columns[0]
+                if first_column != "timestamp":
+                    # ``reset_index()`` uses the index name as the new column
+                    # name. Unnamed indexes become ``index``. Rename that back
+                    # to ``timestamp`` so callers do not observe yet another
+                    # shape variation.
+                    df = df.rename(columns={first_column: "timestamp"})
+
+        if "timestamp" in df.columns:
+            # Normalise dtype too. This means downstream date filtering and
+            # comparisons can rely on pandas datetime semantics immediately,
+            # instead of reparsing the column in each consumer.
+            df = df.copy()
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+        return df
+
     @_retry_corrupted_parquet_fetch
     def fetch_vault_price_history(
         self,
         url: str | None = None,
+        download_root: str | Path | None = None,
     ) -> pd.DataFrame:
         """Fetch cleaned vault share price history from the data server.
 
         Loads the remote cleaned parquet generated by the vault metadata pipeline
-        and normalises the result so ``timestamp`` is always available as a column.
+        and adapts it to the stable client-facing schema expected by callers.
 
         :param url:
             Optional custom parquet URL.
             If not provided, uses
             :py:data:`tradingstrategy.alternative_data.vault.CLEANED_VAULT_PRICE_PARQUET_URL`.
 
+        :param download_root:
+            Override the root directory used for vault history downloads.
+            If not provided, uses
+            :py:data:`tradingstrategy.alternative_data.vault.DEFAULT_VAULT_DOWNLOAD_ROOT`.
+
         :return:
-            Vault price history as a pandas DataFrame.
+            Vault price history as a pandas DataFrame with an explicit
+            ``timestamp`` column.
         """
-        path = self.transport.fetch_vault_price_history(url=url)
+        path = self.transport.fetch_vault_price_history(url=url, download_root=download_root)
         df = pd.read_parquet(path)
-
-        if "timestamp" not in df.columns:
-            if "timestamp" in df.index.names:
-                df = df.reset_index()
-            elif isinstance(df.index, pd.DatetimeIndex):
-                df = df.reset_index()
-                first_column = df.columns[0]
-                if first_column != "timestamp":
-                    df = df.rename(columns={first_column: "timestamp"})
-
-        if "timestamp" in df.columns:
-            df = df.copy()
-            df["timestamp"] = pd.to_datetime(df["timestamp"])
-
-        return df
+        return self._normalise_vault_price_history_frame(df)
 
     @_retry_corrupted_parquet_fetch
     def fetch_all_candles(self, bucket: TimeBucket) -> pyarrow.Table:

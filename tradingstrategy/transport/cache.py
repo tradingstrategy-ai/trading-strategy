@@ -215,11 +215,13 @@ class CachedHTTPTransport:
             }
         return session
 
-    def get_abs_cache_path(self) -> Path:
-        return Path(os.path.abspath(self.cache_path))
+    def get_abs_cache_path(self, cache_path: str | Path | None = None) -> Path:
+        if cache_path is None:
+            cache_path = self.cache_path
+        return Path(os.path.abspath(os.fspath(cache_path)))
 
-    def get_cached_file_path(self, fname: str):
-        path = os.path.join(self.get_abs_cache_path(), fname)
+    def get_cached_file_path(self, fname: str | pathlib.Path, cache_path: str | Path | None = None):
+        path = os.path.join(self.get_abs_cache_path(cache_path), os.fspath(fname))
         return path
 
     def get_cached_item(self, fname: Union[str, pathlib.Path]) -> Optional[pathlib.Path]:
@@ -528,6 +530,7 @@ class CachedHTTPTransport:
     def fetch_vault_universe(
         self,
         url: str | None = None,
+        download_root: str | Path | None = None,
     ) -> pathlib.Path:
         """Load cached vault universe metadata with performance metrics.
 
@@ -538,16 +541,24 @@ class CachedHTTPTransport:
             URL to fetch the vault metadata JSON from.
             If not provided, uses :py:data:`tradingstrategy.alternative_data.vault.VAULT_JSON_BLOB_URL`.
 
+        :param download_root:
+            Override the root directory used for vault downloads.
+            If not provided, uses
+            :py:data:`tradingstrategy.alternative_data.vault.DEFAULT_VAULT_DOWNLOAD_ROOT`.
+
         :return:
             Path to the cached JSON file.
         """
-        from tradingstrategy.alternative_data.vault import VAULT_JSON_BLOB_URL
+        from tradingstrategy.alternative_data.vault import DEFAULT_VAULT_DOWNLOAD_ROOT, VAULT_JSON_BLOB_URL
 
         if url is None:
             url = VAULT_JSON_BLOB_URL
 
+        if download_root is None:
+            download_root = DEFAULT_VAULT_DOWNLOAD_ROOT
+
         fname = "vault-universe.json"
-        path = self.get_cached_file_path(fname)
+        path = self.get_cached_file_path(fname, cache_path=download_root)
 
         with wait_other_writers(path):
 
@@ -559,7 +570,7 @@ class CachedHTTPTransport:
                     return pathlib.Path(path)
 
             # Download from the external vault metrics endpoint
-            os.makedirs(self.get_abs_cache_path(), exist_ok=True)
+            os.makedirs(self.get_abs_cache_path(download_root), exist_ok=True)
 
             logger.debug("Downloading vault universe from %s to %s", url, path)
             self.download_func(
@@ -578,6 +589,7 @@ class CachedHTTPTransport:
     def fetch_vault_price_history(
         self,
         url: str | None = None,
+        download_root: str | Path | None = None,
     ) -> pathlib.Path:
         """Load cached cleaned vault price history parquet.
 
@@ -589,16 +601,24 @@ class CachedHTTPTransport:
             If not provided, uses
             :py:data:`tradingstrategy.alternative_data.vault.CLEANED_VAULT_PRICE_PARQUET_URL`.
 
+        :param download_root:
+            Override the root directory used for vault downloads.
+            If not provided, uses
+            :py:data:`tradingstrategy.alternative_data.vault.DEFAULT_VAULT_DOWNLOAD_ROOT`.
+
         :return:
             Path to the cached parquet file.
         """
-        from tradingstrategy.alternative_data.vault import CLEANED_VAULT_PRICE_PARQUET_URL
+        from tradingstrategy.alternative_data.vault import CLEANED_VAULT_PRICE_PARQUET_URL, DEFAULT_VAULT_DOWNLOAD_ROOT
 
         if url is None:
             url = CLEANED_VAULT_PRICE_PARQUET_URL
 
+        if download_root is None:
+            download_root = DEFAULT_VAULT_DOWNLOAD_ROOT
+
         fname = "vault-price-history.parquet"
-        path = self.get_cached_file_path(fname)
+        path = self.get_cached_file_path(fname, cache_path=download_root)
 
         with wait_other_writers(path):
 
@@ -608,7 +628,7 @@ class CachedHTTPTransport:
                 if cache_age < datetime.timedelta(hours=24):
                     return pathlib.Path(path)
 
-            os.makedirs(self.get_abs_cache_path(), exist_ok=True)
+            os.makedirs(self.get_abs_cache_path(download_root), exist_ok=True)
 
             logger.debug("Downloading vault price history from %s to %s", url, path)
             self.download_func(
