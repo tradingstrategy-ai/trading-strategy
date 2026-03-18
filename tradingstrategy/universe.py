@@ -13,6 +13,7 @@ from tradingstrategy.lending import LendingReserveUniverse, LendingCandleUnivers
 from tradingstrategy.liquidity import GroupedLiquidityUniverse, ResampledLiquidityUniverse
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.timebucket import TimeBucket
+from tradingstrategy.vault import VaultUniverse
 
 
 
@@ -98,7 +99,7 @@ class Universe:
     forward_filled: bool | None = None
 
     #: Vault specifications (chain id, name) tuples we loaded
-    vault_specs: list[tuple[int, str]] = None
+    vault_specs: VaultUniverse | list[tuple[int, str]] | None = None
 
     #: Optional start date hint for the universe.
     #:
@@ -219,6 +220,5 @@ class Universe:
                 return exc
         
         raise ExchangeNotFoundError(exchange_id=id)
-
 
 
