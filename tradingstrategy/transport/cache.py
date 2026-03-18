@@ -575,6 +575,53 @@ class CachedHTTPTransport:
 
             return pathlib.Path(path)
 
+    def fetch_vault_price_history(
+        self,
+        url: str | None = None,
+    ) -> pathlib.Path:
+        """Load cached cleaned vault price history parquet.
+
+        Downloads from the vault metadata parquet endpoint.
+        Uses 24-hour cache expiry.
+
+        :param url:
+            URL to fetch the cleaned vault price history parquet from.
+            If not provided, uses
+            :py:data:`tradingstrategy.alternative_data.vault.CLEANED_VAULT_PRICE_PARQUET_URL`.
+
+        :return:
+            Path to the cached parquet file.
+        """
+        from tradingstrategy.alternative_data.vault import CLEANED_VAULT_PRICE_PARQUET_URL
+
+        if url is None:
+            url = CLEANED_VAULT_PRICE_PARQUET_URL
+
+        fname = "vault-price-history.parquet"
+        path = self.get_cached_file_path(fname)
+
+        with wait_other_writers(path):
+
+            if os.path.exists(path):
+                mtime = datetime.datetime.fromtimestamp(pathlib.Path(path).stat().st_mtime)
+                cache_age = datetime.datetime.now() - mtime
+                if cache_age < datetime.timedelta(hours=24):
+                    return pathlib.Path(path)
+
+            os.makedirs(self.get_abs_cache_path(), exist_ok=True)
+
+            logger.debug("Downloading vault price history from %s to %s", url, path)
+            self.download_func(
+                self.requests,
+                path,
+                url,
+                None,
+                self.timeout,
+                "Downloading cleaned vault price history dataset",
+            )
+
+            return pathlib.Path(path)
+
     def fetch_candles_all_time(self, bucket: TimeBucket) -> pathlib.Path:
         """Load candles and return a cached file where they are stored.
 
