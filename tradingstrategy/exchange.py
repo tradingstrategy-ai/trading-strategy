@@ -86,6 +86,14 @@ class ExchangeType(str, enum.Enum):
     #: ERC-4626 vault
     erc_4626_vault = "erc_4626_vault"
 
+    #: Hypercore native vault (Hyperliquid ecosystem)
+    #:
+    #: These vaults are NOT ERC-4626 compliant — they use Hyperliquid's
+    #: proprietary deposit/withdrawal mechanism via CoreWriter contracts.
+    #: Share price is not available on-chain; it comes from the Hyperliquid
+    #: info API or the Trading Strategy data pipeline.
+    hypercore_vault = "hypercore_vault"
+
     #: Derive exchange (off-chain exchange account)
     derive = "derive"
 
