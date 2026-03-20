@@ -646,7 +646,7 @@ class Vault:
         assert "unknown" not in self.name
 
         metadata = self.get_metadata()
-        dex_type = ExchangeType.hypercore_vault if self.protocol_slug == "hypercore" else ExchangeType.erc_4626_vault
+        dex_type = ExchangeType.hypercore_vault if self.protocol_slug in ("hypercore", "hyperliquid") else ExchangeType.erc_4626_vault
 
         return {
             "pair_id": _derive_pair_id(self),
@@ -682,7 +682,7 @@ class Vault:
 
             :py:class:`tradingstrategy.pair.DEXPair` compatible dict.
         """
-        exchange_type = ExchangeType.hypercore_vault if self.protocol_slug == "hypercore" else ExchangeType.erc_4626_vault
+        exchange_type = ExchangeType.hypercore_vault if self.protocol_slug in ("hypercore", "hyperliquid") else ExchangeType.erc_4626_vault
         return {
             "chain_id": self.chain_id,
             "chain_slug": self.chain_id.get_slug(),
