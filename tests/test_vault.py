@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from eth_defi.erc_4626.core import ERC4626Feature
-from tradingstrategy.alternative_data.vault import load_vault_database, convert_vaults_to_trading_pairs, load_single_vault, DEFAULT_VAULT_BUNDLE, load_multiple_vaults, load_vault_price_data, convert_vault_prices_to_candles
+from tradingstrategy.alternative_data.vault import load_vault_database, convert_vaults_to_trading_pairs, load_single_vault, DEFAULT_VAULT_BUNDLE, load_multiple_vaults, load_vault_price_data, convert_vault_prices_to_candles, filter_vault_price_history
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType, ExchangeUniverse
@@ -100,6 +100,52 @@ def test_load_multiple_vaults():
     exchanges, df = load_multiple_vaults([(ChainId.base, "0x45aa96f0b3188d47a1dafdbefce1db6b37f58216")])
     assert len(df) == 1
     assert len(exchanges) == 1
+
+
+def test_filter_vault_price_history_exact_match_and_date_window() -> None:
+    """Filter vault history by exact vault tuple and requested date window.
+
+    1. Build a small vault pair table and a mixed vault history DataFrame with overlapping addresses.
+    2. Run ``filter_vault_price_history()`` to normalise addresses and clip the time range.
+    3. Assert only the requested vault rows inside the requested window remain.
+    """
+    vault_pairs_df = pd.DataFrame(
+        [
+            {"chain_id": ChainId.base.value, "address": "0xabc"},
+            {"chain_id": ChainId.ethereum.value, "address": "0xdef"},
+        ]
+    )
+    vault_prices_df = pd.DataFrame(
+        [
+            {"chain": ChainId.base.value, "address": "0xABC", "timestamp": "2025-01-01", "share_price": 1.0},
+            {"chain": ChainId.base.value, "address": "0xabc", "timestamp": "2025-01-02", "share_price": 1.1},
+            {"chain": ChainId.ethereum.value, "address": "0xabc", "timestamp": "2025-01-02", "share_price": 2.0},
+            {"chain": ChainId.ethereum.value, "address": "0xdef", "timestamp": "2025-01-03", "share_price": 3.0},
+            {"chain": ChainId.ethereum.value, "address": "0xdef", "timestamp": "2025-01-05", "share_price": 4.0},
+        ]
+    )
+
+    # 1. Build input vault metadata and mixed history rows.
+    filtered_df = filter_vault_price_history(
+        vault_prices_df,
+        vault_pairs_df,
+        start_at=datetime.datetime(2025, 1, 2),
+        end_at=datetime.datetime(2025, 1, 4),
+    )
+
+    # 2. Filter the history with exact tuple matching and date clipping.
+    tuples = list(zip(filtered_df["chain"], filtered_df["address"], strict=False))
+
+    # 3. Assert we kept only the requested vault rows within the requested window.
+    assert tuples == [
+        (ChainId.base.value, "0xabc"),
+        (ChainId.ethereum.value, "0xdef"),
+    ]
+    assert filtered_df["timestamp"].tolist() == [
+        pd.Timestamp("2025-01-02"),
+        pd.Timestamp("2025-01-03"),
+    ]
+    assert pd.api.types.is_datetime64_any_dtype(filtered_df["timestamp"])
 
 
 def test_side_load_vault_price_data_hourly_resample():

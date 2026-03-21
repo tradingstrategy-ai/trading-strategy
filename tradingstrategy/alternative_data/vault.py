@@ -10,6 +10,7 @@ To repackage the vault bundle:
 
 """
 
+import datetime
 from pathlib import Path
 from typing import Iterable
 
@@ -307,7 +308,7 @@ def load_vault_price_data(
     assert isinstance(pairs_df, pd.DataFrame)
 
     assert prices_path.exists(), f"Vault price file does not exist: {prices_path}"
-    vaults_to_match = {(row.chain_id, row.address) for idx, row in pairs_df.iterrows()}
+    vaults_to_match = {(int(row.chain_id), row.address.lower()) for _, row in pairs_df.iterrows()}
 
     assert len(vaults_to_match) < 3000, f"The vaults to load number looks too high: {len(vaults_to_match)}"
 
@@ -319,16 +320,64 @@ def load_vault_price_data(
     unique_chains = pa.array([int(c) for c, _ in vaults_to_match], type=pa.uint32())
     unique_addresses = pa.array(list({a for _, a in vaults_to_match}))
     table = table.filter(pc.is_in(table.column("chain"), unique_chains))
-    table = table.filter(pc.is_in(table.column("address"), unique_addresses))
+    table = table.filter(pc.is_in(pc.utf8_lower(table.column("address")), unique_addresses))
 
     # Convert only the filtered rows to pandas
     df = table.to_pandas()
+    return filter_vault_price_history(df, pairs_df)
 
-    # The Arrow filters are an over-approximation (chain IN set AND address IN set),
-    # so apply exact (chain, address) tuple matching on the small result
-    mask = pd.MultiIndex.from_arrays([df["chain"], df["address"]]).isin(vaults_to_match)
-    df = df[mask]
-    return df
+
+def filter_vault_price_history(
+    vault_prices_df: pd.DataFrame,
+    vault_pairs_df: pd.DataFrame,
+    start_at: datetime.datetime | None = None,
+    end_at: datetime.datetime | None = None,
+) -> pd.DataFrame:
+    """Filter vault history to the requested vaults and optional date window.
+
+    This helper centralises vault-history filtering so bundled parquet reads and
+    Trading Strategy website downloads expose the same caller-facing behaviour.
+
+    The returned DataFrame is normalised as follows:
+
+    - only exact ``(chain_id, address)`` tuples from ``vault_pairs_df`` remain
+    - ``address`` values are lowercased
+    - ``timestamp`` is materialised as a pandas datetime column
+    - optional ``start_at`` / ``end_at`` clipping is applied after tuple
+      filtering
+
+    The helper accepts vault history where ``timestamp`` is already a column or
+    where parquet round-tripping has placed it in the DataFrame index.
+    """
+    assert "chain" in vault_prices_df.columns, f"Got {vault_prices_df.columns}"
+    assert "address" in vault_prices_df.columns, f"Got {vault_prices_df.columns}"
+
+    if "timestamp" not in vault_prices_df.columns and vault_prices_df.index.name == "timestamp":
+        vault_prices_df = vault_prices_df.reset_index()
+
+    assert "timestamp" in vault_prices_df.columns, f"Got {vault_prices_df.columns}"
+
+    vaults_to_match = set(
+        zip(
+            vault_pairs_df["chain_id"].astype(int),
+            vault_pairs_df["address"].astype(str).str.lower(),
+            strict=False,
+        )
+    )
+    addresses = vault_prices_df["address"].astype(str).str.lower()
+    mask = pd.MultiIndex.from_arrays([vault_prices_df["chain"], addresses]).isin(vaults_to_match)
+    filtered_df = vault_prices_df.loc[mask].copy()
+
+    filtered_df["address"] = filtered_df["address"].astype(str).str.lower()
+    filtered_df["timestamp"] = pd.to_datetime(filtered_df["timestamp"])
+
+    if start_at is not None:
+        filtered_df = filtered_df.loc[filtered_df["timestamp"] >= pd.Timestamp(start_at)]
+
+    if end_at is not None:
+        filtered_df = filtered_df.loc[filtered_df["timestamp"] <= pd.Timestamp(end_at)]
+
+    return filtered_df
 
 
 
@@ -660,7 +709,4 @@ def load_vault_database_with_metadata(
             continue
 
     return VaultUniverse(vaults)
-
-
-
 
