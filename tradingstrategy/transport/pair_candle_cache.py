@@ -368,7 +368,8 @@ class PairCandleCache:
         # delta fetches from ever running (partition_for_fetch skips pairs where
         # end_time <= pair_info.end_time).
         if not self._data.empty:
-            actual_end_time = self._data["timestamp"].max().to_pydatetime()
+            max_ts = self._data["timestamp"].max()
+            actual_end_time = max_ts.to_pydatetime() if hasattr(max_ts, 'to_pydatetime') else max_ts
             metadata_end_time = min(end_time, actual_end_time)
         else:
             metadata_end_time = start_time
