@@ -203,6 +203,9 @@ class ChainId(enum.IntEnum):
 
     zora = 7777777
 
+    #: MegaETH
+    megaeth = 6342
+
     #: Ganache test chain.
     #:
     #: This is the chain id for Ganache local tester / mainnet forks.
@@ -435,6 +438,15 @@ _CHAIN_DATA_OVERRIDES = {
     ChainId.unichain.value: {
         "name": "Unichain",
         "slug": "unichain",
+        "svg_icon": None,
+    },
+
+    #
+    # MegaETH
+    #
+    ChainId.megaeth.value: {
+        "name": "MegaETH",
+        "slug": "megaeth",
         "svg_icon": None,
     },
 
