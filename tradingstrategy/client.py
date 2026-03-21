@@ -322,8 +322,14 @@ class Client(BaseClient):
             # Normalise dtype too. This means downstream date filtering and
             # comparisons can rely on pandas datetime semantics immediately,
             # instead of reparsing the column in each consumer.
+            #
+            # pd.to_datetime() preserves pyarrow-backed dtypes (e.g.
+            # timestamp[ns][pyarrow] from parquet reads) so it is not enough
+            # on its own.  Convert via NumPy to guarantee a native
+            # datetime64[ns] column that isinstance(..., pd.DatetimeIndex)
+            # recognises when used as an index downstream.
             df = df.copy()
-            df["timestamp"] = pd.to_datetime(df["timestamp"])
+            df["timestamp"] = pd.to_datetime(df["timestamp"].to_numpy())
 
         return df
 

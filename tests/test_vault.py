@@ -136,7 +136,7 @@ def test_filter_vault_price_history_exact_match_and_date_window() -> None:
     # 2. Filter the history with exact tuple matching and date clipping.
     tuples = list(zip(filtered_df["chain"], filtered_df["address"], strict=False))
 
-    # 3. Assert we kept only the requested vault rows within the requested window.
+    # 3. Assert we kept only the requested vaults within the requested window.
     assert tuples == [
         (ChainId.base.value, "0xabc"),
         (ChainId.ethereum.value, "0xdef"),

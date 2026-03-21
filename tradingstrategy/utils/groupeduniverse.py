@@ -149,6 +149,11 @@ class PairGroupedUniverse:
         # and not isinstance(df.index, pd.DatetimeIndex)
         if index_automatically:
             # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_index.html
+            # Ensure the timestamp column is standard pandas datetime64 before
+            # promoting to index — PyArrow-backed timestamps produce a plain
+            # pd.Index instead of pd.DatetimeIndex.
+            if hasattr(df[timestamp_column].dtype, "pyarrow_dtype"):
+                df[timestamp_column] = pd.to_datetime(df[timestamp_column].to_numpy())
             self.df = df \
                 .set_index(timestamp_column, drop=False)\
                 .sort_index(inplace=False)

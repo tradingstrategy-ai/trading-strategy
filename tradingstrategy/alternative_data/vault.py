@@ -481,6 +481,14 @@ def convert_vault_prices_to_candles(
 
     tvl_df = _resample(df, frequency)
 
+    # Ensure both output DataFrames use native pandas dtypes.
+    # Parquet-sourced vault data may carry pyarrow-backed columns
+    # (e.g. timestamp[ns][pyarrow]) which break isinstance checks
+    # on DatetimeIndex throughout the backtester.
+    for out_df in (prices_df, tvl_df):
+        if hasattr(out_df.index, 'dtype') and hasattr(out_df.index.dtype, 'pyarrow_dtype'):
+            out_df.index = pd.DatetimeIndex(out_df.index)
+
     return prices_df, tvl_df
 
 
@@ -709,4 +717,3 @@ def load_vault_database_with_metadata(
             continue
 
     return VaultUniverse(vaults)
-
