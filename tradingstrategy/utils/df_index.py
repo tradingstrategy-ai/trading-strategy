@@ -12,12 +12,22 @@ def flatten_dataframe_datetime_index(df: pd.DataFrame) -> pd.DataFrame:
     - Multipair data sources may have (pair_id, timestamp) index
       instead of (timestamp) index
 
+    - Handle PyArrow-backed timestamp indexes that appear when loading
+      from Parquet with newer pandas/pyarrow versions
+
     :return:
         DataFrame copy with a timestamp-only index
     """
 
     if isinstance(df.index, pd.DatetimeIndex):
         return df
+
+    # PyArrow-backed timestamp columns produce a plain Index instead of DatetimeIndex
+    # when used with set_index(). Convert to native DatetimeIndex.
+    if not isinstance(df.index, pd.MultiIndex) and isinstance(df.index.dtype, pd.ArrowDtype):
+        df2 = df.copy()
+        df2.index = pd.DatetimeIndex(pd.to_datetime(df2.index))
+        return df2
 
     assert isinstance(df.index, pd.MultiIndex), f"Got wrong index: {type(df.index)}"
 
@@ -35,7 +45,7 @@ def flatten_dataframe_datetime_index(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_timestamp_index(df: pd.DataFrame) -> pd.DatetimeIndex:
     """Get DateTimeIndex for pair OHCLV data.
-    
+
     See :py:func:`flatten_dataframe_datetime_index` for comments,
 
     - Return `df.index` or extract timestamp component from `MultiIndex`
@@ -46,6 +56,10 @@ def get_timestamp_index(df: pd.DataFrame) -> pd.DatetimeIndex:
 
     if isinstance(df.index, pd.DatetimeIndex):
         return df.index
+
+    # PyArrow-backed timestamp indexes
+    if not isinstance(df.index, pd.MultiIndex) and isinstance(df.index.dtype, pd.ArrowDtype):
+        return pd.DatetimeIndex(pd.to_datetime(df.index))
 
     assert isinstance(df.index, pd.MultiIndex), f"Got wrong index: {type(df.index)}"
 

@@ -362,6 +362,16 @@ class PairCandleCache:
 
             self._save_data()
 
-        # Always update and save metadata for tracking
-        self.metadata.update(pair_ids, start_time, end_time)
+        # Update metadata with the actual data end time, not the requested end time.
+        # Using the requested end_time would cause the cache to believe it has data
+        # through that date even when the API returned older data, preventing future
+        # delta fetches from ever running (partition_for_fetch skips pairs where
+        # end_time <= pair_info.end_time).
+        if not self._data.empty:
+            actual_end_time = self._data["timestamp"].max().to_pydatetime()
+            metadata_end_time = min(end_time, actual_end_time)
+        else:
+            metadata_end_time = start_time
+
+        self.metadata.update(pair_ids, start_time, metadata_end_time)
         self.metadata.save()

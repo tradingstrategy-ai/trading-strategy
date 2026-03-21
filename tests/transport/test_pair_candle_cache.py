@@ -659,7 +659,12 @@ class TestPairCandleCache:
             assert cache.data.iloc[0]["open"] == 100.5  # Updated value
 
     def test_update_empty_dataframes_list(self, tmp_path):
-        """Test update with empty dataframes list only updates metadata."""
+        """Test update with empty dataframes list only updates metadata.
+
+        When the cache is empty and no new data is provided, metadata end_time
+        should fall back to start_time (not the requested end_time) so that
+        future fetches are not skipped.
+        """
         base_path = str(tmp_path / "empty_update_cache")
 
         with PairCandleCache(base_path) as cache:
@@ -676,10 +681,11 @@ class TestPairCandleCache:
             # Data should be unchanged
             assert len(cache.data) == initial_len
 
-            # Metadata should be updated
+            # Metadata should be updated, but end_time falls back to start_time
+            # because there is no actual data in the cache
             assert len(cache.metadata.pairs) == 2
             assert cache.metadata.pairs["1"].start_time == dt.datetime(2023, 1, 1)
-            assert cache.metadata.pairs["2"].end_time == dt.datetime(2023, 1, 31)
+            assert cache.metadata.pairs["2"].end_time == dt.datetime(2023, 1, 1)
 
     def test_data_property_outside_context_manager_raises_assertion(self, tmp_path):
         """Test accessing data property outside context manager raises AssertionError."""
@@ -817,3 +823,52 @@ class TestPairCandleCache:
             # Verify corresponding values are in correct order
             opens = cache.data["open"].tolist()
             assert opens == [101.0, 102.0, 103.0]
+
+    def test_metadata_tracks_actual_data_not_requested_end_time(self, tmp_path):
+        """Metadata end_time must reflect actual data, not the requested end_time.
+
+        Reproduces a production bug where:
+        1. API returns candles only through Jan 16 (latest available)
+        2. But requested end_time is Jan 21 (today)
+        3. Metadata incorrectly records end_time=Jan 21
+        4. Next run sees end_time <= pair_info.end_time, skips fetch entirely
+        5. Stale cached data is returned indefinitely
+        """
+        base_path = str(tmp_path / "stale_data_cache")
+
+        # API returns candles only through Jan 16
+        api_data = pd.DataFrame({
+            "timestamp": pd.to_datetime([
+                "2023-01-15 00:00:00",
+                "2023-01-16 00:00:00",
+            ]),
+            "pair_id": [1, 1],
+            "open": [100.0, 101.0],
+            "high": [102.0, 103.0],
+            "low": [99.0, 100.0],
+            "close": [101.0, 102.0],
+            "volume": [1000.0, 1100.0]
+        })
+
+        # 1. First fetch: request up to Jan 21, API only has data through Jan 16
+        with PairCandleCache(base_path) as cache:
+            cache.update(
+                [api_data],
+                [1],
+                dt.datetime(2023, 1, 1),
+                dt.datetime(2023, 1, 21)  # Requested end far beyond actual data
+            )
+
+            # Metadata end_time must reflect actual data (Jan 16), not requested (Jan 21)
+            assert cache.metadata.pairs["1"].end_time == dt.datetime(2023, 1, 16)
+
+        # 2. Second run same day: partition_for_fetch must NOT skip this pair
+        with PairCandleCache(base_path) as cache:
+            partition = cache.metadata.partition_for_fetch(
+                [1],
+                dt.datetime(2023, 1, 1),
+                dt.datetime(2023, 1, 21)
+            )
+
+            # Pair should need delta fetch, not be skipped
+            assert 1 in partition.delta_fetch_ids
