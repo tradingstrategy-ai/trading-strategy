@@ -608,9 +608,15 @@ def resample_candles_multiple_pairs(
                     pair_id=group_id,
                 )
             else:
-                # Forward fill OHLCV if we went from 1d -> 1h
+                # Forward fill OHLCV if we went from 1d -> 1h.
+                # Mark rows that had no real observation (NaN close)
+                # before the ffill so downstream code can distinguish
+                # real data from gap-filled synthetic rows.
+                if "close" in segment.columns:
+                    segment["forward_filled"] = segment["close"].isna()
                 for ff_column in forward_fill_columns:
-                    segment[ff_column] = segment[ff_column].ffill()
+                    if ff_column in segment.columns:
+                        segment[ff_column] = segment[ff_column].ffill()
 
             segments.append(segment)
 
@@ -724,6 +730,12 @@ def resample_candles(
     if "volume" in df.columns:
         ohlc_dict["volume"] = "sum"
 
+    # Preserve forward_filled markers from earlier pipeline stages.
+    # Use "max" so that if any sub-row in the bucket was forward-filled
+    # the resampled bucket is also marked as forward-filled.
+    if "forward_filled" in df.columns:
+        ohlc_dict["forward_filled"] = "max"
+
     columns = df.columns.tolist()
     assert all(item in columns for item in list(ohlc_dict.keys())), \
         f"{list(ohlc_dict.keys())} needs to be in the column names\n" \
@@ -784,14 +796,20 @@ def forward_fill_ohlcv_single_pair(
     if forward_fill_until is not None:
         forward_fill_until = pd.Timestamp(forward_fill_until)
 
-    # Check if the DataFrame is empty
-    df["forward_filled"] = False
+    # Preserve forward_filled markers from earlier pipeline stages
+    # (e.g. within-range gap-fill in resample_candles_multiple_pairs).
+    # Only initialise to False when no prior markers exist.
+    if "forward_filled" not in df.columns:
+        df["forward_filled"] = False
 
     # Resample
     original_index = df.index
     df = df.resample(freq).mean(numeric_only=True)
 
-    df["forward_filled"] = df["forward_filled"].fillna(True)
+    # After .mean(), prior True→1.0, False→0.0, new gap rows→NaN.
+    # Mark new gap/extension rows as forward-filled while preserving
+    # earlier markers.
+    df["forward_filled"] = df["forward_filled"].fillna(1.0).astype(bool)
 
     if forward_fill_until is not None:
         df = pad_dataframe_to_frequency(
