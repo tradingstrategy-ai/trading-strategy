@@ -6,6 +6,29 @@
 import pandas as pd
 
 
+def _ensure_naive_datetime_index(index: pd.Index) -> pd.DatetimeIndex:
+    """Convert any supported timestamp index to naive ``DatetimeIndex``.
+
+    - Accepts ``DatetimeIndex``, Arrow-backed timestamp indexes, generic indexes,
+      and pair/timestamp ``MultiIndex`` values
+    - Keeps timestamps in UTC when timezone-aware values are encountered
+    """
+
+    if isinstance(index, pd.MultiIndex):
+        assert len(index.levels) >= 2, f"Cannot infer timestamp level from index: {index}"
+        index = index.get_level_values(-1)
+
+    if isinstance(index, pd.DatetimeIndex):
+        dt_index = index
+    else:
+        dt_index = pd.DatetimeIndex(pd.to_datetime(index))
+
+    if dt_index.tz is not None:
+        dt_index = dt_index.tz_convert("UTC").tz_localize(None)
+
+    return dt_index
+
+
 def flatten_dataframe_datetime_index(df: pd.DataFrame) -> pd.DataFrame:
     """Make sure we have a datetime index as the index for the DataFrame.
 
@@ -41,6 +64,57 @@ def flatten_dataframe_datetime_index(df: pd.DataFrame) -> pd.DataFrame:
     df2 = df.copy()
     df2.index = new_index
     return df2
+
+
+def normalise_timestamp_index(
+    data: pd.DataFrame | pd.Series | pd.Index,
+    timestamp_column: str | None = None,
+    keep_timestamp_column: bool = False,
+) -> pd.DataFrame | pd.Series | pd.DatetimeIndex:
+    """Normalise timestamp-bearing data to use a naive ``DatetimeIndex``.
+
+    This is a backwards-compatible helper retained for older callers in
+    :mod:`tradeexecutor`.
+
+    :param data:
+        Data structure whose index should become a ``DatetimeIndex``.
+
+    :param timestamp_column:
+        Optional dataframe column to use as the timestamp source instead of
+        the existing index.
+
+    :param keep_timestamp_column:
+        When ``timestamp_column`` is used, keep the source column instead of
+        dropping it after reindexing.
+    """
+
+    if isinstance(data, pd.DataFrame):
+        if timestamp_column is not None:
+            assert timestamp_column in data.columns, f"DataFrame does not have timestamp column {timestamp_column}"
+            df = data.copy()
+            df.index = _ensure_naive_datetime_index(df[timestamp_column])
+            if not keep_timestamp_column:
+                df = df.drop(columns=[timestamp_column])
+            return df
+
+        df = flatten_dataframe_datetime_index(data)
+        if not isinstance(df.index, pd.DatetimeIndex) or df.index.tz is not None:
+            df = df.copy()
+            df.index = _ensure_naive_datetime_index(df.index)
+        return df
+
+    if isinstance(data, pd.Series):
+        if isinstance(data.index, pd.DatetimeIndex) and data.index.tz is None:
+            return data
+
+        series = data.copy()
+        series.index = _ensure_naive_datetime_index(series.index)
+        return series
+
+    if isinstance(data, pd.Index):
+        return _ensure_naive_datetime_index(data)
+
+    raise TypeError(f"Unsupported data type for normalise_timestamp_index: {type(data)}")
 
 
 def get_timestamp_index(df: pd.DataFrame) -> pd.DatetimeIndex:
