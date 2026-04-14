@@ -802,6 +802,10 @@ def forward_fill_ohlcv_single_pair(
     if "forward_filled" not in df.columns:
         df["forward_filled"] = False
 
+    # Pandas may drop boolean columns during resample(...).mean(numeric_only=True)
+    # on newer versions, so keep the marker as numeric until we convert it back.
+    df["forward_filled"] = df["forward_filled"].astype(float)
+
     # Resample
     original_index = df.index
     df = df.resample(freq).mean(numeric_only=True)

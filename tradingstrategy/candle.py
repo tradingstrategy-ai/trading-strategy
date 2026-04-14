@@ -578,6 +578,12 @@ class GroupedCandleUniverse(PairGroupedUniverse):
                 else:
                     logger.warning("get_price_with_tolerance(ignore_forward_fill=True) called, but no 'forward_filled' column found in the candles dataframe.")
 
+        if len(candles_per_pair) == 0:
+            raise CandleSampleUnavailable(
+                f"No candle data available for pair {pair_name}, pair id {pair_id}\n"
+                f"Trading data pair link: {link}"
+            )
+
 
         samples_per_kind = candles_per_pair[kind]
 
