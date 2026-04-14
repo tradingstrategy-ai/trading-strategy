@@ -11,6 +11,7 @@ import platform
 import re
 import shutil
 import time
+from email.utils import parsedate_to_datetime
 from http.client import IncompleteRead
 from importlib.metadata import PackageNotFoundError, version
 from json import JSONDecodeError
@@ -40,7 +41,7 @@ from tradingstrategy.transport.progress_enabled_download import \
     download_with_tqdm_progress_bar
 from tradingstrategy.types import AnyTimestamp, PrimaryKey, USDollarAmount
 from tradingstrategy.utils.logging_retry import LoggingRetry
-from tradingstrategy.utils.time import naive_utcnow
+from tradingstrategy.utils.time import naive_utcfromtimestamp, naive_utcnow
 from urllib3 import Retry
 
 logger = logging.getLogger(__name__)
@@ -586,6 +587,115 @@ class CachedHTTPTransport:
 
             return pathlib.Path(path)
 
+    def _get_sidecar_cache_metadata_path(self, path: str | Path) -> Path:
+        """Return the sidecar path used for remote HTTP cache metadata."""
+        parquet_path = Path(path)
+        return parquet_path.with_name(f"{parquet_path.name}.metadata.json")
+
+    def _load_sidecar_cache_metadata(self, path: str | Path) -> dict | None:
+        """Load stored remote HTTP cache metadata for a downloaded file."""
+        metadata_path = self._get_sidecar_cache_metadata_path(path)
+        if not metadata_path.exists():
+            return None
+
+        try:
+            return orjson.loads(metadata_path.read_bytes())
+        except Exception as exc:
+            logger.warning("Could not read sidecar cache metadata from %s: %s", metadata_path, exc)
+            return None
+
+    def _store_sidecar_cache_metadata(
+        self,
+        path: str | Path,
+        last_modified: datetime.datetime | None,
+        etag: str | None,
+        content_length: int | None,
+    ) -> None:
+        """Persist remote HTTP cache metadata for later HEAD comparisons."""
+        metadata_path = self._get_sidecar_cache_metadata_path(path)
+        payload = {
+            "last_modified": last_modified.isoformat() if last_modified is not None else None,
+            "etag": etag,
+            "content_length": content_length,
+            "stored_at": naive_utcnow().isoformat(),
+        }
+        metadata_path.write_bytes(orjson.dumps(payload))
+
+    def _parse_http_last_modified(self, header_value: str | None) -> datetime.datetime | None:
+        """Parse HTTP Last-Modified to a naive UTC datetime."""
+        if not header_value:
+            return None
+
+        parsed = parsedate_to_datetime(header_value)
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        else:
+            parsed = parsed.replace(tzinfo=None)
+        return parsed
+
+    def _fetch_http_cache_metadata(self, url: str) -> tuple[datetime.datetime | None, str | None, int | None]:
+        """Fetch remote cache headers with a lightweight HEAD request."""
+        response = self.requests.head(
+            url,
+            allow_redirects=True,
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+
+        last_modified = self._parse_http_last_modified(response.headers.get("Last-Modified"))
+        etag = response.headers.get("ETag")
+
+        content_length_header = response.headers.get("Content-Length")
+        if content_length_header is None:
+            content_length = None
+        else:
+            try:
+                content_length = int(content_length_header)
+            except ValueError:
+                logger.warning("Invalid Content-Length %r received from %s", content_length_header, url)
+                content_length = None
+
+        return last_modified, etag, content_length
+
+    def _is_matching_http_cache_metadata(
+        self,
+        path: str | Path,
+        remote_last_modified: datetime.datetime | None,
+        remote_etag: str | None,
+        remote_content_length: int | None,
+    ) -> bool:
+        """Decide whether the local file already matches the current remote asset."""
+        local_path = Path(path)
+        local_stat = local_path.stat()
+        local_mtime = naive_utcfromtimestamp(local_stat.st_mtime)
+        local_size = local_stat.st_size
+
+        if remote_content_length is not None and remote_content_length != local_size:
+            return False
+
+        local_metadata = self._load_sidecar_cache_metadata(path) or {}
+        local_etag = local_metadata.get("etag")
+        if remote_etag and local_etag == remote_etag:
+            return True
+
+        local_last_modified_raw = local_metadata.get("last_modified")
+        local_last_modified = None
+        if local_last_modified_raw:
+            try:
+                local_last_modified = datetime.datetime.fromisoformat(local_last_modified_raw)
+            except ValueError:
+                logger.warning("Invalid cached last_modified value %r in %s", local_last_modified_raw, path)
+
+        if remote_last_modified is not None:
+            if local_last_modified is not None and remote_last_modified == local_last_modified:
+                return True
+
+            # Fall back to the local file modification time when no sidecar metadata exists yet.
+            if remote_last_modified <= local_mtime:
+                return True
+
+        return False
+
     def fetch_vault_price_history(
         self,
         url: str | None = None,
@@ -623,10 +733,42 @@ class CachedHTTPTransport:
         with wait_other_writers(path):
 
             if os.path.exists(path):
-                mtime = datetime.datetime.fromtimestamp(pathlib.Path(path).stat().st_mtime)
-                cache_age = datetime.datetime.now() - mtime
+                mtime = naive_utcfromtimestamp(pathlib.Path(path).stat().st_mtime)
+                cache_age = naive_utcnow() - mtime
                 if cache_age < datetime.timedelta(hours=24):
                     return pathlib.Path(path)
+
+                try:
+                    remote_last_modified, remote_etag, remote_content_length = self._fetch_http_cache_metadata(url)
+                    if self._is_matching_http_cache_metadata(
+                        path=path,
+                        remote_last_modified=remote_last_modified,
+                        remote_etag=remote_etag,
+                        remote_content_length=remote_content_length,
+                    ):
+                        self._store_sidecar_cache_metadata(
+                            path=path,
+                            last_modified=remote_last_modified,
+                            etag=remote_etag,
+                            content_length=remote_content_length,
+                        )
+                        os.utime(path, None)
+                        logger.info("Reusing cached vault price history at %s because remote HEAD metadata is unchanged", path)
+                        return pathlib.Path(path)
+                except Exception as exc:
+                    logger.warning(
+                        "Could not validate cached vault price history at %s with a HEAD request to %s: %s. Falling back to a full download.",
+                        path,
+                        url,
+                        exc,
+                    )
+                    remote_last_modified = None
+                    remote_etag = None
+                    remote_content_length = None
+            else:
+                remote_last_modified = None
+                remote_etag = None
+                remote_content_length = None
 
             os.makedirs(self.get_abs_cache_path(download_root), exist_ok=True)
 
@@ -639,6 +781,14 @@ class CachedHTTPTransport:
                 self.timeout,
                 "Downloading cleaned vault price history dataset",
             )
+
+            if any(value is not None for value in (remote_last_modified, remote_etag, remote_content_length)):
+                self._store_sidecar_cache_metadata(
+                    path=path,
+                    last_modified=remote_last_modified,
+                    etag=remote_etag,
+                    content_length=remote_content_length,
+                )
 
             return pathlib.Path(path)
 

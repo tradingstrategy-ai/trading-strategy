@@ -1,9 +1,14 @@
 import datetime as dt
+import os
 import time
+from email.utils import format_datetime
+from pathlib import Path
 from unittest.mock import Mock
 
+import orjson
 import pytest
 
+from tradingstrategy.transport.cache import CachedHTTPTransport
 from tradingstrategy.timebucket import TimeBucket
 
 
@@ -106,3 +111,97 @@ def test__generate_cache_name_end_time_minute_precision(
 
     assert name == expected_name
 
+
+def test_fetch_vault_price_history_reuses_expired_cache_when_head_matches(
+    transport: CachedHTTPTransport,
+    tmp_path: Path,
+) -> None:
+    """Test expired vault parquet cache reuse when remote HEAD metadata is unchanged.
+
+    1. Create an expired local parquet cache without any sidecar metadata yet.
+    2. Mock a remote HEAD response whose Last-Modified and Content-Length still match the local file.
+    3. Confirm the transport skips the download and refreshes the local cache timestamp.
+    """
+    download_root = tmp_path / "vault-downloads"
+    download_root.mkdir()
+    cached_path = download_root / "vault-price-history.parquet"
+    cached_path.write_bytes(b"abc")
+
+    expired_mtime = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=2)
+    os.utime(cached_path, (expired_mtime.timestamp(), expired_mtime.timestamp()))
+
+    remote_last_modified = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)
+    head_response = Mock()
+    head_response.headers = {
+        "Last-Modified": format_datetime(remote_last_modified),
+        "Content-Length": "3",
+    }
+    head_response.raise_for_status = Mock()
+    transport.requests.head = Mock(return_value=head_response)
+
+    # 1. Create an expired local parquet cache without any sidecar metadata yet.
+    original_mtime = cached_path.stat().st_mtime
+
+    # 2. Mock a remote HEAD response whose Last-Modified and Content-Length still match the local file.
+    result = transport.fetch_vault_price_history(
+        url="https://example.com/cleaned-vault-prices-1h.parquet",
+        download_root=download_root,
+    )
+
+    # 3. Confirm the transport skips the download and refreshes the local cache timestamp.
+    assert result == cached_path
+    transport.download_func.assert_not_called()
+    assert cached_path.stat().st_mtime > original_mtime
+    sidecar_path = cached_path.with_name("vault-price-history.parquet.metadata.json")
+    assert sidecar_path.exists()
+    assert orjson.loads(sidecar_path.read_bytes())["content_length"] == 3
+
+
+def test_fetch_vault_price_history_redownloads_when_head_metadata_changed(
+    transport: CachedHTTPTransport,
+    tmp_path: Path,
+) -> None:
+    """Test vault parquet redownload when remote HEAD metadata has changed.
+
+    1. Create an expired local parquet cache to force remote validation.
+    2. Mock a remote HEAD response whose Last-Modified and Content-Length indicate a newer file.
+    3. Confirm the transport performs a fresh download and stores the new sidecar metadata.
+    """
+    download_root = tmp_path / "vault-downloads"
+    download_root.mkdir()
+    cached_path = download_root / "vault-price-history.parquet"
+    cached_path.write_bytes(b"abc")
+
+    expired_mtime = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=2)
+    os.utime(cached_path, (expired_mtime.timestamp(), expired_mtime.timestamp()))
+
+    remote_last_modified = dt.datetime.now(dt.timezone.utc)
+    head_response = Mock()
+    head_response.headers = {
+        "Last-Modified": format_datetime(remote_last_modified),
+        "Content-Length": "5",
+        "ETag": '"new-version"',
+    }
+    head_response.raise_for_status = Mock()
+    transport.requests.head = Mock(return_value=head_response)
+
+    def fake_download(session, path, url, params, timeout, human_desc) -> None:
+        Path(path).write_bytes(b"abcde")
+
+    transport.download_func.side_effect = fake_download
+
+    # 1. Create an expired local parquet cache to force remote validation.
+    result = transport.fetch_vault_price_history(
+        url="https://example.com/cleaned-vault-prices-1h.parquet",
+        download_root=download_root,
+    )
+
+    # 2. Mock a remote HEAD response whose Last-Modified and Content-Length indicate a newer file.
+    sidecar_path = cached_path.with_name("vault-price-history.parquet.metadata.json")
+
+    # 3. Confirm the transport performs a fresh download and stores the new sidecar metadata.
+    assert result == cached_path
+    transport.download_func.assert_called_once()
+    assert cached_path.read_bytes() == b"abcde"
+    assert sidecar_path.exists()
+    assert orjson.loads(sidecar_path.read_bytes())["etag"] == '"new-version"'
