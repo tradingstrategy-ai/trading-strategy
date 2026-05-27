@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime
+import logging
 from dataclasses import dataclass, field
 from typing import Iterable, TypeAlias, Any, Collection, TYPE_CHECKING
 
@@ -20,6 +21,8 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType
 from tradingstrategy.types import Percent, NonChecksummedAddress, TokenSymbol
 from tradingstrategy.types import SPECIAL_PAIR_ID_RANGE
+
+logger = logging.getLogger(__name__)
 
 
 def get_vault_page(vault_address: str) -> str:
@@ -838,6 +841,40 @@ class VaultUniverse:
             vault_list = (vault for vault in self.vaults.values() if vault.denomination_token_symbol in denomination_token_symbols)
 
         return VaultUniverse(vault_list)
+
+    def limit_to_native_usdc(self) -> "VaultUniverse":
+        """Keep only vaults denominated in the chain-native USDC token.
+
+        Uses the ``USDC_NATIVE_TOKEN`` address mapping so bridged USDC
+        variants (USDC.e, etc.) are excluded even when the symbol matches.
+
+        :raise AssertionError: If no vaults survive the filter.
+        """
+        from eth_defi.token import USDC_NATIVE_TOKEN
+
+        kept = []
+        excluded = []
+        for vault in self.vaults.values():
+            denomination_addr = (vault.denomination_token_address or "").lower()
+            native_addr = USDC_NATIVE_TOKEN.get(vault.chain_id)
+            if native_addr is not None and denomination_addr == native_addr.lower():
+                kept.append(vault)
+            else:
+                excluded.append(vault)
+
+        if excluded:
+            logger.info(
+                "CCTP native-USDC filter excluded %d vault(s): %s",
+                len(excluded),
+                ", ".join(f"{v.name} ({v.chain_id})" for v in excluded),
+            )
+
+        assert kept, (
+            f"No vaults with native USDC denomination found. "
+            f"All {len(excluded)} vault(s) were excluded."
+        )
+
+        return VaultUniverse(kept)
 
     def limit_to_chain(self, chain_id: ChainId | int) -> "VaultUniverse":
         """Drop all but single chain vault entries."""

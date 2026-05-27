@@ -8,8 +8,28 @@ from unittest.mock import Mock
 import pandas as pd
 import pytest
 
+from tradingstrategy.chain import ChainId
 from tradingstrategy.client import Client
 from tradingstrategy.vault import Vault, VaultMetadata, VaultUniverse
+
+
+def _make_vault(chain_id, denomination_token_address, denomination_token_symbol="USDC", name="TestVault", vault_address=None):
+    """Build a minimal Vault for unit testing."""
+    addr = vault_address or f"0x{chain_id:040x}"
+    return Vault(
+        chain_id=ChainId(chain_id),
+        vault_address=addr,
+        denomination_token_address=denomination_token_address,
+        denomination_token_symbol=denomination_token_symbol,
+        denomination_token_decimals=6,
+        share_token_address=f"0xshare{addr[6:]}",
+        share_token_symbol="sVault",
+        share_token_decimals=6,
+        protocol_name="test",
+        protocol_slug="test",
+        name=name,
+        token_symbol="sVault",
+    )
 
 
 def test_vault_universe_with_metadata(
@@ -133,3 +153,29 @@ def test_fetch_vault_price_history(
 
     # 3. Confirm the parquet was cached on disk for later reuse.
     assert (download_root / "vault-price-history.parquet").exists()
+
+
+def test_limit_to_native_usdc():
+    """Verify address-aware native USDC filtering on VaultUniverse.
+
+    Vaults with symbol "USDC" but a non-native or missing denomination
+    address must be excluded when CCTP bridge generation is active.
+    """
+    from eth_defi.token import USDC_NATIVE_TOKEN
+
+    native_addr = USDC_NATIVE_TOKEN[1]  # Ethereum native USDC
+    vault_a = _make_vault(1, native_addr, name="NativeUSDC", vault_address="0xaaa0000000000000000000000000000000000001")
+    vault_b = _make_vault(1, "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef", name="BridgedUSDC", vault_address="0xbbb0000000000000000000000000000000000002")
+    vault_c = _make_vault(1, None, name="MissingAddr", vault_address="0xccc0000000000000000000000000000000000003")
+
+    # All three together — only vault_a should survive
+    universe = VaultUniverse([vault_a, vault_b, vault_c])
+    filtered = universe.limit_to_native_usdc()
+    assert filtered.get_vault_count() == 1
+    remaining = list(filtered.iterate_vaults())
+    assert remaining[0].name == "NativeUSDC"
+
+    # Only non-native vaults — should raise
+    universe_bad = VaultUniverse([vault_b, vault_c])
+    with pytest.raises(AssertionError, match="No vaults with native USDC"):
+        universe_bad.limit_to_native_usdc()
