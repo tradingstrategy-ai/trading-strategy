@@ -203,8 +203,11 @@ class ChainId(enum.IntEnum):
 
     zora = 7777777
 
-    #: MegaETH
-    megaeth = 6342
+    #: MegaETH mainnet
+    megaeth = 4326
+
+    #: MegaETH testnet
+    megaeth_testnet = 6342
 
     #: Ganache test chain.
     #:
@@ -261,6 +264,11 @@ class ChainId(enum.IntEnum):
     #:
     #: Does not have a real chain id, so we use a synthetic in-house id.
     lighter = 9998
+
+    #: Hibachi native.
+    #:
+    #: Does not have a real chain id, so we use a synthetic in-house id.
+    hibachi = 9997
 
     #: Grvt
     grvt = 325
@@ -451,6 +459,15 @@ _CHAIN_DATA_OVERRIDES = {
     },
 
     #
+    # MegaETH testnet
+    #
+    ChainId.megaeth_testnet.value: {
+        "name": "MegaETH testnet",
+        "slug": "megaeth_testnet",
+        "svg_icon": None,
+    },
+
+    #
     # HyperEVM (Hyperliquid EVM)
     # Chain data file contains "Wanchain Testnet" which is incorrect
     #
@@ -476,6 +493,26 @@ _CHAIN_DATA_OVERRIDES = {
     ChainId.hyperliquid_testnet.value: {
         "name": "HyperEVM Testnet",
         "slug": "hyperliquid_testnet",
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    #
+    # Lighter
+    #
+    ChainId.lighter.value: {
+        "name": "Lighter",
+        "slug": "lighter",
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    #
+    # Hibachi
+    #
+    ChainId.hibachi.value: {
+        "name": "Hibachi",
+        "slug": "hibachi",
         "svg_icon": None,
         "dataless": True,
     },
