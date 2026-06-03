@@ -735,8 +735,18 @@ class CachedHTTPTransport:
             if os.path.exists(path):
                 mtime = naive_utcfromtimestamp(pathlib.Path(path).stat().st_mtime)
                 cache_age = naive_utcnow() - mtime
+                local_size = pathlib.Path(path).stat().st_size
                 if cache_age < datetime.timedelta(hours=24):
+                    logger.info(
+                        "Vault price history cache hit: path=%s, cache_age=%s, local_size=%s bytes. Skipping download (< 24h threshold).",
+                        path, cache_age, local_size,
+                    )
                     return pathlib.Path(path)
+
+                logger.info(
+                    "Vault price history cache expired: path=%s, cache_age=%s, local_size=%s bytes. Performing HEAD check against %s.",
+                    path, cache_age, local_size, url,
+                )
 
                 try:
                     remote_last_modified, remote_etag, remote_content_length = self._fetch_http_cache_metadata(url)
@@ -755,6 +765,17 @@ class CachedHTTPTransport:
                         os.utime(path, None)
                         logger.info("Reusing cached vault price history at %s because remote HEAD metadata is unchanged", path)
                         return pathlib.Path(path)
+                    else:
+                        local_metadata = self._load_sidecar_cache_metadata(path) or {}
+                        logger.info(
+                            "Vault price history HEAD mismatch, re-downloading: "
+                            "local_etag=%s, remote_etag=%s, "
+                            "local_last_modified=%s, remote_last_modified=%s, "
+                            "local_size=%s, remote_content_length=%s",
+                            local_metadata.get("etag"), remote_etag,
+                            local_metadata.get("last_modified"), remote_last_modified,
+                            local_size, remote_content_length,
+                        )
                 except Exception as exc:
                     logger.warning(
                         "Could not validate cached vault price history at %s with a HEAD request to %s: %s. Falling back to a full download.",
@@ -766,6 +787,7 @@ class CachedHTTPTransport:
                     remote_etag = None
                     remote_content_length = None
             else:
+                logger.info("Vault price history cache miss: no cached file at %s. Downloading from %s.", path, url)
                 remote_last_modified = None
                 remote_etag = None
                 remote_content_length = None
