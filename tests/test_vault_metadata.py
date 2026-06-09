@@ -179,3 +179,58 @@ def test_limit_to_native_usdc():
     universe_bad = VaultUniverse([vault_b, vault_c])
     with pytest.raises(AssertionError, match="No vaults with native USDC"):
         universe_bad.limit_to_native_usdc()
+
+
+def test_load_vault_metadata_decimals_no_default_18() -> None:
+    """Decimals are read from the JSON blob and missing ones stay None.
+
+    Regression: a missing ``denomination_decimals`` used to default to 18,
+    which silently scaled raw amounts by 10**12 for 6-decimal tokens like
+    USDC and reverted on-chain transfers (e.g. CCTP bridge depositForBurn).
+
+    1. Build one vault entry that carries denomination/share decimals.
+    2. Build one vault entry that omits the decimals keys.
+    3. Load both via ``load_vault_database_with_metadata()``.
+    4. Assert present decimals are read and missing ones are ``None`` — never
+       silently defaulted to 18.
+    """
+    from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
+
+    # 1. + 2. Build a JSON blob with one full and one decimals-less entry.
+    json_data = {
+        "vaults": [
+            {
+                "chain_id": ChainId.arbitrum.value,
+                "address": "0x1111111111111111111111111111111111111111",
+                "name": "USDC Vault",
+                "denomination": "USDC",
+                "denomination_token_address": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                "denomination_decimals": 6,
+                "share_token": "sUSDC",
+                "share_token_address": "0x2222222222222222222222222222222222222222",
+                "share_token_decimals": 18,
+            },
+            {
+                "chain_id": ChainId.base.value,
+                "address": "0x3333333333333333333333333333333333333333",
+                "name": "Legacy Vault",
+                "denomination": "USDC",
+                "denomination_token_address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                "share_token": "sLEG",
+                # no decimals keys — must NOT default to 18
+            },
+        ]
+    }
+
+    # 3. Load the universe.
+    universe = load_vault_database_with_metadata(json_data)
+    vaults = {v.vault_address: v for v in universe.iterate_vaults()}
+
+    # 4. Present decimals are read; missing ones are None, never 18.
+    usdc_vault = vaults["0x1111111111111111111111111111111111111111"]
+    assert usdc_vault.denomination_token_decimals == 6
+    assert usdc_vault.share_token_decimals == 18
+
+    legacy_vault = vaults["0x3333333333333333333333333333333333333333"]
+    assert legacy_vault.denomination_token_decimals is None
+    assert legacy_vault.share_token_decimals is None

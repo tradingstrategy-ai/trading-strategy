@@ -1,5 +1,6 @@
 # Current
 
+- Fix vault metadata loader silently defaulting missing token decimals to 18: `load_vault_database_with_metadata()` now reads `denomination_decimals` / `share_token_decimals` from the JSON blob and leaves them `None` when absent instead of defaulting to 18 (which scaled raw amounts by 10\*\*12 for 6-decimal tokens like USDC) (2026-06-09)
 - Upgrade to Python 3.14 (2026-02-10)
 - Add Hypercore and Grvt chain support (2026-02-21)
 - Lazy-import vault_metrics/ffn and cache Binance exchange info for faster notebook startup (2026-03-12)
