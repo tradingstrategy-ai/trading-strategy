@@ -688,10 +688,16 @@ def load_vault_database_with_metadata(
                 token_symbol=vault_entry.get("share_token") or name,
                 denomination_token_address=(vault_entry.get("denomination_token_address") or "").lower(),
                 denomination_token_symbol=vault_entry.get("denomination") or "",
-                denomination_token_decimals=vault_entry.get("denomination_decimals", 18),
+                # Do NOT default missing decimals to a constant. A missing
+                # value used to default to 18, which silently scaled raw
+                # amounts by 10**12 for 6-decimal tokens like USDC and reverted
+                # on-chain transfers. Leave it None so consumers resolve the
+                # real decimals on-chain (the data source — top_vaults_by_chain
+                # .json — now carries denomination_decimals / share_token_decimals).
+                denomination_token_decimals=vault_entry.get("denomination_decimals"),
                 share_token_address=(vault_entry.get("share_token_address") or vault_address).lower(),
                 share_token_symbol=vault_entry.get("share_token") or name,
-                share_token_decimals=vault_entry.get("share_token_decimals", 18),
+                share_token_decimals=vault_entry.get("share_token_decimals"),
                 protocol_name=vault_entry.get("protocol") or "",
                 protocol_slug=vault_entry.get("protocol_slug") or "",
                 performance_fee=vault_entry.get("performance_fee"),

@@ -531,7 +531,11 @@ class Vault:
     denomination_token_symbol: str
 
     #: 8 - 18
-    denomination_token_decimals: int
+    #:
+    #: ``None`` when the data source does not provide decimals. Consumers must
+    #: not assume a value (defaulting USDC to 18 scales raw amounts by 10**12);
+    #: resolve the real decimals on-chain instead.
+    denomination_token_decimals: int | None
 
     #: Share token address
     #:
@@ -542,7 +546,10 @@ class Vault:
     share_token_symbol: str
 
     #: 8 - 18
-    share_token_decimals: int
+    #:
+    #: ``None`` when the data source does not provide decimals (see
+    #: :py:attr:`denomination_token_decimals`).
+    share_token_decimals: int | None
 
     #: Protocol human readable name
     protocol_name: str
