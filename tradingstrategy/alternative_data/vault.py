@@ -15,6 +15,9 @@ from pathlib import Path
 from typing import Iterable
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.compute as pc
+import pyarrow.dataset as ds
 import zstandard
 
 from tradingstrategy.chain import ChainId
@@ -301,30 +304,113 @@ def load_vault_price_data(
         DataFrame with the columns as defined in the schema above.
 
     """
-    import pyarrow as pa
-    import pyarrow.compute as pc
-    import pyarrow.parquet as pq
-
     assert isinstance(pairs_df, pd.DataFrame)
 
     assert prices_path.exists(), f"Vault price file does not exist: {prices_path}"
-    vaults_to_match = {(int(row.chain_id), row.address.lower()) for _, row in pairs_df.iterrows()}
+    chain_values = pairs_df["chain_id"].astype(int)
+    address_values = pairs_df["address"].astype(str).str.lower()
+    vaults_to_match = set(zip(chain_values, address_values, strict=False))
 
     assert len(vaults_to_match) < 3000, f"The vaults to load number looks too high: {len(vaults_to_match)}"
 
-    # Read as Arrow table without pandas conversion
-    table = pq.read_table(str(prices_path))
-
-    # Filter in Arrow by unique chains and addresses (much faster than
-    # converting everything to pandas first)
-    unique_chains = pa.array([int(c) for c, _ in vaults_to_match], type=pa.uint32())
-    unique_addresses = pa.array(list({a for _, a in vaults_to_match}))
-    table = table.filter(pc.is_in(table.column("chain"), unique_chains))
-    table = table.filter(pc.is_in(pc.utf8_lower(table.column("address")), unique_addresses))
+    # Push the coarse chain/address predicate into the Parquet scanner so Arrow
+    # can skip row groups before materialising a table.
+    unique_chains = pa.array(sorted({int(c) for c, _ in vaults_to_match}), type=pa.uint32())
+    unique_addresses = pa.array(sorted({a for _, a in vaults_to_match}))
+    dataset = ds.dataset(str(prices_path), format="parquet")
+    table = dataset.to_table(
+        filter=(
+            pc.is_in(ds.field("chain"), value_set=unique_chains)
+            & pc.is_in(pc.utf8_lower(ds.field("address")), value_set=unique_addresses)
+        ),
+    )
 
     # Convert only the filtered rows to pandas
     df = table.to_pandas()
     return filter_vault_price_history(df, pairs_df)
+
+
+def read_vault_price_history_parquet(
+    prices_path: Path,
+    vault_pairs_df: pd.DataFrame | None = None,
+    start_at: datetime.datetime | None = None,
+    end_at: datetime.datetime | None = None,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """Read cleaned vault price history parquet with optional Arrow pushdown.
+
+    The live vault history parquet contains millions of rows across all vaults.
+    Strategies usually need a small vault subset and a bounded time range, so
+    pushing the coarse predicate into Arrow avoids materialising the full file
+    as pandas before filtering.
+    """
+    assert prices_path.exists(), f"Vault price file does not exist: {prices_path}"
+
+    dataset = ds.dataset(str(prices_path), format="parquet")
+    schema_names = set(dataset.schema.names)
+    if "timestamp" in schema_names:
+        timestamp_column = "timestamp"
+    elif "__index_level_0__" in schema_names:
+        timestamp_column = "__index_level_0__"
+    else:
+        raise AssertionError(f"Vault price file does not contain a timestamp column: {dataset.schema.names}")
+
+    timestamp_type = dataset.schema.field(timestamp_column).type
+    assert pa.types.is_timestamp(timestamp_type), f"Vault price timestamp column must be timestamp typed, got {timestamp_type}"
+    expression = None
+
+    if vault_pairs_df is not None:
+        chain_values = vault_pairs_df["chain_id"].astype(int)
+        address_values = vault_pairs_df["address"].astype(str).str.lower()
+        unique_chains = pa.array(sorted(set(chain_values)), type=pa.uint32())
+        unique_addresses = pa.array(sorted(set(address_values)))
+        expression = (
+            pc.is_in(ds.field("chain"), value_set=unique_chains)
+            & pc.is_in(pc.utf8_lower(ds.field("address")), value_set=unique_addresses)
+        )
+
+    if start_at is not None:
+        start_filter = ds.field(timestamp_column) >= _make_timestamp_scalar(start_at, timestamp_type)
+        expression = start_filter if expression is None else expression & start_filter
+
+    if end_at is not None:
+        end_filter = ds.field(timestamp_column) <= _make_timestamp_scalar(end_at, timestamp_type)
+        expression = end_filter if expression is None else expression & end_filter
+
+    if columns is not None:
+        requested_columns = [timestamp_column if c == "timestamp" else c for c in columns]
+        required_columns = {timestamp_column}
+        if vault_pairs_df is not None:
+            required_columns.update({"chain", "address"})
+        columns = list(dict.fromkeys([*requested_columns, *required_columns]))
+
+    table = dataset.to_table(filter=expression, columns=columns)
+    df = table.to_pandas(ignore_metadata=True)
+    if timestamp_column != "timestamp" and timestamp_column in df.columns:
+        df = df.rename(columns={timestamp_column: "timestamp"})
+
+    if vault_pairs_df is not None:
+        return filter_vault_price_history(df, vault_pairs_df, start_at=start_at, end_at=end_at)
+
+    if "timestamp" in df.columns:
+        _normalise_timestamp_column(df)
+
+    return df
+
+
+def _make_timestamp_scalar(
+    value: datetime.datetime,
+    timestamp_type: pa.DataType,
+) -> pa.Scalar:
+    """Build an Arrow timestamp scalar matching the parquet timestamp field."""
+    timestamp = pd.Timestamp(value)
+    if pa.types.is_timestamp(timestamp_type):
+        if timestamp_type.tz is None and timestamp.tzinfo is not None:
+            timestamp = timestamp.tz_convert(None)
+        elif timestamp_type.tz is not None and timestamp.tzinfo is None:
+            timestamp = timestamp.tz_localize("UTC")
+
+    return pa.scalar(timestamp.to_pydatetime(), type=timestamp_type)
 
 
 def filter_vault_price_history(
@@ -369,7 +455,7 @@ def filter_vault_price_history(
     filtered_df = vault_prices_df.loc[mask].copy()
 
     filtered_df["address"] = filtered_df["address"].astype(str).str.lower()
-    filtered_df["timestamp"] = pd.to_datetime(filtered_df["timestamp"])
+    _normalise_timestamp_column(filtered_df)
 
     if start_at is not None:
         filtered_df = filtered_df.loc[filtered_df["timestamp"] >= pd.Timestamp(start_at)]
@@ -378,6 +464,15 @@ def filter_vault_price_history(
         filtered_df = filtered_df.loc[filtered_df["timestamp"] <= pd.Timestamp(end_at)]
 
     return filtered_df
+
+
+def _normalise_timestamp_column(df: pd.DataFrame) -> None:
+    """Normalise timestamp column to naive UTC pandas datetimes in-place."""
+    if not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+    if isinstance(df["timestamp"].dtype, pd.DatetimeTZDtype):
+        df["timestamp"] = df["timestamp"].dt.tz_convert(None)
 
 
 
@@ -715,4 +810,3 @@ def load_vault_database_with_metadata(
             continue
 
     return VaultUniverse(vaults)
-
