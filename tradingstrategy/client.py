@@ -247,18 +247,18 @@ class Client(BaseClient):
         :return:
             VaultUniverse containing Vault instances with full VaultMetadata.
         """
-        import json
+        import orjson
         from tradingstrategy.vault import VaultUniverse
         from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
 
         path = self.transport.fetch_vault_universe(url=url, download_root=download_root)
-        with path.open("rt", encoding="utf-8") as inp:
-            data = inp.read()
-            try:
-                json_data = json.loads(data)
-                return load_vault_database_with_metadata(json_data)
-            except JSONDecodeError as e:
-                raise RuntimeError(f"Could not read VaultUniverse JSON file {path}\nData is {data}") from e
+        data = path.read_bytes()
+        try:
+            json_data = orjson.loads(data)
+            return load_vault_database_with_metadata(json_data)
+        except JSONDecodeError as e:
+            display_data = data.decode("utf-8", errors="replace")
+            raise RuntimeError(f"Could not read VaultUniverse JSON file {path}\nData is {display_data}") from e
 
     @staticmethod
     def _normalise_vault_price_history_frame(df: pd.DataFrame) -> pd.DataFrame:
@@ -318,7 +318,7 @@ class Client(BaseClient):
                     # shape variation.
                     df = df.rename(columns={first_column: "timestamp"})
 
-        if "timestamp" in df.columns:
+        if "timestamp" in df.columns and not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
             # Normalise dtype too. This means downstream date filtering and
             # comparisons can rely on pandas datetime semantics immediately,
             # instead of reparsing the column in each consumer.

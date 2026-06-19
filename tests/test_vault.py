@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from eth_defi.erc_4626.core import ERC4626Feature
-from tradingstrategy.alternative_data.vault import load_vault_database, convert_vaults_to_trading_pairs, load_single_vault, DEFAULT_VAULT_BUNDLE, load_multiple_vaults, load_vault_price_data, convert_vault_prices_to_candles, filter_vault_price_history
+from tradingstrategy.alternative_data.vault import load_vault_database, convert_vaults_to_trading_pairs, load_single_vault, DEFAULT_VAULT_BUNDLE, load_multiple_vaults, load_vault_price_data, convert_vault_prices_to_candles, filter_vault_price_history, read_vault_price_history_parquet
 from tradingstrategy.candle import GroupedCandleUniverse
 from tradingstrategy.chain import ChainId
 from tradingstrategy.exchange import ExchangeType, ExchangeUniverse
@@ -146,6 +146,123 @@ def test_filter_vault_price_history_exact_match_and_date_window() -> None:
         pd.Timestamp("2025-01-03"),
     ]
     assert pd.api.types.is_datetime64_any_dtype(filtered_df["timestamp"])
+
+
+def test_read_vault_price_history_parquet_filters_before_pandas_conversion(tmp_path: Path) -> None:
+    """Read only requested vault history rows from parquet.
+
+    1. Create a small parquet file with multiple chains, addresses and timestamps.
+    2. Read it through ``read_vault_price_history_parquet()`` with vault and date filters.
+    3. Assert only exact matching rows inside the requested date window remain.
+    """
+    parquet_path = tmp_path / "vault-price-history.parquet"
+    vault_pairs_df = pd.DataFrame(
+        [
+            {"chain_id": ChainId.base.value, "address": "0xabc"},
+        ]
+    )
+    vault_prices_df = pd.DataFrame(
+        [
+            {"chain": ChainId.base.value, "address": "0xABC", "timestamp": pd.Timestamp("2025-01-01"), "share_price": 1.0, "total_assets": 100.0},
+            {"chain": ChainId.base.value, "address": "0xabc", "timestamp": pd.Timestamp("2025-01-02"), "share_price": 1.1, "total_assets": 110.0},
+            {"chain": ChainId.ethereum.value, "address": "0xabc", "timestamp": pd.Timestamp("2025-01-02"), "share_price": 2.0, "total_assets": 200.0},
+            {"chain": ChainId.base.value, "address": "0xabc", "timestamp": pd.Timestamp("2025-01-04"), "share_price": 1.2, "total_assets": 120.0},
+        ]
+    )
+    vault_prices_df.to_parquet(parquet_path)
+
+    # 1. Create input parquet with mixed chains, addresses and timestamps.
+    filtered_df = read_vault_price_history_parquet(
+        parquet_path,
+        vault_pairs_df=vault_pairs_df,
+        start_at=datetime.datetime(2025, 1, 2),
+        end_at=datetime.datetime(2025, 1, 3),
+        columns=["share_price", "total_assets"],
+    )
+
+    # 2. Read the parquet through the filtered Arrow path.
+    assert filtered_df["chain"].tolist() == [ChainId.base.value]
+
+    # 3. Assert only exact matching rows inside the requested date window remain.
+    assert filtered_df["address"].tolist() == ["0xabc"]
+    assert filtered_df["timestamp"].tolist() == [pd.Timestamp("2025-01-02")]
+    assert filtered_df["share_price"].tolist() == [1.1]
+
+
+def test_read_vault_price_history_parquet_handles_unnamed_datetime_index(tmp_path: Path) -> None:
+    """Read vault history parquet where timestamp is stored as an unnamed index.
+
+    1. Create a parquet file whose datetime index is not named ``timestamp``.
+    2. Read it through ``read_vault_price_history_parquet()`` with a date filter.
+    3. Assert the returned frame exposes a normal ``timestamp`` column.
+    """
+    parquet_path = tmp_path / "vault-price-history.parquet"
+    vault_prices_df = pd.DataFrame(
+        {
+            "chain": [ChainId.base.value, ChainId.base.value],
+            "address": ["0xabc", "0xabc"],
+            "share_price": [1.0, 1.1],
+            "total_assets": [100.0, 110.0],
+        },
+        index=pd.DatetimeIndex(
+            [
+                pd.Timestamp("2025-01-01"),
+                pd.Timestamp("2025-01-02"),
+            ]
+        ),
+    )
+    vault_prices_df.to_parquet(parquet_path)
+
+    # 1. Create a parquet file whose datetime index is not named ``timestamp``.
+    filtered_df = read_vault_price_history_parquet(
+        parquet_path,
+        start_at=datetime.datetime(2025, 1, 2),
+        columns=["timestamp", "share_price"],
+    )
+
+    # 2. Read it through the filtered Arrow path.
+    assert "timestamp" in filtered_df.columns
+
+    # 3. Assert the returned frame exposes a normal ``timestamp`` column.
+    assert filtered_df["timestamp"].tolist() == [pd.Timestamp("2025-01-02")]
+    assert filtered_df["share_price"].tolist() == [1.1]
+
+
+def test_read_vault_price_history_parquet_normalises_timezone_aware_timestamps(tmp_path: Path) -> None:
+    """Read timezone-aware parquet timestamps using naive UTC filter bounds.
+
+    1. Create a parquet file with UTC-aware timestamp values.
+    2. Read it with naive UTC ``start_at`` and ``end_at`` filters.
+    3. Assert filtering succeeds and returns naive UTC timestamps.
+    """
+    parquet_path = tmp_path / "vault-price-history.parquet"
+    vault_pairs_df = pd.DataFrame(
+        [
+            {"chain_id": ChainId.base.value, "address": "0xabc"},
+        ]
+    )
+    vault_prices_df = pd.DataFrame(
+        [
+            {"chain": ChainId.base.value, "address": "0xabc", "timestamp": pd.Timestamp("2025-01-01T00:00:00Z"), "share_price": 1.0, "total_assets": 100.0},
+            {"chain": ChainId.base.value, "address": "0xabc", "timestamp": pd.Timestamp("2025-01-02T00:00:00Z"), "share_price": 1.1, "total_assets": 110.0},
+        ]
+    )
+    vault_prices_df.to_parquet(parquet_path)
+
+    # 1. Create a parquet file with UTC-aware timestamp values.
+    filtered_df = read_vault_price_history_parquet(
+        parquet_path,
+        vault_pairs_df=vault_pairs_df,
+        start_at=datetime.datetime(2025, 1, 2),
+        end_at=datetime.datetime(2025, 1, 2),
+    )
+
+    # 2. Read it with naive UTC ``start_at`` and ``end_at`` filters.
+    assert filtered_df["timestamp"].tolist() == [pd.Timestamp("2025-01-02")]
+
+    # 3. Assert filtering succeeds and returns naive UTC timestamps.
+    assert filtered_df["timestamp"].dt.tz is None
+    assert filtered_df["share_price"].tolist() == [1.1]
 
 
 def test_side_load_vault_price_data_hourly_resample():
