@@ -349,6 +349,7 @@ def test_purge_cache():
         assert len(list(candle_downloader.cache_directory.iterdir())) == 0
 
 
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="External Binance proxy availability is not deterministic in CI")
 def test_starting_date(candle_downloader: BinanceDownloader):
     """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
 
@@ -367,6 +368,7 @@ def test_starting_date(candle_downloader: BinanceDownloader):
     assert curve_starting_date == datetime.datetime(2020, 8, 1, 0, 0)
 
 
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="External Binance proxy availability is not deterministic in CI")
 def test_starting_date_unknown(candle_downloader: BinanceDownloader):
     """Test purging cached candle data. Must be run after test_read_fresh_candle_data and test_read_cached_candle_data.
 
@@ -378,6 +380,7 @@ def test_starting_date_unknown(candle_downloader: BinanceDownloader):
         candle_downloader.fetch_approx_asset_trading_start_date("FOOBAR")
 
 
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="External Binance proxy availability is not deterministic in CI")
 def test_fetch_assets(candle_downloader: BinanceDownloader):
     """Get available tradeable assets on Binance."""
     assets = list(candle_downloader.fetch_assets())
@@ -447,6 +450,7 @@ def test_generate_lending_reserve():
     assert reserve.chain_id == ChainId.centralised_exchange
 
 
+@pytest.mark.skipif(os.environ.get("GITHUB_ACTIONS", None) == "true", reason="External Binance proxy availability is not deterministic in CI")
 def test_fetch_binance_price_data_multipair():
     """Check that pair data for multipair looks correct.
 
@@ -464,4 +468,3 @@ def test_fetch_binance_price_data_multipair():
     # Recorded 2/2024
     assert df.iloc[0].to_dict() == {'open': 7195.24, 'high': 7255.0, 'low': 7175.15, 'close': 7200.85, 'volume': 16792.388165, 'pair_id': 'BTCUSDT'}
     assert df.iloc[-1].to_dict() == {'open': 736.42, 'high': 749.0, 'low': 714.29, 'close': 728.91, 'volume': 675114.09329, 'pair_id': 'ETHUSDT'}
-
