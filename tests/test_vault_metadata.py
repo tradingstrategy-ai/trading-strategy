@@ -32,6 +32,17 @@ def _make_vault(chain_id, denomination_token_address, denomination_token_symbol=
     )
 
 
+def _make_vault_entry(address: str, name: str, **extra) -> dict:
+    """Build a minimal vault metadata JSON entry."""
+    entry = {
+        "chain_id": ChainId.ethereum.value,
+        "address": address,
+        "name": name,
+    }
+    entry.update(extra)
+    return entry
+
+
 def test_vault_universe_with_metadata(
     persistent_test_client: Client,
     tmp_path: Path,
@@ -234,3 +245,54 @@ def test_load_vault_metadata_decimals_no_default_18() -> None:
     legacy_vault = vaults["0x3333333333333333333333333333333333333333"]
     assert legacy_vault.denomination_token_decimals is None
     assert legacy_vault.share_token_decimals is None
+
+
+def test_load_vault_metadata_vault_display_flags() -> None:
+    """Generic vault display flags are loaded from the JSON data contract.
+
+    1. Build vault entries with top-level flags, ``other_data`` flags, an
+       explicit empty top-level override and no flags.
+    2. Load the entries via ``load_vault_database_with_metadata()``.
+    3. Assert each metadata object carries the expected display flag value.
+    """
+    from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
+
+    red_flags = [
+        {"severity": "red", "type": "bad_debt_unrealized", "source": "morpho"},
+    ]
+    yellow_flags = [
+        {"severity": "yellow", "type": "not_whitelisted", "source": "morpho"},
+    ]
+
+    # 1. Build vault entries covering all supported flag sources.
+    json_data = {
+        "vaults": [
+            _make_vault_entry(
+                "0x1111111111111111111111111111111111111111",
+                "Top-level flags",
+                vault_display_flags=red_flags,
+            ),
+            _make_vault_entry(
+                "0x2222222222222222222222222222222222222222",
+                "Other data flags",
+                other_data={"vault_display_flags": yellow_flags},
+            ),
+            _make_vault_entry(
+                "0x3333333333333333333333333333333333333333",
+                "Explicit no flags",
+                vault_display_flags=[],
+                other_data={"vault_display_flags": yellow_flags},
+            ),
+            _make_vault_entry("0x4444444444444444444444444444444444444444", "No flags"),
+        ]
+    }
+
+    # 2. Load the universe.
+    universe = load_vault_database_with_metadata(json_data)
+    vaults = {v.vault_address: v for v in universe.iterate_vaults()}
+
+    # 3. Top-level flags win, ``other_data`` fallback works and missing flags stay None.
+    assert vaults["0x1111111111111111111111111111111111111111"].metadata.vault_display_flags == red_flags
+    assert vaults["0x2222222222222222222222222222222222222222"].metadata.vault_display_flags == yellow_flags
+    assert vaults["0x3333333333333333333333333333333333333333"].metadata.vault_display_flags == []
+    assert vaults["0x4444444444444444444444444444444444444444"].metadata.vault_display_flags is None

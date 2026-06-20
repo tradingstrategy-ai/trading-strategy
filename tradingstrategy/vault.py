@@ -399,6 +399,11 @@ class VaultMetadata:
     #: Set of warning or status flags for the vault.
     flags: list | None = None
 
+    #: Generic warning flags suitable for compact UI display.
+    #:
+    #: Each entry is expected to contain at least ``severity`` and ``type``.
+    vault_display_flags: list[dict] | None = None
+
     #: Block number of first price update.
     #:
     #: The blockchain block when first price data was recorded.

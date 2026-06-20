@@ -663,6 +663,11 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
 
     # Parse features - may be list of strings or list of enums
     features = entry.get("features", [])
+    other_data = entry.get("other_data") or {}
+    if "vault_display_flags" in entry:
+        vault_display_flags = entry["vault_display_flags"]
+    else:
+        vault_display_flags = other_data.get("vault_display_flags")
 
     return VaultMetadata(
         vault_name=entry.get("name"),
@@ -717,6 +722,7 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
         link=entry.get("link"),
         trading_strategy_link=entry.get("trading_strategy_link"),
         flags=entry.get("flags"),
+        vault_display_flags=vault_display_flags,
         period_results=period_results,
     )
 
