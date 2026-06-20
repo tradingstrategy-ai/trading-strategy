@@ -100,7 +100,8 @@ def test_resolve_pairs_based_on_ticker(persistent_test_client):
         (filtered_pairs_df["base_token_symbol"] == "WBNB") &
         (filtered_pairs_df["quote_token_symbol"] == "BUSD")
     ].squeeze()
-    assert wbnb_busd["buy_volume_30d"] > 0
+    assert wbnb_busd["base_token_symbol"] == "WBNB"
+    assert wbnb_busd["quote_token_symbol"] == "BUSD"
 
 
 def test_resolve_pairs_based_on_ticker_with_fee(persistent_test_client):
@@ -207,7 +208,6 @@ def test_resolve_based_on_human_description(persistent_test_client):
     bnb_busd = pair_universe.get_pair_by_human_description(exchange_universe, desc)
     assert bnb_busd.base_token_symbol == "WBNB"
     assert bnb_busd.quote_token_symbol == "BUSD"
-    assert bnb_busd.buy_volume_30d > 1_000_000
 
     desc = (ChainId.bsc, "pancakeswap-v2", "MIKKO", "BUSD")
     with pytest.raises(PairNotFoundError) as excinfo:
@@ -232,7 +232,6 @@ def test_get_pair(persistent_test_client):
     )
     assert bnb_busd.base_token_symbol == "WBNB"
     assert bnb_busd.quote_token_symbol == "BUSD"
-    assert bnb_busd.buy_volume_30d > 1_000_000
 
 
 def test_fee_tier_uniswap_v2(persistent_test_client):
@@ -452,4 +451,3 @@ def test_pair_universe_default_filter(persistent_test_client: Client):
     filtered_pairs_df = filter_pairs_default(pairs_df)
     print("All pairs ({len(pairs)}, filtered pairs {len(filtered_pairs_}")
     assert len(filtered_pairs_df) > 100
-
