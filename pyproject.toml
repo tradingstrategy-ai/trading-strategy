@@ -28,7 +28,9 @@ version = "0.28"
 exclude = [
   # Don't include various blockchain icons in the release
   "tradingstrategy/chains/_data/icons",
-  "./tradingstrategy/chains/_data/iconsDownload",
+  "tradingstrategy/chains/_data/iconsDownload",
+  # Coingecko metadata is optional and too large for the default runtime package
+  "tradingstrategy/data_bundles/coingecko.json.zstd",
   "extras",
 ]
 
