@@ -636,11 +636,15 @@ def convert_vault_prices_to_vault_state(
     (:py:data:`VAULT_STATE_COLUMNS`) so backtests can query, per timestamp, whether a vault
     accepted deposits / allowed redemptions and skip impossible rebalances.
 
-    Resampling mirrors the TVL/price candle grid (same frequency, last-known value within each
-    bucket) so a state lookup at a timestamp is consistent with the TVL lookup at that same
-    timestamp. Empty buckets are left as NA; the consumer backward-fills at lookup time.
-    Boolean-like columns are normalised to nullable boolean via :py:func:`_normalise_bool_like`;
-    unknown/NA must be treated as "allowed".
+    Output is **sparse**: one row per populated bucket, floored to the bucket boundary (midnight
+    for daily, on the same grid as the TVL/price candles), taking the whole last sample in that
+    bucket. Gaps produce no row — the backtest consumer
+    (:py:class:`tradeexecutor.backtest.backtest_pricing.BacktestPricing`) backward-fills the
+    nearest sample at or before the decision timestamp within its data-delay tolerance, exactly
+    like the TVL lookup, so the sparse frame resolves correctly and a gap older than the
+    tolerance reads as unknown. (A dense NA-filled grid would instead resolve gap buckets to
+    "unknown" even when a recent sample exists.) Boolean-like columns are normalised to nullable
+    boolean via :py:func:`_normalise_bool_like`; unknown/NA must be treated as "allowed".
 
     :param raw_prices_df:
         Vault price rows as returned by :py:func:`read_vault_price_history_parquet`, optionally
