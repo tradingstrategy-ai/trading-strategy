@@ -7,6 +7,7 @@ do not depend on the downloaded vault price bundle.
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pytest
 
 from tradingstrategy.alternative_data.vault import (
     convert_vault_prices_to_vault_state,
@@ -146,3 +147,26 @@ def test_convert_vault_state_latest_unknown_wins():
     day = state.loc[pd.Timestamp("2026-03-05")]
     assert pd.isna(day["deposits_open"])  # latest unknown wins, not the earlier False
     assert pd.isna(day["deposit_closed_reason"])
+
+
+def test_read_parquet_errors_on_missing_non_state_column(tmp_path):
+    """A missing NON-state requested column still fails fast (not silently dropped)."""
+    path = tmp_path / "no-state.parquet"
+    df = pd.DataFrame(
+        {
+            "chain": [9999, 9999],
+            "address": [ADDR, ADDR],
+            "timestamp": [pd.Timestamp("2026-03-05"), pd.Timestamp("2026-03-06")],
+            "share_price": [1.0, 1.01],
+            "total_assets": [1_000_000.0, 1_010_000.0],
+        }
+    )
+    pq.write_table(pa.Table.from_pandas(df, preserve_index=False), path)
+    pairs_df = pd.DataFrame([{"chain_id": 9999, "address": ADDR}])
+    with pytest.raises(Exception):
+        # `share_priec` is a typo, not an optional state column -> must surface, not be dropped.
+        read_vault_price_history_parquet(
+            path,
+            vault_pairs_df=pairs_df,
+            columns=["chain", "address", "timestamp", "share_priec"],
+        )

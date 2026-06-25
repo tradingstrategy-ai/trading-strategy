@@ -395,10 +395,11 @@ def read_vault_price_history_parquet(
 
     if columns is not None:
         requested_columns = [timestamp_column if c == "timestamp" else c for c in columns]
-        # Silently drop requested columns that are absent from this parquet schema, so callers
-        # can opt in to optional columns (e.g. deposit/redemption state) without breaking on
-        # older files like the daily price bundle that do not carry them.
-        requested_columns = [c for c in requested_columns if c in schema_names]
+        # Drop only the *optional* vault-state columns when they are absent from this parquet
+        # schema, so callers can opt in to them without breaking on older files (e.g. the daily
+        # price bundle). Any other missing requested column is kept so the read still fails fast
+        # on a genuine schema mismatch (e.g. a misspelled `share_price`).
+        requested_columns = [c for c in requested_columns if c in schema_names or c not in VAULT_STATE_COLUMNS]
         required_columns = {timestamp_column}
         if vault_pairs_df is not None:
             required_columns.update({"chain", "address"})
