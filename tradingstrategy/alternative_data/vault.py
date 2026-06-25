@@ -671,24 +671,16 @@ def convert_vault_prices_to_vault_state(
             df[col] = _normalise_bool_like(df[col])
 
     pandas_freq = _VAULT_STATE_FREQUENCIES[frequency]
-    df = df.set_index("timestamp").sort_index()
 
-    parts = []
-    for pair_id, group in df.groupby("pair_id", sort=False):
-        # Keep the last *row* in each resample bucket — all columns taken from the same sample,
-        # including nulls. `Resampler.last()` would instead take each column's last *non-null*
-        # value independently, which can pair a freshly re-opened `deposits_open=True` with a
-        # stale `deposit_closed_reason` from earlier in the same bucket. Floor each row to the
-        # bucket boundary (midnight for daily) so labels match the TVL/price candle grid.
-        bucketed = group[present].copy()
-        bucketed.index = group.index.floor(pandas_freq)
-        resampled = bucketed[~bucketed.index.duplicated(keep="last")].copy()
-        resampled["pair_id"] = pair_id
-        resampled["address"] = group["address"].iloc[0]
-        parts.append(resampled)
-
-    # The bucket label (index) goes back to a `timestamp` column.
-    return pd.concat(parts).reset_index()
+    # Floor each sample to its bucket (midnight for daily) and keep the last row per
+    # (pair, bucket): every column from the same latest sample, including nulls. A per-column
+    # `Resampler.last()` would take each column's last *non-null* value independently, which
+    # could pair a freshly re-opened `deposits_open=True` with a stale `deposit_closed_reason`
+    # from earlier in the bucket. Bucket labels match the TVL/price candle grid.
+    df = df.sort_values("timestamp")
+    df["timestamp"] = df["timestamp"].dt.floor(pandas_freq)
+    deduped = df.drop_duplicates(subset=["pair_id", "timestamp"], keep="last")
+    return deduped[["timestamp", "pair_id", "address", *present]].reset_index(drop=True)
 
 
 def _parse_period_metrics(pm_dict: dict):
