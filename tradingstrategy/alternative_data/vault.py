@@ -51,6 +51,22 @@ DEFAULT_VAULT_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-me
 #: Path to the example vault price data
 DEFAULT_VAULT_PRICE_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "vault-prices.parquet"
 
+#: Optional per-(vault, timestamp) availability columns in the cleaned vault price parquet.
+#:
+#: These describe whether a vault accepted new deposits / allowed redemptions at a given
+#: historical timestamp, plus any hard caps. They are only present in the cleaned hourly
+#: dataset (:py:data:`CLEANED_VAULT_PRICE_PARQUET_URL`) and only populated from the date the
+#: upstream scanner started recording them; older rows and the daily bundle lack them.
+#: Consumers must treat missing / unknown values as "allowed" rather than "closed".
+VAULT_STATE_COLUMNS = [
+    "deposits_open",
+    "redemption_open",
+    "deposit_closed_reason",
+    "redemption_closed_reason",
+    "max_deposit",
+    "max_redeem",
+]
+
 
 #: Cached loaded vault universe from our defaut bundle
 _cached_vault_universe: dict[Path, VaultUniverse] = {}
@@ -379,6 +395,10 @@ def read_vault_price_history_parquet(
 
     if columns is not None:
         requested_columns = [timestamp_column if c == "timestamp" else c for c in columns]
+        # Silently drop requested columns that are absent from this parquet schema, so callers
+        # can opt in to optional columns (e.g. deposit/redemption state) without breaking on
+        # older files like the daily price bundle that do not carry them.
+        requested_columns = [c for c in requested_columns if c in schema_names]
         required_columns = {timestamp_column}
         if vault_pairs_df is not None:
             required_columns.update({"chain", "address"})
@@ -583,6 +603,86 @@ def _resample(df: pd.DataFrame, frequency: str) -> pd.DataFrame:
     """Multipair resample helper."""
     df = resample_candles_multiple_pairs(df, frequency)
     return df
+
+
+#: Map our supported candle frequencies to pandas resample offsets.
+_VAULT_STATE_FREQUENCIES = {"1d": "1D", "1h": "1h"}
+
+
+def _normalise_bool_like(series: pd.Series) -> pd.Series:
+    """Normalise a ``true``/``false``/NA-ish column to pandas nullable boolean.
+
+    The cleaned vault parquet stores ``deposits_open`` / ``redemption_open`` as strings
+    (``"true"`` / ``"false"``) with NA for unknown. Anything that is not an explicit
+    ``true`` / ``false`` becomes :py:data:`pandas.NA` (unknown), which downstream consumers
+    must treat as "allowed".
+    """
+    lowered = series.astype("string").str.lower()
+    out = pd.Series(pd.NA, index=series.index, dtype="boolean")
+    out[lowered == "true"] = True
+    out[lowered == "false"] = False
+    return out
+
+
+def convert_vault_prices_to_vault_state(
+    raw_prices_df: pd.DataFrame,
+    frequency: str = "1d",
+) -> pd.DataFrame | None:
+    """Build a per-(pair, timestamp) vault availability state frame.
+
+    Companion to :py:func:`convert_vault_prices_to_candles`. Where that function turns share
+    price and TVL into OHLC candles, this extracts the deposit/redemption availability columns
+    (:py:data:`VAULT_STATE_COLUMNS`) so backtests can query, per timestamp, whether a vault
+    accepted deposits / allowed redemptions and skip impossible rebalances.
+
+    Resampling mirrors the TVL/price candle grid (same frequency, last-known value within each
+    bucket) so a state lookup at a timestamp is consistent with the TVL lookup at that same
+    timestamp. Empty buckets are left as NA; the consumer backward-fills at lookup time.
+    Boolean-like columns are normalised to nullable boolean via :py:func:`_normalise_bool_like`;
+    unknown/NA must be treated as "allowed".
+
+    :param raw_prices_df:
+        Vault price rows as returned by :py:func:`read_vault_price_history_parquet`, optionally
+        carrying some of :py:data:`VAULT_STATE_COLUMNS`. ``raw_prices_df`` may already have been
+        passed through :py:func:`convert_vault_prices_to_candles` (which only mutates OHLC
+        columns); the state columns are untouched.
+
+    :return:
+        Tidy DataFrame with columns ``pair_id``, ``address``, ``timestamp`` plus whichever of
+        :py:data:`VAULT_STATE_COLUMNS` are present, resampled to ``frequency``. Returns ``None``
+        if the source carries none of the state columns (e.g. the daily price bundle).
+    """
+    assert frequency in _VAULT_STATE_FREQUENCIES, f"Got {frequency}"
+
+    present = [c for c in VAULT_STATE_COLUMNS if c in raw_prices_df.columns]
+    if not present:
+        return None
+
+    assert "address" in raw_prices_df.columns, f"Got {raw_prices_df.columns}"
+    if "timestamp" not in raw_prices_df.columns and raw_prices_df.index.name == "timestamp":
+        raw_prices_df = raw_prices_df.reset_index()
+    assert "timestamp" in raw_prices_df.columns, f"Got {raw_prices_df.columns}"
+
+    df = raw_prices_df[["address", "timestamp", *present]].copy()
+    df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
+
+    for col in ("deposits_open", "redemption_open"):
+        if col in df.columns:
+            df[col] = _normalise_bool_like(df[col])
+
+    pandas_freq = _VAULT_STATE_FREQUENCIES[frequency]
+    df = df.set_index("timestamp").sort_index()
+
+    parts = []
+    for pair_id, group in df.groupby("pair_id", sort=False):
+        address = group["address"].iloc[0]
+        resampled = group[present].resample(pandas_freq).last()
+        resampled["pair_id"] = pair_id
+        resampled["address"] = address
+        parts.append(resampled)
+
+    # `timestamp` (the resample index) goes back to a column.
+    return pd.concat(parts).reset_index()
 
 
 def _parse_period_metrics(pm_dict: dict):
