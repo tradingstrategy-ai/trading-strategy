@@ -675,13 +675,19 @@ def convert_vault_prices_to_vault_state(
 
     parts = []
     for pair_id, group in df.groupby("pair_id", sort=False):
-        address = group["address"].iloc[0]
-        resampled = group[present].resample(pandas_freq).last()
+        # Keep the last *row* in each resample bucket — all columns taken from the same sample,
+        # including nulls. `Resampler.last()` would instead take each column's last *non-null*
+        # value independently, which can pair a freshly re-opened `deposits_open=True` with a
+        # stale `deposit_closed_reason` from earlier in the same bucket. Floor each row to the
+        # bucket boundary (midnight for daily) so labels match the TVL/price candle grid.
+        bucketed = group[present].copy()
+        bucketed.index = group.index.floor(pandas_freq)
+        resampled = bucketed[~bucketed.index.duplicated(keep="last")].copy()
         resampled["pair_id"] = pair_id
-        resampled["address"] = address
+        resampled["address"] = group["address"].iloc[0]
         parts.append(resampled)
 
-    # `timestamp` (the resample index) goes back to a column.
+    # The bucket label (index) goes back to a `timestamp` column.
     return pd.concat(parts).reset_index()
 
 

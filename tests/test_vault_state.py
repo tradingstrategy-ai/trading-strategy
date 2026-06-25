@@ -116,3 +116,33 @@ def test_read_parquet_tolerates_missing_state_columns(tmp_path):
     assert len(out) == 2
     # State columns were silently dropped because the file does not carry them.
     assert not any(c in out.columns for c in VAULT_STATE_COLUMNS)
+
+
+def test_convert_vault_state_takes_whole_last_row():
+    """The latest sample in a bucket wins as a whole row, including its nulls.
+
+    Regression: a per-column ``Resampler.last()`` would keep a stale close reason from earlier in
+    the bucket alongside a freshly re-opened ``deposits_open=True``.
+    """
+    rows = [
+        _row("2026-03-05", 0, "true", None, 1000.0),
+        _row("2026-03-05", 12, "false", "Vault deposits disabled by leader", 0.0),
+        _row("2026-03-05", 18, "true", None, 1000.0),  # reopened, reason cleared
+    ]
+    state = convert_vault_prices_to_vault_state(pd.DataFrame(rows), "1d").set_index("timestamp")
+    day = state.loc[pd.Timestamp("2026-03-05")]
+    assert day["deposits_open"] == True  # noqa: E712 — last row reopened
+    assert pd.isna(day["deposit_closed_reason"])  # stale noon reason must NOT carry over
+    assert day["max_deposit"] == 1000.0  # last row's cap, not the noon 0.0
+
+
+def test_convert_vault_state_latest_unknown_wins():
+    """A latest unknown (NA) sample is not overwritten by an earlier non-null value."""
+    rows = [
+        _row("2026-03-05", 0, "false", "Vault deposits disabled by leader", 0.0),
+        _row("2026-03-05", 18, None, None, float("nan")),  # latest sample is unknown
+    ]
+    state = convert_vault_prices_to_vault_state(pd.DataFrame(rows), "1d").set_index("timestamp")
+    day = state.loc[pd.Timestamp("2026-03-05")]
+    assert pd.isna(day["deposits_open"])  # latest unknown wins, not the earlier False
+    assert pd.isna(day["deposit_closed_reason"])
