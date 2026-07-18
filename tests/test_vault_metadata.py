@@ -247,6 +247,37 @@ def test_load_vault_metadata_decimals_no_default_18() -> None:
     assert legacy_vault.share_token_decimals is None
 
 
+def test_load_vault_metadata_preserves_curator_metadata() -> None:
+    """Curator metadata round-trips from the vault JSON into ``VaultMetadata``.
+
+    The producer calculates curator identity while building
+    ``top_vaults_by_chain.json``. The loader must retain that authoritative
+    JSON data without re-identifying the curator from the vault name.
+    """
+    from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
+
+    json_data = {
+        "vaults": [
+            _make_vault_entry(
+                "0x1111111111111111111111111111111111111111",
+                "Gauntlet USDC Core",
+                protocol="Morpho",
+                protocol_slug="morpho",
+                curator_slug="gauntlet",
+                curator_name="Gauntlet",
+                protocol_curator=False,
+            ),
+        ],
+    }
+
+    universe = load_vault_database_with_metadata(json_data)
+    vault = next(universe.iterate_vaults())
+
+    assert vault.metadata.curator_slug == "gauntlet"
+    assert vault.metadata.curator_name == "Gauntlet"
+    assert vault.metadata.protocol_curator is False
+
+
 def test_load_vault_metadata_vault_display_flags() -> None:
     """Generic vault display flags are loaded from the JSON data contract.
 

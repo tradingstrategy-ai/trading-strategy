@@ -777,6 +777,9 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
         protocol_name=entry.get("protocol"),
         protocol_slug=entry.get("protocol_slug"),
         features=features,
+        curator_slug=entry.get("curator_slug"),
+        curator_name=entry.get("curator_name"),
+        protocol_curator=entry.get("protocol_curator"),
         performance_fee=entry.get("performance_fee"),
         management_fee=entry.get("management_fee"),
         lifetime_return=entry.get("lifetime_return"),
@@ -857,6 +860,9 @@ def load_vault_database_with_metadata(
 
         - ``generated_at``: timestamp when the data was generated
         - ``vaults``: list of vault metadata dicts
+        - per-vault ``curator_slug``, ``curator_name`` and
+          ``protocol_curator`` values calculated by
+          ``calculate_lifetime_metrics()``
 
     :return:
         VaultUniverse with Vault instances containing full metadata.

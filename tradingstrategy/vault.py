@@ -68,6 +68,17 @@ class VaultMetadata:
     #: Must be JSON serialisable, as this will be passed around to JSON state
     features: list[ERC4626Feature]
 
+    #: Curator slug from the vault metrics JSON, e.g. ``"gauntlet"``.
+    #:
+    #: ``None`` means the JSON does not identify a curator for this vault.
+    curator_slug: str | None = None
+
+    #: Curator display name from the vault metrics JSON.
+    curator_name: str | None = None
+
+    #: Whether the curator is the vault protocol itself.
+    protocol_curator: bool | None = None
+
     #: Performance fee.
     #:
     #: .. note::
