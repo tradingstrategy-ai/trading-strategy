@@ -12,6 +12,16 @@ except ImportError:
     # Spoof for soft imports
     ERC4626Feature: TypeAlias = str
 
+try:
+    from eth_defi.utils import is_good_multichain_address
+except ImportError:
+    # Compat shim: eth_defi releases predating `is_good_multichain_address`
+    # (and importing this module without eth_defi). Prefer the canonical
+    # eth_defi function whenever it is importable; this mirrors its prefix list.
+    def is_good_multichain_address(address: str) -> bool:
+        addr_lower = address.lower()
+        return addr_lower.startswith(("0x", "vlt:", "lighter-pool-", "hibachi-vault-"))
+
 if TYPE_CHECKING:
     from eth_defi.research.vault_metrics import PeriodMetrics
 else:
@@ -768,7 +778,6 @@ class VaultUniverse:
 
     def get_by_vault_spec(self, spec: tuple[ChainId | int, NonChecksummedAddress]) -> Vault | None:
         """Get vault by chain id and name."""
-
         chain_id = spec[0]
         address = spec[1]
 
@@ -777,7 +786,7 @@ class VaultUniverse:
 
         assert isinstance(chain_id, ChainId)
         assert type(address) == str
-        assert address.startswith("0x")
+        assert is_good_multichain_address(address), f"Unrecognised vault address: {address}"
         return self.vaults.get((chain_id, address.lower()))
 
     def get_vault_count(self) -> int:
@@ -805,7 +814,7 @@ class VaultUniverse:
 
             If not set, skip and do not care if some vaults are missing.
         """
-        assert all(type(v) in (tuple, list) and isinstance(v[0], (ChainId, int)) and v[1].startswith("0x") for v in vaults), f"Bad vault descriptors: {vaults}"
+        assert all(type(v) in (tuple, list) and isinstance(v[0], (ChainId, int)) and is_good_multichain_address(v[1]) for v in vaults), f"Bad vault descriptors: {vaults}"
         vaults = set(vaults)
 
         if check_all_vaults_found:    
