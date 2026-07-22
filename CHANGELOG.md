@@ -1,5 +1,6 @@
 # Current
 
+- Accept synthetic non-EVM vault addresses in `VaultUniverse.limit_to_vaults()` and `get_by_vault_spec()`: the hardcoded `0x` prefix check now prefers the canonical `eth_defi.utils.is_good_multichain_address` (with a compat fallback for eth_defi releases predating it), so Lighter (`lighter-pool-`), GRVT (`vlt:`) and Hibachi (`hibachi-vault-`) pools can be limited to and looked up like EVM vaults (2026-07-22)
 - Add per-(vault, timestamp) deposit/redemption availability to vault price loading: `read_vault_price_history_parquet()` is now schema-tolerant for optional columns and `convert_vault_prices_to_vault_state()` exposes `deposits_open` / `redemption_open` / hard caps so backtests can model when a vault could be deposited into or redeemed from (2026-06-25)
 - Fix vault metadata loader silently defaulting missing token decimals to 18: `load_vault_database_with_metadata()` now reads `denomination_decimals` / `share_token_decimals` from the JSON blob and leaves them `None` when absent instead of defaulting to 18 (which scaled raw amounts by 10\*\*12 for 6-decimal tokens like USDC) (2026-06-09)
 - Upgrade to Python 3.14 (2026-02-10)
