@@ -47,6 +47,8 @@ Youtube = "https://www.youtube.com/@tradingstrategyprotocol"
 
 [tool.poetry.dependencies]
 dataclasses-json = "^0.5.4"
+# Local incremental candle cache for the Binance reference price helper (tradingstrategy.binance.price)
+duckdb = ">=1.0"
 jsonlines = "^3.1.0"
 numpy = "<3"
 pandas = "<3"
