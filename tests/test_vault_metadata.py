@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 from tradingstrategy.chain import ChainId
+from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
 from tradingstrategy.client import Client
 from tradingstrategy.vault import Vault, VaultMetadata, VaultUniverse
 
@@ -327,3 +328,40 @@ def test_load_vault_metadata_vault_display_flags() -> None:
     assert vaults["0x2222222222222222222222222222222222222222"].metadata.vault_display_flags == yellow_flags
     assert vaults["0x3333333333333333333333333333333333333333"].metadata.vault_display_flags == []
     assert vaults["0x4444444444444444444444444444444444444444"].metadata.vault_display_flags is None
+
+
+def test_load_vault_metadata_supports_eth_defi_vault_chain_ids() -> None:
+    """Vault metadata accepts all chain ids emitted by eth_defi vault exports.
+
+    1. Build vault JSON entries for Tempo, Robinhood and ApeX.
+    2. Load the entries via ``load_vault_database_with_metadata()``.
+    3. Assert all entries survive parsing with typed ``ChainId`` values.
+    """
+    # 1. Build vault JSON entries for Tempo, Robinhood and ApeX.
+    json_data = {
+        "vaults": [
+            _make_vault_entry(
+                "0x1111111111111111111111111111111111111111",
+                "Tempo USDC",
+                chain_id=ChainId.tempo.value,
+            ),
+            _make_vault_entry(
+                "0x2222222222222222222222222222222222222222",
+                "Robinhood USDC",
+                chain_id=ChainId.robinhood.value,
+            ),
+            _make_vault_entry(
+                "0x3333333333333333333333333333333333333333",
+                "ApeX USDT",
+                chain_id=ChainId.apex.value,
+            ),
+        ],
+    }
+
+    # 2. Load the entries via ``load_vault_database_with_metadata()``.
+    universe = load_vault_database_with_metadata(json_data)
+    vaults = list(universe.iterate_vaults())
+
+    # 3. Assert all entries survive parsing with typed ``ChainId`` values.
+    assert len(vaults) == 3
+    assert {vault.chain_id for vault in vaults} == {ChainId.tempo, ChainId.robinhood, ChainId.apex}
