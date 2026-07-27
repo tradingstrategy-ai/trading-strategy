@@ -157,6 +157,80 @@ def test_fetch_vault_price_history_reuses_expired_cache_when_head_matches(
     assert orjson.loads(sidecar_path.read_bytes())["content_length"] == 3
 
 
+def test_fetch_vault_price_history_revalidate_forces_head_inside_expiry_window(
+    transport: CachedHTTPTransport,
+    tmp_path: Path,
+) -> None:
+    """Test ``revalidate=True`` validates against the remote inside the local expiry window.
+
+    Inside the window the transport makes no HEAD request, so a parquet published
+    after the last check is not picked up. Live universe loads must not trust that,
+    but must also not re-download 200 MB when the remote is unchanged.
+
+    1. Create a cache file whose mtime is inside the window while the remote is newer.
+    2. Fetch without revalidation and confirm the cached file is served with no HEAD request.
+    3. Fetch with revalidation and confirm the HEAD runs and the newer remote is downloaded.
+    4. Fetch again with revalidation against an unchanged remote and confirm no download follows.
+    """
+    download_root = tmp_path / "vault-downloads"
+    download_root.mkdir()
+    cached_path = download_root / "vault-price-history.parquet"
+    sidecar_path = cached_path.with_name("vault-price-history.parquet.metadata.json")
+    url = "https://example.com/cleaned-vault-prices-1h.parquet"
+
+    def head_returning(headers: dict[str, str]) -> Mock:
+        response = Mock()
+        response.headers = headers
+        response.raise_for_status = Mock()
+        return Mock(return_value=response)
+
+    # 1. Create a cache file whose mtime is inside the window while the remote is newer.
+    cached_path.write_bytes(b"abc")
+    fresh_mtime = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=2)
+    os.utime(cached_path, (fresh_mtime.timestamp(), fresh_mtime.timestamp()))
+    transport.requests.head = head_returning(
+        {
+            "Last-Modified": format_datetime(dt.datetime.now(dt.timezone.utc)),
+            "Content-Length": "5",
+            "ETag": '"new-version"',
+        }
+    )
+
+    # 2. Fetch without revalidation and confirm the cached file is served with no HEAD request.
+    assert transport.fetch_vault_price_history(url=url, download_root=download_root) == cached_path
+    transport.requests.head.assert_not_called()
+    transport.download_func.assert_not_called()
+    assert cached_path.read_bytes() == b"abc"
+
+    def fake_download(session, path, url, params, timeout, human_desc) -> None:
+        Path(path).write_bytes(b"abcde")
+
+    transport.download_func.side_effect = fake_download
+
+    # 3. Fetch with revalidation and confirm the HEAD runs and the newer remote is downloaded.
+    result = transport.fetch_vault_price_history(url=url, download_root=download_root, revalidate=True)
+    assert result == cached_path
+    transport.requests.head.assert_called_once()
+    transport.download_func.assert_called_once()
+    assert cached_path.read_bytes() == b"abcde"
+    assert orjson.loads(sidecar_path.read_bytes())["etag"] == '"new-version"'
+
+    # 4. Fetch again with revalidation against an unchanged remote and confirm no download follows.
+    transport.download_func.reset_mock()
+    transport.requests.head = head_returning(
+        {
+            "Last-Modified": format_datetime(dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)),
+            "Content-Length": "5",
+            "ETag": '"new-version"',
+        }
+    )
+    result = transport.fetch_vault_price_history(url=url, download_root=download_root, revalidate=True)
+    assert result == cached_path
+    transport.requests.head.assert_called_once()
+    transport.download_func.assert_not_called()
+    assert cached_path.read_bytes() == b"abcde"
+
+
 def test_fetch_vault_price_history_redownloads_when_head_metadata_changed(
     transport: CachedHTTPTransport,
     tmp_path: Path,
