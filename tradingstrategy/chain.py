@@ -139,6 +139,12 @@ class ChainId(enum.IntEnum):
     #: Arbitrum One id
     arbitrum = 42161
 
+    #: Tempo
+    tempo = 4217
+
+    #: Robinhood Chain
+    robinhood = 4663
+
     #: Base
     base = 8453
 
@@ -269,6 +275,11 @@ class ChainId(enum.IntEnum):
     #:
     #: Does not have a real chain id, so we use a synthetic in-house id.
     hibachi = 9997
+
+    #: ApeX native.
+    #:
+    #: Does not have a real chain id, so we use a synthetic in-house id.
+    apex = 9995
 
     #: Grvt
     grvt = 325
@@ -414,6 +425,28 @@ _CHAIN_DATA_OVERRIDES = {
     },
 
     #
+    # Tempo
+    #
+    ChainId.tempo.value: {
+        "name": "Tempo",
+        "slug": "tempo",
+        "infoURL": "https://tempo.xyz",
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    #
+    # Robinhood Chain
+    #
+    ChainId.robinhood.value: {
+        "name": "Robinhood",
+        "slug": "robinhood",
+        "infoURL": "https://robinhood.com/us/en/chain/",
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    #
     # Base
     #
     ChainId.base.value: {
@@ -513,6 +546,17 @@ _CHAIN_DATA_OVERRIDES = {
     ChainId.hibachi.value: {
         "name": "Hibachi",
         "slug": "hibachi",
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    #
+    # ApeX
+    #
+    ChainId.apex.value: {
+        "name": "ApeX",
+        "slug": "apex",
+        "infoURL": "https://www.apex.exchange",
         "svg_icon": None,
         "dataless": True,
     },

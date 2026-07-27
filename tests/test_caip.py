@@ -56,3 +56,25 @@ def test_resolve_by_slug():
     c = ChainId.get_by_slug("arbitrum")
     assert c.value == 42161
 
+
+def test_new_vault_chain_ids_from_eth_defi() -> None:
+    """Support chain ids emitted by eth_defi vault metadata exports.
+
+    1. Resolve Tempo, Robinhood and ApeX by their raw chain ids.
+    2. Check their display names match the eth_defi chain metadata.
+    3. Check slug lookup works for URL and metadata consumers.
+    """
+    # 1. Resolve Tempo, Robinhood and ApeX by their raw chain ids.
+    tempo = ChainId(4217)
+    robinhood = ChainId(4663)
+    apex = ChainId(9995)
+
+    # 2. Check their display names match the eth_defi chain metadata.
+    assert tempo.get_name() == "Tempo"
+    assert robinhood.get_name() == "Robinhood"
+    assert apex.get_name() == "ApeX"
+
+    # 3. Check slug lookup works for URL and metadata consumers.
+    assert ChainId.get_by_slug("tempo") == tempo
+    assert ChainId.get_by_slug("robinhood") == robinhood
+    assert ChainId.get_by_slug("apex") == apex
