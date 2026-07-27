@@ -29,20 +29,9 @@ END_AT = datetime.datetime(2021, 1, 2)
 pytestmark = pytest.mark.skipif(not os.environ.get("BASE_BINANCE_MARGIN_API_URL"), reason="Set BASE_BINANCE_MARGIN_API_URL to run these tests to a proxy server or https://www.binance.com/bapi/margin")
 
 
-@pytest.fixture(scope="module")
-def candle_downloader():
-    return BinanceDownloader()
-
-
-def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
-    """Test reading fresh candle data.
-
-    Will be mock data if run on Github, otherwise will be downloadeded from Binance API if local.
-
-    This is to check that the candle data is correct i.e. correct time bucket, no missing values, correct columns etc
-    """
-
-    correct_df = pd.DataFrame(
+def _make_correct_candle_df() -> pd.DataFrame:
+    """Create deterministic Binance candle data for cache tests."""
+    return pd.DataFrame(
         {
             "open": {
                 pd.Timestamp("2021-01-01"): 736.9,
@@ -70,6 +59,38 @@ def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
             },
         }
     )
+
+
+def _make_correct_lending_df() -> pd.DataFrame:
+    """Create deterministic Binance lending data for cache tests."""
+    return pd.DataFrame(
+        {
+            "lending_rates": {
+                pd.Timestamp("2021-01-01 00:00:00"): 9.125,
+                pd.Timestamp("2021-01-02 00:00:00"): 9.125,
+            },
+            "pair_id": {
+                pd.Timestamp("2021-01-01 00:00:00"): "ETH",
+                pd.Timestamp("2021-01-02 00:00:00"): "ETH",
+            },
+        }
+    )
+
+
+@pytest.fixture(scope="module")
+def candle_downloader():
+    return BinanceDownloader()
+
+
+def test_read_fresh_candle_data(candle_downloader: BinanceDownloader):
+    """Test reading fresh candle data.
+
+    Will be mock data if run on Github, otherwise will be downloadeded from Binance API if local.
+
+    This is to check that the candle data is correct i.e. correct time bucket, no missing values, correct columns etc
+    """
+
+    correct_df = _make_correct_candle_df()
 
     if os.environ.get("GITHUB_ACTIONS", None) == "true":
         with patch(
@@ -165,6 +186,12 @@ def test_read_cached_candle_data(candle_downloader: BinanceDownloader):
 
     Checks that the caching functionality works correctly.
     """
+    if os.environ.get("GITHUB_ACTIONS", None) == "true":
+        path = candle_downloader.get_parquet_path(
+            CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
+        )
+        _make_correct_candle_df().to_parquet(path)
+
     df = candle_downloader.get_data_parquet(
         CANDLE_SYMBOL, TIME_BUCKET, START_AT, END_AT
     )
@@ -183,18 +210,7 @@ def test_read_fresh_lending_data(candle_downloader: BinanceDownloader):
 
     This is to check that the lending data is correct i.e. correct time bucket, no missing values
     """
-    correct_df = pd.DataFrame(
-        {
-            "lending_rates": {
-                pd.Timestamp("2021-01-01 00:00:00"): 9.125,
-                pd.Timestamp("2021-01-02 00:00:00"): 9.125,
-            },
-            "pair_id": {
-                pd.Timestamp("2021-01-01 00:00:00"): "ETH",
-                pd.Timestamp("2021-01-02 00:00:00"): "ETH",
-            },
-        }
-    )
+    correct_df = _make_correct_lending_df()
 
     if os.environ.get("GITHUB_ACTIONS", None) == "true":
         with patch(
@@ -238,6 +254,12 @@ def test_read_cached_lending_data(candle_downloader: BinanceDownloader):
 
     Checks that the cache is working correctly
     """
+    if os.environ.get("GITHUB_ACTIONS", None) == "true":
+        path = candle_downloader.get_parquet_path(
+            LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
+        )
+        _make_correct_lending_df().to_parquet(path)
+
     df = candle_downloader.get_data_parquet(
         LENDING_SYMBOL, LENDING_TIME_BUCKET, START_AT, END_AT, is_lending=True
     )

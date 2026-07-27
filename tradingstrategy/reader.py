@@ -57,7 +57,7 @@ def read_parquet(path: Path, filters: Optional[List[Tuple]]=None, columns: Optio
     # https://arrow.apache.org/docs/python/parquet.html
     try:
         table = pq.read_table(f, filters=filters, columns=columns, use_threads=True, pre_buffer=False, memory_map=True)
-    except ArrowInvalid as e:
+    except (ArrowInvalid, OSError) as e:
         raise BrokenData(f"Could not read Parquet file: {f}\n"
                          f"Probably a corrupted download.\n"
                          f"See https://tradingstrategy.ai/docs/programming/troubleshooting.html#resetting-the-download-cache\n"
