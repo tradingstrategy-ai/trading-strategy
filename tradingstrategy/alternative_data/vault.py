@@ -803,6 +803,7 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
         lockup_days=entry.get("lockup"),
         risk_level=entry.get("risk"),
         notes=entry.get("notes"),
+        deposit_permission=entry.get("deposit_permission"),
         deposit_closed_reason=entry.get("deposit_closed_reason"),
         redemption_closed_reason=entry.get("redemption_closed_reason"),
         deposit_next_open=_parse_datetime(entry.get("deposit_next_open")),

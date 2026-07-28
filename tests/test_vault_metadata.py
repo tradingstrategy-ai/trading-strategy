@@ -279,6 +279,32 @@ def test_load_vault_metadata_preserves_curator_metadata() -> None:
     assert vault.metadata.protocol_curator is False
 
 
+def test_load_vault_metadata_preserves_deposit_permission() -> None:
+    """Vault-wide deposit permission round-trips from the vault universe JSON.
+
+    1. Build a vault JSON entry with the scanner's top-level admission policy.
+    2. Load it through the normal vault universe metadata parser.
+    3. Verify trade-executor can read the policy from ``VaultMetadata``.
+    """
+    # 1. Build a vault JSON entry with the scanner's top-level admission policy.
+    json_data = {
+        "vaults": [
+            _make_vault_entry(
+                "0x1111111111111111111111111111111111111111",
+                "Permissioned vault",
+                deposit_permission="whitelisted",
+            ),
+        ],
+    }
+
+    # 2. Load it through the normal vault universe metadata parser.
+    universe = load_vault_database_with_metadata(json_data)
+    vault = next(universe.iterate_vaults())
+
+    # 3. Verify trade-executor can read the policy from VaultMetadata.
+    assert vault.metadata.deposit_permission == "whitelisted"
+
+
 def test_load_vault_metadata_vault_display_flags() -> None:
     """Generic vault display flags are loaded from the JSON data contract.
 

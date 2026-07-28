@@ -275,6 +275,12 @@ class VaultMetadata:
     #: Additional information or warnings about this vault.
     notes: str | None = None
 
+    #: Vault-wide caller admission policy from the scanner.
+    #:
+    #: ``whitelisted``, ``permissionless`` or ``unknown`` when the scanner
+    #: cannot determine the policy.
+    deposit_permission: str | None = None
+
     #: Reason deposits are closed.
     #:
     #: If deposits are currently not accepted, this explains why.
