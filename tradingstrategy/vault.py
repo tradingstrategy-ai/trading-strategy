@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Iterable, TypeAlias, Any, Collection, TYPE_CHECKING
 
 try:
@@ -33,6 +34,22 @@ from tradingstrategy.types import Percent, NonChecksummedAddress, TokenSymbol
 from tradingstrategy.types import SPECIAL_PAIR_ID_RANGE
 
 logger = logging.getLogger(__name__)
+
+
+class VaultDepositStatus(str, Enum):
+    """Deposit availability reported by a vault JSON observation."""
+
+    open = "open"
+    closed = "closed"
+    unknown = "unknown"
+
+
+class VaultDepositPermission(str, Enum):
+    """Whether a depositor needs prior identity approval."""
+
+    permissionless = "permissionless"
+    whitelisted = "whitelisted"
+    unknown = "unknown"
 
 
 def get_vault_page(vault_address: str) -> str:
@@ -277,22 +294,22 @@ class VaultMetadata:
 
     #: Reason deposits are closed.
     #:
-    #: If deposits are currently not accepted, this explains why.
+    #: If deposits were reported closed at observation time, this explains why.
     deposit_closed_reason: str | None = None
 
     #: Reason redemptions are closed.
     #:
-    #: If redemptions are currently not accepted, this explains why.
+    #: If redemptions were reported closed at observation time, this explains why.
     redemption_closed_reason: str | None = None
 
     #: When deposits will next be open.
     #:
-    #: If deposits are currently closed, this indicates when they will reopen.
+    #: If deposits were reported closed, this is their reported reopening time.
     deposit_next_open: datetime.datetime | None = None
 
     #: When redemptions will next be open.
     #:
-    #: If redemptions are currently closed, this indicates when they will reopen.
+    #: If redemptions were reported closed, this is their reported reopening time.
     redemption_next_open: datetime.datetime | None = None
 
     #: 1-month gross returns.
@@ -529,6 +546,31 @@ class VaultMetadata:
     #:
     #: List of PeriodMetrics objects for each time period (1W, 1M, 3M, 6M, 1Y, lifetime).
     period_results: list[PeriodMetrics] | None = None
+
+    #: Explicit deposit availability reported by the vault JSON snapshot.
+    #:
+    #: ``None`` means the field was not published. Current production snapshots
+    #: may omit this forward-compatible field. This is distinct from an
+    #: explicit :py:attr:`VaultDepositStatus.unknown` observation.
+    deposit_status: VaultDepositStatus | None = None
+
+    #: Whether deposits require prior identity approval.
+    #:
+    #: ``None`` means the field was not published. Unknown observations are
+    #: represented by :py:attr:`VaultDepositPermission.unknown`.
+    deposit_permission: VaultDepositPermission | None = None
+
+    #: Producer or scanner that supplied :py:attr:`deposit_status`.
+    deposit_status_source: str | None = None
+
+    #: When :py:attr:`deposit_status` was observed.
+    deposit_status_observed_at: datetime.datetime | None = None
+
+    #: Block at which :py:attr:`deposit_status` was observed, when applicable.
+    deposit_status_observed_block: int | None = None
+
+    #: When this individual vault JSON entry was generated.
+    generated_at: datetime.datetime | None = None
 
     def __post_init__(self):
         assert type(self.features) == list
