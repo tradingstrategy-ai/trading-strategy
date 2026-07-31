@@ -29,11 +29,12 @@ def cache_path(client: Client):
 
 
 @pytest.fixture(scope="session")
-def persistent_test_client() -> Client:
-    """Create a client that never redownloads data in a local dev env."""
+def persistent_test_client(worker_id: str) -> Client:
+    """Create a client with a persistent cache isolated to one pytest worker."""
 
-    # Use persistent cache across reboots - because tests download a lot of data
-    path = os.path.expanduser("~/.cache/trading-strategy-tests")
+    # Sharing parquet files between xdist workers can expose partially written files.
+    # Keep the cache across reboots, but give each worker its own directory.
+    path = os.path.expanduser(f"~/.cache/trading-strategy-tests/{worker_id}")
     c = Client.create_test_client(path)
 
     # Old testing hack
@@ -107,4 +108,3 @@ def default_pair_universe(
     raw_pairs = default_pairs_df
     pair_universe = PandasPairUniverse(raw_pairs, build_index=True, exchange_universe=default_exchange_universe)
     return pair_universe
-

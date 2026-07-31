@@ -1,4 +1,4 @@
-""""Vault data for EIP-4626 and other digital asset management protocols."""
+"""Vault data for EIP-4626 and other digital asset management protocols."""
 from __future__ import annotations
 
 import datetime
@@ -39,16 +39,39 @@ logger = logging.getLogger(__name__)
 class VaultDepositStatus(str, Enum):
     """Deposit availability reported by a vault JSON observation."""
 
+    #: The observed vault can currently accept deposits.
     open = "open"
+
+    #: The observed vault cannot currently accept deposits.
     closed = "closed"
+
+    #: The producer could not determine deposit availability.
+    unknown = "unknown"
+
+
+class VaultRedemptionStatus(str, Enum):
+    """Redemption availability reported by a vault JSON observation."""
+
+    #: The observed vault can currently accept redemptions.
+    open = "open"
+
+    #: The observed vault cannot currently accept redemptions.
+    closed = "closed"
+
+    #: The producer could not determine redemption availability.
     unknown = "unknown"
 
 
 class VaultDepositPermission(str, Enum):
     """Whether a depositor needs prior identity approval."""
 
+    #: Deposits need no prior identity approval.
     permissionless = "permissionless"
+
+    #: Deposits require prior identity approval or allow-list membership.
     whitelisted = "whitelisted"
+
+    #: The producer could not determine deposit permission.
     unknown = "unknown"
 
 
@@ -554,6 +577,15 @@ class VaultMetadata:
     #: explicit :py:attr:`VaultDepositStatus.unknown` observation.
     deposit_status: VaultDepositStatus | None = None
 
+    #: Forward-compatible redemption availability for vault JSON snapshots.
+    #:
+    #: Current producers may omit this planned field and expose static adapter
+    #: support through ``deposit_manager.can_redeem`` instead. ``None`` or
+    #: :py:attr:`VaultRedemptionStatus.unknown` must be treated as allowed, not
+    #: closed. This is independent from deposit permission because a public
+    #: vault may still have delayed or temporarily closed redemption windows.
+    redemption_status: VaultRedemptionStatus | None = None
+
     #: Whether deposits require prior identity approval.
     #:
     #: ``None`` means the field was not published. Unknown observations are
@@ -567,6 +599,9 @@ class VaultMetadata:
     deposit_status_observed_at: datetime.datetime | None = None
 
     #: Block at which :py:attr:`deposit_status` was observed, when applicable.
+    #:
+    #: These deposit-status provenance fields do not describe
+    #: :py:attr:`redemption_status`.
     deposit_status_observed_block: int | None = None
 
     #: When this individual vault JSON entry was generated.
@@ -859,8 +894,8 @@ class VaultUniverse:
         assert all(type(v) in (tuple, list) and isinstance(v[0], (ChainId, int)) and is_good_multichain_address(v[1]) for v in vaults), f"Bad vault descriptors: {vaults}"
         vaults = set(vaults)
 
-        if check_all_vaults_found:    
-            # Check if we have all given vault addresses in our vault universe        
+        if check_all_vaults_found:
+            # Check if we have all given vault addresses in our vault universe
             vault_list = [vault for vault in self.vaults.values() if (vault.chain_id, vault.vault_address) in vaults]
             if len(vault_list) != len(vaults):
                 found = {vault.vault_address for vault in vault_list}

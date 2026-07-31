@@ -27,7 +27,7 @@ from tradingstrategy.utils.flexible_pickle import flexible_load, filter_broken_e
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.types import NonChecksummedAddress
 from tradingstrategy.utils.groupeduniverse import resample_candles_multiple_pairs
-from tradingstrategy.vault import VaultUniverse, Vault, VaultMetadata, VaultDepositPermission, VaultDepositStatus, _derive_pair_id_from_address
+from tradingstrategy.vault import VaultUniverse, Vault, VaultMetadata, VaultDepositPermission, VaultDepositStatus, VaultRedemptionStatus, _derive_pair_id_from_address
 
 logger = logging.getLogger(__name__)
 
@@ -787,6 +787,7 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
     # Parse features and typed vault status values.
     features = entry.get("features", [])
     deposit_status = _parse_enum(VaultDepositStatus, "deposit_status")
+    redemption_status = _parse_enum(VaultRedemptionStatus, "redemption_status")
     deposit_permission = _parse_enum(VaultDepositPermission, "deposit_permission")
     other_data = entry.get("other_data") or {}
     if "vault_display_flags" in entry:
@@ -826,6 +827,7 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
         risk_level=entry.get("risk"),
         notes=entry.get("notes"),
         deposit_status=deposit_status,
+        redemption_status=redemption_status,
         deposit_permission=deposit_permission,
         deposit_closed_reason=entry.get("deposit_closed_reason"),
         deposit_status_source=entry.get("deposit_status_source"),

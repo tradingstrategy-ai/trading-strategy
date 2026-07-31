@@ -11,7 +11,7 @@ import pytest
 from tradingstrategy.chain import ChainId
 from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
 from tradingstrategy.client import Client
-from tradingstrategy.vault import Vault, VaultDepositPermission, VaultDepositStatus, VaultMetadata, VaultUniverse
+from tradingstrategy.vault import Vault, VaultDepositPermission, VaultDepositStatus, VaultMetadata, VaultRedemptionStatus, VaultUniverse
 
 
 def _make_vault(chain_id, denomination_token_address, denomination_token_symbol="USDC", name="TestVault", vault_address=None):
@@ -279,8 +279,8 @@ def test_load_vault_metadata_preserves_curator_metadata() -> None:
     assert vault.metadata.protocol_curator is False
 
 
-def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
-    """Vault deposit status, permission and provenance round-trip without inference.
+def test_load_vault_metadata_preserves_lifecycle_status_contract() -> None:
+    """Vault lifecycle status, permission and provenance round-trip without inference.
 
     1. Build legacy, unknown, open and closed vault JSON entries.
     2. Load them through the normal vault universe metadata parser.
@@ -297,12 +297,14 @@ def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
                 "0x2222222222222222222222222222222222222222",
                 "Unknown vault",
                 deposit_status="unknown",
+                redemption_status="unknown",
                 deposit_permission="unknown",
             ),
             _make_vault_entry(
                 "0x3333333333333333333333333333333333333333",
                 "Open permissioned vault",
                 deposit_status="open",
+                redemption_status="closed",
                 deposit_permission="whitelisted",
                 deposit_status_source="eth_defi",
                 deposit_status_observed_at="2026-07-29T12:34:56Z",
@@ -313,6 +315,7 @@ def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
                 "0x4444444444444444444444444444444444444444",
                 "Closed vault",
                 deposit_status="closed",
+                redemption_status="open",
                 deposit_permission="permissionless",
                 deposit_closed_reason="Deposit cap reached",
             ),
@@ -326,14 +329,17 @@ def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
     # 3. Verify typed values, provenance and legacy absence remain distinct.
     legacy = vaults["0x1111111111111111111111111111111111111111"].metadata
     assert legacy.deposit_status is None
+    assert legacy.redemption_status is None
     assert legacy.deposit_permission is None
 
     unknown = vaults["0x2222222222222222222222222222222222222222"].metadata
     assert unknown.deposit_status is VaultDepositStatus.unknown
+    assert unknown.redemption_status is VaultRedemptionStatus.unknown
     assert unknown.deposit_permission is VaultDepositPermission.unknown
 
     open_vault = vaults["0x3333333333333333333333333333333333333333"].metadata
     assert open_vault.deposit_status is VaultDepositStatus.open
+    assert open_vault.redemption_status is VaultRedemptionStatus.closed
     assert open_vault.deposit_permission is VaultDepositPermission.whitelisted
     assert open_vault.deposit_status_source == "eth_defi"
     assert open_vault.deposit_status_observed_at == pd.Timestamp("2026-07-29T12:34:56")
@@ -342,18 +348,19 @@ def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
 
     closed = vaults["0x4444444444444444444444444444444444444444"].metadata
     assert closed.deposit_status is VaultDepositStatus.closed
+    assert closed.redemption_status is VaultRedemptionStatus.open
     assert closed.deposit_permission is VaultDepositPermission.permissionless
     assert closed.deposit_closed_reason == "Deposit cap reached"
 
 
-def test_load_vault_metadata_handles_future_deposit_enum_values(
+def test_load_vault_metadata_handles_future_lifecycle_enum_values(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Future producer enum values do not break the whole vault universe.
 
     1. Build a vault JSON entry containing unrecognised status and permission values.
     2. Load it through the normal vault universe metadata parser.
-    3. Verify both values safely degrade to unknown and identify the vault in a warning.
+    3. Verify all values safely degrade to unknown and identify the vault in a warning.
     """
     # 1. Build a vault JSON entry containing unrecognised status and permission values.
     address = "0x1111111111111111111111111111111111111111"
@@ -363,6 +370,7 @@ def test_load_vault_metadata_handles_future_deposit_enum_values(
                 address,
                 "Future vault",
                 deposit_status="paused",
+                redemption_status="queued",
                 deposit_permission="kyc",
             ),
         ],
@@ -372,8 +380,9 @@ def test_load_vault_metadata_handles_future_deposit_enum_values(
     universe = load_vault_database_with_metadata(json_data)
     metadata = next(universe.iterate_vaults()).metadata
 
-    # 3. Verify both values degrade to unknown and identify the vault in a warning.
+    # 3. Verify all values degrade to unknown and identify the vault in a warning.
     assert metadata.deposit_status is VaultDepositStatus.unknown
+    assert metadata.redemption_status is VaultRedemptionStatus.unknown
     assert metadata.deposit_permission is VaultDepositPermission.unknown
     assert f"{ChainId.ethereum.value}-{address}" in caplog.text
 
