@@ -353,14 +353,14 @@ def test_load_vault_metadata_preserves_lifecycle_status_contract() -> None:
     assert closed.deposit_closed_reason == "Deposit cap reached"
 
 
-def test_load_vault_metadata_handles_future_deposit_enum_values(
+def test_load_vault_metadata_handles_future_lifecycle_enum_values(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Future producer enum values do not break the whole vault universe.
 
     1. Build a vault JSON entry containing unrecognised status and permission values.
     2. Load it through the normal vault universe metadata parser.
-    3. Verify both values safely degrade to unknown and identify the vault in a warning.
+    3. Verify all values safely degrade to unknown and identify the vault in a warning.
     """
     # 1. Build a vault JSON entry containing unrecognised status and permission values.
     address = "0x1111111111111111111111111111111111111111"
@@ -370,6 +370,7 @@ def test_load_vault_metadata_handles_future_deposit_enum_values(
                 address,
                 "Future vault",
                 deposit_status="paused",
+                redemption_status="queued",
                 deposit_permission="kyc",
             ),
         ],
@@ -379,8 +380,9 @@ def test_load_vault_metadata_handles_future_deposit_enum_values(
     universe = load_vault_database_with_metadata(json_data)
     metadata = next(universe.iterate_vaults()).metadata
 
-    # 3. Verify both values degrade to unknown and identify the vault in a warning.
+    # 3. Verify all values degrade to unknown and identify the vault in a warning.
     assert metadata.deposit_status is VaultDepositStatus.unknown
+    assert metadata.redemption_status is VaultRedemptionStatus.unknown
     assert metadata.deposit_permission is VaultDepositPermission.unknown
     assert f"{ChainId.ethereum.value}-{address}" in caplog.text
 

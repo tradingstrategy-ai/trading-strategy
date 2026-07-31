@@ -39,8 +39,13 @@ logger = logging.getLogger(__name__)
 class VaultDepositStatus(str, Enum):
     """Deposit availability reported by a vault JSON observation."""
 
+    #: The observed vault can currently accept deposits.
     open = "open"
+
+    #: The observed vault cannot currently accept deposits.
     closed = "closed"
+
+    #: The producer could not determine deposit availability.
     unknown = "unknown"
 
 
@@ -60,8 +65,13 @@ class VaultRedemptionStatus(str, Enum):
 class VaultDepositPermission(str, Enum):
     """Whether a depositor needs prior identity approval."""
 
+    #: Deposits need no prior identity approval.
     permissionless = "permissionless"
+
+    #: Deposits require prior identity approval or allow-list membership.
     whitelisted = "whitelisted"
+
+    #: The producer could not determine deposit permission.
     unknown = "unknown"
 
 
@@ -567,11 +577,13 @@ class VaultMetadata:
     #: explicit :py:attr:`VaultDepositStatus.unknown` observation.
     deposit_status: VaultDepositStatus | None = None
 
-    #: Explicit redemption availability reported by the vault JSON snapshot.
+    #: Forward-compatible redemption availability for vault JSON snapshots.
     #:
-    #: ``None`` means the field was not published. This is independent from
-    #: deposit permission because permissionless vaults may still have delayed
-    #: or temporarily closed redemption windows.
+    #: Current producers may omit this planned field and expose static adapter
+    #: support through ``deposit_manager.can_redeem`` instead. ``None`` or
+    #: :py:attr:`VaultRedemptionStatus.unknown` must be treated as allowed, not
+    #: closed. This is independent from deposit permission because a public
+    #: vault may still have delayed or temporarily closed redemption windows.
     redemption_status: VaultRedemptionStatus | None = None
 
     #: Whether deposits require prior identity approval.
@@ -587,6 +599,9 @@ class VaultMetadata:
     deposit_status_observed_at: datetime.datetime | None = None
 
     #: Block at which :py:attr:`deposit_status` was observed, when applicable.
+    #:
+    #: These deposit-status provenance fields do not describe
+    #: :py:attr:`redemption_status`.
     deposit_status_observed_block: int | None = None
 
     #: When this individual vault JSON entry was generated.
