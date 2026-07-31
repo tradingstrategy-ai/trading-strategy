@@ -1,5 +1,4 @@
-""" "Vault data for EIP-4626 and other digital asset management protocols."""
-
+"""Vault data for EIP-4626 and other digital asset management protocols."""
 from __future__ import annotations
 
 import datetime
@@ -23,7 +22,6 @@ except ImportError:
     def is_good_multichain_address(address: str) -> bool:
         addr_lower = address.lower()
         return addr_lower.startswith(("0x", "vlt:", "lighter-pool-", "hibachi-vault-"))
-
 
 if TYPE_CHECKING:
     from eth_defi.research.vault_metrics import PeriodMetrics
@@ -49,8 +47,13 @@ class VaultDepositStatus(str, Enum):
 class VaultRedemptionStatus(str, Enum):
     """Redemption availability reported by a vault JSON observation."""
 
+    #: The observed vault can currently accept redemptions.
     open = "open"
+
+    #: The observed vault cannot currently accept redemptions.
     closed = "closed"
+
+    #: The producer could not determine redemption availability.
     unknown = "unknown"
 
 
@@ -791,7 +794,6 @@ class Vault:
     def get_pandas_schema(cls) -> dict[str, Any]:
         """Get Pandas schema types."""
         import pandas as pd
-
         dtype_schema = {
             "pair_id": pd.Int64Dtype(),
             "pair_slug": str,
@@ -811,10 +813,9 @@ class Vault:
             "fee": pd.Float32Dtype(),
             "chain_id": pd.Int32Dtype(),
             "buy_volume_all_time": pd.Float64Dtype(),
-            "token_metadata": object,  # Complex object, keeping as object type
+            "token_metadata": object  # Complex object, keeping as object type
         }
         return dtype_schema
-
 
 class VaultUniverse:
     """Vault universe of all accessible vaults."""
@@ -922,8 +923,13 @@ class VaultUniverse:
                     excluded.append(vault)
 
             if excluded:
-                excluded_msg = "\n".join(f" - {vault.name} on chain {vault.chain_id} has denomination {vault.denomination_token_symbol}" for vault in excluded)
-                raise AssertionError(f"{len(excluded)} vaults have denomination not in {denomination_token_symbols}:\n{excluded_msg}")
+                excluded_msg = "\n".join(
+                    f" - {vault.name} on chain {vault.chain_id} has denomination {vault.denomination_token_symbol}"
+                    for vault in excluded
+                )
+                raise AssertionError(
+                    f"{len(excluded)} vaults have denomination not in {denomination_token_symbols}:\n{excluded_msg}"
+                )
 
         else:
             vault_list = (vault for vault in self.vaults.values() if vault.denomination_token_symbol in denomination_token_symbols)
@@ -957,7 +963,10 @@ class VaultUniverse:
                 ", ".join(f"{v.name} ({v.chain_id})" for v in excluded),
             )
 
-        assert kept, f"No vaults with native USDC denomination found. All {len(excluded)} vault(s) were excluded."
+        assert kept, (
+            f"No vaults with native USDC denomination found. "
+            f"All {len(excluded)} vault(s) were excluded."
+        )
 
         return VaultUniverse(kept)
 
@@ -1000,6 +1009,5 @@ def _derive_exchange_id(vault: Vault) -> int:
 def _derive_pair_slug(vault: Vault) -> str:
     """Derive a pair slug from the vault address."""
     return vault.name.lower().replace(" ", "-")
-
 
 _js_max_safe_int = 2**53 - 1  # 9007199254740991

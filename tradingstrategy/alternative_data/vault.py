@@ -107,6 +107,7 @@ def load_vault_database(
     if existing is not None:
         return existing
 
+
     vault_db: VaultDatabase
 
     if path.suffix == ".zstd":
@@ -173,12 +174,12 @@ def load_vault_database(
                 name=entry.get("Name") or "<unknown>",
                 token_symbol=entry["Symbol"],
                 vault_address=entry["Address"],
-                denomination_token_address=_safe_get(entry, "_denomination_token", "address"),
-                denomination_token_symbol=_safe_get(entry, "_denomination_token", "symbol"),
-                denomination_token_decimals=_safe_get(entry, "_denomination_token", "decimals"),
-                share_token_address=_safe_get(entry, "_share_token", "address") or entry["Address"],
-                share_token_symbol=_safe_get(entry, "_share_token", "symbol") or entry["Symbol"],
-                share_token_decimals=_safe_get(entry, "_share_token", "decimals") or 18,
+                denomination_token_address=_safe_get(entry,"_denomination_token", "address"),
+                denomination_token_symbol=_safe_get(entry,"_denomination_token", "symbol"),
+                denomination_token_decimals=_safe_get(entry,"_denomination_token", "decimals"),
+                share_token_address=_safe_get(entry,"_share_token", "address") or entry["Address"],
+                share_token_symbol=_safe_get(entry,"_share_token", "symbol") or entry["Symbol"],
+                share_token_decimals=_safe_get(entry,"_share_token", "decimals") or 18,
                 protocol_name=entry["Protocol"],
                 protocol_slug=protocol_slug,
                 performance_fee=entry["Perf fee"],
@@ -199,7 +200,9 @@ def load_vault_database(
     return vault_universe
 
 
-def convert_vaults_to_trading_pairs(vaults: Iterable[Vault]) -> tuple[list[Exchange], pd.DataFrame]:
+def convert_vaults_to_trading_pairs(
+    vaults: Iterable[Vault]
+) -> tuple[list[Exchange], pd.DataFrame]:
     """Create a dataframe that contains vaults as trading pairs to be included alongside real trading pairs.
 
     - Generates :py:class:`tradingstrategy.pair.PandasPairUniverse` compatible dataframe for all vaults
@@ -260,6 +263,7 @@ def load_multiple_vaults(
     return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
 
+
 def create_vault_universe(
     vaults: list[tuple[ChainId, NonChecksummedAddress]],
     path=DEFAULT_VAULT_BUNDLE,
@@ -280,9 +284,10 @@ def create_vault_universe(
     return convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
 
+
 def load_vault_price_data(
     pairs_df: pd.DataFrame,
-    prices_path: Path = DEFAULT_VAULT_PRICE_BUNDLE,
+    prices_path: Path=DEFAULT_VAULT_PRICE_BUNDLE,
 ) -> pd.DataFrame:
     """Sideload price data for vaults.
 
@@ -334,7 +339,10 @@ def load_vault_price_data(
     unique_addresses = pa.array(sorted({a for _, a in vaults_to_match}))
     dataset = ds.dataset(str(prices_path), format="parquet")
     table = dataset.to_table(
-        filter=(pc.is_in(ds.field("chain"), value_set=unique_chains) & pc.is_in(pc.utf8_lower(ds.field("address")), value_set=unique_addresses)),
+        filter=(
+            pc.is_in(ds.field("chain"), value_set=unique_chains)
+            & pc.is_in(pc.utf8_lower(ds.field("address")), value_set=unique_addresses)
+        ),
     )
 
     # Convert only the filtered rows to pandas
@@ -376,7 +384,10 @@ def read_vault_price_history_parquet(
         address_values = vault_pairs_df["address"].astype(str).str.lower()
         unique_chains = pa.array(sorted(set(chain_values)), type=pa.uint32())
         unique_addresses = pa.array(sorted(set(address_values)))
-        expression = pc.is_in(ds.field("chain"), value_set=unique_chains) & pc.is_in(pc.utf8_lower(ds.field("address")), value_set=unique_addresses)
+        expression = (
+            pc.is_in(ds.field("chain"), value_set=unique_chains)
+            & pc.is_in(pc.utf8_lower(ds.field("address")), value_set=unique_addresses)
+        )
 
     if start_at is not None:
         start_filter = ds.field(timestamp_column) >= _make_timestamp_scalar(start_at, timestamp_type)
@@ -487,6 +498,7 @@ def _normalise_timestamp_column(df: pd.DataFrame) -> None:
 
     if isinstance(df["timestamp"].dtype, pd.DatetimeTZDtype):
         df["timestamp"] = df["timestamp"].dt.tz_convert(None)
+
 
 
 def convert_vault_prices_to_candles(
@@ -739,7 +751,6 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
     :return:
         VaultMetadata instance with all available fields populated.
     """
-
     def _parse_datetime(val, *, naive_utc: bool = False):
         if val is None:
             return None

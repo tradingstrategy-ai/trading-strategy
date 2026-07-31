@@ -92,7 +92,9 @@ def test_dex_pair_get_vault_metadata(persistent_test_client: Client) -> None:
     from tradingstrategy.pair import PandasPairUniverse
 
     vault_universe = persistent_test_client.fetch_vault_universe()
-    exchanges, pairs_df = convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
+    exchanges, pairs_df = convert_vaults_to_trading_pairs(
+        vault_universe.export_all_vaults()
+    )
 
     exchange_universe = ExchangeUniverse({e.exchange_id: e for e in exchanges})
     pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
@@ -277,8 +279,8 @@ def test_load_vault_metadata_preserves_curator_metadata() -> None:
     assert vault.metadata.protocol_curator is False
 
 
-def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
-    """Vault deposit status, permission and provenance round-trip without inference.
+def test_load_vault_metadata_preserves_lifecycle_status_contract() -> None:
+    """Vault lifecycle status, permission and provenance round-trip without inference.
 
     1. Build legacy, unknown, open and closed vault JSON entries.
     2. Load them through the normal vault universe metadata parser.
