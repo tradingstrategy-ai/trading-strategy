@@ -11,7 +11,7 @@ import pytest
 from tradingstrategy.chain import ChainId
 from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
 from tradingstrategy.client import Client
-from tradingstrategy.vault import Vault, VaultDepositPermission, VaultDepositStatus, VaultMetadata, VaultUniverse
+from tradingstrategy.vault import Vault, VaultDepositPermission, VaultDepositStatus, VaultMetadata, VaultRedemptionStatus, VaultUniverse
 
 
 def _make_vault(chain_id, denomination_token_address, denomination_token_symbol="USDC", name="TestVault", vault_address=None):
@@ -92,9 +92,7 @@ def test_dex_pair_get_vault_metadata(persistent_test_client: Client) -> None:
     from tradingstrategy.pair import PandasPairUniverse
 
     vault_universe = persistent_test_client.fetch_vault_universe()
-    exchanges, pairs_df = convert_vaults_to_trading_pairs(
-        vault_universe.export_all_vaults()
-    )
+    exchanges, pairs_df = convert_vaults_to_trading_pairs(vault_universe.export_all_vaults())
 
     exchange_universe = ExchangeUniverse({e.exchange_id: e for e in exchanges})
     pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
@@ -297,12 +295,14 @@ def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
                 "0x2222222222222222222222222222222222222222",
                 "Unknown vault",
                 deposit_status="unknown",
+                redemption_status="unknown",
                 deposit_permission="unknown",
             ),
             _make_vault_entry(
                 "0x3333333333333333333333333333333333333333",
                 "Open permissioned vault",
                 deposit_status="open",
+                redemption_status="closed",
                 deposit_permission="whitelisted",
                 deposit_status_source="eth_defi",
                 deposit_status_observed_at="2026-07-29T12:34:56Z",
@@ -313,6 +313,7 @@ def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
                 "0x4444444444444444444444444444444444444444",
                 "Closed vault",
                 deposit_status="closed",
+                redemption_status="open",
                 deposit_permission="permissionless",
                 deposit_closed_reason="Deposit cap reached",
             ),
@@ -326,14 +327,17 @@ def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
     # 3. Verify typed values, provenance and legacy absence remain distinct.
     legacy = vaults["0x1111111111111111111111111111111111111111"].metadata
     assert legacy.deposit_status is None
+    assert legacy.redemption_status is None
     assert legacy.deposit_permission is None
 
     unknown = vaults["0x2222222222222222222222222222222222222222"].metadata
     assert unknown.deposit_status is VaultDepositStatus.unknown
+    assert unknown.redemption_status is VaultRedemptionStatus.unknown
     assert unknown.deposit_permission is VaultDepositPermission.unknown
 
     open_vault = vaults["0x3333333333333333333333333333333333333333"].metadata
     assert open_vault.deposit_status is VaultDepositStatus.open
+    assert open_vault.redemption_status is VaultRedemptionStatus.closed
     assert open_vault.deposit_permission is VaultDepositPermission.whitelisted
     assert open_vault.deposit_status_source == "eth_defi"
     assert open_vault.deposit_status_observed_at == pd.Timestamp("2026-07-29T12:34:56")
@@ -342,6 +346,7 @@ def test_load_vault_metadata_preserves_deposit_status_contract() -> None:
 
     closed = vaults["0x4444444444444444444444444444444444444444"].metadata
     assert closed.deposit_status is VaultDepositStatus.closed
+    assert closed.redemption_status is VaultRedemptionStatus.open
     assert closed.deposit_permission is VaultDepositPermission.permissionless
     assert closed.deposit_closed_reason == "Deposit cap reached"
 
