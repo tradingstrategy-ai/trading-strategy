@@ -44,6 +44,14 @@ from tradingstrategy.utils.logging_retry import LoggingRetry
 from tradingstrategy.utils.time import naive_utcfromtimestamp, naive_utcnow
 from urllib3 import Retry
 
+
+#: How long a locally cached vault price history parquet is trusted without
+#: validating it against the remote file with a HEAD request.
+#:
+#: Measured from the last validation, not the last download -- see
+#: :py:meth:`CachedHTTPTransport.fetch_vault_price_history`.
+VAULT_PRICE_HISTORY_CACHE_PERIOD = datetime.timedelta(hours=24)
+
 logger = logging.getLogger(__name__)
 
 class OHLCVCandleType(enum.Enum):
@@ -700,11 +708,13 @@ class CachedHTTPTransport:
         self,
         url: str | None = None,
         download_root: str | Path | None = None,
+        revalidate: bool = False,
     ) -> pathlib.Path:
         """Load cached cleaned vault price history parquet.
 
         Downloads from the vault metadata parquet endpoint.
-        Uses 24-hour cache expiry.
+        Local copies are trusted for
+        :py:data:`VAULT_PRICE_HISTORY_CACHE_PERIOD` unless ``revalidate`` is set.
 
         :param url:
             URL to fetch the cleaned vault price history parquet from.
@@ -715,6 +725,21 @@ class CachedHTTPTransport:
             Override the root directory used for vault downloads.
             If not provided, uses
             :py:data:`tradingstrategy.alternative_data.vault.DEFAULT_VAULT_DOWNLOAD_ROOT`.
+
+        :param revalidate:
+            Always validate the local cache against the remote file with a HEAD
+            request, instead of trusting the local expiry window.
+
+            Inside the window no HEAD request is made at all, so a parquet
+            published after the last check is not picked up and nothing reports
+            that the local copy has fallen behind. The window is also measured
+            from the last validation rather than the last download, because a
+            HEAD check that finds the remote unchanged bumps the cached file's
+            mtime, so the clock restarts on every check.
+
+            Callers that must not run on data of unknown freshness pass
+            ``revalidate=True``. A matching remote still short-circuits the
+            download, so this costs one HEAD request, not a re-download.
 
         :return:
             Path to the cached parquet file.
@@ -733,18 +758,21 @@ class CachedHTTPTransport:
         with wait_other_writers(path):
 
             if os.path.exists(path):
-                mtime = naive_utcfromtimestamp(pathlib.Path(path).stat().st_mtime)
-                cache_age = naive_utcnow() - mtime
-                local_size = pathlib.Path(path).stat().st_size
-                if cache_age < datetime.timedelta(hours=24):
+                local_path = pathlib.Path(path)
+                local_stat = local_path.stat()
+                local_size = local_stat.st_size
+                cache_age = naive_utcnow() - naive_utcfromtimestamp(local_stat.st_mtime)
+                cache_expired = cache_age >= VAULT_PRICE_HISTORY_CACHE_PERIOD
+                if not cache_expired and not revalidate:
                     logger.info(
-                        "Vault price history cache hit: path=%s, cache_age=%s, local_size=%s bytes. Skipping download (< 24h threshold).",
-                        path, cache_age, local_size,
+                        "Vault price history cache hit: path=%s, cache_age=%s, local_size=%s bytes. Skipping download (age < %s).",
+                        path, cache_age, local_size, VAULT_PRICE_HISTORY_CACHE_PERIOD,
                     )
-                    return pathlib.Path(path)
+                    return local_path
 
                 logger.info(
-                    "Vault price history cache expired: path=%s, cache_age=%s, local_size=%s bytes. Performing HEAD check against %s.",
+                    "Vault price history cache %s: path=%s, cache_age=%s, local_size=%s bytes. Performing HEAD check against %s.",
+                    "expired" if cache_expired else "revalidation forced",
                     path, cache_age, local_size, url,
                 )
 
@@ -764,7 +792,7 @@ class CachedHTTPTransport:
                         )
                         os.utime(path, None)
                         logger.info("Reusing cached vault price history at %s because remote HEAD metadata is unchanged", path)
-                        return pathlib.Path(path)
+                        return local_path
                     else:
                         local_metadata = self._load_sidecar_cache_metadata(path) or {}
                         logger.info(

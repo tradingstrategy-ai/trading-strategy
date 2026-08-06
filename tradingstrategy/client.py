@@ -332,6 +332,7 @@ class Client(BaseClient):
         self,
         url: str | None = None,
         download_root: str | Path | None = None,
+        revalidate: bool = False,
     ) -> pd.DataFrame:
         """Fetch cleaned vault share price history from the data server.
 
@@ -348,11 +349,16 @@ class Client(BaseClient):
             If not provided, uses
             :py:data:`tradingstrategy.alternative_data.vault.DEFAULT_VAULT_DOWNLOAD_ROOT`.
 
+        :param revalidate:
+            Always check the local cache against the remote file with a HEAD
+            request instead of trusting the 24-hour local expiry window.
+            See :py:meth:`tradingstrategy.transport.cache.CachedHTTPTransport.fetch_vault_price_history`.
+
         :return:
             Vault price history as a pandas DataFrame with an explicit
             ``timestamp`` column.
         """
-        path = self.transport.fetch_vault_price_history(url=url, download_root=download_root)
+        path = self.transport.fetch_vault_price_history(url=url, download_root=download_root, revalidate=revalidate)
         df = pd.read_parquet(path)
         return self._normalise_vault_price_history_frame(df)
 
