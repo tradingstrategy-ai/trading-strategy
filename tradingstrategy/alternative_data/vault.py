@@ -763,6 +763,11 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
             return val.astimezone(datetime.timezone.utc).replace(tzinfo=None)
         return val
 
+    def _parse_timedelta_seconds(val) -> datetime.timedelta | None:
+        if not isinstance(val, (int, float)) or val <= 0:
+            return None
+        return datetime.timedelta(seconds=val)
+
     # Parse period_results if present
     period_results = None
     if entry.get("period_results"):
@@ -824,6 +829,7 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
         deposit_fee=entry.get("deposit_fee"),
         withdrawal_fee=entry.get("withdraw_fee"),
         lockup_days=entry.get("lockup"),
+        estimated_settlement=_parse_timedelta_seconds(entry.get("estimated_settlement")),
         risk_level=entry.get("risk"),
         notes=entry.get("notes"),
         deposit_status=deposit_status,
