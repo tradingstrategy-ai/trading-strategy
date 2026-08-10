@@ -71,6 +71,15 @@ VAULT_STATE_COLUMNS = [
     "max_redeem",
 ]
 
+#: Sparse historical settlement markers from the vault scanner.
+#:
+#: Unlike availability state, this timestamp is an event observation rather
+#: than a value that remains true until the next sample. Consumers must compare
+#: it against the request timestamp before treating it as settlement evidence.
+VAULT_SETTLEMENT_COLUMNS = [
+    "vault_settlement_at",
+]
+
 
 #: Cached loaded vault universe from our defaut bundle
 _cached_vault_universe: dict[Path, VaultUniverse] = {}
@@ -399,11 +408,12 @@ def read_vault_price_history_parquet(
 
     if columns is not None:
         requested_columns = [timestamp_column if c == "timestamp" else c for c in columns]
-        # Drop only the *optional* vault-state columns when they are absent from this parquet
+        # Drop only the optional vault-state / settlement columns when they are absent from this parquet
         # schema, so callers can opt in to them without breaking on older files (e.g. the daily
         # price bundle). Any other missing requested column is kept so the read still fails fast
         # on a genuine schema mismatch (e.g. a misspelled `share_price`).
-        requested_columns = [c for c in requested_columns if c in schema_names or c not in VAULT_STATE_COLUMNS]
+        optional_columns = set(VAULT_STATE_COLUMNS) | set(VAULT_SETTLEMENT_COLUMNS)
+        requested_columns = [c for c in requested_columns if c in schema_names or c not in optional_columns]
         required_columns = {timestamp_column}
         if vault_pairs_df is not None:
             required_columns.update({"chain", "address"})
@@ -663,7 +673,7 @@ def convert_vault_prices_to_vault_state(
     """
     assert frequency in _VAULT_STATE_FREQUENCIES, f"Got {frequency}"
 
-    present = [c for c in VAULT_STATE_COLUMNS if c in raw_prices_df.columns]
+    present = [c for c in [*VAULT_STATE_COLUMNS, *VAULT_SETTLEMENT_COLUMNS] if c in raw_prices_df.columns]
     if not present:
         return None
 
