@@ -305,6 +305,13 @@ class VaultMetadata:
     #: Estimated number of days funds are locked after deposit.
     lockup_days: float | None = None
 
+    #: Non-binding average vault settlement cycle.
+    #:
+    #: Parsed from the producer's ``estimated_settlement`` value, which is
+    #: serialised as seconds. Used for backtesting request settlement only;
+    #: it is not a contractual redemption deadline.
+    estimated_settlement: datetime.timedelta | None = None
+
     #: Risk classification name.
     #:
     #: Human-readable risk level (e.g. "low", "medium", "high", "blacklisted").

@@ -1,5 +1,6 @@
 """Integration tests for vault metadata loading."""
 
+import datetime
 import os
 
 from pathlib import Path
@@ -9,7 +10,7 @@ import pandas as pd
 import pytest
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
+from tradingstrategy.alternative_data.vault import _parse_vault_metadata, load_vault_database_with_metadata
 from tradingstrategy.client import Client
 from tradingstrategy.vault import Vault, VaultDepositPermission, VaultDepositStatus, VaultMetadata, VaultRedemptionStatus, VaultUniverse
 
@@ -42,6 +43,19 @@ def _make_vault_entry(address: str, name: str, **extra) -> dict:
     }
     entry.update(extra)
     return entry
+
+
+def test_vault_metadata_parses_estimated_settlement_seconds() -> None:
+    """Producer settlement seconds become a typed backtesting duration."""
+    metadata = _parse_vault_metadata(
+        _make_vault_entry(
+            "0x0000000000000000000000000000000000000001",
+            "Lagoon USDC",
+            estimated_settlement=86_400,
+        )
+    )
+
+    assert metadata.estimated_settlement == datetime.timedelta(days=1)
 
 
 def test_vault_universe_with_metadata(
