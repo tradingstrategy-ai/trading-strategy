@@ -8,7 +8,7 @@ from typing import Any, Optional
 import pandas as pd
 import requests
 
-FXMACRODATA_BASE_URL = "https://fxmacrodata.com/api/v1"
+FXMACRODATA_BASE_URL = "https://api.fxmacrodata.com/v1"
 
 
 def fetch_fxmacrodata_calendar(
