@@ -2,11 +2,9 @@
 
 import datetime
 import os
-from email.utils import format_datetime
 from pathlib import Path
 from unittest.mock import Mock
 
-import orjson
 import pandas as pd
 import pytest
 
@@ -36,35 +34,34 @@ def download_func() -> Mock:
 
 @pytest.fixture()
 def client(tmp_path: Path, download_func: Mock) -> VaultDataClient:
-    """Vault dataset client writing to a throwaway cache directory."""
+    """Vault dataset client writing to a throwaway cache directory.
+
+    The session answers the size check with an unknown size by default, so a
+    test that does not care about revalidation always downloads.
+    """
+    session = Mock()
+    session.head = Mock(return_value=make_head_response(None))
     return VaultDataClient(
-        api_key="test-creem-key",
+        api_key="test-licence-key",
         download_root=tmp_path / "vault-downloads",
-        session=Mock(),
+        session=session,
         download_func=download_func,
     )
+
+
+def make_head_response(content_length: int | None) -> Mock:
+    """Build a mocked HEAD answer describing the server copy of a dataset."""
+    response = Mock()
+    response.headers = {} if content_length is None else {"Content-Length": str(content_length)}
+    response.status_code = 200
+    response.ok = True
+    return response
 
 
 def expire_cache(path: Path) -> None:
     """Backdate a cached file so the client revalidates it against the server."""
     expired = (datetime.datetime.now() - datetime.timedelta(days=2)).timestamp()
     os.utime(path, (expired, expired))
-
-
-def make_head_response(content_length: int, last_modified: datetime.datetime, etag: str | None = None) -> Mock:
-    """Build a mocked HEAD answer describing the server copy of a dataset."""
-    headers = {
-        "Content-Length": str(content_length),
-        "Last-Modified": format_datetime(last_modified),
-    }
-    if etag is not None:
-        headers["ETag"] = etag
-
-    response = Mock()
-    response.headers = headers
-    response.status_code = 200
-    response.raise_for_status = Mock()
-    return response
 
 
 def test_download_caches_dataset_and_sends_api_key(
@@ -89,7 +86,7 @@ def test_download_caches_dataset_and_sends_api_key(
     _, called_path, called_url, called_params, _, _ = download_func.call_args[0]
     assert called_path == str(path)
     assert called_url == "https://tradingstrategy.ai/vaults/datasets/download/vault-prices"
-    assert called_params == {"api-key": "test-creem-key"}
+    assert called_params == {"api-key": "test-licence-key"}
 
     # 3. Download the same dataset again.
     second_path = client.download(VaultDataset.vault_prices)
@@ -103,16 +100,15 @@ def test_expired_cache_is_reused_when_server_copy_is_unchanged(
     client: VaultDataClient,
     download_func: Mock,
 ) -> None:
-    """Check an expired cache survives when the server still has the same file.
+    """Check an expired cache survives when the server copy is the same size.
 
-    The price history is hundreds of megabytes, so an expired cache must not
-    mean an automatic re-download. The client asks the server what it has and
-    only downloads when the answer differs.
+    The price history is a few hundred megabytes, so an expired cache must not
+    mean an automatic re-download. The client asks the server how large the
+    dataset is and only downloads when the answer differs.
 
     1. Download a dataset and then backdate it past the cache expiry.
-    2. Answer the revalidation with metadata matching the local file.
+    2. Answer the size check with the size of the local file.
     3. Verify no new download happened and the expiry window restarted.
-    4. Verify the server metadata was recorded for the next revalidation.
     """
 
     # 1. Download a dataset and then backdate it past the cache expiry.
@@ -120,13 +116,8 @@ def test_expired_cache_is_reused_when_server_copy_is_unchanged(
     expire_cache(path)
     original_mtime = path.stat().st_mtime
 
-    # 2. Answer the revalidation with metadata matching the local file.
-    client.session.head = Mock(
-        return_value=make_head_response(
-            content_length=path.stat().st_size,
-            last_modified=datetime.datetime.now() - datetime.timedelta(days=3),
-        )
-    )
+    # 2. Answer the size check with the size of the local file.
+    client.session.head = Mock(return_value=make_head_response(path.stat().st_size))
     result = client.download(VaultDataset.vault_prices)
 
     # 3. Verify no new download happened and the expiry window restarted.
@@ -134,49 +125,60 @@ def test_expired_cache_is_reused_when_server_copy_is_unchanged(
     download_func.assert_called_once()
     assert path.stat().st_mtime > original_mtime
 
-    # 4. Verify the server metadata was recorded for the next revalidation.
-    sidecar = path.with_name("vault-prices.parquet.metadata.json")
-    assert sidecar.exists()
-    assert orjson.loads(sidecar.read_bytes())["content_length"] == path.stat().st_size
-
 
 def test_expired_cache_is_redownloaded_when_server_copy_changed(
     client: VaultDataClient,
     download_func: Mock,
 ) -> None:
-    """Check a changed server copy triggers a fresh download.
+    """Check a differently sized server copy triggers a fresh download.
 
     1. Download a dataset and then backdate it past the cache expiry.
-    2. Answer the revalidation with a newer ETag and a different size.
+    2. Answer the size check with a larger dataset.
     3. Verify the dataset was downloaded again.
-    4. Verify the new server metadata replaced the recorded one.
     """
 
     # 1. Download a dataset and then backdate it past the cache expiry.
     path = client.download(VaultDataset.vault_prices)
     expire_cache(path)
 
-    # 2. Answer the revalidation with a newer ETag and a different size.
-    client.session.head = Mock(
-        return_value=make_head_response(
-            content_length=path.stat().st_size + 100,
-            last_modified=datetime.datetime.now(),
-            etag='"new-version"',
-        )
-    )
+    # 2. Answer the size check with a larger dataset.
+    client.session.head = Mock(return_value=make_head_response(path.stat().st_size + 100))
     result = client.download(VaultDataset.vault_prices)
 
     # 3. Verify the dataset was downloaded again.
     assert result == path
     assert download_func.call_count == 2
 
-    # 4. Verify the new server metadata replaced the recorded one.
-    sidecar = path.with_name("vault-prices.parquet.metadata.json")
-    assert orjson.loads(sidecar.read_bytes())["etag"] == '"new-version"'
+
+def test_expired_cache_is_redownloaded_when_size_is_unknown(
+    client: VaultDataClient,
+    download_func: Mock,
+) -> None:
+    """Check an unusable size answer falls back to downloading.
+
+    The API sends no ETag and no Last-Modified, so ``Content-Length`` is the
+    only validator. Without it there is nothing to compare and stale data is a
+    worse outcome than a repeated download.
+
+    1. Download a dataset and then backdate it past the cache expiry.
+    2. Answer the size check without a Content-Length header.
+    3. Verify the dataset was downloaded again.
+    """
+
+    # 1. Download a dataset and then backdate it past the cache expiry.
+    path = client.download(VaultDataset.vault_prices)
+    expire_cache(path)
+
+    # 2. Answer the size check without a Content-Length header.
+    client.session.head = Mock(return_value=make_head_response(None))
+    client.download(VaultDataset.vault_prices)
+
+    # 3. Verify the dataset was downloaded again.
+    assert download_func.call_count == 2
 
 
 def test_rejected_api_key_is_reported_clearly(client: VaultDataClient) -> None:
-    """Check a refused Creem key produces an actionable error.
+    """Check a refused licence key produces an actionable error.
 
     The main Trading Strategy API key does not work for vault datasets, and the
     server answers a wrong key with a bare ``403``. Without translation that
@@ -195,13 +197,17 @@ def test_rejected_api_key_is_reported_clearly(client: VaultDataClient) -> None:
     forbidden = Mock()
     forbidden.status_code = 403
     forbidden.headers = {}
+    forbidden.ok = False
     client.session.head = Mock(return_value=forbidden)
 
     # 3. Verify the error names the environment variable to fix.
     with pytest.raises(VaultDataAccessDenied) as raised:
         client.download(VaultDataset.vault_metadata)
 
-    assert VAULT_PRO_API_KEY_ENV_VAR in str(raised.value)
+    message = str(raised.value)
+    assert VAULT_PRO_API_KEY_ENV_VAR in message
+    # The two credentials that are easy to reach for by mistake
+    assert "creem_" in message
 
 
 def test_missing_api_key_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:

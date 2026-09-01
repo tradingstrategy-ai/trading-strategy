@@ -2,23 +2,35 @@
 
 Vault metadata and vault share price history are commercial datasets. They are
 **not** served by the main Trading Strategy oracle API, and they do not use the
-main API key:
+main API key.
 
-- The main API, :py:class:`tradingstrategy.client.Client`, authenticates with a
-  ``secret-token:`` prefixed key sent in the ``Authorization`` header.
+The datasets are sold as a monthly licence through `Creem <https://creem.io>`__
+and served by a Cloudflare-fronted download API. Authentication is a licence
+key passed as the ``api-key`` query parameter. The key is emailed to the
+subscriber on purchase and looks like ``XXXXX-XXXXX-XXXXX-XXXXX-XXXXX``.
 
-- Vault datasets are sold through `Creem <https://creem.io>`__ and served by a
-  Cloudflare Worker sitting in front of the dataset storage. The Worker
-  authenticates with the Creem-issued key, passed as the ``api-key`` query
-  parameter.
+Three similar looking credentials are easy to confuse, and only the first one
+works here. The other two are answered with ``HTTP 403 {"message": "Invalid API
+key"}``:
 
-The two credentials are separate and cannot be substituted for each other:
-presenting a main API key to the vault dataset endpoints is answered with
-``HTTP 403 {"message": "Invalid API key"}``.
+- the **licence key** emailed to the subscriber, five dash separated groups;
+- the **main oracle API key**, which is ``secret-token:`` prefixed and sent in
+  the ``Authorization`` header by :py:class:`tradingstrategy.client.Client`.
+  Note the website's ``curl`` example stores the licence key in a shell
+  variable called ``TRADING_STRATEGY_API_KEY``, which is *not* that key;
+- a ``creem_`` prefixed **Creem merchant API key**, which belongs to the seller
+  of the dataset, authenticates against ``api.creem.io`` and must never be sent
+  to a download endpoint.
 
 Because the authentication, the hosting and the commercial terms all differ, the
 vault downloads live in this dedicated client instead of on
 :py:class:`tradingstrategy.client.Client`.
+
+A limited free sample of the vault datasets, covering Ethereum only, is
+published without any key at
+``https://tradingstrategy.ai/vaults/datasets/sample/``. This client does not
+download it, because a strategy silently backtesting on a one chain sample is
+worse than a strategy failing to start.
 
 Example:
 
@@ -33,14 +45,12 @@ Example:
     prices_df = client.fetch_vault_price_history()
 
 See https://tradingstrategy.ai/vaults/datasets for the dataset catalogue and to
-purchase a key.
+buy a licence.
 """
-
 import datetime
 import enum
 import logging
 import os
-from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from collections.abc import Callable
@@ -50,6 +60,7 @@ import orjson
 import pandas as pd
 import requests
 
+from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
 from tradingstrategy.transport.cache_utils import wait_other_writers
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
 from tradingstrategy.utils.time import naive_utcnow, naive_utcfromtimestamp
@@ -104,19 +115,26 @@ class VaultDataset(enum.Enum):
     for which subscription tier covers each one.
     """
 
-    #: Vault metadata: names, protocols, fees and lifetime performance metrics.
+    #: Vault identity, chain, protocol, fees, status and lifetime performance
+    #: metrics, as JSON. Served as ``vault-metadata.json``.
     vault_metadata = "vault_metadata"
 
-    #: Vault share price and TVL history.
+    #: Hourly USD share price and TVL history, as Parquet. Served as
+    #: ``vault-historical.parquet``. This is the dataset that replaced the old
+    #: public ``cleaned-vault-prices-1h.parquet`` bucket object.
     vault_prices = "vault_prices"
 
-    #: Metadata for cryptocurrency denominated vaults.
+    #: Metadata for vaults denominated in cryptocurrency rather than a
+    #: stablecoin, as JSON. Served as ``crypto-vault-metadata.json``.
     crypto_metadata = "crypto_metadata"
 
-    #: Cleaned cryptocurrency denominated price history.
+    #: Daily cleaned price history for cryptocurrency denominated vaults, as
+    #: Parquet. Served as ``crypto-cleaned-vault-prices-1d.parquet``. Note the
+    #: daily frequency, unlike the hourly :py:attr:`vault_prices`.
     crypto_cleaned_prices = "crypto_cleaned_prices"
 
-    #: Historical exchange rates used to denominate vault returns.
+    #: Historical exchange rates used to denominate vault returns, as Parquet.
+    #: Served as ``exchange-rates.parquet``.
     exchange_rates = "exchange_rates"
 
     @property
@@ -130,7 +148,12 @@ class VaultDataset(enum.Enum):
 
     @property
     def file_name(self) -> str:
-        """Name of the locally cached file for this dataset."""
+        """Name of the locally cached file for this dataset.
+
+        Named after the dataset rather than after the file the server happens to
+        send, so that the cache directory stays predictable if the published
+        file names change.
+        """
         extension = "json" if self in (VaultDataset.vault_metadata, VaultDataset.crypto_metadata) else "parquet"
         return f"{self.endpoint}.{extension}"
 
@@ -138,13 +161,14 @@ class VaultDataset(enum.Enum):
 class VaultDataClient:
     """Download vault datasets from the Creem API.
 
-    Handles authentication, caching and cache revalidation. Downloaded datasets
-    are cached under :py:data:`DEFAULT_VAULT_DOWNLOAD_ROOT` and reused for
-    :py:data:`DEFAULT_CACHE_EXPIRY`. After that the client asks the server
-    whether the file changed, using a ``HEAD`` request, and only downloads again
-    when it did. Answers are recorded in a sidecar JSON file next to the dataset,
-    because a large price history should not be re-downloaded on every process
-    start.
+    Handles authentication and caching. Datasets are cached under
+    :py:data:`DEFAULT_VAULT_DOWNLOAD_ROOT` and reused for
+    :py:data:`DEFAULT_CACHE_EXPIRY` without contacting the server at all. Once
+    that window passes, the client compares the size of the server copy against
+    the cached file and only downloads again when they differ, because the price
+    history is a few hundred megabytes and should not be re-fetched on every
+    process start. See :py:meth:`_fetch_remote_size` for why size is the only
+    comparison available.
 
     See the module docstring for how this client relates to
     :py:class:`tradingstrategy.client.Client`.
@@ -229,7 +253,7 @@ class VaultDataClient:
             Path to the local dataset file.
 
         :raise VaultDataAccessDenied:
-            If our API key is not accepted for this dataset.
+            If our licence key is not accepted for this dataset.
         """
 
         assert isinstance(dataset, VaultDataset), f"Not a VaultDataset: {dataset}"
@@ -238,42 +262,54 @@ class VaultDataClient:
         path = self.get_cached_path(dataset)
 
         with wait_other_writers(path):
-            remote_metadata = None
+            if self._is_cache_fresh(path, dataset):
+                return path
 
-            if path.exists():
-                cache_age = naive_utcnow() - naive_utcfromtimestamp(path.stat().st_mtime)
-                local_size = path.stat().st_size
+            # Ask the server how big the dataset is before streaming it. The
+            # answer decides whether the expired cache is still usable, and it
+            # is also where a rejected licence key surfaces - cheaply, instead
+            # of part way through a several hundred megabyte download.
+            remote_size = self._fetch_remote_size(url)
 
-                if cache_age < self.cache_expiry:
-                    logger.info(
-                        "Vault dataset %s cache hit: path=%s, cache_age=%s, local_size=%d bytes",
-                        dataset.value, path, cache_age, local_size,
-                    )
-                    return path
-
-                logger.info(
-                    "Vault dataset %s cache expired: path=%s, cache_age=%s, local_size=%d bytes. Revalidating against %s.",
-                    dataset.value, path, cache_age, local_size, url,
-                )
-
-                remote_metadata = self._fetch_remote_metadata(url)
-                if remote_metadata is not None and self._is_cache_current(path, remote_metadata):
-                    self._store_cache_metadata(path, remote_metadata)
-                    # Restart the expiry window, so an unchanged dataset is not
-                    # revalidated on every call
-                    os.utime(path, None)
-                    logger.info("Reusing cached vault dataset %s: the server copy is unchanged", path)
-                    return path
-            else:
-                logger.info("Vault dataset %s cache miss: downloading from %s", dataset.value, url)
+            if path.exists() and remote_size is not None and remote_size == path.stat().st_size:
+                # Restart the expiry window, so an unchanged dataset is not
+                # revalidated on every call
+                os.utime(path, None)
+                logger.info("Reusing cached vault dataset %s: the server copy is the same size", path)
+                return path
 
             self.download_root.mkdir(parents=True, exist_ok=True)
-            self._download_to(path, url, dataset)
-
-            if remote_metadata is not None:
-                self._store_cache_metadata(path, remote_metadata)
-
+            logger.info("Downloading vault dataset %s from %s to %s", dataset.value, url, path)
+            self.download_func(
+                self.session,
+                str(path),
+                url,
+                {"api-key": self.api_key},
+                self.timeout,
+                f"Downloading vault dataset {dataset.value}",
+            )
             return path
+
+    def _is_cache_fresh(self, path: Path, dataset: VaultDataset) -> bool:
+        """Is the locally cached dataset young enough to use without asking the server?"""
+
+        if not path.exists():
+            logger.info("Vault dataset %s cache miss: no file at %s", dataset.value, path)
+            return False
+
+        cache_age = naive_utcnow() - naive_utcfromtimestamp(path.stat().st_mtime)
+        if cache_age >= self.cache_expiry:
+            logger.info(
+                "Vault dataset %s cache expired: path=%s, cache_age=%s, local_size=%d bytes",
+                dataset.value, path, cache_age, path.stat().st_size,
+            )
+            return False
+
+        logger.info(
+            "Vault dataset %s cache hit: path=%s, cache_age=%s, local_size=%d bytes",
+            dataset.value, path, cache_age, path.stat().st_size,
+        )
+        return True
 
     def fetch_vault_universe(self) -> "VaultUniverse":
         """Download vault metadata and load it as a vault universe.
@@ -295,8 +331,6 @@ class VaultDataClient:
             Vault universe with full metadata.
         """
 
-        from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
-
         path = self.download(VaultDataset.vault_metadata)
         data = path.read_bytes()
         try:
@@ -316,55 +350,28 @@ class VaultDataClient:
         path = self.download(VaultDataset.vault_prices)
         return normalise_vault_price_history_frame(pd.read_parquet(path))
 
-    def _download_to(self, path: Path, url: str, dataset: VaultDataset) -> None:
-        """Fetch a dataset over HTTP, showing a progress bar."""
+    def _fetch_remote_size(self, url: str) -> int | None:
+        """Ask the server for the size of a dataset with a ``HEAD`` request.
 
-        try:
-            self.download_func(
-                self.session,
-                str(path),
-                url,
-                {"api-key": self.api_key},
-                self.timeout,
-                f"Downloading vault dataset {dataset.value}",
-            )
-        except Exception as e:
-            # The downloader raises a generic error for any non-200 answer. Rejected credentials are the failure an operator
-            # is most likely to hit and the least obvious from a stack trace,
-            # so check for them separately and say what to do about it.
-            self._raise_for_access(url, e)
-            raise
-
-    def _raise_for_access(self, url: str, cause: Exception) -> None:
-        """Translate a rejected key into an actionable error."""
-
-        response = self.session.get(
-            url,
-            params={"api-key": self.api_key},
-            stream=True,
-            timeout=self.timeout,
-        )
-        try:
-            if response.status_code in (401, 403):
-                raise VaultDataAccessDenied(
-                    f"The vault dataset API rejected our Creem API key with HTTP {response.status_code} for {url}.\n"
-                    f"Server says: {response.text[:200]}\n"
-                    f"Check {VAULT_PRO_API_KEY_ENV_VAR}. Note the main Trading Strategy API key does not work here, "
-                    f"vault datasets need their own key from https://tradingstrategy.ai/vaults/datasets"
-                ) from cause
-        finally:
-            response.close()
-
-    def _fetch_remote_metadata(self, url: str) -> dict | None:
-        """Ask the server for the current cache headers of a dataset.
+        Size is the only cache validator this API offers. It answers
+        ``Content-Length`` but no ``ETag`` and no ``Last-Modified``, and marks
+        the response ``cache-control: private, no-store``, so a stronger
+        comparison is not available. For an append-only history that is still a
+        useful signal: new rows change the length. Should the API start sending
+        validators, this is the place to prefer them.
 
         :return:
-            ``last_modified``, ``etag`` and ``content_length`` of the server
-            copy, or ``None`` if the server could not be reached. A failed
-            revalidation must not fail the download: we fall back to fetching
-            the dataset again.
+            Size of the server copy in bytes, or ``None`` when the server could
+            not be asked. A failed check must not fail the download, we simply
+            fetch the dataset again.
+
+        :raise VaultDataAccessDenied:
+            If our licence key is not accepted.
         """
 
+        # Only the request itself is guarded. Deciding what the answer means
+        # must not be, or a rejected key could be downgraded to a warning by the
+        # same handler that tolerates a flaky network.
         try:
             response = self.session.head(
                 url,
@@ -372,101 +379,32 @@ class VaultDataClient:
                 allow_redirects=True,
                 timeout=self.timeout,
             )
-            if response.status_code in (401, 403):
-                raise VaultDataAccessDenied(
-                    f"The vault dataset API rejected our Creem API key with HTTP {response.status_code} for {url}.\n"
-                    f"Check {VAULT_PRO_API_KEY_ENV_VAR}, see https://tradingstrategy.ai/vaults/datasets"
-                )
-            response.raise_for_status()
-        except VaultDataAccessDenied:
-            raise
         except Exception as e:
-            logger.warning("Could not revalidate the vault dataset cache with a HEAD request to %s: %s", url, e)
+            logger.warning("Could not check the vault dataset size with a HEAD request to %s: %s", url, e)
+            return None
+
+        if response.status_code in (401, 403):
+            raise VaultDataAccessDenied(
+                f"The vault dataset API rejected our licence key with HTTP {response.status_code} for {url}.\n"
+                f"Check {VAULT_PRO_API_KEY_ENV_VAR}. It must hold the licence key emailed on purchase, "
+                f"formatted as five dash separated groups. Neither the main Trading Strategy API key nor a "
+                f"creem_ prefixed Creem merchant key works here. "
+                f"See https://tradingstrategy.ai/vaults/datasets"
+            )
+
+        if not response.ok:
+            logger.warning("Vault dataset size check for %s returned HTTP %s", url, response.status_code)
             return None
 
         content_length = response.headers.get("Content-Length")
-        if content_length is not None:
-            try:
-                content_length = int(content_length)
-            except ValueError:
-                logger.warning("Invalid Content-Length %r received from %s", content_length, url)
-                content_length = None
-
-        return {
-            "last_modified": _parse_http_last_modified(response.headers.get("Last-Modified")),
-            "etag": response.headers.get("ETag"),
-            "content_length": content_length,
-        }
-
-    def _get_cache_metadata_path(self, path: Path) -> Path:
-        """Sidecar file recording what the server said about a downloaded dataset."""
-        return path.with_name(f"{path.name}.metadata.json")
-
-    def _load_cache_metadata(self, path: Path) -> dict:
-        """Read the sidecar metadata of a downloaded dataset."""
-        metadata_path = self._get_cache_metadata_path(path)
-        if not metadata_path.exists():
-            return {}
+        if content_length is None:
+            return None
 
         try:
-            return orjson.loads(metadata_path.read_bytes())
-        except Exception as e:
-            logger.warning("Could not read cache metadata from %s: %s", metadata_path, e)
-            return {}
-
-    def _store_cache_metadata(self, path: Path, remote_metadata: dict) -> None:
-        """Record what the server said, for the next revalidation."""
-        last_modified = remote_metadata["last_modified"]
-        payload = {
-            "last_modified": last_modified.isoformat() if last_modified is not None else None,
-            "etag": remote_metadata["etag"],
-            "content_length": remote_metadata["content_length"],
-            "stored_at": naive_utcnow().isoformat(),
-        }
-        self._get_cache_metadata_path(path).write_bytes(orjson.dumps(payload))
-
-    def _is_cache_current(self, path: Path, remote_metadata: dict) -> bool:
-        """Decide whether our cached copy still matches the server copy."""
-
-        local_stat = path.stat()
-
-        content_length = remote_metadata["content_length"]
-        if content_length is not None and content_length != local_stat.st_size:
-            return False
-
-        local_metadata = self._load_cache_metadata(path)
-
-        etag = remote_metadata["etag"]
-        if etag and local_metadata.get("etag") == etag:
-            return True
-
-        last_modified = remote_metadata["last_modified"]
-        if last_modified is None:
-            return False
-
-        stored_last_modified = local_metadata.get("last_modified")
-        if stored_last_modified:
-            try:
-                if last_modified == datetime.datetime.fromisoformat(stored_last_modified):
-                    return True
-            except ValueError:
-                logger.warning("Invalid cached last_modified value %r in %s", stored_last_modified, path)
-
-        # No usable sidecar metadata, for example because the file was
-        # downloaded by an older version. Fall back to file modification time.
-        return last_modified <= naive_utcfromtimestamp(local_stat.st_mtime)
-
-
-def _parse_http_last_modified(header_value: str | None) -> datetime.datetime | None:
-    """Parse an HTTP ``Last-Modified`` header into a naive UTC datetime."""
-
-    if not header_value:
-        return None
-
-    parsed = parsedate_to_datetime(header_value)
-    if parsed.tzinfo is not None:
-        parsed = parsed.astimezone(datetime.timezone.utc).replace(tzinfo=None)
-    return parsed.replace(tzinfo=None)
+            return int(content_length)
+        except ValueError:
+            logger.warning("Invalid Content-Length %r received from %s", content_length, url)
+            return None
 
 
 def normalise_vault_price_history_frame(df: pd.DataFrame) -> pd.DataFrame:
