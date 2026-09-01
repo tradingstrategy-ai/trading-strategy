@@ -26,7 +26,7 @@ Example:
 
     from tradingstrategy.vault_data_client import VaultDataClient
 
-    # Reads the key from the VAULT_PRO_ACCESS_KEY environment variable
+    # Reads the licence key from the VAULT_PRO_API_KEY environment variable
     client = VaultDataClient()
 
     vault_universe = client.fetch_vault_universe()
@@ -65,11 +65,14 @@ logger = logging.getLogger(__name__)
 #: Each dataset is a path segment under this URL, see :py:class:`VaultDataset`.
 VAULT_DATASETS_API_URL = "https://tradingstrategy.ai/vaults/datasets/download"
 
-#: Environment variable holding the Creem API key for vault datasets.
+#: Environment variable holding the Creem licence key for vault datasets.
 #:
-#: This is the "vault pro" key bought from https://tradingstrategy.ai/vaults/datasets,
-#: not :py:class:`tradingstrategy.client.Client`'s ``TRADING_STRATEGY_API_KEY``.
-VAULT_PRO_API_KEY_ENV_VAR = "VAULT_PRO_ACCESS_KEY"
+#: This is the key emailed to the subscriber when they buy the Pro plan from
+#: https://tradingstrategy.ai/vaults/datasets, formatted as five dash separated
+#: groups. It is not :py:class:`tradingstrategy.client.Client`'s
+#: ``TRADING_STRATEGY_API_KEY``, and it is not a ``creem_`` prefixed Creem
+#: merchant API key, which belongs to the seller and is rejected here.
+VAULT_PRO_API_KEY_ENV_VAR = "VAULT_PRO_API_KEY"
 
 #: Root directory for downloaded vault datasets.
 #:
