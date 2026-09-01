@@ -55,7 +55,9 @@ from tradingstrategy.environment.config import Configuration
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import CachedHTTPTransport, DataNotAvailable, OHLCVCandleType
-from tradingstrategy.vault_data_client import VaultDataClient, VAULT_PRO_API_KEY_ENV_VAR
+
+if TYPE_CHECKING:
+    from tradingstrategy.vault_data_client import VaultDataClient
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +209,11 @@ class Client(BaseClient):
 
         See :py:meth:`BaseClient.get_vault_data_client`.
         """
+        # Deliberately a function local import: vault_data_client pulls in
+        # optional dependencies (zstandard via alternative_data.vault) that are
+        # absent in the minimal Pyodide build, see test_optional_dependencies
+        from tradingstrategy.vault_data_client import VaultDataClient
+
         return VaultDataClient(
             api_key=self.vault_pro_api_key,
             download_root=download_root,
@@ -218,6 +225,10 @@ class Client(BaseClient):
         See :py:meth:`BaseClient.has_vault_data_access`. Mirrors the environment
         variable fallback of the vault dataset client itself.
         """
+        # Function local import for the same optional dependency reason as
+        # get_vault_data_client() above
+        from tradingstrategy.vault_data_client import VAULT_PRO_API_KEY_ENV_VAR
+
         return bool(self.vault_pro_api_key or os.environ.get(VAULT_PRO_API_KEY_ENV_VAR))
 
     def close(self):
