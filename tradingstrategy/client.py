@@ -17,7 +17,7 @@ from abc import abstractmethod, ABC
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Final, Optional, Union, Collection, Dict, Literal
+from typing import Final, Optional, Union, Collection, Dict, Literal, TYPE_CHECKING
 
 import pandas as pd
 
@@ -55,6 +55,9 @@ from tradingstrategy.environment.config import Configuration
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import CachedHTTPTransport, DataNotAvailable, OHLCVCandleType
+
+if TYPE_CHECKING:
+    from tradingstrategy.vault_data_client import VaultDataClient
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +120,24 @@ class BaseClient(ABC):
     def clear_caches(self, fname: str | None):
         pass
 
+    def get_vault_data_client(self, download_root: Path | None = None) -> "VaultDataClient":
+        """Get a client for the licence gated vault datasets.
+
+        Vault metadata and vault share price history are a separate paid product
+        with their own credential, see
+        :py:mod:`tradingstrategy.vault_data_client`. They are reached through
+        this client because it is the object that already carries our
+        credentials to every place datasets are loaded, including strategy
+        modules that only receive a client.
+
+        :param download_root:
+            Directory for cached vault datasets.
+
+        :raise NotImplementedError:
+            If this client kind cannot serve vault datasets.
+        """
+        raise NotImplementedError(f"{self.__class__.__name__} does not support vault datasets")
+
 
 class Client(BaseClient):
     """An API client for querying the Trading Strategy datasets from a server.
@@ -152,10 +173,36 @@ class Client(BaseClient):
 
     """
 
-    def __init__(self, env: Environment, transport: CachedHTTPTransport):
-        """Do not call constructor directly, but use one of create methods. """
+    def __init__(
+        self,
+        env: Environment,
+        transport: CachedHTTPTransport,
+        vault_pro_api_key: Optional[str] = None,
+    ):
+        """Do not call constructor directly, but use one of create methods.
+
+        :param vault_pro_api_key:
+            Creem licence key for the vault datasets, see
+            :py:mod:`tradingstrategy.vault_data_client`.
+
+            Falls back to the ``VAULT_PRO_API_KEY`` environment variable when
+            not given, which is how notebooks and tests usually configure it.
+        """
         self.env = env
         self.transport = transport
+        self.vault_pro_api_key = vault_pro_api_key
+
+    def get_vault_data_client(self, download_root: Path | None = None) -> "VaultDataClient":
+        """Get a client for the licence gated vault datasets.
+
+        See :py:meth:`BaseClient.get_vault_data_client`.
+        """
+        from tradingstrategy.vault_data_client import VaultDataClient
+
+        return VaultDataClient(
+            api_key=self.vault_pro_api_key,
+            download_root=download_root,
+        )
 
     def close(self):
         """Close the streams of underlying transport."""
@@ -1269,6 +1316,7 @@ class Client(BaseClient):
         cache_path: Optional[Path] = None,
         settings_path: Path | None = DEFAULT_SETTINGS_PATH,
         timeout=DEFAULT_TIMEOUT,
+        vault_pro_api_key: Optional[str] = None,
     ) -> "Client":
         """Create a live trading instance of the client.
 
@@ -1346,4 +1394,4 @@ class Client(BaseClient):
             timeout=DEFAULT_TIMEOUT,
         )
 
-        return Client(env, transport)
+        return Client(env, transport, vault_pro_api_key=vault_pro_api_key)
