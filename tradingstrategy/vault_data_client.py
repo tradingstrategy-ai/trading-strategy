@@ -52,6 +52,7 @@ import enum
 import logging
 import os
 from pathlib import Path
+from urllib.parse import quote
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING
@@ -325,13 +326,19 @@ class VaultDataClient:
         except Exception as e:
             temp_path.unlink(missing_ok=True)
 
-            # The downloader reports any non-200 answer as a generic error.
-            # If the licence key is the problem, say so instead.
-            self._raise_if_access_denied(url)
+            # The downloader reports any non-200 answer as a generic error, so
+            # ask whether the licence key is the problem. The original failure
+            # is quoted either way: it may have been local, a full disk or an
+            # unwritable cache, which a rejected key would otherwise mask.
+            self._raise_if_access_denied(url, cause=self._redact(e))
 
             raise RuntimeError(f"Could not download vault dataset {dataset.value} from {url}: {self._redact(e)}") from None
 
-        os.replace(temp_path, path)
+        try:
+            os.replace(temp_path, path)
+        except Exception as e:
+            temp_path.unlink(missing_ok=True)
+            raise RuntimeError(f"Could not move the downloaded vault dataset {dataset.value} to {path}: {self._redact(e)}") from None
 
     def fetch_vault_universe(self) -> "VaultUniverse":
         """Download vault metadata and load it as a vault universe.
@@ -353,13 +360,10 @@ class VaultDataClient:
             Vault universe with full metadata.
         """
 
-        path = self.download(VaultDataset.vault_metadata)
-        data = path.read_bytes()
-        try:
-            return load_vault_database_with_metadata(orjson.loads(data))
-        except orjson.JSONDecodeError as e:
-            display_data = data.decode("utf-8", errors="replace")
-            raise RuntimeError(f"Could not read vault metadata JSON file {path}\nData is {display_data}") from e
+        def read(path: Path) -> "VaultUniverse":
+            return load_vault_database_with_metadata(orjson.loads(path.read_bytes()))
+
+        return self._read_dataset(VaultDataset.vault_metadata, read)
 
     def fetch_vault_price_history(self) -> pd.DataFrame:
         """Download vault share price history.
@@ -369,15 +373,51 @@ class VaultDataClient:
             :py:func:`normalise_vault_price_history_frame`.
         """
 
-        path = self.download(VaultDataset.vault_prices)
-        return normalise_vault_price_history_frame(pd.read_parquet(path))
+        def read(path: Path) -> pd.DataFrame:
+            return normalise_vault_price_history_frame(pd.read_parquet(path))
 
-    def _raise_if_access_denied(self, url: str) -> None:
+        return self._read_dataset(VaultDataset.vault_prices, read)
+
+    def _read_dataset(self, dataset: VaultDataset, read: Callable):
+        """Download a dataset and parse it, discarding the cache if it is unreadable.
+
+        A cached file can be unreadable for reasons a retry fixes: a download
+        interrupted by an older version of this client, a corrupted disk, or a
+        successful response carrying a damaged body. Without this the bad file
+        would be served for the rest of its cache lifetime and every caller in
+        that window would fail the same way.
+        """
+
+        path = self.download(dataset)
+
+        try:
+            return read(path)
+        except Exception as e:
+            logger.warning(
+                "Could not read vault dataset %s from %s, discarding it and downloading again: %s",
+                dataset.value, path, e,
+            )
+            path.unlink(missing_ok=True)
+
+        path = self.download(dataset)
+        try:
+            return read(path)
+        except Exception as e:
+            raise RuntimeError(
+                f"Vault dataset {dataset.value} at {path} is unreadable after a fresh download"
+            ) from e
+
+    def _raise_if_access_denied(self, url: str, cause: str | None = None) -> None:
         """Turn a rejected licence key into an actionable error.
 
         Called after a failed download, because the downloader reports every
         non-200 answer the same way and a wrong key is both the most likely
         cause and the least obvious one from a stack trace.
+
+        :param cause:
+            Redacted description of the failure that prompted this check, so a
+            local error is still reported when the licence turns out to be
+            rejected as well.
 
         :raise VaultDataAccessDenied:
             If the server rejects our licence key.
@@ -400,6 +440,8 @@ class VaultDataClient:
         if response.status_code in (401, 403):
             raise VaultDataAccessDenied(
                 f"The vault dataset API rejected our licence key with HTTP {response.status_code} for {url}.\n"
+                + (f"The download failed with: {cause}\n" if cause else "")
+                + 
                 f"Check {VAULT_PRO_API_KEY_ENV_VAR}. It must hold the licence key emailed on purchase, "
                 f"formatted as five dash separated groups. Neither the main Trading Strategy API key nor a "
                 f"creem_ prefixed Creem merchant key works here. "
@@ -414,7 +456,10 @@ class VaultDataClient:
         quotes that URL back. Those messages reach logs and tracebacks, so
         everything derived from an exception passes through here first.
         """
-        return str(value).replace(self.api_key, "***")
+        redacted = str(value).replace(self.api_key, "***")
+        # requests percent-encodes the parameter before it reaches the URL an
+        # exception quotes, so a key with unsafe characters needs both forms
+        return redacted.replace(quote(self.api_key, safe=""), "***")
 
 
 def normalise_vault_price_history_frame(df: pd.DataFrame) -> pd.DataFrame:

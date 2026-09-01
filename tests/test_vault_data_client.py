@@ -138,6 +138,79 @@ def test_download_errors_do_not_disclose_the_licence_key(
     assert "***" in message
 
 
+def test_unreadable_cached_dataset_is_discarded_and_fetched_again(
+    client: VaultDataClient,
+    download_func: Mock,
+    tmp_path: Path,
+) -> None:
+    """Check a corrupted cache entry is replaced instead of served until it expires.
+
+    A cached file can be damaged by an interrupted download, a bad disk, or a
+    successful response carrying a truncated body. Serving it for the rest of
+    its cache lifetime would fail every caller in that window the same way.
+
+    1. Leave a corrupted parquet in the cache.
+    2. Read the price history, providing a valid parquet on the next download.
+    3. Verify the corrupted file was discarded and the good data returned.
+    """
+
+    # 1. Leave a corrupted parquet in the cache.
+    cached_path = client.get_cached_path(VaultDataset.vault_prices)
+    cached_path.parent.mkdir(parents=True, exist_ok=True)
+    cached_path.write_bytes(b"not a parquet file")
+
+    # 2. Read the price history, providing a valid parquet on the next download.
+    good_parquet = tmp_path / "good.parquet"
+    pd.DataFrame(
+        {"timestamp": [pd.Timestamp("2026-01-01")], "chain": [1], "address": ["0xabc"]}
+    ).to_parquet(good_parquet)
+
+    def write_good_parquet(session, path, url, params, timeout, human_readable_hint) -> None:
+        Path(path).write_bytes(good_parquet.read_bytes())
+
+    download_func.side_effect = write_good_parquet
+
+    df = client.fetch_vault_price_history()
+
+    # 3. Verify the corrupted file was discarded and the good data returned.
+    assert download_func.call_count == 1
+    assert len(df) == 1
+    assert df.iloc[0]["timestamp"] == pd.Timestamp("2026-01-01")
+
+
+def test_local_download_failure_is_reported_even_when_the_key_is_rejected(
+    client: VaultDataClient,
+    download_func: Mock,
+) -> None:
+    """Check a rejected licence key does not hide a local failure.
+
+    The access check runs after any download failure, including one that never
+    reached the network. If the licence happens to be rejected as well, the
+    error an operator reads must still say what actually went wrong.
+
+    1. Fail the download with a local filesystem error.
+    2. Answer the follow-up access check with a rejection.
+    3. Verify both the rejection and the original failure are reported.
+    """
+
+    # 1. Fail the download with a local filesystem error.
+    download_func.side_effect = PermissionError("Read-only file system")
+
+    # 2. Answer the follow-up access check with a rejection.
+    forbidden = Mock()
+    forbidden.status_code = 403
+    forbidden.headers = {}
+    client.session.head = Mock(return_value=forbidden)
+
+    # 3. Verify both the rejection and the original failure are reported.
+    with pytest.raises(VaultDataAccessDenied) as raised:
+        client.download(VaultDataset.vault_prices)
+
+    message = str(raised.value)
+    assert "403" in message
+    assert "Read-only file system" in message
+
+
 def test_rejected_api_key_is_reported_clearly(client: VaultDataClient) -> None:
     """Check a refused licence key produces an actionable error.
 
