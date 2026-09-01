@@ -170,7 +170,7 @@ def test_rejected_api_key_is_reported_clearly(client: VaultDataClient) -> None:
 
 
 def test_missing_api_key_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Check the client refuses to start without a Creem key.
+    """Check the client refuses to start without a licence key.
 
     1. Remove the key from the environment.
     2. Verify constructing the client fails with a message pointing at the key.
@@ -225,12 +225,12 @@ def test_price_history_normalises_timestamp_column(tmp_path: Path) -> None:
 def test_fetch_vault_datasets_live(tmp_path: Path) -> None:
     """Check both vault datasets can be downloaded and parsed from the live API.
 
-    1. Create a client reading the Creem key from the environment.
+    1. Create a client reading the licence key from the environment.
     2. Download and parse vault metadata.
     3. Download and parse vault price history.
     """
 
-    # 1. Create a client reading the Creem key from the environment.
+    # 1. Create a client reading the licence key from the environment.
     client = VaultDataClient(download_root=tmp_path / "vault-downloads")
 
     # 2. Download and parse vault metadata.

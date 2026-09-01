@@ -109,10 +109,11 @@ DEFAULT_TIMEOUT = (15.0, 15 * 60.0)
 
 
 class VaultDataAccessDenied(Exception):
-    """The Creem API rejected our key.
+    """The vault dataset API rejected our licence key.
 
-    Raised for ``401`` and ``403`` answers, which mean the key is missing,
-    invalid, expired, or not subscribed to the dataset being downloaded.
+    Raised for ``401`` and ``403`` answers, which mean the key is invalid,
+    expired, not subscribed to the dataset being downloaded, or is one of the
+    other Trading Strategy credentials described in the module docstring.
     """
 
 
@@ -191,7 +192,7 @@ class VaultDataClient:
     ):
         """
         :param api_key:
-            Creem API key for vault datasets.
+            Creem licence key for the vault datasets.
 
             Read from the :py:data:`VAULT_PRO_API_KEY_ENV_VAR` environment
             variable when not given.
@@ -224,7 +225,7 @@ class VaultDataClient:
         if api_key is None:
             api_key = os.environ.get(VAULT_PRO_API_KEY_ENV_VAR)
 
-        assert api_key, f"Vault datasets need a Creem API key. Pass api_key or set {VAULT_PRO_API_KEY_ENV_VAR}. See https://tradingstrategy.ai/vaults/datasets"
+        assert api_key, f"Vault datasets need a Creem licence key. Pass api_key or set {VAULT_PRO_API_KEY_ENV_VAR}. See https://tradingstrategy.ai/vaults/datasets"
 
         self.api_key = api_key
         # Resolved, because the cache lock refuses relative paths and a caller
