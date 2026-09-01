@@ -55,9 +55,7 @@ from tradingstrategy.environment.config import Configuration
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.transport.cache import CachedHTTPTransport, DataNotAvailable, OHLCVCandleType
-
-if TYPE_CHECKING:
-    from tradingstrategy.vault_data_client import VaultDataClient
+from tradingstrategy.vault_data_client import VaultDataClient, VAULT_PRO_API_KEY_ENV_VAR
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +136,18 @@ class BaseClient(ABC):
         """
         raise NotImplementedError(f"{self.__class__.__name__} does not support vault datasets")
 
+    def has_vault_data_access(self) -> bool:
+        """Do we have a vault dataset licence key configured?
+
+        Lets optional vault features, like the repair time metadata cache
+        refresh, skip cleanly on deployments that do not subscribe to the vault
+        datasets, instead of failing on a missing credential they never needed.
+        Code that genuinely requires vault data should not consult this: it
+        should call :py:meth:`get_vault_data_client` and let a missing key fail
+        with its actionable error.
+        """
+        return False
+
 
 class Client(BaseClient):
     """An API client for querying the Trading Strategy datasets from a server.
@@ -197,12 +207,18 @@ class Client(BaseClient):
 
         See :py:meth:`BaseClient.get_vault_data_client`.
         """
-        from tradingstrategy.vault_data_client import VaultDataClient
-
         return VaultDataClient(
             api_key=self.vault_pro_api_key,
             download_root=download_root,
         )
+
+    def has_vault_data_access(self) -> bool:
+        """Do we have a vault dataset licence key configured?
+
+        See :py:meth:`BaseClient.has_vault_data_access`. Mirrors the environment
+        variable fallback of the vault dataset client itself.
+        """
+        return bool(self.vault_pro_api_key or os.environ.get(VAULT_PRO_API_KEY_ENV_VAR))
 
     def close(self):
         """Close the streams of underlying transport."""

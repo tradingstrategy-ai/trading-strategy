@@ -8,6 +8,7 @@ from unittest.mock import Mock
 import pandas as pd
 import pytest
 
+from tradingstrategy.client import Client
 from tradingstrategy.vault import VaultUniverse
 from tradingstrategy.vault_data_client import (
     VaultDataAccessDenied,
@@ -316,3 +317,27 @@ def test_fetch_vault_datasets_live(tmp_path: Path) -> None:
     assert len(history_df) > 0
     assert {"timestamp", "chain", "address", "share_price", "total_assets"}.issubset(history_df.columns)
     assert history_df["timestamp"].notna().all()
+
+
+def test_client_reports_vault_data_access(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Check the oracle client knows whether a vault licence key is configured.
+
+    Optional vault features, like the repair time metadata cache refresh, skip
+    on deployments without a licence instead of failing on a credential they
+    never needed, so the credential owner must be able to answer the question.
+
+    1. Verify a client with no key anywhere reports no access.
+    2. Verify an explicit key reports access.
+    3. Verify a key in the environment reports access.
+    """
+
+    # 1. Verify a client with no key anywhere reports no access.
+    monkeypatch.delenv(VAULT_PRO_API_KEY_ENV_VAR, raising=False)
+    assert Client(None, None).has_vault_data_access() is False
+
+    # 2. Verify an explicit key reports access.
+    assert Client(None, None, vault_pro_api_key="AAAAA-BBBBB-CCCCC-DDDDD-EEEEE").has_vault_data_access() is True
+
+    # 3. Verify a key in the environment reports access.
+    monkeypatch.setenv(VAULT_PRO_API_KEY_ENV_VAR, "FROM-ENVIRONMENT")
+    assert Client(None, None).has_vault_data_access() is True
