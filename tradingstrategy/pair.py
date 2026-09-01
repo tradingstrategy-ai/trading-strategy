@@ -618,7 +618,7 @@ class DEXPair:
 
         Must be separately loaded via vault data loading functions.
         See :py:func:`tradingstrategy.alternative_data.vault.load_vault_database`
-        or :py:func:`tradingstrategy.client.Client.fetch_vault_universe`.
+        or :py:meth:`tradingstrategy.vault_data_client.VaultDataClient.fetch_vault_universe`.
 
         :return:
             VaultMetadata if this is a vault pair, None otherwise.
