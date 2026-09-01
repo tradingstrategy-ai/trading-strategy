@@ -9,7 +9,9 @@ import pandas as pd
 import pytest
 
 from tradingstrategy.chain import ChainId
-from tradingstrategy.alternative_data.vault import load_vault_database_with_metadata
+from tradingstrategy.alternative_data.vault import convert_vaults_to_trading_pairs, load_vault_database_with_metadata
+from tradingstrategy.exchange import ExchangeUniverse
+from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.vault import Vault, VaultDepositPermission, VaultDepositStatus, VaultMetadata, VaultRedemptionStatus, VaultUniverse
 from tradingstrategy.vault_data_client import VaultDataClient, VAULT_PRO_API_KEY_ENV_VAR
 
@@ -91,11 +93,14 @@ def test_vault_universe_with_metadata(tmp_path: Path) -> None:
     reason=f"Set {VAULT_PRO_API_KEY_ENV_VAR} environment variable to run this test",
 )
 def test_dex_pair_get_vault_metadata() -> None:
-    """Test DEXPair.get_vault_metadata() accessor."""
-    from tradingstrategy.alternative_data.vault import convert_vaults_to_trading_pairs
-    from tradingstrategy.exchange import ExchangeUniverse
-    from tradingstrategy.pair import PandasPairUniverse
+    """Test DEXPair.get_vault_metadata() accessor.
 
+    1. Download the vault universe and convert it to trading pairs.
+    2. Walk the pairs until one carries vault metadata.
+    3. Confirm the metadata is exposed through the pair accessor.
+    """
+
+    # 1. Download the vault universe and convert it to trading pairs.
     vault_universe = VaultDataClient().fetch_vault_universe()
     exchanges, pairs_df = convert_vaults_to_trading_pairs(
         vault_universe.export_all_vaults()
@@ -104,10 +109,11 @@ def test_dex_pair_get_vault_metadata() -> None:
     exchange_universe = ExchangeUniverse({e.exchange_id: e for e in exchanges})
     pair_universe = PandasPairUniverse(pairs_df, exchange_universe=exchange_universe)
 
-    # Get a vault pair
+    # 2. Walk the pairs until one carries vault metadata.
     for pair in pair_universe.iterate_pairs():
         metadata = pair.get_vault_metadata()
         if metadata is not None:
+            # 3. Confirm the metadata is exposed through the pair accessor.
             assert isinstance(metadata, VaultMetadata)
             assert metadata.vault_name is not None
             break

@@ -34,147 +34,108 @@ def download_func() -> Mock:
 
 @pytest.fixture()
 def client(tmp_path: Path, download_func: Mock) -> VaultDataClient:
-    """Vault dataset client writing to a throwaway cache directory.
-
-    The session answers the size check with an unknown size by default, so a
-    test that does not care about revalidation always downloads.
-    """
-    session = Mock()
-    session.head = Mock(return_value=make_head_response(None))
+    """Vault dataset client writing to a throwaway cache directory."""
     return VaultDataClient(
         api_key="test-licence-key",
         download_root=tmp_path / "vault-downloads",
-        session=session,
+        session=Mock(),
         download_func=download_func,
     )
 
 
-def make_head_response(content_length: int | None) -> Mock:
-    """Build a mocked HEAD answer describing the server copy of a dataset."""
-    response = Mock()
-    response.headers = {} if content_length is None else {"Content-Length": str(content_length)}
-    response.status_code = 200
-    response.ok = True
-    return response
-
-
 def expire_cache(path: Path) -> None:
-    """Backdate a cached file so the client revalidates it against the server."""
-    expired = (datetime.datetime.now() - datetime.timedelta(days=2)).timestamp()
+    """Backdate a cached file so the client treats it as expired."""
+    expired = path.stat().st_mtime - datetime.timedelta(days=2).total_seconds()
     os.utime(path, (expired, expired))
 
 
-def test_download_caches_dataset_and_sends_api_key(
+def test_expired_cache_is_downloaded_again(
     client: VaultDataClient,
     download_func: Mock,
 ) -> None:
-    """Check a dataset is downloaded once and then served from the cache.
+    """Check an expired cache is replaced rather than served.
 
-    1. Download a dataset into an empty cache.
-    2. Verify the file landed on disk and the Creem key travelled as a request parameter.
-    3. Download the same dataset again.
-    4. Verify the cached copy was reused instead of downloading a second time.
-    """
-
-    # 1. Download a dataset into an empty cache.
-    path = client.download(VaultDataset.vault_prices)
-
-    # 2. Verify the file landed on disk and the Creem key travelled as a request parameter.
-    assert path.exists()
-    assert path.name == "vault-prices.parquet"
-    download_func.assert_called_once()
-    _, called_path, called_url, called_params, _, _ = download_func.call_args[0]
-    assert called_path == str(path)
-    assert called_url == "https://tradingstrategy.ai/vaults/datasets/download/vault-prices"
-    assert called_params == {"api-key": "test-licence-key"}
-
-    # 3. Download the same dataset again.
-    second_path = client.download(VaultDataset.vault_prices)
-
-    # 4. Verify the cached copy was reused instead of downloading a second time.
-    assert second_path == path
-    download_func.assert_called_once()
-
-
-def test_expired_cache_is_reused_when_server_copy_is_unchanged(
-    client: VaultDataClient,
-    download_func: Mock,
-) -> None:
-    """Check an expired cache survives when the server copy is the same size.
-
-    The price history is a few hundred megabytes, so an expired cache must not
-    mean an automatic re-download. The client asks the server how large the
-    dataset is and only downloads when the answer differs.
+    The API offers no cache validator, so an expired dataset can only be
+    refreshed by downloading it again.
 
     1. Download a dataset and then backdate it past the cache expiry.
-    2. Answer the size check with the size of the local file.
-    3. Verify no new download happened and the expiry window restarted.
-    """
-
-    # 1. Download a dataset and then backdate it past the cache expiry.
-    path = client.download(VaultDataset.vault_prices)
-    expire_cache(path)
-    original_mtime = path.stat().st_mtime
-
-    # 2. Answer the size check with the size of the local file.
-    client.session.head = Mock(return_value=make_head_response(path.stat().st_size))
-    result = client.download(VaultDataset.vault_prices)
-
-    # 3. Verify no new download happened and the expiry window restarted.
-    assert result == path
-    download_func.assert_called_once()
-    assert path.stat().st_mtime > original_mtime
-
-
-def test_expired_cache_is_redownloaded_when_server_copy_changed(
-    client: VaultDataClient,
-    download_func: Mock,
-) -> None:
-    """Check a differently sized server copy triggers a fresh download.
-
-    1. Download a dataset and then backdate it past the cache expiry.
-    2. Answer the size check with a larger dataset.
-    3. Verify the dataset was downloaded again.
+    2. Download it again.
+    3. Verify the dataset was fetched a second time.
     """
 
     # 1. Download a dataset and then backdate it past the cache expiry.
     path = client.download(VaultDataset.vault_prices)
     expire_cache(path)
 
-    # 2. Answer the size check with a larger dataset.
-    client.session.head = Mock(return_value=make_head_response(path.stat().st_size + 100))
+    # 2. Download it again.
     result = client.download(VaultDataset.vault_prices)
 
-    # 3. Verify the dataset was downloaded again.
+    # 3. Verify the dataset was fetched a second time.
     assert result == path
     assert download_func.call_count == 2
 
 
-def test_expired_cache_is_redownloaded_when_size_is_unknown(
+def test_interrupted_download_keeps_the_previous_copy(
     client: VaultDataClient,
     download_func: Mock,
 ) -> None:
-    """Check an unusable size answer falls back to downloading.
+    """Check a failed download neither destroys nor replaces the cached dataset.
 
-    The API sends no ETag and no Last-Modified, so ``Content-Length`` is the
-    only validator. Without it there is nothing to compare and stale data is a
-    worse outcome than a repeated download.
+    Writing straight to the cache path would let a dropped connection leave a
+    truncated file behind with a fresh timestamp, which the next call would
+    then serve as a valid cache hit for the whole expiry window.
 
     1. Download a dataset and then backdate it past the cache expiry.
-    2. Answer the size check without a Content-Length header.
-    3. Verify the dataset was downloaded again.
+    2. Fail the next download part way through writing.
+    3. Verify the previous copy is intact and no partial file was left behind.
     """
 
     # 1. Download a dataset and then backdate it past the cache expiry.
     path = client.download(VaultDataset.vault_prices)
     expire_cache(path)
 
-    # 2. Answer the size check without a Content-Length header.
-    client.session.head = Mock(return_value=make_head_response(None))
-    client.download(VaultDataset.vault_prices)
+    # 2. Fail the next download part way through writing.
+    def fail_midway(session, download_path, url, params, timeout, human_readable_hint) -> None:
+        Path(download_path).write_bytes(b"trunc")
+        raise ConnectionError("Connection broken: IncompleteRead")
 
-    # 3. Verify the dataset was downloaded again.
-    assert download_func.call_count == 2
+    download_func.side_effect = fail_midway
+    client.session.head = Mock(side_effect=ConnectionError("no route to host"))
+
+    with pytest.raises(RuntimeError):
+        client.download(VaultDataset.vault_prices)
+
+    # 3. Verify the previous copy is intact and no partial file was left behind.
+    assert path.read_bytes() == b"dataset"
+    assert list(path.parent.glob("*.part")) == []
+
+
+def test_download_errors_do_not_disclose_the_licence_key(
+    client: VaultDataClient,
+    download_func: Mock,
+) -> None:
+    """Check the licence key never reaches an error message.
+
+    The key travels as a URL query parameter, so ``requests`` builds it into
+    the prepared URL and quotes that URL back in connection and status errors.
+
+    1. Fail a download with an error quoting the full request URL.
+    2. Verify the raised error describes the failure without the key.
+    """
+
+    # 1. Fail a download with an error quoting the full request URL.
+    download_func.side_effect = ConnectionError(
+        "HTTPSConnectionPool: /download/vault-prices?api-key=test-licence-key timed out"
+    )
+    client.session.head = Mock(side_effect=ConnectionError("also down"))
+
+    # 2. Verify the raised error describes the failure without the key.
+    with pytest.raises(RuntimeError) as raised:
+        client.download(VaultDataset.vault_prices)
+
+    message = str(raised.value)
+    assert "test-licence-key" not in message
+    assert "***" in message
 
 
 def test_rejected_api_key_is_reported_clearly(client: VaultDataClient) -> None:
@@ -184,20 +145,18 @@ def test_rejected_api_key_is_reported_clearly(client: VaultDataClient) -> None:
     server answers a wrong key with a bare ``403``. Without translation that
     surfaces as an opaque download failure.
 
-    1. Download a dataset and then backdate it past the cache expiry.
-    2. Answer the revalidation with the server's rejection.
+    1. Fail the download the way the API answers a bad key.
+    2. Answer the follow-up access check with the server's rejection.
     3. Verify the error names the environment variable to fix.
     """
 
-    # 1. Download a dataset and then backdate it past the cache expiry.
-    path = client.download(VaultDataset.vault_metadata)
-    expire_cache(path)
+    # 1. Fail the download the way the API answers a bad key.
+    client.download_func.side_effect = RuntimeError("Failed to do an API call")
 
-    # 2. Answer the revalidation with the server's rejection.
+    # 2. Answer the follow-up access check with the server's rejection.
     forbidden = Mock()
     forbidden.status_code = 403
     forbidden.headers = {}
-    forbidden.ok = False
     client.session.head = Mock(return_value=forbidden)
 
     # 3. Verify the error names the environment variable to fix.
