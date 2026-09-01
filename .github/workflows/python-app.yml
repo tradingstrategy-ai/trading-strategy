@@ -53,6 +53,15 @@ jobs:
         poetry run pytest -vv --tb=native -n 4
       env:
         TRADING_STRATEGY_API_KEY: ${{ secrets.TRADING_STRATEGY_API_KEY }}
+        # Creem licence key for the paid vault datasets: vault metadata and vault
+        # share price history, downloaded by tradingstrategy.vault_data_client.
+        # Format is five dash separated groups, emailed to the subscriber on purchase
+        # from https://tradingstrategy.ai/vaults/datasets
+        # Not interchangeable with TRADING_STRATEGY_API_KEY above: the oracle key is
+        # secret-token: prefixed and the dataset API answers it with 403 Invalid API key.
+        # When unset, the vault tests skip themselves rather than fail, so a green run
+        # does not mean the live dataset paths were exercised.
+        VAULT_PRO_API_KEY: ${{ secrets.VAULT_PRO_API_KEY }}
         BASE_BINANCE_API_URL: ${{ secrets.BASE_BINANCE_API_URL }}
         BASE_BINANCE_MARGIN_API_URL: ${{ secrets.BASE_BINANCE_MARGIN_API_URL }}
 
