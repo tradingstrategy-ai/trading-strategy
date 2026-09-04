@@ -60,7 +60,7 @@ def run_interactive_setup() -> Optional[Configuration]:
     return config
 
 
-def run_interactive_vault_setup() -> Optional[str]:
+def run_interactive_vault_setup() -> str | None:
     """Do REPL interactive setup for the Vaults Pro (Creem) licence key.
 
     Mirrors :py:func:`run_interactive_setup`, but for the separately licensed

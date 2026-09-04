@@ -95,9 +95,6 @@ backtrader = ["trading-strategy-backtrader"]
 flaky = "^3.8.1"
 importchecker = "^3.0"
 pytest-timeout = "^2.4.0"
-# Execute a notebook in a real kernel in the Vaults Pro interactive-prompt integration test
-nbclient = "^0.10"
-ipykernel = "^6.29"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

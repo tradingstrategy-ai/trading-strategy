@@ -1236,6 +1236,7 @@ class Client(BaseClient):
         pyodide=None,
         settings_path=DEFAULT_SETTINGS_PATH,
         needs_vault_data: bool = False,
+        vault_pro_api_key: str | None = None,
     ) -> "Client":
         """Create a new API client.
 
@@ -1268,11 +1269,36 @@ class Client(BaseClient):
 
         :param needs_vault_data:
             Set ``True`` when the strategy loads the licence-gated vault datasets.
+            **This is now mandatory for any vault strategy**: vault metadata and
+            vault share price (historical returns) datasets are a separate paid
+            Vaults Pro product served by the Creem API, and the client only
+            unlocks them when it carries the Vaults Pro licence key. Loading them
+            through :py:meth:`get_vault_data_client`, :py:meth:`fetch_vault_universe`
+            or :py:meth:`fetch_vault_price_history` without the key raises an
+            actionable error, so notebooks that build a vault universe must pass
+            ``needs_vault_data=True``.
 
-            The Vaults Pro (Creem) licence key is then set up the same way as the
-            base API key: read from ``settings.json`` if present, otherwise from
-            the ``VAULT_PRO_API_KEY`` environment variable, otherwise prompted
-            interactively, and persisted back to ``settings.json`` for reuse.
+            When set, the Vaults Pro (Creem) licence key is onboarded the same way
+            as the base API key. There are three ways to provide it, tried in this
+            order:
+
+            1. **Explicitly**, via the ``vault_pro_api_key`` argument below.
+            2. **Persistent settings file**: the key stored in
+               ``~/.tradingstrategy/settings.json`` from a previous run.
+            3. **Environment variable** ``VAULT_PRO_API_KEY``.
+
+            If none of these resolve a key, the notebook prompts for it
+            interactively. However it is resolved, the key is persisted back to
+            ``settings.json`` so later runs reuse it without prompting again. The
+            key is not the ``secret-token:`` oracle API key and not a ``creem_``
+            merchant key; see https://tradingstrategy.ai/vaults/datasets.
+
+        :param vault_pro_api_key:
+            Explicit Vaults Pro (Creem) licence key. Overrides the stored key and
+            ``VAULT_PRO_API_KEY``, and is persisted for reuse. This is the
+            supported way to replace a wrong or expired stored key without editing
+            ``settings.json`` by hand. Only consulted when ``needs_vault_data`` is
+            set and a settings file is enabled.
 
         """
 
@@ -1288,8 +1314,6 @@ class Client(BaseClient):
         cls.preflight_check()
         env = DefaultClientEnvironment(settings_path=settings_path)
 
-        vault_pro_api_key = None
-
         # Try Pyodide default key
         if not api_key:
             if pyodide:
@@ -1303,7 +1327,12 @@ class Client(BaseClient):
                 "Interactive setup is disabled for this data client.\n" \
                 "Cannot continue."
 
-            config = env.setup_on_demand(api_key=api_key, needs_vault_data=needs_vault_data)
+            config = env.setup_on_demand(
+                api_key=api_key,
+                needs_vault_data=needs_vault_data,
+                vault_pro_api_key=vault_pro_api_key,
+                interactive=not pyodide,
+            )
             api_key = config.api_key
             vault_pro_api_key = config.vault_pro_api_key
         elif needs_vault_data and settings_path:
@@ -1312,10 +1341,15 @@ class Client(BaseClient):
             # above is skipped. We still resolve and persist the vault dataset
             # licence key here so vault-loading strategies do not fail. The
             # supplied base key is the one in use, so it is also the one saved,
-            # overriding any stale key in an existing settings file.
+            # overriding any stale key in an existing settings file. A forced
+            # Pyodide client cannot prompt, so interactive resolution is disabled.
             config = env.discover_configuration() or Configuration()
             config.api_key = api_key
-            config = env.ensure_vault_pro_api_key(config)
+            config = env.ensure_vault_pro_api_key(
+                config,
+                vault_pro_api_key=vault_pro_api_key,
+                interactive=not pyodide,
+            )
             vault_pro_api_key = config.vault_pro_api_key
 
         cache_path = cache_path or env.get_cache_path()
