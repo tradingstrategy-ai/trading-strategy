@@ -1,10 +1,15 @@
 """Client dataset download and integrity tests"""
 
 import os
+import json
 import logging
+import builtins
+from pathlib import Path
+from textwrap import dedent
 
 import pytest
 
+from tradingstrategy.environment.config import Configuration
 from tradingstrategy.environment.default_environment import DefaultClientEnvironment, SettingsDisabled
 from tradingstrategy.timebucket import TimeBucket
 from tradingstrategy.client import Client
@@ -141,3 +146,168 @@ def test_settings_disabled():
     assert isinstance(env, DefaultClientEnvironment)
     with pytest.raises(SettingsDisabled):
         env.setup_on_demand()
+
+
+def test_vault_pro_api_key_persist_reuse_and_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """needs_vault_data resolves the Vaults Pro key, persists it, reuses it and can be overridden.
+
+    Offline: a base API key is supplied and no dataset is downloaded, so key
+    resolution and persistence run without hitting the server.
+
+    1. Seed settings.json with a stale base key and no vault key.
+    2. Create a client with a new base key and VAULT_PRO_API_KEY set; check the
+       resolved key and that both keys are persisted, overriding the stale one.
+    3. Create the client again with the environment variable removed and check the
+       vault key is reused from settings.json without prompting.
+    4. Pass an explicit vault_pro_api_key and check it replaces the stored key.
+    """
+    env = DefaultClientEnvironment(settings_path=tmp_path)
+
+    # 1. Seed settings.json with a stale base key and no vault key.
+    env.save_configuration(Configuration(api_key="secret-token:tradingstrategy-OLD"))
+
+    # 2. Create a client with a new base key and the environment variable set.
+    monkeypatch.setenv("VAULT_PRO_API_KEY", "creem-test-key-123456")
+    client = Client.create_jupyter_client(
+        api_key="secret-token:tradingstrategy-NEW",
+        settings_path=tmp_path,
+        needs_vault_data=True,
+    )
+    assert client.vault_pro_api_key == "creem-test-key-123456"
+    config = env.discover_configuration()
+    assert config.api_key == "secret-token:tradingstrategy-NEW"  # stale base key overridden
+    assert config.vault_pro_api_key == "creem-test-key-123456"  # vault key persisted alongside it
+
+    # 3. Create the client again with the environment variable removed.
+    monkeypatch.delenv("VAULT_PRO_API_KEY")
+    reused = Client.create_jupyter_client(
+        api_key="secret-token:tradingstrategy-NEW",
+        settings_path=tmp_path,
+        needs_vault_data=True,
+    )
+    assert reused.vault_pro_api_key == "creem-test-key-123456"  # reused from settings.json
+
+    # 4. Pass an explicit vault_pro_api_key and check it replaces the stored key.
+    overridden = Client.create_jupyter_client(
+        api_key="secret-token:tradingstrategy-NEW",
+        settings_path=tmp_path,
+        needs_vault_data=True,
+        vault_pro_api_key="creem-replacement-key-987654",
+    )
+    assert overridden.vault_pro_api_key == "creem-replacement-key-987654"
+    assert env.discover_configuration().vault_pro_api_key == "creem-replacement-key-987654"
+
+
+def test_vault_pro_api_key_absent_without_flag(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Without needs_vault_data the client carries no Vaults Pro key and never prompts.
+
+    1. Ensure no Vaults Pro key is present in the environment.
+    2. Create a client without needs_vault_data and check it has no vault key.
+    """
+    # 1. Ensure no Vaults Pro key is present in the environment.
+    monkeypatch.delenv("VAULT_PRO_API_KEY", raising=False)
+
+    # 2. Create a client without needs_vault_data and check it has no vault key.
+    client = Client.create_jupyter_client(
+        api_key="secret-token:tradingstrategy-basekey",
+        settings_path=tmp_path,
+    )
+    assert client.vault_pro_api_key is None
+
+
+def test_vault_pro_api_key_forced_pyodide_does_not_prompt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """A forced Pyodide client with needs_vault_data never blocks on the interactive prompt.
+
+    1. Remove any ambient Vaults Pro key and make input() fail if it is called.
+    2. Create a forced-Pyodide client with needs_vault_data and check it returns
+       without a key instead of prompting.
+    """
+    # 1. Remove any ambient Vaults Pro key and make input() fail if it is called.
+    monkeypatch.delenv("VAULT_PRO_API_KEY", raising=False)
+
+    def _no_input(prompt: str = "") -> str:
+        raise AssertionError("interactive prompt must not run under forced Pyodide")
+
+    monkeypatch.setattr(builtins, "input", _no_input)
+
+    # 2. Create a forced-Pyodide client with needs_vault_data and check it returns without a key.
+    client = Client.create_jupyter_client(
+        pyodide=True,
+        settings_path=tmp_path,
+        needs_vault_data=True,
+    )
+    assert client.vault_pro_api_key is None
+
+
+def test_notebook_interactive_vault_pro_prompt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Running a notebook with needs_vault_data interactively asks for the Vaults Pro key.
+
+    Exercises the notebook code path end to end in a real Jupyter kernel: with no
+    key configured it must reach the interactive prompt and persist the answer to
+    the overridden temporary settings file, never the developer's real one.
+
+    1. Point the settings file at a temporary directory and clear the environment
+       variable, so neither the real settings file nor an ambient key is used.
+    2. Execute a one-cell notebook that mocks input() and creates a Jupyter client
+       with needs_vault_data=True.
+    3. Check the notebook reached the prompt and persisted the key only into the
+       temporary settings file.
+    """
+    nbformat = pytest.importorskip("nbformat")
+    pytest.importorskip("nbclient")
+    pytest.importorskip("ipykernel")
+    from nbclient import NotebookClient
+    from jupyter_client.kernelspec import KernelSpecManager, NoSuchKernel
+
+    try:
+        KernelSpecManager().get_kernel_spec("python3")
+    except NoSuchKernel:
+        pytest.skip("No python3 Jupyter kernel available for the integration test")
+
+    # 1. Point the settings file at a temporary directory and clear the environment variable.
+    settings_dir = tmp_path / "tradingstrategy"
+    monkeypatch.setenv("TS_TEST_SETTINGS_DIR", str(settings_dir))
+    monkeypatch.delenv("VAULT_PRO_API_KEY", raising=False)
+
+    # 2. Execute a one-cell notebook that mocks input() and creates a client.
+    source = dedent(
+        '''
+        import os
+        import json
+        import builtins
+        from pathlib import Path
+        from tradingstrategy.client import Client
+
+        # Override the settings file location so the real ~/.tradingstrategy is untouched.
+        settings_dir = Path(os.environ["TS_TEST_SETTINGS_DIR"])
+        os.environ.pop("VAULT_PRO_API_KEY", None)  # force the interactive prompt
+        assert not (settings_dir / "settings.json").exists()
+
+        prompts = []
+        def fake_input(prompt=""):
+            prompts.append(prompt)
+            return "creem-notebook-key-abcdef"
+        builtins.input = fake_input
+
+        client = Client.create_jupyter_client(
+            api_key="secret-token:tradingstrategy-basekey",
+            settings_path=settings_dir,
+            needs_vault_data=True,
+        )
+
+        assert any("Vaults Pro API key" in p for p in prompts), f"No interactive prompt: {prompts}"
+        assert client.vault_pro_api_key == "creem-notebook-key-abcdef"
+        saved = json.loads((settings_dir / "settings.json").read_text())
+        assert saved["vault_pro_api_key"] == "creem-notebook-key-abcdef"
+        assert saved["api_key"] == "secret-token:tradingstrategy-basekey"
+        '''
+    )
+    notebook = nbformat.v4.new_notebook()
+    notebook.cells = [nbformat.v4.new_code_cell(source)]
+    NotebookClient(notebook, timeout=120, kernel_name="python3").execute()
+
+    # 3. Check the key was persisted only into the temporary settings file.
+    settings_file = settings_dir / "settings.json"
+    assert settings_file.exists()
+    saved = json.loads(settings_file.read_text())
+    assert saved["vault_pro_api_key"] == "creem-notebook-key-abcdef"

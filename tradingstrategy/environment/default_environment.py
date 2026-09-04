@@ -9,8 +9,10 @@ from tradingstrategy.environment.base import Environment
 from tradingstrategy.environment.config import Configuration
 from tradingstrategy.environment.interactive_setup import (
     run_interactive_setup,
+    run_interactive_vault_setup,
     run_non_interactive_setup,
 )
+from tradingstrategy.vault_pro import VAULT_PRO_API_KEY_ENV_VAR
 
 # Legacy export
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
@@ -125,8 +127,100 @@ class DefaultClientEnvironment(Environment):
             self.save_configuration(config)
         return config
 
-    def setup_on_demand(self, **kwargs) -> Configuration:
-        """Check if we need to set up the environment."""
+    def ensure_vault_pro_api_key(
+        self,
+        config: Configuration | None = None,
+        vault_pro_api_key: str | None = None,
+        interactive: bool = True,
+    ) -> Configuration:
+        """Make sure a Vaults Pro (Creem) licence key is configured and persisted.
+
+        Mirrors the base API key onboarding for the separately licensed vault
+        datasets. Resolution order, highest priority first:
+
+        1. An explicit ``vault_pro_api_key`` argument.
+        2. The key already stored in ``settings.json`` (whether or not it was
+           loaded into ``config``).
+        3. The ``VAULT_PRO_API_KEY`` environment variable.
+        4. An interactive prompt (skipped when ``interactive`` is false or in
+           non-interactive Pyodide/Emscripten builds).
+
+        The resulting configuration is written back to ``settings.json`` whenever
+        it differs from what is stored, so both the vault key and any updated base
+        API key are reused by later runs without prompting again.
+
+        :param config:
+            Existing configuration to extend. Loaded from disk (or created
+            empty) when not given.
+
+        :param vault_pro_api_key:
+            Key supplied by the caller, overriding the stored key and the
+            environment variable. Persisted for reuse, so this is also the
+            supported way to replace a wrong or expired stored key.
+
+        :param interactive:
+            Prompt for the key when it cannot be resolved otherwise. Pass false
+            for non-interactive callers (a forced Pyodide client, a headless
+            run) so a missing key fails later with the vault client's actionable
+            error rather than blocking on input.
+        """
+        self.check_settings_enabled()
+
+        stored = self.discover_configuration()
+        if config is None:
+            config = stored or Configuration()
+
+        # Explicit argument wins, then the stored key (via config or freshly read
+        # from disk), then the environment. Consulting ``stored`` directly keeps
+        # the documented precedence even when the caller passes a ``config`` that
+        # it did not seed from disk.
+        stored_vault_key = stored.vault_pro_api_key if stored is not None else None
+        resolved = (
+            vault_pro_api_key
+            or config.vault_pro_api_key
+            or stored_vault_key
+            or os.environ.get(VAULT_PRO_API_KEY_ENV_VAR)
+        )
+
+        if not resolved:
+            if not interactive or platform.system() == 'Emscripten':
+                # Cannot or must not prompt; let the missing key fail later with
+                # the vault client's actionable error.
+                return config
+            resolved = run_interactive_vault_setup()
+
+        if resolved:
+            config.vault_pro_api_key = resolved
+
+        # Persist when the resulting config differs from disk. This also carries a
+        # base API key supplied by the caller (via ``config``) into the settings
+        # file, so a later keyless run does not fall back to a stale saved key.
+        if stored is None or stored.api_key != config.api_key or stored.vault_pro_api_key != config.vault_pro_api_key:
+            self.save_configuration(config)
+
+        return config
+
+    def setup_on_demand(
+        self,
+        needs_vault_data: bool = False,
+        vault_pro_api_key: str | None = None,
+        interactive: bool = True,
+        **kwargs,
+    ) -> Configuration:
+        """Check if we need to set up the environment.
+
+        :param needs_vault_data:
+            Also ensure a Vaults Pro (Creem) licence key is configured, prompting
+            for it the same way as the base API key. See
+            :py:meth:`ensure_vault_pro_api_key`.
+
+        :param vault_pro_api_key:
+            Explicit Vaults Pro key forwarded to :py:meth:`ensure_vault_pro_api_key`.
+
+        :param interactive:
+            Forwarded to :py:meth:`ensure_vault_pro_api_key` to suppress the
+            interactive prompt for non-interactive callers.
+        """
         self.check_settings_enabled()
         config = self.discover_configuration()
         if not config:
@@ -138,5 +232,9 @@ class DefaultClientEnvironment(Environment):
                 config = self.interactive_setup()
         else:
             print(f"Started Trading Strategy in Jupyter notebook environment, configuration is stored in {self.get_settings_path()}")
+
+        if needs_vault_data:
+            config = self.ensure_vault_pro_api_key(config, vault_pro_api_key=vault_pro_api_key, interactive=interactive)
+
         return config
 
