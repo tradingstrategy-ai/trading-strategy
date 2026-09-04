@@ -51,6 +51,7 @@ from pyarrow import Table
 from tradingstrategy.chain import ChainId
 from tradingstrategy.environment.base import Environment, download_with_progress_plain
 from tradingstrategy.environment.config import Configuration
+from tradingstrategy.vault_pro import VAULT_PRO_API_KEY_ENV_VAR
 
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.timebucket import TimeBucket
@@ -225,10 +226,6 @@ class Client(BaseClient):
         See :py:meth:`BaseClient.has_vault_data_access`. Mirrors the environment
         variable fallback of the vault dataset client itself.
         """
-        # Imported from the dependency-free vault_pro module so this check does not
-        # pull the optional vault dataset dependencies (absent in minimal Pyodide).
-        from tradingstrategy.vault_pro import VAULT_PRO_API_KEY_ENV_VAR
-
         return bool(self.vault_pro_api_key or os.environ.get(VAULT_PRO_API_KEY_ENV_VAR))
 
     def close(self):

@@ -129,8 +129,8 @@ class DefaultClientEnvironment(Environment):
 
     def ensure_vault_pro_api_key(
         self,
-        config: Optional[Configuration] = None,
-        vault_pro_api_key: Optional[str] = None,
+        config: Configuration | None = None,
+        vault_pro_api_key: str | None = None,
     ) -> Configuration:
         """Make sure a Vaults Pro (Creem) licence key is configured and persisted.
 
