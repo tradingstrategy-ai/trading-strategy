@@ -225,9 +225,9 @@ class Client(BaseClient):
         See :py:meth:`BaseClient.has_vault_data_access`. Mirrors the environment
         variable fallback of the vault dataset client itself.
         """
-        # Function local import for the same optional dependency reason as
-        # get_vault_data_client() above
-        from tradingstrategy.vault_data_client import VAULT_PRO_API_KEY_ENV_VAR
+        # Imported from the dependency-free vault_pro module so this check does not
+        # pull the optional vault dataset dependencies (absent in minimal Pyodide).
+        from tradingstrategy.vault_pro import VAULT_PRO_API_KEY_ENV_VAR
 
         return bool(self.vault_pro_api_key or os.environ.get(VAULT_PRO_API_KEY_ENV_VAR))
 
@@ -1238,6 +1238,7 @@ class Client(BaseClient):
         api_key: Optional[str] = None,
         pyodide=None,
         settings_path=DEFAULT_SETTINGS_PATH,
+        needs_vault_data: bool = False,
     ) -> "Client":
         """Create a new API client.
 
@@ -1268,6 +1269,14 @@ class Client(BaseClient):
 
             Set ``None`` to disable settings file in Docker/web browser environments.
 
+        :param needs_vault_data:
+            Set ``True`` when the strategy loads the licence-gated vault datasets.
+
+            The Vaults Pro (Creem) licence key is then set up the same way as the
+            base API key: read from ``settings.json`` if present, otherwise from
+            the ``VAULT_PRO_API_KEY`` environment variable, otherwise prompted
+            interactively, and persisted back to ``settings.json`` for reuse.
+
         """
 
         from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
@@ -1282,6 +1291,8 @@ class Client(BaseClient):
         cls.preflight_check()
         env = DefaultClientEnvironment(settings_path=settings_path)
 
+        vault_pro_api_key = None
+
         # Try Pyodide default key
         if not api_key:
             if pyodide:
@@ -1295,8 +1306,20 @@ class Client(BaseClient):
                 "Interactive setup is disabled for this data client.\n" \
                 "Cannot continue."
 
-            config = env.setup_on_demand(api_key=api_key)
+            config = env.setup_on_demand(api_key=api_key, needs_vault_data=needs_vault_data)
             api_key = config.api_key
+            vault_pro_api_key = config.vault_pro_api_key
+        elif needs_vault_data and settings_path:
+            # The base API key was supplied directly (typically via the
+            # TRADING_STRATEGY_API_KEY environment variable), so the base setup
+            # above is skipped. We still resolve and persist the vault dataset
+            # licence key here so vault-loading strategies do not fail. The
+            # supplied base key is the one in use, so it is also the one saved,
+            # overriding any stale key in an existing settings file.
+            config = env.discover_configuration() or Configuration()
+            config.api_key = api_key
+            config = env.ensure_vault_pro_api_key(config)
+            vault_pro_api_key = config.vault_pro_api_key
 
         cache_path = cache_path or env.get_cache_path()
 
@@ -1304,7 +1327,7 @@ class Client(BaseClient):
             download_with_tqdm_progress_bar,
             cache_path=cache_path,
             api_key=api_key)
-        return Client(env, transport)
+        return Client(env, transport, vault_pro_api_key=vault_pro_api_key)
 
     @classmethod
     def create_test_client(cls, cache_path=None, timeout=DEFAULT_TIMEOUT) -> "Client":
@@ -1411,6 +1434,14 @@ class Client(BaseClient):
             cache_path = env.get_cache_path()
 
         config = Configuration(api_key)
+
+        # Reuse the Vaults Pro licence key saved during interactive setup. The
+        # live client is non-interactive, so it never prompts: a missing key
+        # fails later with the vault client's actionable error.
+        if vault_pro_api_key is None and settings_path:
+            stored = env.discover_configuration()
+            if stored is not None:
+                vault_pro_api_key = stored.vault_pro_api_key
 
         transport = CachedHTTPTransport(
             download_with_progress_plain,

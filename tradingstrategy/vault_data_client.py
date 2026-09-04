@@ -79,12 +79,10 @@ VAULT_DATASETS_API_URL = "https://tradingstrategy.ai/vaults/datasets/download"
 
 #: Environment variable holding the Creem licence key for vault datasets.
 #:
-#: This is the key emailed to the subscriber when they buy the Pro plan from
-#: https://tradingstrategy.ai/vaults/datasets, formatted as five dash separated
-#: groups. It is not :py:class:`tradingstrategy.client.Client`'s
-#: ``TRADING_STRATEGY_API_KEY``, and it is not a ``creem_`` prefixed Creem
-#: merchant API key, which belongs to the seller and is rejected here.
-VAULT_PRO_API_KEY_ENV_VAR = "VAULT_PRO_API_KEY"
+#: Re-exported from :py:mod:`tradingstrategy.vault_pro` so callers that only need
+#: the name (e.g. client setup) can read it without importing this module and its
+#: optional dependencies. See that module for the full description.
+from tradingstrategy.vault_pro import VAULT_PRO_API_KEY_ENV_VAR
 
 #: Root directory for downloaded vault datasets.
 #:

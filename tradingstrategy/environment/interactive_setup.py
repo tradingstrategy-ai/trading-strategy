@@ -60,6 +60,32 @@ def run_interactive_setup() -> Optional[Configuration]:
     return config
 
 
+def run_interactive_vault_setup() -> Optional[str]:
+    """Do REPL interactive setup for the Vaults Pro (Creem) licence key.
+
+    Mirrors :py:func:`run_interactive_setup`, but for the separately licensed
+    vault datasets. Returns the licence key string, or ``None`` if the user
+    aborts. The key itself is validated on first dataset download rather than
+    here, because a vault dataset download is large.
+    """
+    print("Vault datasets are a separate paid product and need a Vaults Pro (Creem) licence key.")
+    print("See https://tradingstrategy.ai/vaults/datasets")
+
+    while True:
+        api_key = input("Enter your Vaults Pro API key: ").strip()
+
+        if api_key == "":
+            print("Aborting vault setup")
+            return None
+
+        if len(api_key) < 10:
+            print("That does not look like a valid Vaults Pro API key, try again.")
+            continue
+
+        print("The Vaults Pro API key setup complete.")
+        return api_key
+
+
 def run_non_interactive_setup(**kwargs) -> Optional[Configuration]:
     api_key = kwargs.get("api_key")
     if not api_key:

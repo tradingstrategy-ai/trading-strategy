@@ -141,3 +141,67 @@ def test_settings_disabled():
     assert isinstance(env, DefaultClientEnvironment)
     with pytest.raises(SettingsDisabled):
         env.setup_on_demand()
+
+
+def test_vault_pro_api_key_persisted_and_reused(tmp_path, monkeypatch):
+    """needs_vault_data reads the Vaults Pro key from the environment, saves it and reuses it.
+
+    Offline: a base API key is supplied and no dataset is downloaded, so the key
+    resolution and persistence run without hitting the server.
+    """
+    monkeypatch.setenv("VAULT_PRO_API_KEY", "creem-test-key-123456")
+
+    client = Client.create_jupyter_client(
+        api_key="secret-token:tradingstrategy-basekey",
+        settings_path=tmp_path,
+        needs_vault_data=True,
+    )
+    assert client.vault_pro_api_key == "creem-test-key-123456"
+
+    # The key is persisted next to the base API key, not instead of it.
+    config = DefaultClientEnvironment(settings_path=tmp_path).discover_configuration()
+    assert config.api_key == "secret-token:tradingstrategy-basekey"
+    assert config.vault_pro_api_key == "creem-test-key-123456"
+
+    # A later run reuses the stored key without needing the environment variable.
+    monkeypatch.delenv("VAULT_PRO_API_KEY")
+    reused = Client.create_jupyter_client(
+        api_key="secret-token:tradingstrategy-basekey",
+        settings_path=tmp_path,
+        needs_vault_data=True,
+    )
+    assert reused.vault_pro_api_key == "creem-test-key-123456"
+
+
+def test_vault_pro_api_key_absent_without_flag(tmp_path, monkeypatch):
+    """Without needs_vault_data the client carries no Vaults Pro key and never prompts."""
+    monkeypatch.delenv("VAULT_PRO_API_KEY", raising=False)
+
+    client = Client.create_jupyter_client(
+        api_key="secret-token:tradingstrategy-basekey",
+        settings_path=tmp_path,
+    )
+    assert client.vault_pro_api_key is None
+
+
+def test_vault_pro_api_key_updates_stale_base_key(tmp_path, monkeypatch):
+    """A supplied base key overrides a stale one already stored in settings.json.
+
+    Otherwise a later keyless run would reuse the stale saved base key instead of
+    the one actually in use.
+    """
+    from tradingstrategy.environment.config import Configuration
+
+    env = DefaultClientEnvironment(settings_path=tmp_path)
+    env.save_configuration(Configuration(api_key="secret-token:tradingstrategy-OLD"))
+
+    monkeypatch.setenv("VAULT_PRO_API_KEY", "creem-test-key-123456")
+    Client.create_jupyter_client(
+        api_key="secret-token:tradingstrategy-NEW",
+        settings_path=tmp_path,
+        needs_vault_data=True,
+    )
+
+    config = env.discover_configuration()
+    assert config.api_key == "secret-token:tradingstrategy-NEW"
+    assert config.vault_pro_api_key == "creem-test-key-123456"
