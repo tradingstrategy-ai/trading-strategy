@@ -608,8 +608,8 @@ def _normalise_bool_like(series: pd.Series) -> pd.Series:
 
     The cleaned vault parquet stores ``deposits_open`` / ``redemption_open`` as strings
     (``"true"`` / ``"false"``) with NA for unknown. Anything that is not an explicit
-    ``true`` / ``false`` becomes :py:data:`pandas.NA` (unknown), which downstream consumers
-    must treat as "allowed".
+    ``true`` / ``false`` becomes :py:data:`pandas.NA` (unknown). The downstream pricing
+    model decides whether unknown state permits deposits for the protocol and date.
     """
     lowered = series.astype("string").str.lower()
     out = pd.Series(pd.NA, index=series.index, dtype="boolean")
@@ -634,7 +634,7 @@ def convert_vault_prices_to_vault_state(
     same grid as the TVL/price candles). HyperCore rows use the later of the price timestamp and
     the scanner's ``written_at`` timestamp, rounded up to the first bucket where the observation
     was available. Gaps produce no row — the backtest consumer
-    (:py:class:`tradeexecutor.backtest.backtest_pricing.BacktestPricing`) backward-fills the
+    (:py:class:`tradeexecutor.backtest.backtest_pricing.BacktestPricing`) looks up the
     nearest sample at or before the decision timestamp within its data-delay tolerance, exactly
     like the TVL lookup, so the sparse frame resolves correctly and a gap older than the
     tolerance reads as unknown. (A dense NA-filled grid would instead resolve gap buckets to
@@ -669,7 +669,8 @@ def convert_vault_prices_to_vault_state(
         selected_columns.append("chain")
     if "written_at" in raw_prices_df.columns:
         selected_columns.append("written_at")
-    df = raw_prices_df[selected_columns].copy()
+    # Input batches may share index labels; use unique row identities for state masks.
+    df = raw_prices_df[selected_columns].reset_index(drop=True)
     df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
 
     # Keep the source timestamp as a stable tie-breaker. Backfilled batches can stamp many

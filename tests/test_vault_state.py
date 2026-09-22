@@ -155,21 +155,24 @@ def test_convert_vault_state_latest_unknown_wins():
 def test_convert_vault_state_uses_observation_time_for_hypercore():
     """Delay a HyperCore state transition until the scanner had observed it.
 
-    1. Create a closure whose price timestamp precedes its scanner write timestamp.
+    1. Create closure/reopening batches with repeated indices and delayed writes.
     2. Convert it to daily state and inspect the emitted bucket.
     3. Assert that the state is absent from the earlier bucket and present after observation.
     """
     rows = [
         _row("2026-04-10", 12, "false", "Vault deposits disabled by leader", 0.0, "2026-04-10 18:00", chain=9999),
+        _row("2026-04-11", 12, "true", None, 100.0, "2026-04-11 18:00", chain=9999),
     ]
 
     # 1-2. State conversion must use scanner observation time for HyperCore rows.
-    state = convert_vault_prices_to_vault_state(pd.DataFrame(rows), "1d")
+    state = convert_vault_prices_to_vault_state(pd.DataFrame(rows, index=[0, 0]), "1d")
 
     # 3. The 18:00 observation is visible from the next daily boundary only.
     assert state is not None
     assert pd.Timestamp("2026-04-10") not in set(state["timestamp"])
     assert pd.Timestamp("2026-04-11") in set(state["timestamp"])
+    assert len(state) == 2
+    assert state["deposits_open"].tolist() == [False, True]
 
 
 def test_convert_vault_state_ignores_hypercore_rows_without_written_at():

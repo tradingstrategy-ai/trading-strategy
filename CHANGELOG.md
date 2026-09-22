@@ -1,6 +1,6 @@
 # Current
 
-- Add uncached vault scan receipts and ETag-verified private downloads, point-in-time HyperCore deposit state and correct flat gap candles for sparse vault observations (2026-09-22).
+- Add uncached vault scan receipts and ETag-verified private downloads, point-in-time HyperCore deposit state and flat gap candles for all multi-pair resampling, including sparse vault observations; correcting synthetic OHLC ranges may change gap-period stop-loss/take-profit results (2026-09-22).
 
 - Set up the Vaults Pro (Creem) licence key the same way as the base API key. `Client.create_jupyter_client(needs_vault_data=True)` resolves the key from an explicit `vault_pro_api_key` argument, otherwise `settings.json`, otherwise the `VAULT_PRO_API_KEY` environment variable, otherwise an interactive prompt, and persists it back to `settings.json` next to the base key so later runs reuse it without prompting; passing `vault_pro_api_key` explicitly is also the supported way to replace a wrong or expired stored key. `create_live_client` reuses the stored key non-interactively. `Configuration` gains a `vault_pro_api_key` field (old settings files still load) and `DefaultClientEnvironment.ensure_vault_pro_api_key()` performs the onboarding. The `VAULT_PRO_API_KEY` env var name moves to the dependency-free `tradingstrategy.vault_pro` module (re-exported from `vault_data_client`), so reading it during client setup no longer imports the optional vault dataset dependencies (`zstandard`) that are absent in minimal Pyodide builds (2026-09-04)
 

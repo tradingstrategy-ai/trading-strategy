@@ -29,7 +29,9 @@ def test_manifest_nulls_and_contract_rejections() -> None:
     for version in [True, 2, "1"]:
         invalid.append({**document, "schema_version": version})
     invalid.append({**document, "published_at": "2026-09-22T04:00:00+00:00"})
+    invalid.append({**document, "published_at": "2026-9-22T4:00:00Z"})
     invalid.append({**document, "price_file": {"key": "cleaned.parquet", "etag": 'W/"v1"'}})
+    invalid.append({**document, "price_file": {"key": "cleaned.parquet", "etag": '"v1"'}})
     invalid.append({**document, "chains": {"not-a-chain": document["chains"]["9999"]}})
     missing = deepcopy(document)
     del missing["chains"]["9999"]["last_candle_at"]

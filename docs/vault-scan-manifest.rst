@@ -1,20 +1,35 @@
 Vault scan readiness receipts
-============================
+=============================
 
 Live strategies can poll
-:py:meth:`tradingstrategy.vault_data_client.VaultDataClient.fetch_vault_scan_manifest`
+``tradingstrategy.vault_data_client.VaultDataClient.fetch_vault_scan_manifest()``
 before downloading the large price history. Every call fetches the authenticated
 ``/vaults/datasets/download/vault-scan-manifest`` JSON endpoint with no local
 cache. The same ``VAULT_PRO_API_KEY`` used for the price dataset is required.
 
 The wire types and validation are defined in
-:py:mod:`tradingstrategy.vault_scan_manifest`. The eth-defi scanner publishes
+``tradingstrategy.vault_scan_manifest``. The eth-defi scanner publishes
 ``vault-scan-manifest.json`` after the cleaned price upload, in the private R2
 bucket selected by ``R2_ALTERNATIVE_VAULT_METADATA_BUCKET_NAME`` and the existing
 ``UPLOAD_PREFIX``. The serving worker must map the dataset route to this object,
 return ``Cache-Control: private, no-store``, bypass CDN caches, and preserve the
 price object's strong ETag on price downloads. A frontend proxy alone does not
 establish those deployment properties.
+
+A polling caller can inspect freshness without touching the parquet cache::
+
+    from tradingstrategy.vault_data_client import VaultDataClient
+
+    client = VaultDataClient()  # Reads VAULT_PRO_API_KEY from the environment.
+    receipt = client.fetch_vault_scan_manifest(request_budget=300)
+    hypercore = receipt["chains"].get("9999")
+
+This is one request, not a scheduler. The executor owns the 15-minute polling
+cadence, slot deadline and readiness comparisons. Missing chain entries or null
+timestamps are valid unknown freshness; missing required fields or malformed
+timestamps are contract errors. Network failures, expired request budgets and
+temporary HTTP failures raise ``VaultManifestUnavailable`` for the poller to
+retry. Authentication failures and HTTP 404 raise distinct fatal errors.
 
 For HyperCore chain ``9999``, the executor requires both successful price-scan
 completion and the cleaned price timestamp to reach the logical decision
@@ -35,3 +50,15 @@ directly to universe construction. Mismatching headers raise
 ``VaultDataVersionMismatch`` before reading price bytes; the executor can then
 recheck the manifest once. A verified file must not be re-resolved through the
 shared 12-hour cache. Ordinary dataset downloads retain that cache behaviour.
+Missing or weak price ETags instead raise ``VaultDataDeploymentError``: waiting
+for another scanner cycle cannot repair a route that strips source versions.
+Price-download network failures abort the current attempt with a redacted
+``RuntimeError``; only the JSON probe has the poller's retryable exception.
+
+Historical deposit availability is separate from receipt freshness. For
+HyperCore rows, state becomes queryable no earlier than both the price timestamp
+and the scanner's ``written_at`` timestamp, rounded up to the decision bucket.
+Rows without ``written_at`` cannot establish point-in-time state. The executor
+assumes deposits open before ``HYPERCORE_DEPOSIT_STATE_CUTOFF`` (11 April 2026)
+and applies its missing/stale-state policy after that date; a current manifest
+does not retrospectively certify historical availability.

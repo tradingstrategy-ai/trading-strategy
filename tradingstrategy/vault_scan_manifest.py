@@ -9,9 +9,10 @@ field meanings without sharing a runtime package.
 The authenticated endpoint is ``GET /vaults/datasets/download/vault-scan-manifest``
 on the vault dataset service. It is backed by the private R2 object
 ``vault-scan-manifest.json`` under the configured upload prefix, served with
-``Cache-Control: no-store``. The client uses a 5-second connect and 10-second
-read timeout and sends ``Cache-Control: no-cache``; it never uses the ordinary
-12-hour parquet cache for this request.
+``Cache-Control: private, no-store``. The client uses 15-second connect and
+60-second read-inactivity timeouts within a five-minute elapsed budget, capped
+by the caller's remaining readiness window. It sends ``Cache-Control: no-cache``
+and never uses the ordinary 12-hour parquet cache for this request.
 """
 
 import datetime
@@ -60,6 +61,7 @@ class VaultScanManifest(TypedDict):
 
 
 _CHAIN_ID_RE = re.compile(r"^[1-9][0-9]*$")
+_TIMESTAMP_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?Z")
 _TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
@@ -76,8 +78,8 @@ def parse_manifest_timestamp(value: str, field_name: str) -> datetime.datetime:
         If the wire value is not canonical UTC.
     """
 
-    if not isinstance(value, str) or not value.endswith("Z"):
-        raise ValueError(f"{field_name} must be a UTC timestamp ending in Z")
+    if not isinstance(value, str) or not _TIMESTAMP_RE.fullmatch(value):
+        raise ValueError(f"{field_name} must be a canonical UTC timestamp ending in Z")
     raw = value[:-1]
     try:
         parsed = datetime.datetime.strptime(raw, _TIMESTAMP_FORMAT + ".%f" if "." in raw else _TIMESTAMP_FORMAT)
@@ -110,13 +112,13 @@ def validate_vault_scan_manifest(document: object) -> VaultScanManifest:
         if field not in document:
             raise ValueError(f"Vault scan manifest is missing {field!r}")
 
-    published_at = document["published_at"]
-    published_dt = parse_manifest_timestamp(published_at, "published_at")
+    published_dt = parse_manifest_timestamp(document["published_at"], "published_at")
     price_file = document["price_file"]
     if not isinstance(price_file, dict) or not isinstance(price_file.get("key"), str) or not price_file["key"]:
         raise ValueError("price_file.key must be a non-empty string")
-    if not isinstance(price_file.get("etag"), str) or not price_file["etag"] or price_file["etag"].startswith("W/"):
-        raise ValueError("price_file.etag must be a strong non-empty ETag")
+    etag = price_file.get("etag")
+    if not isinstance(etag, str) or not etag or etag.startswith("W/") or '"' in etag:
+        raise ValueError("price_file.etag must be a strong non-empty ETag without HTTP quotes")
 
     chains = document["chains"]
     if not isinstance(chains, dict):

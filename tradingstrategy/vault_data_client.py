@@ -296,8 +296,11 @@ class VaultDataClient:
             Validated manifest mapping.
         :raises VaultDataAccessDenied:
             If the licence key is rejected.
-        :raises RuntimeError:
-            If the endpoint cannot be reached or returns a non-success response.
+        :raises VaultManifestUnavailable:
+            For retryable transport failures, exhausted budgets or HTTP errors
+            other than authentication and missing-endpoint errors.
+        :raises VaultDataDeploymentError:
+            If the endpoint is missing (HTTP 404); retrying cannot deploy it.
         :raises ValueError:
             If the response is not manifest schema version 1.
         """
@@ -362,25 +365,29 @@ class VaultDataClient:
     ) -> Path:
         """Download a dataset, or return the cached copy.
 
-        :return:
-            Path to the local dataset file.
-
-        :raise VaultDataAccessDenied:
-            If our licence key is not accepted for this dataset.
+        :param dataset:
+            Fixed authenticated dataset route; never taken from a manifest key.
         :param force_refresh:
             Download the object even when the ordinary local cache TTL has not
-            expired. The HyperCore readiness trigger uses this after its JSON
-            receipt passes; readiness polling itself never calls this method.
+            expired. The HyperCore readiness trigger instead supplies
+            ``expected_etag`` and ``destination``, which also bypass the cache.
         :param expected_etag:
             Strong ETag from a readiness manifest. When supplied, bypass the
             ordinary cache and verify the ETag on the download response before
             replacing the local file.
-        :raises VaultDataVersionMismatch:
-            If the response does not carry the expected strong ETag.
         :param destination:
-            Optional decision-private file, used with ``expected_etag``. The
+            Optional absolute decision-private path, used with ``expected_etag``. The
             caller owns its lifetime. This bypasses the shared cache so another
             process cannot replace the verified bytes during universe loading.
+        :return:
+            Path to the local dataset file.
+        :raises VaultDataAccessDenied:
+            If our licence key is not accepted for this dataset.
+        :raises VaultDataVersionMismatch:
+            If the response carries a different strong ETag.
+        :raises VaultDataDeploymentError:
+            If version verification is requested but the source ETag is absent
+            or weak; the serving route must be fixed before polling can help.
         """
 
         assert isinstance(dataset, VaultDataset), f"Not a VaultDataset: {dataset}"
@@ -406,7 +413,18 @@ class VaultDataClient:
         dataset: VaultDataset,
         expected_etag: str,
     ) -> None:
-        """Download a dataset through requests and verify its source ETag."""
+        """Pin a readiness-approved download before exposing its bytes to a loader.
+
+        Called by :meth:`download` only when a manifest supplies a source ETag.
+        Verify response headers before streaming, then atomically replace the
+        destination. Failure preserves the previous file and removes partial
+        bytes, so callers cannot load an unverified price snapshot.
+
+        :param path: Caller-selected private snapshot or shared cache path.
+        :param url: Fixed authenticated dataset endpoint.
+        :param dataset: Dataset identity used in error messages.
+        :param expected_etag: Strong opaque source version from the receipt.
+        """
 
         path.parent.mkdir(parents=True, exist_ok=True)
         temp_path = path.with_name(f"{path.name}.part")
@@ -428,16 +446,24 @@ class VaultDataClient:
                 raise RuntimeError(f"Vault dataset {dataset.value} returned HTTP {response.status_code}")
 
             actual_etag = response.headers.get("ETag", "").strip('"')
-            if not actual_etag or actual_etag.startswith("W/") or actual_etag != expected_etag.strip('"'):
+            if not actual_etag or actual_etag.startswith("W/"):
+                raise VaultDataDeploymentError(
+                    f"Vault dataset {dataset.value} response lacks a strong source ETag; check the dataset endpoint deployment"
+                )
+            if actual_etag != expected_etag.strip('"'):
                 raise VaultDataVersionMismatch(
                     f"Vault dataset {dataset.value} ETag did not match the readiness manifest"
                 )
 
+            logger.info("Downloading verified vault dataset %s to %s, source ETag %s", dataset.value, path, actual_etag)
             with temp_path.open("wb") as handle:
                 for chunk in response.iter_content(chunk_size=1024 * 1024):
                     if chunk:
                         handle.write(chunk)
             os.replace(temp_path, path)
+        except requests.RequestException as exc:
+            temp_path.unlink(missing_ok=True)
+            raise RuntimeError(f"Could not download vault dataset {dataset.value}: {self._redact(exc)}") from None
         except Exception:
             temp_path.unlink(missing_ok=True)
             raise

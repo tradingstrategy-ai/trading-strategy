@@ -8,6 +8,7 @@ import tradingstrategy.vault_data_client as vault_client_module
 
 import pandas as pd
 import pytest
+import requests
 
 from tradingstrategy.client import Client
 from tradingstrategy.vault import VaultUniverse
@@ -189,6 +190,9 @@ def test_expected_etag_is_verified_before_cache_replacement(
     1. Return a streamed price response carrying the expected strong ETag.
     2. Download with that expected version and inspect the local bytes.
     3. Return a different ETag and verify the old local file remains intact.
+    4. Interrupt a matching download and verify credentials and partial bytes
+       cannot escape into logs or the next universe load.
+    5. Reject missing or weak version headers as deployment errors, not races.
     """
 
     # 1. Return a streamed price response carrying the expected strong ETag.
@@ -199,6 +203,7 @@ def test_expected_etag_is_verified_before_cache_replacement(
     # 2. Download with that expected version and inspect the local bytes.
     path = client.download(VaultDataset.vault_prices, expected_etag="prices-v1")
     assert path.read_bytes() == b"fresh-dataset"
+
     download_func.assert_not_called()
 
     # 3. Return a different ETag and verify the old local file remains intact.
@@ -207,6 +212,32 @@ def test_expected_etag_is_verified_before_cache_replacement(
     client.session.get.return_value = mismatching_response
     with pytest.raises(VaultDataVersionMismatch):
         client.download(VaultDataset.vault_prices, expected_etag="prices-v1")
+    assert path.read_bytes() == b"fresh-dataset"
+
+    # 4. Simulate a requests error carrying its authenticated URL, not a live API.
+    def interrupted_chunks(**kwargs):
+        """Write partial bytes before a transport failure exercises cleanup."""
+        yield b"partial-new-dataset"
+        raise requests.ConnectionError(
+            f"Connection broken for {client.get_url(VaultDataset.vault_prices)}?api-key={client.api_key}"
+        )
+
+    matching_response.iter_content.side_effect = interrupted_chunks
+    client.session.get.return_value = matching_response
+    with pytest.raises(RuntimeError) as raised:
+        client.download(VaultDataset.vault_prices, expected_etag="prices-v1")
+    assert client.api_key not in str(raised.value)
+    assert path.read_bytes() == b"fresh-dataset"
+    assert not path.with_name(f"{path.name}.part").exists()
+
+    # 5. A missing strong ETag cannot be fixed by polling for newer candles.
+    for etag in ("", 'W/"prices-v1"'):
+        response = Mock(status_code=200, headers={"ETag": etag})
+        client.session.get.return_value = response
+        with pytest.raises(VaultDataDeploymentError, match="strong source ETag"):
+            client.download(VaultDataset.vault_prices, expected_etag="prices-v1")
+        response.iter_content.assert_not_called()
+        response.close.assert_called_once()
     assert path.read_bytes() == b"fresh-dataset"
 
 
