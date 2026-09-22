@@ -4,15 +4,20 @@ import datetime
 import os
 from pathlib import Path
 from unittest.mock import Mock
+import tradingstrategy.vault_data_client as vault_client_module
 
 import pandas as pd
 import pytest
+import requests
 
 from tradingstrategy.client import Client
 from tradingstrategy.vault import VaultUniverse
 from tradingstrategy.vault_data_client import (
     VaultDataAccessDenied,
     VaultDataClient,
+    VaultDataVersionMismatch,
+    VaultDataDeploymentError,
+    VaultManifestUnavailable,
     VaultDataset,
     VAULT_PRO_API_KEY_ENV_VAR,
     normalise_vault_price_history_frame,
@@ -74,6 +79,166 @@ def test_expired_cache_is_downloaded_again(
     # 3. Verify the dataset was fetched a second time.
     assert result == path
     assert download_func.call_count == 2
+
+
+def test_scan_manifest_is_fetched_without_parquet_cache(
+    client: VaultDataClient,
+    download_func: Mock,
+) -> None:
+    """Check readiness polling uses one uncached JSON request only.
+
+    The live HyperCore trigger polls this receipt every 15 minutes. Reading the
+    receipt must remain cheap even when no parquet exists locally.
+
+    1. Return a valid manifest from the JSON endpoint.
+    2. Fetch it through the client readiness method.
+    3. Verify request headers/path and that the parquet downloader was untouched.
+    """
+
+    # 1. Return a valid manifest from the JSON endpoint.
+    response = Mock(status_code=200, headers={"Content-Length": "250"})
+    response.content = b'{"schema_version":1,"published_at":"2026-09-22T03:20:00Z","price_file":{"key":"cleaned-vault-prices-1h.parquet","etag":"abc123"},"chains":{"9999":{"name":"Hypercore","last_successful_price_scan_ended_at":"2026-09-22T02:55:00Z","last_candle_at":"2026-09-22T00:30:00Z"}}}'
+    response.iter_content.return_value = [response.content]
+    client.session.get.return_value = response
+
+    # 2. Fetch it through the client readiness method.
+    manifest = client.fetch_vault_scan_manifest()
+
+    # 3. Verify request headers/path and that the parquet downloader was untouched.
+    assert manifest["chains"]["9999"]["last_candle_at"] == "2026-09-22T00:30:00Z"
+    client.session.get.assert_called_once_with(
+        f"{client.base_url}/vault-scan-manifest",
+        params={"api-key": client.api_key},
+        headers={"Cache-Control": "no-cache"},
+        timeout=(15.0, 60.0),
+        stream=True,
+    )
+    download_func.assert_not_called()
+    response.close.assert_called_once()
+
+
+def test_manifest_budget_and_http_failures(client: VaultDataClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Bound slow JSON reads without rejecting a healthy response after 20 seconds.
+
+    1. Advance a fake monotonic clock while streaming a small valid receipt.
+    2. Verify the generous budget accepts it, but a shorter budget aborts.
+    3. Check fatal and transient HTTP errors and an oversized streamed body.
+    """
+    # 1. Network and elapsed time are simulated to test minutes without waiting.
+    elapsed = [0.0]
+    monkeypatch.setattr(vault_client_module.time, "monotonic", lambda: elapsed[0])
+    payload = b'{"schema_version":1,"published_at":"2026-09-22T03:20:00Z","price_file":{"key":"prices","etag":"v1"},"chains":{}}'
+
+    def chunks():
+        """Model a slow but healthy 45-second response."""
+        elapsed[0] += 45
+        yield payload
+
+    response = Mock(status_code=200, headers={})
+    response.iter_content.side_effect = lambda **kwargs: chunks()
+    client.session.get.return_value = response
+
+    # 2. The default five-minute budget succeeds; an exhausted slot cannot.
+    assert client.fetch_vault_scan_manifest()["schema_version"] == 1
+    with pytest.raises(VaultManifestUnavailable, match="budget expired"):
+        client.fetch_vault_scan_manifest(request_budget=30)
+    assert response.close.call_count == 2
+    assert client.session.get.call_args.kwargs["timeout"] == (15.0, 30)
+
+    # 3. Authentication/deployment failures fail immediately; overload retries.
+    for status_code, error in [(401, VaultDataAccessDenied), (403, VaultDataAccessDenied), (404, VaultDataDeploymentError), (429, VaultManifestUnavailable), (503, VaultManifestUnavailable)]:
+        response = Mock(status_code=status_code, headers={})
+        client.session.get.return_value = response
+        with pytest.raises(error):
+            client.fetch_vault_scan_manifest()
+        response.close.assert_called_once()
+    response = Mock(status_code=200, headers={})
+    response.iter_content.return_value = [b"x" * (1024 * 1024 + 1)]
+    client.session.get.return_value = response
+    with pytest.raises(ValueError, match="1 MiB"):
+        client.fetch_vault_scan_manifest()
+    response.close.assert_called_once()
+
+
+def test_force_refresh_bypasses_dataset_cache(
+    client: VaultDataClient,
+    download_func: Mock,
+) -> None:
+    """Check readiness-approved price loading can bypass the 12-hour cache.
+
+    1. Download a price dataset into the normal cache.
+    2. Request the same dataset with ``force_refresh=True``.
+    3. Verify the large-file downloader ran twice.
+    """
+
+    # 1. Download a price dataset into the normal cache.
+    client.download(VaultDataset.vault_prices)
+
+    # 2. Request the same dataset with ``force_refresh=True``.
+    client.download(VaultDataset.vault_prices, force_refresh=True)
+
+    # 3. Verify the large-file downloader ran twice.
+    assert download_func.call_count == 2
+
+
+def test_expected_etag_is_verified_before_cache_replacement(
+    client: VaultDataClient,
+    download_func: Mock,
+) -> None:
+    """Check a readiness manifest cannot pin a different price-file version.
+
+    1. Return a streamed price response carrying the expected strong ETag.
+    2. Download with that expected version and inspect the local bytes.
+    3. Return a different ETag and verify the old local file remains intact.
+    4. Interrupt a matching download and verify credentials and partial bytes
+       cannot escape into logs or the next universe load.
+    5. Reject missing or weak version headers as deployment errors, not races.
+    """
+
+    # 1. Return a streamed price response carrying the expected strong ETag.
+    matching_response = Mock(status_code=200, headers={"ETag": '"prices-v1"'})
+    matching_response.iter_content.return_value = [b"fresh-dataset"]
+    client.session.get.return_value = matching_response
+
+    # 2. Download with that expected version and inspect the local bytes.
+    path = client.download(VaultDataset.vault_prices, expected_etag="prices-v1")
+    assert path.read_bytes() == b"fresh-dataset"
+
+    download_func.assert_not_called()
+
+    # 3. Return a different ETag and verify the old local file remains intact.
+    mismatching_response = Mock(status_code=200, headers={"ETag": '"prices-v2"'})
+    mismatching_response.iter_content.return_value = [b"wrong-dataset"]
+    client.session.get.return_value = mismatching_response
+    with pytest.raises(VaultDataVersionMismatch):
+        client.download(VaultDataset.vault_prices, expected_etag="prices-v1")
+    assert path.read_bytes() == b"fresh-dataset"
+
+    # 4. Simulate a requests error carrying its authenticated URL, not a live API.
+    def interrupted_chunks(**kwargs):
+        """Write partial bytes before a transport failure exercises cleanup."""
+        yield b"partial-new-dataset"
+        raise requests.ConnectionError(
+            f"Connection broken for {client.get_url(VaultDataset.vault_prices)}?api-key={client.api_key}"
+        )
+
+    matching_response.iter_content.side_effect = interrupted_chunks
+    client.session.get.return_value = matching_response
+    with pytest.raises(RuntimeError) as raised:
+        client.download(VaultDataset.vault_prices, expected_etag="prices-v1")
+    assert client.api_key not in str(raised.value)
+    assert path.read_bytes() == b"fresh-dataset"
+    assert not path.with_name(f"{path.name}.part").exists()
+
+    # 5. A missing strong ETag cannot be fixed by polling for newer candles.
+    for etag in ("", 'W/"prices-v1"'):
+        response = Mock(status_code=200, headers={"ETag": etag})
+        client.session.get.return_value = response
+        with pytest.raises(VaultDataDeploymentError, match="strong source ETag"):
+            client.download(VaultDataset.vault_prices, expected_etag="prices-v1")
+        response.iter_content.assert_not_called()
+        response.close.assert_called_once()
+    assert path.read_bytes() == b"fresh-dataset"
 
 
 def test_interrupted_download_keeps_the_previous_copy(

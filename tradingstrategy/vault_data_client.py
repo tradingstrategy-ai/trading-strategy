@@ -51,6 +51,7 @@ import datetime
 import enum
 import logging
 import os
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -65,6 +66,7 @@ from tradingstrategy.alternative_data.vault import load_vault_database_with_meta
 from tradingstrategy.transport.cache_utils import wait_other_writers
 from tradingstrategy.transport.progress_enabled_download import download_with_tqdm_progress_bar
 from tradingstrategy.utils.time import naive_utcnow, naive_utcfromtimestamp
+from tradingstrategy.vault_scan_manifest import VaultScanManifest, validate_vault_scan_manifest
 
 if TYPE_CHECKING:
     from tradingstrategy.vault import VaultUniverse
@@ -92,19 +94,24 @@ DEFAULT_VAULT_DOWNLOAD_ROOT = Path.home() / ".tradingstrategy" / "vaults" / "dow
 
 #: How long a downloaded dataset is served from the local cache.
 #:
-#: TODO: The download API currently answers with ``Content-Length`` only. It
-#: sends no ``ETag`` and no ``Last-Modified``, and marks responses
-#: ``cache-control: private, no-store``, so there is no validator to revalidate
-#: an expired cache against. Until the API exposes one, a plain local time to
-#: live is the whole cache policy: after it elapses the dataset is downloaded
-#: again. Size alone was considered and rejected, because a rewritten dataset
-#: can keep the same length and would then never be refreshed.
+#: Ordinary dataset callers use this local TTL because their download route
+#: does not promise a revalidation validator. The HyperCore readiness path is
+#: different: its manifest carries the source ETag and ``download()`` can
+#: verify that ETag on the following price response.
 DEFAULT_CACHE_EXPIRY = datetime.timedelta(hours=12)
 
 #: Requests (connect, read) timeout for dataset downloads.
 #:
 #: The read timeout is generous, because the full price history is hundreds of megabytes.
 DEFAULT_TIMEOUT = (15.0, 15 * 60.0)
+
+# The readiness endpoint is a tiny JSON document and must not inherit the
+# multi-minute parquet download timeout or the ordinary 12-hour disk cache.
+VAULT_SCAN_MANIFEST_ENDPOINT = "vault-scan-manifest"
+VAULT_SCAN_MANIFEST_TIMEOUT = (15.0, 60.0)
+#: Maximum seconds spent receiving one JSON receipt; callers may override this.
+VAULT_SCAN_MANIFEST_BUDGET = 300.0
+VAULT_SCAN_MANIFEST_MAX_BYTES = 1024 * 1024
 
 
 class VaultDataAccessDenied(Exception):
@@ -114,6 +121,18 @@ class VaultDataAccessDenied(Exception):
     expired, not subscribed to the dataset being downloaded, or is one of the
     other Trading Strategy credentials described in the module docstring.
     """
+
+
+class VaultDataVersionMismatch(RuntimeError):
+    """The downloaded vault dataset is not the manifest's published object."""
+
+
+class VaultDataDeploymentError(RuntimeError):
+    """A required dataset endpoint is missing; waiting for candles cannot fix it."""
+
+
+class VaultManifestUnavailable(RuntimeError):
+    """A transient HTTP or network failure that the live poller can retry."""
 
 
 class VaultDataset(enum.Enum):
@@ -251,30 +270,206 @@ class VaultDataClient:
         """
         return f"{self.base_url}/{dataset.endpoint}"
 
+    def get_scan_manifest_url(self) -> str:
+        """Return the uncached JSON readiness endpoint URL.
+
+        This endpoint is deliberately separate from :meth:`download`: polling
+        it must never read or write the large local parquet cache.
+        """
+
+        return f"{self.base_url}/{VAULT_SCAN_MANIFEST_ENDPOINT}"
+
+    def fetch_vault_scan_manifest(self, *, request_budget: float = VAULT_SCAN_MANIFEST_BUDGET) -> VaultScanManifest:
+        """Fetch and validate the current vault scan receipt.
+
+        The live HyperCore trigger calls this method every polling interval to
+        decide whether a daily price file is available. It makes one small,
+        uncached JSON request and performs no parquet download, local cache
+        access, universe construction or indicator calculation.
+
+        :param request_budget:
+            Maximum elapsed seconds for this request, normally five minutes.
+            The live poller caps this at the remaining readiness window.
+            Socket inactivity is bounded separately, and a late response is
+            never accepted. This budget does not apply to parquet downloads.
+        :return:
+            Validated manifest mapping.
+        :raises VaultDataAccessDenied:
+            If the licence key is rejected.
+        :raises VaultManifestUnavailable:
+            For retryable transport failures, exhausted budgets or HTTP errors
+            other than authentication and missing-endpoint errors.
+        :raises VaultDataDeploymentError:
+            If the endpoint is missing (HTTP 404); retrying cannot deploy it.
+        :raises ValueError:
+            If the response is not manifest schema version 1.
+        """
+
+        if request_budget <= 0:
+            raise VaultManifestUnavailable("Vault scan manifest request budget expired")
+        started = time.monotonic()
+        url = self.get_scan_manifest_url()
+        response = None
+        try:
+            response = self.session.get(
+                url,
+                params={"api-key": self.api_key},
+                headers={"Cache-Control": "no-cache"},
+                timeout=tuple(min(value, request_budget) for value in VAULT_SCAN_MANIFEST_TIMEOUT),
+                stream=True,
+            )
+            if response.status_code in (401, 403):
+                raise VaultDataAccessDenied(
+                    f"The vault dataset API rejected our licence key with HTTP {response.status_code} for {url}"
+                )
+            if response.status_code == 404:
+                raise VaultDataDeploymentError("Vault scan manifest endpoint is missing (HTTP 404)")
+            if response.status_code != 200:
+                raise VaultManifestUnavailable(f"Vault scan manifest returned HTTP {response.status_code}")
+
+            content_length = response.headers.get("Content-Length")
+            if content_length is not None and int(content_length) > VAULT_SCAN_MANIFEST_MAX_BYTES:
+                raise ValueError("Vault scan manifest exceeds the 1 MiB response limit")
+            payload = bytearray()
+            # Receipts are small. Yield each byte so a trickling server cannot
+            # hide inside a large buffered read beyond the elapsed-time budget.
+            for chunk in response.iter_content(chunk_size=1):
+                if time.monotonic() - started >= request_budget:
+                    raise VaultManifestUnavailable("Vault scan manifest request budget expired")
+                payload.extend(chunk)
+                if len(payload) > VAULT_SCAN_MANIFEST_MAX_BYTES:
+                    raise ValueError("Vault scan manifest exceeds the 1 MiB response limit")
+            if time.monotonic() - started >= request_budget:
+                raise VaultManifestUnavailable("Vault scan manifest request budget expired")
+        except requests.RequestException as exc:
+            raise VaultManifestUnavailable(f"Could not fetch vault scan manifest: {self._redact(exc)}") from None
+        finally:
+            if response is not None:
+                response.close()
+        try:
+            document = orjson.loads(payload)
+        except orjson.JSONDecodeError as exc:
+            raise ValueError(f"Vault scan manifest is not valid JSON: {exc}") from None
+        return validate_vault_scan_manifest(document)
+
     def get_cached_path(self, dataset: VaultDataset) -> Path:
         """Local path of a dataset, whether or not it has been downloaded yet."""
         return self.download_root / dataset.file_name
 
-    def download(self, dataset: VaultDataset) -> Path:
+    def download(
+        self,
+        dataset: VaultDataset,
+        force_refresh: bool = False,
+        expected_etag: str | None = None,
+        destination: Path | None = None,
+    ) -> Path:
         """Download a dataset, or return the cached copy.
 
+        :param dataset:
+            Fixed authenticated dataset route; never taken from a manifest key.
+        :param force_refresh:
+            Download the object even when the ordinary local cache TTL has not
+            expired. The HyperCore readiness trigger instead supplies
+            ``expected_etag`` and ``destination``, which also bypass the cache.
+        :param expected_etag:
+            Strong ETag from a readiness manifest. When supplied, bypass the
+            ordinary cache and verify the ETag on the download response before
+            replacing the local file.
+        :param destination:
+            Optional absolute decision-private path, used with ``expected_etag``. The
+            caller owns its lifetime. This bypasses the shared cache so another
+            process cannot replace the verified bytes during universe loading.
         :return:
             Path to the local dataset file.
-
-        :raise VaultDataAccessDenied:
+        :raises VaultDataAccessDenied:
             If our licence key is not accepted for this dataset.
+        :raises VaultDataVersionMismatch:
+            If the response carries a different strong ETag.
+        :raises VaultDataDeploymentError:
+            If version verification is requested but the source ETag is absent
+            or weak; the serving route must be fixed before polling can help.
         """
 
         assert isinstance(dataset, VaultDataset), f"Not a VaultDataset: {dataset}"
 
-        path = self.get_cached_path(dataset)
+        if destination is not None:
+            assert expected_etag is not None, "A decision snapshot requires an expected ETag"
+        path = destination if destination is not None else self.get_cached_path(dataset)
 
         with wait_other_writers(path):
-            if self._is_cache_fresh(path, dataset):
+            if not force_refresh and expected_etag is None and self._is_cache_fresh(path, dataset):
                 return path
 
-            self._download_to(path, self.get_url(dataset), dataset)
+            if expected_etag is None:
+                self._download_to(path, self.get_url(dataset), dataset)
+            else:
+                self._download_to_with_expected_etag(path, self.get_url(dataset), dataset, expected_etag)
             return path
+
+    def _download_to_with_expected_etag(
+        self,
+        path: Path,
+        url: str,
+        dataset: VaultDataset,
+        expected_etag: str,
+    ) -> None:
+        """Pin a readiness-approved download before exposing its bytes to a loader.
+
+        Called by :meth:`download` only when a manifest supplies a source ETag.
+        Verify response headers before streaming, then atomically replace the
+        destination. Failure preserves the previous file and removes partial
+        bytes, so callers cannot load an unverified price snapshot.
+
+        :param path: Caller-selected private snapshot or shared cache path.
+        :param url: Fixed authenticated dataset endpoint.
+        :param dataset: Dataset identity used in error messages.
+        :param expected_etag: Strong opaque source version from the receipt.
+        """
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp_path = path.with_name(f"{path.name}.part")
+        response = None
+        try:
+            response = self.session.get(
+                url,
+                params={"api-key": self.api_key},
+                headers={"Cache-Control": "no-cache"},
+                stream=True,
+                allow_redirects=True,
+                timeout=self.timeout,
+            )
+            if response.status_code in (401, 403):
+                raise VaultDataAccessDenied(
+                    f"The vault dataset API rejected our licence key with HTTP {response.status_code} for {url}"
+                )
+            if response.status_code != 200:
+                raise RuntimeError(f"Vault dataset {dataset.value} returned HTTP {response.status_code}")
+
+            actual_etag = response.headers.get("ETag", "").strip('"')
+            if not actual_etag or actual_etag.startswith("W/"):
+                raise VaultDataDeploymentError(
+                    f"Vault dataset {dataset.value} response lacks a strong source ETag; check the dataset endpoint deployment"
+                )
+            if actual_etag != expected_etag.strip('"'):
+                raise VaultDataVersionMismatch(
+                    f"Vault dataset {dataset.value} ETag did not match the readiness manifest"
+                )
+
+            logger.info("Downloading verified vault dataset %s to %s, source ETag %s", dataset.value, path, actual_etag)
+            with temp_path.open("wb") as handle:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        handle.write(chunk)
+            os.replace(temp_path, path)
+        except requests.RequestException as exc:
+            temp_path.unlink(missing_ok=True)
+            raise RuntimeError(f"Could not download vault dataset {dataset.value}: {self._redact(exc)}") from None
+        except Exception:
+            temp_path.unlink(missing_ok=True)
+            raise
+        finally:
+            if response is not None:
+                response.close()
 
     def _is_cache_fresh(self, path: Path, dataset: VaultDataset) -> bool:
         """Is the locally cached dataset young enough to use?"""

@@ -48,6 +48,9 @@ from [Trading Strategy Protocol](https://tradingstrategy.ai/).
 
 See [the Getting Started repository](https://github.com/tradingstrategy-ai/getting-started) and the rest of the [Trading Strategy documentation](https://tradingstrategy.ai/docs/).
 
+For JSON-only vault readiness polling and ETag-verified price snapshots, see
+[Vault scan readiness receipts](tradingstrategy/vault_scan_manifest.py).
+
 # Prerequisites
 
 * Python 3.10

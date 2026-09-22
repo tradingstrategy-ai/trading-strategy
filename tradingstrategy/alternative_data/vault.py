@@ -44,8 +44,8 @@ DEFAULT_VAULT_PRICE_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "va
 #: These describe whether a vault accepted new deposits / allowed redemptions at a given
 #: historical timestamp, plus any hard caps. They are only present in the cleaned hourly
 #: dataset (:py:class:`tradingstrategy.vault_data_client.VaultDataset.vault_prices`) and only populated from the date the
-#: upstream scanner started recording them; older rows and the daily bundle lack them.
-#: Consumers must treat missing / unknown values as "allowed" rather than "closed".
+#: upstream scanner started recording them; older rows and the daily bundle lack them. The
+#: protocol-specific backtest consumer decides whether missing / unknown values are allowed.
 VAULT_STATE_COLUMNS = [
     "deposits_open",
     "redemption_open",
@@ -54,6 +54,10 @@ VAULT_STATE_COLUMNS = [
     "max_deposit",
     "max_redeem",
 ]
+
+# HyperCore availability fields became complete enough for historical admission decisions at
+# this daily boundary. Before it, backtests deliberately assume deposits were open.
+HYPERCORE_DEPOSIT_STATE_CUTOFF = datetime.datetime(2026, 4, 11)
 
 
 #: Cached loaded vault universe from our defaut bundle
@@ -383,11 +387,12 @@ def read_vault_price_history_parquet(
 
     if columns is not None:
         requested_columns = [timestamp_column if c == "timestamp" else c for c in columns]
-        # Drop only the *optional* vault-state columns when they are absent from this parquet
+        # Drop only the *optional* vault-history columns when they are absent from this parquet
         # schema, so callers can opt in to them without breaking on older files (e.g. the daily
         # price bundle). Any other missing requested column is kept so the read still fails fast
         # on a genuine schema mismatch (e.g. a misspelled `share_price`).
-        requested_columns = [c for c in requested_columns if c in schema_names or c not in VAULT_STATE_COLUMNS]
+        optional_columns = set(VAULT_STATE_COLUMNS) | {"written_at"}
+        requested_columns = [c for c in requested_columns if c in schema_names or c not in optional_columns]
         required_columns = {timestamp_column}
         if vault_pairs_df is not None:
             required_columns.update({"chain", "address"})
@@ -603,8 +608,8 @@ def _normalise_bool_like(series: pd.Series) -> pd.Series:
 
     The cleaned vault parquet stores ``deposits_open`` / ``redemption_open`` as strings
     (``"true"`` / ``"false"``) with NA for unknown. Anything that is not an explicit
-    ``true`` / ``false`` becomes :py:data:`pandas.NA` (unknown), which downstream consumers
-    must treat as "allowed".
+    ``true`` / ``false`` becomes :py:data:`pandas.NA` (unknown). The downstream pricing
+    model decides whether unknown state permits deposits for the protocol and date.
     """
     lowered = series.astype("string").str.lower()
     out = pd.Series(pd.NA, index=series.index, dtype="boolean")
@@ -624,15 +629,18 @@ def convert_vault_prices_to_vault_state(
     (:py:data:`VAULT_STATE_COLUMNS`) so backtests can query, per timestamp, whether a vault
     accepted deposits / allowed redemptions and skip impossible rebalances.
 
-    Output is **sparse**: one row per populated bucket, floored to the bucket boundary (midnight
-    for daily, on the same grid as the TVL/price candles), taking the whole last sample in that
-    bucket. Gaps produce no row — the backtest consumer
-    (:py:class:`tradeexecutor.backtest.backtest_pricing.BacktestPricing`) backward-fills the
+    Output is **sparse**: one row per populated bucket, taking the whole last sample in that
+    bucket. Non-HyperCore rows are floored to the bucket boundary (midnight for daily, on the
+    same grid as the TVL/price candles). HyperCore rows use the later of the price timestamp and
+    the scanner's ``written_at`` timestamp, rounded up to the first bucket where the observation
+    was available. Gaps produce no row — the backtest consumer
+    (:py:class:`tradeexecutor.backtest.backtest_pricing.BacktestPricing`) looks up the
     nearest sample at or before the decision timestamp within its data-delay tolerance, exactly
     like the TVL lookup, so the sparse frame resolves correctly and a gap older than the
     tolerance reads as unknown. (A dense NA-filled grid would instead resolve gap buckets to
     "unknown" even when a recent sample exists.) Boolean-like columns are normalised to nullable
-    boolean via :py:func:`_normalise_bool_like`; unknown/NA must be treated as "allowed".
+    boolean via :py:func:`_normalise_bool_like`; the pricing model applies protocol-specific
+    semantics to unknown/NA values.
 
     :param raw_prices_df:
         Vault price rows as returned by :py:func:`read_vault_price_history_parquet`, optionally
@@ -656,8 +664,48 @@ def convert_vault_prices_to_vault_state(
         raw_prices_df = raw_prices_df.reset_index()
     assert "timestamp" in raw_prices_df.columns, f"Got {raw_prices_df.columns}"
 
-    df = raw_prices_df[["address", "timestamp", *present]].copy()
+    selected_columns = ["address", "timestamp", *present]
+    if "chain" in raw_prices_df.columns:
+        selected_columns.append("chain")
+    if "written_at" in raw_prices_df.columns:
+        selected_columns.append("written_at")
+    # Input batches may share index labels; use unique row identities for state masks.
+    df = raw_prices_df[selected_columns].reset_index(drop=True)
     df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
+
+    # Keep the source timestamp as a stable tie-breaker. Backfilled batches can stamp many
+    # historical rows with one written_at value, but the latest source observation still wins.
+    df["_source_timestamp"] = pd.to_datetime(df["timestamp"])
+    if isinstance(df["_source_timestamp"].dtype, pd.DatetimeTZDtype):
+        df["_source_timestamp"] = df["_source_timestamp"].dt.tz_convert(None)
+
+    if "chain" in df.columns:
+        is_hypercore = df["chain"].astype("Int64") == ChainId.hypercore.value
+    else:
+        is_hypercore = pd.Series(False, index=df.index)
+
+    # A HyperCore row without the scanner observation timestamp is not usable point-in-time
+    # state. Keep it out of the state frame instead of falling back to the price timestamp.
+    # Before the historical cutoff this is equivalent to the documented assumed-open rule; after
+    # the cutoff BacktestPricing sees the missing state and fails closed for new deposits.
+    if "written_at" in df.columns:
+        df["written_at"] = pd.to_datetime(df["written_at"])
+        if isinstance(df["written_at"].dtype, pd.DatetimeTZDtype):
+            df["written_at"] = df["written_at"].dt.tz_convert(None)
+        df = df.loc[~(is_hypercore & df["written_at"].isna())].copy()
+        is_hypercore = is_hypercore.loc[df.index]
+    else:
+        df = df.loc[~is_hypercore].copy()
+        is_hypercore = is_hypercore.loc[df.index]
+
+    df["_effective_timestamp"] = df["_source_timestamp"]
+    if "written_at" in df.columns:
+        hypercore_index = is_hypercore[is_hypercore].index
+        if len(hypercore_index) > 0:
+            df.loc[hypercore_index, "_effective_timestamp"] = pd.concat(
+                [df.loc[hypercore_index, "_source_timestamp"], df.loc[hypercore_index, "written_at"]],
+                axis=1,
+            ).max(axis=1)
 
     for col in ("deposits_open", "redemption_open"):
         if col in df.columns:
@@ -665,13 +713,18 @@ def convert_vault_prices_to_vault_state(
 
     pandas_freq = _VAULT_STATE_FREQUENCIES[frequency]
 
-    # Floor each sample to its bucket (midnight for daily) and keep the last row per
+    # Round the effective observation timestamp to its decision bucket and keep the last row per
     # (pair, bucket): every column from the same latest sample, including nulls. A per-column
     # `Resampler.last()` would take each column's last *non-null* value independently, which
     # could pair a freshly re-opened `deposits_open=True` with a stale `deposit_closed_reason`
-    # from earlier in the bucket. Bucket labels match the TVL/price candle grid.
-    df = df.sort_values("timestamp")
-    df["timestamp"] = df["timestamp"].dt.floor(pandas_freq)
+    # from earlier in the bucket. Bucket labels match the TVL/price candle grid. Stable sorting
+    # keeps the source timestamp as a tie-breaker for rows written in one backfill batch.
+    df = df.sort_values(["_effective_timestamp", "_source_timestamp"], kind="stable")
+    df["timestamp"] = df["_effective_timestamp"].dt.floor(pandas_freq)
+    if "written_at" in df.columns:
+        hypercore_index = is_hypercore[is_hypercore].index
+        if len(hypercore_index) > 0:
+            df.loc[hypercore_index, "timestamp"] = df.loc[hypercore_index, "_effective_timestamp"].dt.ceil(pandas_freq)
     deduped = df.drop_duplicates(subset=["pair_id", "timestamp"], keep="last")
     return deduped[["timestamp", "pair_id", "address", *present]].reset_index(drop=True)
 

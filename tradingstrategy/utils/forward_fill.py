@@ -551,13 +551,19 @@ def resample_candles_multiple_pairs(
     forward_fill_until: datetime.datetime | None = None,
     multipair: bool = True,
 ) -> pd.DataFrame:
-    """Upsample a OHLCV trading pair data to a lower time bucket.
+    """Resample each pair independently and fill empty OHLCV buckets.
 
-    - First group the DataFrame by pair
-    - Transform
-    - Resample in OHLCV manner
-    - Forward fill any gaps in data
-    - Set `forward_fill_until` attribute on DataFrame to refect how much forward fill was done
+    Vault price and TVL conversion uses this for daily candles from sparse
+    observations. Empty buckets have flat OHLC at the last close and zero
+    volume, rather than repeating the previous bucket's range. Existing
+    ``forward_filled`` markers survive aggregation so consumers can distinguish
+    synthetic data. Without an explicit end boundary, no rows are added after
+    the last observed bucket.
+
+    :param df:
+        OHLCV rows with a timestamp column or DatetimeIndex and a pair identity.
+    :param frequency:
+        Pandas resampling frequency, e.g. ``"1d"``.
 
     :param pair_id_column:
         DataFrame column to group the data by pair
@@ -567,8 +573,16 @@ def resample_candles_multiple_pairs(
 
         We assume every pair has the same value for these columns.
 
-    :parma fix_and_sort_index:
+    :param forward_fill_columns:
+        Value columns to fill. The default fills OHLCV; close must be included
+        for flat OHLC values across empty buckets.
+    :param fix_and_sort_index:
         Make sure we have a good timestamp index before proceeding.
+    :param forward_fill_until:
+        Optional final bucket, filled with :func:`forward_fill_ohlcv_single_pair`.
+        Also recorded in the returned frame's attributes.
+    :param multipair:
+        Legacy argument; grouping always uses ``pair_id_column``.
 
     :return:
         Concatenated DataFrame of individually resampled pair data
@@ -613,10 +627,24 @@ def resample_candles_multiple_pairs(
                 # before the ffill so downstream code can distinguish
                 # real data from gap-filled synthetic rows.
                 if "close" in segment.columns:
-                    segment["forward_filled"] = segment["close"].isna()
+                    missing = segment["close"].isna()
+                    if "forward_filled" in segment.columns:
+                        segment["forward_filled"] = segment["forward_filled"].fillna(False).astype(bool) | missing
+                    else:
+                        segment["forward_filled"] = missing
+                    if "close" in forward_fill_columns:
+                        segment["close"] = segment["close"].ffill()
                 for ff_column in forward_fill_columns:
                     if ff_column in segment.columns:
-                        segment[ff_column] = segment[ff_column].ffill()
+                        if ff_column in ("open", "high", "low") and "close" in segment.columns:
+                            # An empty interval is a flat candle at the last
+                            # observed close, not a replay of the previous
+                            # interval's range. This matters for sparse vaults.
+                            segment[ff_column] = segment[ff_column].fillna(segment["close"])
+                        elif ff_column == "volume":
+                            segment[ff_column] = segment[ff_column].fillna(0)
+                        else:
+                            segment[ff_column] = segment[ff_column].ffill()
 
             segments.append(segment)
 
