@@ -613,10 +613,24 @@ def resample_candles_multiple_pairs(
                 # before the ffill so downstream code can distinguish
                 # real data from gap-filled synthetic rows.
                 if "close" in segment.columns:
-                    segment["forward_filled"] = segment["close"].isna()
+                    missing = segment["close"].isna()
+                    if "forward_filled" in segment.columns:
+                        segment["forward_filled"] = segment["forward_filled"].fillna(False).astype(bool) | missing
+                    else:
+                        segment["forward_filled"] = missing
+                    if "close" in forward_fill_columns:
+                        segment["close"] = segment["close"].ffill()
                 for ff_column in forward_fill_columns:
                     if ff_column in segment.columns:
-                        segment[ff_column] = segment[ff_column].ffill()
+                        if ff_column in ("open", "high", "low") and "close" in segment.columns:
+                            # An empty interval is a flat candle at the last
+                            # observed close, not a replay of the previous
+                            # interval's range. This matters for sparse vaults.
+                            segment[ff_column] = segment[ff_column].fillna(segment["close"])
+                        elif ff_column == "volume":
+                            segment[ff_column] = segment[ff_column].fillna(0)
+                        else:
+                            segment[ff_column] = segment[ff_column].ffill()
 
             segments.append(segment)
 
