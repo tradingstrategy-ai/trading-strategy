@@ -58,13 +58,20 @@ for another scanner cycle cannot repair a route that strips source versions.
 Price-download network failures abort the current attempt with a redacted
 ``RuntimeError``; only the JSON probe has the poller's retryable exception.
 
-Historical deposit availability is separate from receipt freshness. For
-HyperCore rows, state becomes queryable no earlier than both the price timestamp
-and the scanner's ``written_at`` timestamp, rounded up to the decision bucket.
-Rows without ``written_at`` cannot establish point-in-time state. The executor
-assumes deposits open before ``HYPERCORE_DEPOSIT_STATE_CUTOFF`` (11 April 2026)
-and applies its missing/stale-state policy after that date; a current manifest
-does not retrospectively certify historical availability.
+Historical deposit availability is separate from receipt freshness. HyperCore
+state uses the original ``permission_observed_at``, rounded upwards to the
+first decision bucket. Recovered legacy flags use their original price-row
+clock with explicit ``legacy_price_timestamp`` provenance; publication and
+``written_at`` never refresh state. The executor checks age against the
+unrounded clock and treats permission and capacity independently. Before
+``HYPERCORE_DEPOSIT_STATE_CUTOFF`` (11 April 2026), deposits are assumed open.
+A current readiness receipt does not certify historical permissions.
+
+Schema version 2 is deliberately rejected. An independent sidecar can be read
+explicitly, but this endpoint's v1 receipt authenticates only prices. Enabling
+v2 requires coordinated authenticated downloads of the same immutable price
+and permission generation in both client and executor.
+
 """
 
 import datetime

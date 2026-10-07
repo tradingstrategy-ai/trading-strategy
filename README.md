@@ -51,6 +51,14 @@ See [the Getting Started repository](https://github.com/tradingstrategy-ai/getti
 For JSON-only vault readiness polling and ETag-verified price snapshots, see
 [Vault scan readiness receipts](tradingstrategy/vault_scan_manifest.py).
 
+Historical HyperCore deposit permission uses original observation clocks,
+separately from price/publication time. See
+[`convert_vault_prices_to_vault_state()`](tradingstrategy/alternative_data/vault.py)
+for explicit permission-history input and
+[`select_permission_state()`](tradingstrategy/vault_permission.py) for snapshot
+precedence and uncertainty handling. Recovered legacy flags use inferred price
+clocks with visible provenance; they do not establish fresh capacity.
+
 # Prerequisites
 
 * Python 3.10

@@ -22,6 +22,7 @@ import pyarrow.compute as pc
 import pyarrow.dataset as ds
 import zstandard
 
+from tradingstrategy.vault_permission import select_permission_state, STATE_FIELDS, POLICY_FIELDS
 from tradingstrategy.chain import ChainId
 from tradingstrategy.utils.flexible_pickle import flexible_load, filter_broken_enum_values
 from tradingstrategy.exchange import Exchange
@@ -46,14 +47,32 @@ DEFAULT_VAULT_PRICE_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "va
 #: dataset (:py:class:`tradingstrategy.vault_data_client.VaultDataset.vault_prices`) and only populated from the date the
 #: upstream scanner started recording them; older rows and the daily bundle lack them. The
 #: protocol-specific backtest consumer decides whether missing / unknown values are allowed.
-VAULT_STATE_COLUMNS = [
-    "deposits_open",
-    "redemption_open",
-    "deposit_closed_reason",
-    "redemption_closed_reason",
-    "max_deposit",
-    "max_redeem",
+VAULT_STATE_COLUMNS = STATE_FIELDS.copy()
+
+#: Optional original observation clocks and provenance, projected with the whole state.
+VAULT_STATE_METADATA_COLUMNS = [
+    "permission_observed_at", "permission_provenance", "permission_observation_id",
+    "capacity_observed_at", "evidence_available_at", "leader_fraction",
+    "relationship_type", "is_closed", "allow_deposits", "written_at", "source_order",
 ]
+
+
+def read_vault_permission_history_parquet(
+    path: Path,
+    vault_pairs_df: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Read exact sidecar observations, retaining pre-window evidence and uncertainty.
+
+    Price-window predicates must never discard an earlier permission receipt.
+    The sidecar has no price rows and does not create candles.
+    """
+    dataset = ds.dataset(str(path), format="parquet")
+    expression = None
+    if vault_pairs_df is not None:
+        addresses = vault_pairs_df.loc[vault_pairs_df["chain_id"].astype(int).eq(ChainId.hypercore.value), "address"]
+        expression = pc.is_in(pc.utf8_lower(ds.field("vault_address")), value_set=pa.array(addresses.str.lower().tolist(), type=pa.string()))
+    return dataset.to_table(filter=expression).to_pandas(ignore_metadata=True)
+
 
 # HyperCore availability fields became complete enough for historical admission decisions at
 # this daily boundary. Before it, backtests deliberately assume deposits were open.
@@ -391,7 +410,7 @@ def read_vault_price_history_parquet(
         # schema, so callers can opt in to them without breaking on older files (e.g. the daily
         # price bundle). Any other missing requested column is kept so the read still fails fast
         # on a genuine schema mismatch (e.g. a misspelled `share_price`).
-        optional_columns = set(VAULT_STATE_COLUMNS) | {"written_at"}
+        optional_columns = set(VAULT_STATE_COLUMNS) | set(VAULT_STATE_METADATA_COLUMNS)
         requested_columns = [c for c in requested_columns if c in schema_names or c not in optional_columns]
         required_columns = {timestamp_column}
         if vault_pairs_df is not None:
@@ -621,112 +640,119 @@ def _normalise_bool_like(series: pd.Series) -> pd.Series:
 def convert_vault_prices_to_vault_state(
     raw_prices_df: pd.DataFrame,
     frequency: str = "1d",
+    permission_history_df: pd.DataFrame | None = None,
 ) -> pd.DataFrame | None:
-    """Build a per-(pair, timestamp) vault availability state frame.
+    """Select coherent vault state without refreshing original observation clocks.
 
-    Companion to :py:func:`convert_vault_prices_to_candles`. Where that function turns share
-    price and TVL into OHLC candles, this extracts the deposit/redemption availability columns
-    (:py:data:`VAULT_STATE_COLUMNS`) so backtests can query, per timestamp, whether a vault
-    accepted deposits / allowed redemptions and skip impossible rebalances.
+    Other chains retain their legacy last-whole-row, floored-bucket behaviour.
+    HyperCore receipts become available at the next decision boundary. Genuine
+    responses, including unknowns, beat inferred legacy price flags. Independent
+    sidecar observations can change state after the newest price without creating
+    synthetic price or TVL rows. Publication and ``written_at`` never refresh
+    permission. Clockless, untagged legacy flags use the price timestamp with
+    explicit inferred provenance; tagged corrupt flags remain unknown.
 
-    Output is **sparse**: one row per populated bucket, taking the whole last sample in that
-    bucket. Non-HyperCore rows are floored to the bucket boundary (midnight for daily, on the
-    same grid as the TVL/price candles). HyperCore rows use the later of the price timestamp and
-    the scanner's ``written_at`` timestamp, rounded up to the first bucket where the observation
-    was available. Gaps produce no row — the backtest consumer
-    (:py:class:`tradeexecutor.backtest.backtest_pricing.BacktestPricing`) looks up the
-    nearest sample at or before the decision timestamp within its data-delay tolerance, exactly
-    like the TVL lookup, so the sparse frame resolves correctly and a gap older than the
-    tolerance reads as unknown. (A dense NA-filled grid would instead resolve gap buckets to
-    "unknown" even when a recent sample exists.) Boolean-like columns are normalised to nullable
-    boolean via :py:func:`_normalise_bool_like`; the pricing model applies protocol-specific
-    semantics to unknown/NA values.
-
-    :param raw_prices_df:
-        Vault price rows as returned by :py:func:`read_vault_price_history_parquet`, optionally
-        carrying some of :py:data:`VAULT_STATE_COLUMNS`. ``raw_prices_df`` may already have been
-        passed through :py:func:`convert_vault_prices_to_candles` (which only mutates OHLC
-        columns); the state columns are untouched.
-
-    :return:
-        Tidy DataFrame with columns ``pair_id``, ``address``, ``timestamp`` plus whichever of
-        :py:data:`VAULT_STATE_COLUMNS` are present, resampled to ``frequency``. Returns ``None``
-        if the source carries none of the state columns (e.g. the daily price bundle).
+    :param raw_prices_df: Price projections, optionally carrying original permission metadata.
+    :param frequency: Decision buckets, ``1d`` or ``1h``.
+    :param permission_history_df: Explicit sidecar from the same recovery generation.
+    :return: Sparse state with original clocks and provenance, or ``None`` when no availability data exists.
     """
     assert frequency in _VAULT_STATE_FREQUENCIES, f"Got {frequency}"
-
-    present = [c for c in VAULT_STATE_COLUMNS if c in raw_prices_df.columns]
-    if not present:
-        return None
-
-    assert "address" in raw_prices_df.columns, f"Got {raw_prices_df.columns}"
-    if "timestamp" not in raw_prices_df.columns and raw_prices_df.index.name == "timestamp":
+    if "timestamp" not in raw_prices_df and raw_prices_df.index.name == "timestamp":
         raw_prices_df = raw_prices_df.reset_index()
-    assert "timestamp" in raw_prices_df.columns, f"Got {raw_prices_df.columns}"
-
-    selected_columns = ["address", "timestamp", *present]
-    if "chain" in raw_prices_df.columns:
-        selected_columns.append("chain")
-    if "written_at" in raw_prices_df.columns:
-        selected_columns.append("written_at")
-    # Input batches may share index labels; use unique row identities for state masks.
-    df = raw_prices_df[selected_columns].reset_index(drop=True)
+    present = [c for c in VAULT_STATE_COLUMNS if c in raw_prices_df]
+    if not present and permission_history_df is None:
+        return None
+    df = raw_prices_df.copy().reset_index(drop=True)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_convert(None).astype("datetime64[ns]")
+    df["address"] = df["address"].str.lower()
     df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
-
-    # Keep the source timestamp as a stable tie-breaker. Backfilled batches can stamp many
-    # historical rows with one written_at value, but the latest source observation still wins.
-    df["_source_timestamp"] = pd.to_datetime(df["timestamp"])
-    if isinstance(df["_source_timestamp"].dtype, pd.DatetimeTZDtype):
-        df["_source_timestamp"] = df["_source_timestamp"].dt.tz_convert(None)
-
-    if "chain" in df.columns:
-        is_hypercore = df["chain"].astype("Int64") == ChainId.hypercore.value
-    else:
-        is_hypercore = pd.Series(False, index=df.index)
-
-    # A HyperCore row without the scanner observation timestamp is not usable point-in-time
-    # state. Keep it out of the state frame instead of falling back to the price timestamp.
-    # Before the historical cutoff this is equivalent to the documented assumed-open rule; after
-    # the cutoff BacktestPricing sees the missing state and fails closed for new deposits.
-    if "written_at" in df.columns:
-        df["written_at"] = pd.to_datetime(df["written_at"])
-        if isinstance(df["written_at"].dtype, pd.DatetimeTZDtype):
-            df["written_at"] = df["written_at"].dt.tz_convert(None)
-        df = df.loc[~(is_hypercore & df["written_at"].isna())].copy()
-        is_hypercore = is_hypercore.loc[df.index]
-    else:
-        df = df.loc[~is_hypercore].copy()
-        is_hypercore = is_hypercore.loc[df.index]
-
-    df["_effective_timestamp"] = df["_source_timestamp"]
-    if "written_at" in df.columns:
-        hypercore_index = is_hypercore[is_hypercore].index
-        if len(hypercore_index) > 0:
-            df.loc[hypercore_index, "_effective_timestamp"] = pd.concat(
-                [df.loc[hypercore_index, "_source_timestamp"], df.loc[hypercore_index, "written_at"]],
-                axis=1,
-            ).max(axis=1)
-
+    hypercore = df.get("chain", pd.Series(0, index=df.index)).eq(ChainId.hypercore.value)
+    freq = _VAULT_STATE_FREQUENCIES[frequency]
+    other = df.loc[~hypercore, ["timestamp", "pair_id", "address", *present]].copy()
+    other = other.sort_values("timestamp", kind="stable")
+    other["timestamp"] = other["timestamp"].dt.floor(freq)
+    other = other.drop_duplicates(["pair_id", "timestamp"], keep="last")
+    if not hypercore.any() and (permission_history_df is None or permission_history_df.empty):
+        for col in ("deposits_open", "redemption_open"):
+            if col in other:
+                other[col] = _normalise_bool_like(other[col])
+        return other.reset_index(drop=True)
+    prices = df.loc[hypercore].copy()
+    observations = prices.rename(columns={
+        "address": "vault_address", "permission_provenance": "provenance",
+        "permission_observation_id": "observation_id",
+    })
+    if "source_order" not in observations:
+        observations["source_order"] = range(len(observations))
+    observations["record_kind"] = "observation"
+    observations["permission_observed_at"] = pd.to_datetime(observations.get("permission_observed_at", pd.Series(pd.NaT, index=observations.index)), utc=True).dt.tz_convert(None).astype("datetime64[ns]")
+    original_provenance = observations.get("provenance", pd.Series(None, index=observations.index, dtype=object))
+    inferred = observations["permission_observed_at"].isna() & (original_provenance.isna() | original_provenance.eq("legacy_price_timestamp"))
+    observations.loc[inferred, "permission_observed_at"] = observations.loc[inferred, "timestamp"]
+    if "provenance" not in observations:
+        observations["provenance"] = None
+    observations.loc[inferred, "provenance"] = "legacy_price_timestamp"
+    observations["provenance"] = observations["provenance"].fillna("observed")
+    observations["observation_id"] = observations.get("observation_id", pd.Series(None, index=observations.index, dtype=object))
+    observations["observation_id"] = observations["observation_id"].fillna(observations["source_order"].map(lambda n: f"price-row-{n}"))
+    # A convenience projection can repeat one receipt on many price rows.
+    # Retain its first coherent projection, including a capacity policy cap.
+    observations = observations.sort_values("timestamp", kind="stable").drop_duplicates(["vault_address", "observation_id"], keep="first")
+    corrupted = observations["provenance"].isin(("corrupted_unknown", "legacy_unverified"))
+    observations["reason"] = None
+    observations.loc[corrupted, "record_kind"] = "uncertainty_boundary"
+    observations.loc[corrupted, "effective_from"] = observations.loc[corrupted, "timestamp"]
+    observations.loc[corrupted, "reason"] = "Legacy permission flags are unverified or corrupted"
+    if permission_history_df is not None and not permission_history_df.empty:
+        sidecar = permission_history_df.copy().reset_index(drop=True)
+        if "source_order" not in sidecar:
+            sidecar["source_order"] = range(len(prices), len(prices) + len(sidecar))
+        sidecar["vault_address"] = sidecar["vault_address"].str.lower()
+        # Derive permission only from flags in the same response. An explicit
+        # closure is sufficient; otherwise both flags are needed to prove Open.
+        closed = _normalise_bool_like(sidecar["is_closed"])
+        allowed = _normalise_bool_like(sidecar["allow_deposits"])
+        parent = sidecar["relationship_type"].eq("parent")
+        sidecar["deposits_open"] = (~closed & (allowed | parent)).astype("boolean")
+        sidecar["deposit_closed_reason"] = None
+        sidecar.loc[closed.fillna(False), "deposit_closed_reason"] = "Vault is permanently closed"
+        sidecar.loc[~closed.fillna(False) & ~parent & allowed.eq(False).fillna(False), "deposit_closed_reason"] = "Vault deposits disabled by leader"
+        # The independent capacity receipt authenticates the leader-share policy.
+        fraction = pd.to_numeric(sidecar["leader_fraction"], errors="coerce")
+        cap_known = pd.to_datetime(sidecar["capacity_observed_at"]).notna() & sidecar["provenance"].isin(("observed", "observed_unknown", "restored"))
+        low_share = fraction.lt(0.055) & sidecar["relationship_type"].fillna("normal").eq("normal") & cap_known
+        sidecar["max_deposit"] = float("nan")
+        sidecar.loc[low_share | sidecar["deposits_open"].eq(False).fillna(False), "max_deposit"] = 0.0
+        # Exact sidecar evidence takes precedence over a convenience projection
+        # of the same receipt, whose capacity fields may have been cleaned.
+        observations = pd.concat([observations, sidecar], ignore_index=True)
+        observations = observations.drop_duplicates(["vault_address", "observation_id"], keep="last")
+    defaults = {**{c: None for c in (*STATE_FIELDS, *POLICY_FIELDS)}, "capacity_observed_at": pd.NaT, "evidence_available_at": pd.NaT, "effective_from": pd.NaT, "effective_to": pd.NaT, "source_endpoint": "price projection", "reason": None}
+    for name, default in defaults.items():
+        if name not in observations:
+            observations[name] = default
+    for name in ("permission_observed_at", "capacity_observed_at", "evidence_available_at", "effective_from", "effective_to"):
+        observations[name] = pd.to_datetime(observations[name], utc=True).dt.tz_convert(None).astype("datetime64[ns]")
+    for name in ("deposits_open", "redemption_open", "is_closed", "allow_deposits"):
+        observations[name] = _normalise_bool_like(observations[name])
+    clocks = observations.melt(
+        id_vars="vault_address",
+        value_vars=["permission_observed_at", "evidence_available_at", "effective_from", "effective_to"],
+        value_name="decision_at",
+    ).rename(columns={"decision_at": "timestamp"})[["vault_address", "timestamp"]]
+    decisions = pd.concat([clocks, prices[["address", "timestamp"]].rename(columns={"address": "vault_address"})], ignore_index=True)
+    decisions["timestamp"] = pd.to_datetime(decisions["timestamp"]).astype("datetime64[ns]").dt.ceil(freq)
+    decisions = decisions.dropna(subset=["timestamp"]).drop_duplicates()
+    selected = select_permission_state(observations, decisions, freq)
+    selected = selected.rename(columns={"vault_address": "address", "provenance": "permission_provenance", "observation_id": "permission_observation_id"})
+    selected["pair_id"] = selected["address"].apply(_derive_pair_id_from_address)
+    columns = ["timestamp", "pair_id", "address", *VAULT_STATE_COLUMNS, *POLICY_FIELDS, "permission_observed_at", "permission_provenance", "permission_observation_id", "capacity_observed_at", "evidence_available_at", "source_order"]
+    result = pd.concat([other, selected[columns]], ignore_index=True)
     for col in ("deposits_open", "redemption_open"):
-        if col in df.columns:
-            df[col] = _normalise_bool_like(df[col])
-
-    pandas_freq = _VAULT_STATE_FREQUENCIES[frequency]
-
-    # Round the effective observation timestamp to its decision bucket and keep the last row per
-    # (pair, bucket): every column from the same latest sample, including nulls. A per-column
-    # `Resampler.last()` would take each column's last *non-null* value independently, which
-    # could pair a freshly re-opened `deposits_open=True` with a stale `deposit_closed_reason`
-    # from earlier in the bucket. Bucket labels match the TVL/price candle grid. Stable sorting
-    # keeps the source timestamp as a tie-breaker for rows written in one backfill batch.
-    df = df.sort_values(["_effective_timestamp", "_source_timestamp"], kind="stable")
-    df["timestamp"] = df["_effective_timestamp"].dt.floor(pandas_freq)
-    if "written_at" in df.columns:
-        hypercore_index = is_hypercore[is_hypercore].index
-        if len(hypercore_index) > 0:
-            df.loc[hypercore_index, "timestamp"] = df.loc[hypercore_index, "_effective_timestamp"].dt.ceil(pandas_freq)
-    deduped = df.drop_duplicates(subset=["pair_id", "timestamp"], keep="last")
-    return deduped[["timestamp", "pair_id", "address", *present]].reset_index(drop=True)
+        if col in result:
+            result[col] = _normalise_bool_like(result[col])
+    return result.sort_values(["pair_id", "timestamp"], kind="stable").reset_index(drop=True)
 
 
 def _parse_period_metrics(pm_dict: dict):

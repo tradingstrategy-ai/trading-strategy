@@ -506,3 +506,26 @@ def test_client_reports_vault_data_access(monkeypatch: pytest.MonkeyPatch) -> No
     # 3. Verify a key in the environment reports access.
     monkeypatch.setenv(VAULT_PRO_API_KEY_ENV_VAR, "FROM-ENVIRONMENT")
     assert Client(None, None).has_vault_data_access() is True
+
+
+def test_permission_sidecar_uses_authenticated_dataset_route(client: VaultDataClient, download_func: Mock) -> None:
+    """Download independent receipts through the licence-authenticated sidecar route.
+
+    1. Replace only the network transfer with a local nullable-flag Parquet writer.
+    2. Fetch the sidecar through the dataset client.
+    3. Check its authenticated route and that unknown flags remain null.
+    """
+    # 1. Avoid paid network access while preserving the real download/cache flow.
+    def write_sidecar(session, path, url, params, timeout, human_readable_hint) -> None:
+        pd.DataFrame([{"observation_id": "unknown", "is_closed": None, "allow_deposits": None}]).to_parquet(path, index=False)
+    download_func.side_effect = write_sidecar
+
+    # 2. Download and parse the exact sidecar schema independently of prices.
+    result = client.fetch_vault_permission_history()
+
+    # 3. Authentication is inherited from the shared dataset downloader.
+    args = download_func.call_args.args
+    assert args[2].endswith("/hypercore-vault-permissions")
+    assert args[3] == {"api-key": "test-licence-key"}
+    assert result["is_closed"].isna().all()
+    assert result["allow_deposits"].isna().all()
