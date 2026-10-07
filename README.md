@@ -57,7 +57,10 @@ separately from price/publication time. See
 for explicit permission-history input and
 [`select_permission_state()`](tradingstrategy/vault_permission.py) for snapshot
 precedence and uncertainty handling. Recovered legacy flags use inferred price
-clocks with visible provenance; they do not establish fresh capacity.
+clocks with visible provenance. Recorded leader shares and deposit caps remain
+readable when older schemas have no separate capacity clock. A zero cap blocks
+deposits without declaring the venue closed; a NULL cap remains unknown. Newer
+coherent responses, including unknowns, replace the whole policy snapshot.
 
 # Prerequisites
 

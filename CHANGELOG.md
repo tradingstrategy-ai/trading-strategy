@@ -1,6 +1,8 @@
 # Current
 
-- Fix HyperCore vault-state conversion to preserve original permission clocks, recovery provenance and uncertainty boundaries. Recovered legacy flags use an explicitly inferred price clock; genuine unknown responses retain precedence and capacity needs its own receipt. Add explicit authenticated permission-history downloading; manifest v2 remains disabled (2026-10-07).
+- Retain recorded HyperCore leader shares and deposit caps without requiring a separate capacity clock. Preserve NULL versus zero through coherent snapshot selection, daily/HF resampling and price-only updates; newer responses clear older policy inputs (2026-10-07).
+
+- Fix HyperCore vault-state conversion to preserve original permission clocks, recovery provenance and uncertainty boundaries. Recovered legacy flags use an explicitly inferred price clock; genuine unknown responses retain precedence. Add explicit authenticated permission-history downloading; manifest v2 remains disabled (2026-10-07).
 
 - Add uncached vault scan receipts and ETag-verified private downloads, point-in-time HyperCore deposit state and flat gap candles for all multi-pair resampling, including sparse vault observations; correcting synthetic OHLC ranges may change gap-period stop-loss/take-profit results (2026-09-22).
 

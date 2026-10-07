@@ -2,7 +2,7 @@
 
 This selector follows the separate eth-defi permission sidecar contract.
 Publication and repeated price projections never refresh an existing snapshot.
-Clockless recovered flags use explicitly inferred price clocks, without capacity.
+Clockless recovered snapshots retain recorded policy inputs and inferred price clocks.
 """
 import datetime
 
@@ -28,7 +28,8 @@ def select_permission_state(
     remain in selection, preventing per-field filling across source snapshots.
     When no eligible genuine snapshot exists, recovered backup flags may use
     their price clock with ``legacy_price_timestamp`` provenance. They supply
-    no inferred capacity clock and never override a genuine unknown response.
+    recorded leader shares and caps without inventing a capacity receipt clock,
+    and never override a genuine unknown response.
 
     :param observations: Exact observation table with nullable flags and clocks.
     :param decisions: Frame with ``vault_address`` (string) and ``timestamp`` (naive UTC).
@@ -49,10 +50,6 @@ def select_permission_state(
     snapshots = observations[observations["record_kind"] == "observation"].copy()
     for name in ("permission_observed_at", "capacity_observed_at", "evidence_available_at"):
         snapshots[name] = pd.to_datetime(snapshots[name]).astype("datetime64[ns]")
-    # Legacy permission evidence never authenticates carried capacity.
-    legacy = snapshots["provenance"].isin(("legacy_price_timestamp", "legacy_closure_bounded"))
-    snapshots.loc[legacy, "capacity_observed_at"] = pd.NaT
-    snapshots.loc[legacy, "max_deposit"] = float("nan")
     snapshots["available_at"] = pd.to_datetime(snapshots["permission_observed_at"]).astype("datetime64[ns]")
     bounded = snapshots["provenance"] == "legacy_closure_bounded"
     snapshots.loc[bounded, "available_at"] = pd.to_datetime(snapshots.loc[bounded, "evidence_available_at"]).astype("datetime64[ns]")
@@ -130,11 +127,12 @@ def select_permission_state(
             for name in fields:
                 group.loc[missing, name] = recovered.loc[missing, name].to_numpy()
         # Keep inferred clock quality visible even when that evidence has aged
-        # out. Clear its availability fields, never its original clock or ID.
+        # out. Unknown measurement age does not erase a recorded policy cap.
         inferred_age = group["timestamp"] - pd.to_datetime(group["permission_observed_at"])
         stale = group["provenance"].eq("legacy_price_timestamp") & inferred_age.gt(pd.Timedelta(legacy_max_age))
         for name in STATE_FIELDS:
-            group.loc[stale, name] = None
+            if name != "max_deposit":
+                group.loc[stale, name] = None
         parts.append(group)
     result = pd.concat(parts).sort_values("_decision_order").drop(columns="_decision_order").reset_index(drop=True)
     return result
