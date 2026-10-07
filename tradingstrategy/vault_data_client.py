@@ -151,6 +151,11 @@ class VaultDataset(enum.Enum):
     #: public ``cleaned-vault-prices-1h.parquet`` bucket object.
     vault_prices = "vault_prices"
 
+    #: Independent HyperCore permission receipts and uncertainty intervals.
+    #: Requires a coordinated authenticated serving route. Download explicitly;
+    #: manifest v1 does not authenticate a matching permission generation.
+    hypercore_vault_permissions = "hypercore_vault_permissions"
+
     #: Metadata for vaults denominated in cryptocurrency rather than a
     #: stablecoin, as JSON. Served as ``crypto-vault-metadata.json``.
     crypto_metadata = "crypto_metadata"
@@ -570,6 +575,15 @@ class VaultDataClient:
             return normalise_vault_price_history_frame(pd.read_parquet(path))
 
         return self._read_dataset(VaultDataset.vault_prices, read)
+
+    def fetch_vault_permission_history(self) -> pd.DataFrame:
+        """Download exact HyperCore receipts through the authenticated sidecar route.
+
+        Explicitly opt in only when the deployment exposes this dataset. This
+        standalone download does not certify a matching price generation;
+        manifest v2 remains rejected until the complete contract is deployed.
+        """
+        return self._read_dataset(VaultDataset.hypercore_vault_permissions, pd.read_parquet)
 
     def _read_dataset(self, dataset: VaultDataset, read: Callable):
         """Download a dataset and parse it, discarding the cache if it is unreadable.

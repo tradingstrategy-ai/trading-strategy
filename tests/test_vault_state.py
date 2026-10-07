@@ -163,6 +163,9 @@ def test_convert_vault_state_uses_observation_time_for_hypercore():
         _row("2026-04-10", 12, "false", "Vault deposits disabled by leader", 0.0, "2026-04-10 18:00", chain=9999),
         _row("2026-04-11", 12, "true", None, 100.0, "2026-04-11 18:00", chain=9999),
     ]
+    for row in rows:
+        row["permission_observed_at"] = row["written_at"]
+        row["permission_provenance"] = "observed"
 
     # 1-2. State conversion must use scanner observation time for HyperCore rows.
     state = convert_vault_prices_to_vault_state(pd.DataFrame(rows, index=[0, 0]), "1d")
@@ -175,22 +178,25 @@ def test_convert_vault_state_uses_observation_time_for_hypercore():
     assert state["deposits_open"].tolist() == [False, True]
 
 
-def test_convert_vault_state_ignores_hypercore_rows_without_written_at():
-    """Do not turn an unobserved HyperCore row into point-in-time state.
+def test_convert_vault_state_infers_legacy_clock_without_written_at():
+    """Use the approved price-clock approximation without authenticating capacity.
 
     1. Create a HyperCore availability row without ``written_at``.
     2. Convert the row to daily state.
-    3. Assert that no usable state row is emitted.
+    3. Assert the inferred clock, provenance and missing capacity.
     """
     row = _row("2026-04-10", 12, "false", "Vault deposits disabled by leader", 0.0, chain=9999)
     row["written_at"] = pd.NaT
 
-    # 1-2. Missing observation time must not fall back to the price timestamp.
+    # 1-2. The legacy approximation uses the original price timestamp.
     state = convert_vault_prices_to_vault_state(pd.DataFrame([row]), "1d")
 
-    # 3. BacktestPricing will handle this as unavailable state after the cutoff.
+    # 3. Recovery quality remains visible and does not authenticate capacity.
     assert state is not None
-    assert state.empty
+    assert state.loc[0, "permission_observed_at"] == row["timestamp"]
+    assert state.loc[0, "permission_provenance"] == "legacy_price_timestamp"
+    assert pd.isna(state.loc[0, "capacity_observed_at"])
+    assert pd.isna(state.loc[0, "max_deposit"])
 
 
 def test_read_parquet_errors_on_missing_non_state_column(tmp_path):
