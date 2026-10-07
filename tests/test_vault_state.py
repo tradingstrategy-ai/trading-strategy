@@ -183,7 +183,7 @@ def test_convert_vault_state_infers_legacy_clock_without_written_at():
 
     1. Create a HyperCore availability row without ``written_at``.
     2. Convert the row to daily state.
-    3. Assert the inferred clock, provenance and missing capacity.
+    3. Assert the inferred clock, provenance and retained cap without a capacity receipt.
     """
     row = _row("2026-04-10", 12, "false", "Vault deposits disabled by leader", 0.0, chain=9999)
     row["written_at"] = pd.NaT
@@ -196,7 +196,7 @@ def test_convert_vault_state_infers_legacy_clock_without_written_at():
     assert state.loc[0, "permission_observed_at"] == row["timestamp"]
     assert state.loc[0, "permission_provenance"] == "legacy_price_timestamp"
     assert pd.isna(state.loc[0, "capacity_observed_at"])
-    assert pd.isna(state.loc[0, "max_deposit"])
+    assert state.loc[0, "max_deposit"] == pytest.approx(0.0)
 
 
 def test_read_parquet_errors_on_missing_non_state_column(tmp_path):

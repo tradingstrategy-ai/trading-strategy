@@ -43,10 +43,9 @@ DEFAULT_VAULT_PRICE_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "va
 #: Optional per-(vault, timestamp) availability columns in the cleaned vault price parquet.
 #:
 #: These describe whether a vault accepted new deposits / allowed redemptions at a given
-#: historical timestamp, plus any hard caps. They are only present in the cleaned hourly
-#: dataset (:py:class:`tradingstrategy.vault_data_client.VaultDataset.vault_prices`) and only populated from the date the
-#: upstream scanner started recording them; older rows and the daily bundle lack them. The
-#: protocol-specific backtest consumer decides whether missing / unknown values are allowed.
+#: historical timestamp, plus any recorded caps. Repaired daily and HF exports can
+#: include these fields; older bundles may lack them. The protocol-specific backtest
+#: consumer decides whether missing / unknown values are allowed.
 VAULT_STATE_COLUMNS = STATE_FIELDS.copy()
 
 #: Optional original observation clocks and provenance, projected with the whole state.
@@ -649,8 +648,10 @@ def convert_vault_prices_to_vault_state(
     responses, including unknowns, beat inferred legacy price flags. Independent
     sidecar observations can change state after the newest price without creating
     synthetic price or TVL rows. Publication and ``written_at`` never refresh
-    permission. Clockless, untagged legacy flags use the price timestamp with
-    explicit inferred provenance; tagged corrupt flags remain unknown.
+    permission or recorded policy inputs. Clockless, untagged legacy flags use
+    the original price timestamp with explicit inferred provenance; tagged
+    corrupt flags remain unknown. Recorded shares and caps survive absent
+    capacity clocks, and NULL caps remain distinct from explicit zero.
 
     :param raw_prices_df: Price projections, optionally carrying original permission metadata.
     :param frequency: Decision buckets, ``1d`` or ``1h``.
@@ -718,12 +719,13 @@ def convert_vault_prices_to_vault_state(
         sidecar["deposit_closed_reason"] = None
         sidecar.loc[closed.fillna(False), "deposit_closed_reason"] = "Vault is permanently closed"
         sidecar.loc[~closed.fillna(False) & ~parent & allowed.eq(False).fillna(False), "deposit_closed_reason"] = "Vault deposits disabled by leader"
-        # The independent capacity receipt authenticates the leader-share policy.
-        fraction = pd.to_numeric(sidecar["leader_fraction"], errors="coerce")
-        cap_known = pd.to_datetime(sidecar["capacity_observed_at"]).notna() & sidecar["provenance"].isin(("observed", "observed_unknown", "restored"))
-        low_share = fraction.lt(0.055) & sidecar["relationship_type"].fillna("normal").eq("normal") & cap_known
-        sidecar["max_deposit"] = float("nan")
-        sidecar.loc[low_share | sidecar["deposits_open"].eq(False).fillna(False), "max_deposit"] = 0.0
+        # New sidecars record nullable policy caps. Preserve explicit values and
+        # NULLs; only older schemas without this column need policy derivation.
+        if "max_deposit" not in sidecar:
+            fraction = pd.to_numeric(sidecar["leader_fraction"], errors="coerce")
+            low_share = fraction.lt(0.055) & sidecar["relationship_type"].fillna("normal").eq("normal")
+            sidecar["max_deposit"] = float("nan")
+            sidecar.loc[low_share | sidecar["deposits_open"].eq(False).fillna(False), "max_deposit"] = 0.0
         # Exact sidecar evidence takes precedence over a convenience projection
         # of the same receipt, whose capacity fields may have been cleaned.
         observations = pd.concat([observations, sidecar], ignore_index=True)

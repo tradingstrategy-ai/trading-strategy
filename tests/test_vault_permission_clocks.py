@@ -21,7 +21,7 @@ def _price(at: str, opened: bool | None, **metadata) -> dict:
     return {
         "chain": 9999, "address": ADDRESS, "timestamp": pd.Timestamp(at),
         "share_price": 1.0, "total_assets": 1000.0, "deposits_open": opened,
-        "written_at": pd.Timestamp("2026-10-05"), "max_deposit": 0.0,
+        "written_at": pd.Timestamp("2026-10-05"), "max_deposit": float("nan"),
         **metadata,
     }
 
@@ -45,13 +45,13 @@ def test_recovered_doezoe_uses_original_price_clock(tmp_path: Path) -> None:
 
     1. Write recovered Open and disabled legacy flags with a later write time.
     2. Read optional metadata and convert to daily state.
-    3. Verify the September transition and that legacy capacity is unauthenticated.
+    3. Verify the September transition and retain the recorded cap without inventing a clock.
     """
     # 1. Publication is deliberately later than the retained price keys.
     prices = pd.DataFrame([
         _price("2026-09-17 12:00", True),
         _price("2026-09-20 12:00", True),
-        _price("2026-09-21 11:48:00.756", False),
+        _price("2026-09-21 11:48:00.756", False, max_deposit=0.0),
     ])
     path = tmp_path / "prices.parquet"
     prices.to_parquet(path, index=False)
@@ -68,7 +68,9 @@ def test_recovered_doezoe_uses_original_price_clock(tmp_path: Path) -> None:
     assert state.loc[pd.Timestamp("2026-09-22"), "permission_observed_at"] == pd.Timestamp("2026-09-21 11:48:00.756")
     assert state["permission_provenance"].eq("legacy_price_timestamp").all()
     assert state["capacity_observed_at"].isna().all()
-    assert state["max_deposit"].isna().all()
+    assert pd.isna(state.loc[pd.Timestamp("2026-09-18"), "max_deposit"])
+    assert pd.isna(state.loc[pd.Timestamp("2026-09-21"), "max_deposit"])
+    assert state.loc[pd.Timestamp("2026-09-22"), "max_deposit"] == pytest.approx(0.0)
     pd.testing.assert_frame_equal(state, without_sidecar)
 
 
@@ -200,6 +202,7 @@ def test_newer_archive_closure_denies_inferred_open() -> None:
     bound = _receipt(
         "2026-10-05", False, False, "z-old-bound",
         provenance="legacy_closure_bounded", permission_observed_at=pd.NaT,
+        capacity_observed_at=pd.NaT,
         evidence_available_at=pd.Timestamp("2026-09-17 12:00"),
     )
     later_bound = dict(bound, observation_id="a-new-bound", evidence_available_at=pd.Timestamp("2026-09-17 18:00"))
@@ -224,6 +227,108 @@ def test_newer_archive_closure_denies_inferred_open() -> None:
     assert pd.isna(selected.permission_observed_at)
     assert selected.evidence_available_at == pd.Timestamp("2026-09-17 18:00")
     assert pd.isna(selected.capacity_observed_at)
-    assert pd.isna(selected.max_deposit)
+    assert selected.max_deposit == pytest.approx(0.0)
     assert pd.isna(unknown.loc[pd.Timestamp("2026-09-18"), "deposits_open"])
     assert unknown.loc[pd.Timestamp("2026-09-18"), "permission_observation_id"] == "unknown"
+
+
+@pytest.mark.parametrize("frequency", ["1d", "1h"])
+def test_legacy_gucky_policy_survives_missing_capacity_clock(tmp_path: Path, frequency: str) -> None:
+    """Retain Gucky's recorded low-share cap through daily and HF price projections.
+
+    1. Write the ticket's archived share and zero cap with repeated source metadata.
+    2. Load and resample with and without the matching repaired permission sidecar.
+    3. Verify exact values, original clocks and unchanged economic/write data.
+    """
+    # 1. These local records reproduce the reported schema without network access.
+    clock = pd.Timestamp("2026-04-11 04:22:05.613")
+    address = "0x3a6747c8e913085e243a2c22d188dafa8c6a612a"
+    fraction = 0.05000280943338046
+    prices = pd.DataFrame([
+        _price(at, True, address=address, leader_fraction=fraction, max_deposit=0.0,
+               permission_observed_at=clock, permission_provenance="legacy_price_timestamp",
+               permission_observation_id="gucky-source", capacity_observed_at=pd.NaT,
+               written_at=pd.Timestamp("2026-04-11 04:22:06.999"), share_price=1.234)
+        for at in (str(clock), "2026-04-12 12:00", "2026-04-14 12:00")
+    ])
+    path = tmp_path / "prices.parquet"
+    prices.to_parquet(path, index=False)
+    sidecar = pd.DataFrame([_receipt(
+        str(clock), False, True, "gucky-source", vault_address=address,
+        provenance="legacy_price_timestamp", leader_fraction=fraction,
+        max_deposit=0.0, capacity_observed_at=pd.NaT,
+    )])
+
+    # 2. Loading and whole-snapshot selection must not discard legacy policy inputs.
+    read = read_vault_price_history_parquet(path)
+    before = read.copy(deep=True)
+    for history in (None, sidecar, sidecar.drop(columns="max_deposit")):
+        state = convert_vault_prices_to_vault_state(read, frequency, history)
+
+        # 3. Publication and repeated prices never supply a fresh measurement clock.
+        assert state["leader_fraction"].eq(fraction).all()
+        assert state["max_deposit"].eq(0.0).all()
+        assert state["capacity_observed_at"].isna().all()
+        assert state["permission_observed_at"].eq(clock).all()
+        assert state.iloc[0]["timestamp"] == clock.ceil(frequency)
+        assert pd.isna(state.iloc[-1]["deposits_open"])
+    pd.testing.assert_frame_equal(read, before)
+    pd.testing.assert_frame_equal(read, prices)
+
+    # 3. The original schema falls back to its price key, never its later write time.
+    original = read.iloc[:1].drop(columns=["permission_observed_at", "permission_provenance", "permission_observation_id"])
+    legacy = convert_vault_prices_to_vault_state(original, frequency).iloc[0]
+    assert legacy.leader_fraction == fraction
+    assert legacy.max_deposit == pytest.approx(0.0)
+    assert legacy.permission_observed_at == clock
+    assert pd.isna(legacy.capacity_observed_at)
+
+    # 3. A recorded independent clock also survives legacy provenance unchanged.
+    recorded = read.assign(capacity_observed_at=clock - pd.Timedelta(hours=1))
+    state = convert_vault_prices_to_vault_state(recorded, frequency)
+    assert state["capacity_observed_at"].eq(clock - pd.Timedelta(hours=1)).all()
+
+
+@pytest.mark.parametrize("frequency", ["1d", "1h"])
+def test_new_policy_snapshots_clear_legacy_caps_and_keep_nulls(frequency: str) -> None:
+    """Keep recorded NULLs and supersede older caps with coherent new responses.
+
+    1. Supply a legacy zero cap and newer sufficient-share, unknown and closed responses.
+    2. Select daily and HF snapshots despite later inferred price projections.
+    3. Verify share/cap clearing, explicit NULLs and separate permission meanings.
+    """
+    # 1. The nullable cap column is present in the repaired sidecar contract.
+    prices = pd.DataFrame([
+        _price("2026-04-11 04:22", True, leader_fraction=0.05, max_deposit=0.0),
+        _price("2026-04-16", True, leader_fraction=0.05, max_deposit=0.0),
+    ])
+    sidecar = pd.DataFrame([
+        _receipt("2026-04-12 04:22", False, True, "sufficient", leader_fraction=0.1, max_deposit=None, capacity_observed_at=pd.NaT),
+        _receipt("2026-04-13 04:22", None, None, "unknown", leader_fraction=None, max_deposit=None, capacity_observed_at=pd.NaT, provenance="observed_unknown"),
+        _receipt("2026-04-14 04:22", False, True, "no-recorded-cap", leader_fraction=0.05, max_deposit=None, capacity_observed_at=pd.NaT),
+        _receipt("2026-04-15 04:22", True, False, "closed", leader_fraction=None, max_deposit=None, capacity_observed_at=pd.NaT),
+        _receipt("2026-04-17 04:22", False, True, "positive-cap", leader_fraction=0.1, max_deposit=123.0, capacity_observed_at=pd.NaT),
+    ])
+
+    # 2. The actual converter selects whole snapshots, without per-field filling.
+    state = convert_vault_prices_to_vault_state(prices, frequency, sidecar).set_index("timestamp")
+
+    # 3. An old zero never survives a new snapshot that has no recorded cap.
+    initial = state.loc[pd.Timestamp("2026-04-11 04:22").ceil(frequency)]
+    assert initial.max_deposit == pytest.approx(0.0)
+    for receipt in sidecar.itertuples():
+        selected = state.loc[receipt.permission_observed_at.ceil(frequency)]
+        if receipt.observation_id == "positive-cap":
+            assert selected.max_deposit == pytest.approx(123.0)
+        else:
+            assert pd.isna(selected.max_deposit)
+        assert selected.permission_observation_id == receipt.observation_id
+        if receipt.observation_id == "unknown":
+            assert pd.isna(selected.leader_fraction)
+            assert pd.isna(selected.deposits_open)
+        elif receipt.observation_id == "closed":
+            assert pd.isna(selected.leader_fraction)
+            assert not bool(selected.deposits_open)
+        else:
+            assert selected.leader_fraction == pytest.approx(receipt.leader_fraction)
+            assert bool(selected.deposits_open)
