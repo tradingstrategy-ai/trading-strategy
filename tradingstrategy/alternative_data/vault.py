@@ -736,10 +736,6 @@ def convert_vault_prices_to_vault_state(
         observations[name] = pd.to_datetime(observations[name], utc=True).dt.tz_convert(None).astype("datetime64[ns]")
     for name in ("deposits_open", "redemption_open", "is_closed", "allow_deposits"):
         observations[name] = _normalise_bool_like(observations[name])
-    # Inferred permissions authenticate neither the carried capacity nor its clock.
-    unauthenticated_capacity = ~observations["provenance"].isin(("observed", "observed_unknown", "restored"))
-    observations.loc[unauthenticated_capacity, "capacity_observed_at"] = pd.NaT
-    observations.loc[unauthenticated_capacity, "max_deposit"] = float("nan")
     clocks = observations.melt(
         id_vars="vault_address",
         value_vars=["permission_observed_at", "evidence_available_at", "effective_from", "effective_to"],

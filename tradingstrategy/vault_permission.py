@@ -1,6 +1,6 @@
 """Point-in-time HyperCore permission selection.
 
-This selector follows the independent eth-defi permission sidecar contract.
+This selector follows the separate eth-defi permission sidecar contract.
 Publication and repeated price projections never refresh an existing snapshot.
 Clockless recovered flags use explicitly inferred price clocks, without capacity.
 """
@@ -49,6 +49,10 @@ def select_permission_state(
     snapshots = observations[observations["record_kind"] == "observation"].copy()
     for name in ("permission_observed_at", "capacity_observed_at", "evidence_available_at"):
         snapshots[name] = pd.to_datetime(snapshots[name]).astype("datetime64[ns]")
+    # Legacy permission evidence never authenticates carried capacity.
+    legacy = snapshots["provenance"].isin(("legacy_price_timestamp", "legacy_closure_bounded"))
+    snapshots.loc[legacy, "capacity_observed_at"] = pd.NaT
+    snapshots.loc[legacy, "max_deposit"] = float("nan")
     snapshots["available_at"] = pd.to_datetime(snapshots["permission_observed_at"]).astype("datetime64[ns]")
     bounded = snapshots["provenance"] == "legacy_closure_bounded"
     snapshots.loc[bounded, "available_at"] = pd.to_datetime(snapshots.loc[bounded, "evidence_available_at"]).astype("datetime64[ns]")
@@ -80,7 +84,7 @@ def select_permission_state(
     snapshots = snapshots.sort_values(["available_at", "_original_available_at", "source_order"])
     if frequency:
         archive_closures["available_at"] = archive_closures["available_at"].dt.ceil(frequency)
-    archive_closures = archive_closures.sort_values(["available_at", "observation_id"])
+    archive_closures = archive_closures.sort_values(["available_at", "evidence_available_at", "source_order", "observation_id"])
     archive_groups = dict(iter(archive_closures.groupby("vault_address", sort=False)))
     snapshot_groups = dict(iter(snapshots.groupby("vault_address", sort=False)))
     boundary_groups = dict(iter(observations[observations["record_kind"] == "uncertainty_boundary"].groupby("vault_address", sort=False)))

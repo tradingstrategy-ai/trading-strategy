@@ -191,20 +191,27 @@ def test_uncertainty_and_expiry_use_raw_clocks() -> None:
 def test_newer_archive_closure_denies_inferred_open() -> None:
     """Use a later deny-only archive bound without replacing genuine responses.
 
-    1. Supply inferred Open and a later Closed archive bound without a receipt clock.
+    1. Supply inferred Open and later Closed archive bounds without receipt clocks.
     2. Convert daily decisions with and without a genuine unknown response.
     3. Verify the closure keeps its bound and genuine unknown retains precedence.
     """
     # 1. An archive bound authenticates denial only, not measured permission or capacity.
     prices = pd.DataFrame([_price("2026-09-17", True)])
     bound = _receipt(
-        "2026-10-05", False, False, "closed-bound",
+        "2026-10-05", False, False, "z-old-bound",
         provenance="legacy_closure_bounded", permission_observed_at=pd.NaT,
         evidence_available_at=pd.Timestamp("2026-09-17 12:00"),
     )
+    later_bound = dict(bound, observation_id="a-new-bound", evidence_available_at=pd.Timestamp("2026-09-17 18:00"))
 
     # 2. No network is needed: these are the exact nullable sidecar inputs.
-    closed = convert_vault_prices_to_vault_state(prices, permission_history_df=pd.DataFrame([bound])).set_index("timestamp")
+    control = convert_vault_prices_to_vault_state(prices).set_index("timestamp")
+    inferred = control.loc[:pd.Timestamp("2026-09-18")].iloc[-1]
+    assert bool(inferred.deposits_open)
+    assert inferred.permission_provenance == "legacy_price_timestamp"
+    assert pd.notna(inferred.permission_observation_id)
+    assert inferred.permission_observed_at == pd.Timestamp("2026-09-17")
+    closed = convert_vault_prices_to_vault_state(prices, permission_history_df=pd.DataFrame([later_bound, bound])).set_index("timestamp")
     unknown = convert_vault_prices_to_vault_state(prices, permission_history_df=pd.DataFrame([
         bound, _receipt("2026-09-17 13:00", None, None, "unknown", provenance="observed_unknown"),
     ])).set_index("timestamp")
@@ -213,9 +220,9 @@ def test_newer_archive_closure_denies_inferred_open() -> None:
     selected = closed.loc[pd.Timestamp("2026-09-18")]
     assert not bool(selected.deposits_open)
     assert selected.permission_provenance == "legacy_closure_bounded"
-    assert selected.permission_observation_id == "closed-bound"
+    assert selected.permission_observation_id == "a-new-bound"
     assert pd.isna(selected.permission_observed_at)
-    assert selected.evidence_available_at == pd.Timestamp("2026-09-17 12:00")
+    assert selected.evidence_available_at == pd.Timestamp("2026-09-17 18:00")
     assert pd.isna(selected.capacity_observed_at)
     assert pd.isna(selected.max_deposit)
     assert pd.isna(unknown.loc[pd.Timestamp("2026-09-18"), "deposits_open"])
