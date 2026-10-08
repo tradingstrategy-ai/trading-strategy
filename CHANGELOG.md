@@ -1,5 +1,6 @@
 # Current
 
+- Accept Arc (5042), Plume (98866) and World Chain (480) vault metadata, with chain names, slugs and explorer links (2026-10-08)
 - Retain recorded HyperCore leader shares and deposit caps without requiring a separate capacity clock. Preserve NULL versus zero through coherent snapshot selection, daily/HF resampling and price-only updates; newer responses clear older policy inputs (2026-10-07).
 
 - Fix HyperCore vault-state conversion to preserve original permission clocks, recovery provenance and uncertainty boundaries. Recovered legacy flags use an explicitly inferred price clock; genuine unknown responses retain precedence. Add explicit authenticated permission-history downloading; manifest v2 remains disabled (2026-10-07).
