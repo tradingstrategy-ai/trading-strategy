@@ -1,5 +1,6 @@
 # Current
 
+- Speed up vault price history conversion for live universes about tenfold with unchanged output: evaluate HyperCore uncertainty boundaries per vault with numpy, build vault price and TVL candles in one grouped pass, and derive pair ids once per address. `convert_vault_prices_to_candles()` no longer writes scratch OHLC and volume columns into the caller's frame; it still adds `pair_id` (2026-10-08)
 - Accept Arc (5042), Plume (98866) and World Chain (480) vault metadata, with chain names, slugs and explorer links (2026-10-08)
 - Retain recorded HyperCore leader shares and deposit caps without requiring a separate capacity clock. Preserve NULL versus zero through coherent snapshot selection, daily/HF resampling and price-only updates; newer responses clear older policy inputs (2026-10-07).
 

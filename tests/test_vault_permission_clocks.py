@@ -11,6 +11,7 @@ from tradingstrategy.alternative_data.vault import (
     read_vault_permission_history_parquet,
     read_vault_price_history_parquet,
 )
+from tradingstrategy.vault_permission import POLICY_FIELDS, STATE_FIELDS, select_permission_state
 
 
 ADDRESS = "0xcae0d1558b70b92ee9fd0acb20cb639c8c28ae69"
@@ -159,6 +160,96 @@ def test_corrupt_flags_and_retrospective_uncertainty() -> None:
     assert pd.isna(state.loc[pd.Timestamp("2026-09-18"), "deposits_open"])
     assert state.loc[pd.Timestamp("2026-09-18"), "permission_provenance"] == "corrupted_unknown"
     assert bool(state.loc[pd.Timestamp("2026-09-20"), "deposits_open"])
+
+
+def test_many_clockless_corrupt_rows_stay_unknown_until_newer_receipt() -> None:
+    """Apply one open-ended boundary per clockless corrupt price row, as live exports do.
+
+    Corrupt rows lacking an observation id each become a separate uncertainty
+    boundary, so a vault carries hundreds. Selection evaluates them together
+    and must keep the per-boundary semantics.
+
+    1. Build inferred Open rows followed by daily clockless corrupt rows.
+    2. Add a genuine Open receipt after the last corrupt row and convert.
+    3. Verify inferred Open before, unknown throughout, and Open after the receipt.
+    """
+    # 1. Build inferred Open rows followed by daily clockless corrupt rows.
+    legacy = [
+        _price(f"2026-09-0{day}", True, permission_provenance="legacy_price_timestamp", permission_observed_at=pd.Timestamp(f"2026-09-0{day}"), permission_observation_id=f"inferred-{day}")
+        for day in range(1, 4)
+    ]
+    corrupt = [
+        _price(at, True, permission_provenance="corrupted_unknown")
+        for at in pd.date_range("2026-09-04", "2026-09-20", freq="D")
+    ]
+
+    # 2. Add a genuine Open receipt after the last corrupt row and convert.
+    receipts = pd.DataFrame([_receipt("2026-09-20 06:00", False, True, "reopened")])
+    state = convert_vault_prices_to_vault_state(pd.DataFrame(legacy + corrupt), permission_history_df=receipts).set_index("timestamp")
+
+    # 3. Verify inferred Open before, unknown throughout, and Open after the receipt.
+    assert bool(state.loc[pd.Timestamp("2026-09-02"), "deposits_open"])
+    unknown = state.loc[pd.Timestamp("2026-09-04"):pd.Timestamp("2026-09-20")]
+    assert len(unknown) == 17
+    assert unknown["deposits_open"].isna().all()
+    assert unknown["permission_provenance"].eq("corrupted_unknown").all()
+    assert bool(state.loc[pd.Timestamp("2026-09-21"), "deposits_open"])
+    assert state.loc[pd.Timestamp("2026-09-21"), "permission_observation_id"] == "reopened"
+
+
+def _selector_record(kind: str, identity: str, observed_at: str | None, opened: bool | None, **metadata) -> dict:
+    """Create one exact selector input record, without going through price conversion."""
+    return {
+        "vault_address": ADDRESS, "record_kind": kind, "observation_id": identity,
+        "provenance": "observed", "source_endpoint": "POST /info vaultDetails", "source_order": 0,
+        "permission_observed_at": pd.Timestamp(observed_at) if observed_at else pd.NaT,
+        "capacity_observed_at": pd.NaT, "evidence_available_at": pd.NaT,
+        "effective_from": pd.NaT, "effective_to": pd.NaT, "reason": None,
+        **{name: None for name in (*STATE_FIELDS, *POLICY_FIELDS)},
+        "deposits_open": opened,
+        **metadata,
+    }
+
+
+def test_overlapping_uncertainty_boundaries_keep_sequential_precedence() -> None:
+    """Select the same unknown state and reason as applying boundaries one at a time.
+
+    All of a vault's uncertainty boundaries are evaluated together. Where
+    boundaries overlap, the last applicable one in order supplies the reason,
+    and a receipt measured inside an open-ended gap survives it.
+
+    1. Build an Open receipt, two overlapping finite boundaries, an open-ended boundary and a later fresh receipt.
+    2. Select permission state for daily decisions across all intervals.
+    3. Verify unknown state and the reason of the last covering boundary, and Open outside the gaps.
+    """
+    # 1. Build an Open receipt, two overlapping finite boundaries, an open-ended boundary and a later fresh receipt.
+    observations = pd.DataFrame([
+        _selector_record("observation", "open", "2026-09-08", True),
+        _selector_record("uncertainty_boundary", "a", None, None, effective_from=pd.Timestamp("2026-09-10"), effective_to=pd.Timestamp("2026-09-13"), reason="A"),
+        _selector_record("uncertainty_boundary", "b", None, None, effective_from=pd.Timestamp("2026-09-12"), effective_to=pd.Timestamp("2026-09-15"), reason="B"),
+        _selector_record("uncertainty_boundary", "c", None, None, effective_from=pd.Timestamp("2026-09-20"), reason="C"),
+        _selector_record("observation", "reopened", "2026-09-21 06:00", True),
+    ])
+
+    # 2. Select permission state for daily decisions across all intervals.
+    decisions = pd.DataFrame({"vault_address": ADDRESS, "timestamp": pd.date_range("2026-09-09", "2026-09-23", freq="D")})
+    state = select_permission_state(observations, decisions, "1D").set_index("timestamp")
+
+    # 3. Verify unknown state and the reason of the last covering boundary, and Open outside the gaps.
+    expected_reasons = {
+        "2026-09-10": "A", "2026-09-11": "A", "2026-09-12": "B", "2026-09-13": "B",
+        "2026-09-14": "B", "2026-09-20": "C", "2026-09-21": "C",
+    }
+    for day in pd.date_range("2026-09-09", "2026-09-23", freq="D"):
+        row = state.loc[day]
+        reason = expected_reasons.get(day.strftime("%Y-%m-%d"))
+        if reason:
+            assert row["provenance"] == "corrupted_unknown", day
+            assert row["reason"] == reason, day
+            assert pd.isna(row["deposits_open"]), day
+        else:
+            assert bool(row["deposits_open"]), day
+    assert state.loc[pd.Timestamp("2026-09-22"), "observation_id"] == "reopened"
 
 
 def test_uncertainty_and_expiry_use_raw_clocks() -> None:

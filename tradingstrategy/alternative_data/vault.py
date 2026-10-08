@@ -16,6 +16,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Iterable
 
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -27,7 +28,6 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.utils.flexible_pickle import flexible_load, filter_broken_enum_values
 from tradingstrategy.exchange import Exchange
 from tradingstrategy.types import NonChecksummedAddress
-from tradingstrategy.utils.groupeduniverse import resample_candles_multiple_pairs
 from tradingstrategy.vault import VaultUniverse, Vault, VaultMetadata, VaultDepositPermission, VaultDepositStatus, VaultRedemptionStatus, _derive_pair_id_from_address
 
 logger = logging.getLogger(__name__)
@@ -54,6 +54,24 @@ VAULT_STATE_METADATA_COLUMNS = [
     "capacity_observed_at", "evidence_available_at", "leader_fraction",
     "relationship_type", "is_closed", "allow_deposits", "written_at", "source_order",
 ]
+
+
+def _derive_pair_ids(addresses: pd.Series) -> pd.Series:
+    """Derive vault pair ids for an address column, once per distinct address.
+
+    Gives the same result as applying
+    :py:func:`tradingstrategy.vault._derive_pair_id_from_address` row by row.
+    """
+    # A live vault history repeats a few hundred addresses over 1.5M+ rows.
+    # A row by row Series.apply() spent about a second per call parsing the
+    # same hex strings again, and the vault history pipeline calls this several times.
+    codes, uniques = pd.factorize(addresses)
+    if len(addresses) == 0 or (codes < 0).any():
+        # Keep the row by row behaviour, including its result dtype and its
+        # failure on a missing address, for the cases the fast path cannot express
+        return addresses.apply(_derive_pair_id_from_address)
+    pair_ids = np.fromiter((_derive_pair_id_from_address(address) for address in uniques), dtype=np.int64, count=len(uniques))
+    return pd.Series(pair_ids[codes], index=addresses.index, name=addresses.name)
 
 
 def read_vault_permission_history_parquet(
@@ -484,16 +502,30 @@ def filter_vault_price_history(
     )
     addresses = vault_prices_df["address"].astype(str).str.lower()
     mask = pd.MultiIndex.from_arrays([vault_prices_df["chain"], addresses]).isin(vaults_to_match)
-    filtered_df = vault_prices_df.loc[mask].copy()
 
-    filtered_df["address"] = filtered_df["address"].astype(str).str.lower()
+    # read_vault_price_history_parquet() has already pushed the vault and time
+    # predicates into Arrow, so on that path every row usually matches. Each
+    # boolean .loc[] take copies all columns of a 1.5M+ row frame, so skip the
+    # takes that would keep every row and do the copy only once.
+    if mask.all():
+        filtered_df = vault_prices_df.copy()
+    else:
+        filtered_df = vault_prices_df.loc[mask].copy()
+
+    # Reuse the lowercased addresses from matching instead of lowercasing again
+    filtered_df["address"] = addresses.to_numpy()[mask]
     _normalise_timestamp_column(filtered_df)
 
+    # One combined window mask instead of a separate take per bound
+    in_window = np.ones(len(filtered_df), dtype=bool)
     if start_at is not None:
-        filtered_df = filtered_df.loc[filtered_df["timestamp"] >= pd.Timestamp(start_at)]
+        in_window &= (filtered_df["timestamp"] >= pd.Timestamp(start_at)).to_numpy()
 
     if end_at is not None:
-        filtered_df = filtered_df.loc[filtered_df["timestamp"] <= pd.Timestamp(end_at)]
+        in_window &= (filtered_df["timestamp"] <= pd.Timestamp(end_at)).to_numpy()
+
+    if not in_window.all():
+        filtered_df = filtered_df.loc[in_window]
 
     return filtered_df
 
@@ -519,6 +551,8 @@ def convert_vault_prices_to_candles(
     - For the format see :py:func:`load_vault_price_data`
 
     - Only USD stablecoin denominated vaults supported for now
+
+    - Adds the derived ``pair_id`` column to ``raw_prices_df`` in place
 
     Example:
 
@@ -574,47 +608,116 @@ def convert_vault_prices_to_candles(
 
     assert frequency in ["1d", "1h"], f"Got {frequency}"
 
-    #
-    # Price candles
-    #
-    df = raw_prices_df
-    df["open"] = df["share_price"]
-    df["low"] = df["share_price"]
-    df["high"] = df["share_price"]
-    df["close"] = df["share_price"]
-    df["volume"] = 0
-    df["buy_volume"] = 0
-    df["sell_volume"] = 0
-    df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
+    # Callers read the derived pair ids from the source frame afterwards, e.g.
+    # the live stale vault data check, so this column is added in place
+    raw_prices_df["pair_id"] = _derive_pair_ids(raw_prices_df["address"])
 
     # Even for daily data, we need to resample, because built-in vault price example
     # data is not midnight aligned
-    df = _resample(df, frequency)
-
-    prices_df = df
-
-    #
-    # Liquidity candles
-    #
-    df = raw_prices_df
-    df["open"] = df["total_assets"]
-    df["low"] = df["total_assets"]
-    df["high"] = df["total_assets"]
-    df["close"] = df["total_assets"]
-    df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
-
-    # Even for daily data, we need to resample, because built-in vault price example
-    # data is not midnight aligned
-
-    tvl_df = _resample(df, frequency)
-
-    return prices_df, tvl_df
+    return _resample_vault_candles(raw_prices_df, frequency)
 
 
-def _resample(df: pd.DataFrame, frequency: str) -> pd.DataFrame:
-    """Multipair resample helper."""
-    df = resample_candles_multiple_pairs(df, frequency)
-    return df
+def _resample_vault_candles(df: pd.DataFrame, frequency: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Resample share price and TVL samples of all vaults in one grouped pass.
+
+    Produces the same candles as running
+    :py:func:`tradingstrategy.utils.forward_fill.resample_candles_multiple_pairs`
+    once over share price and once over TVL OHLC columns:
+
+    - every bucket between a vault's first and last sample exists
+    - an empty bucket is flat at the last close, with zero volume
+    - ``forward_filled`` marks buckets without a real sample
+
+    That resampler loops over vaults and calls ``DataFrame.resample()`` for each.
+    Run twice over 500+ HyperCore vaults and 1.5M+ samples it takes about
+    10 seconds of every live universe construction, while a single
+    ``groupby(pair, bucket)`` over both value columns takes a fraction of a second.
+
+    :param df:
+        Vault samples with ``pair_id``, ``share_price`` and ``total_assets``,
+        timestamped by a ``timestamp`` column or a DatetimeIndex.
+
+    :param frequency:
+        ``1d`` or ``1h``. For these, a ``resample()`` bucket equals the floored timestamp.
+
+    :return:
+        Price candles, TVL candles
+    """
+    value_columns = ["share_price", "total_assets"]
+    has_forward_filled = "forward_filled" in df.columns
+    columns = ["pair_id", *value_columns, *(["forward_filled"] if has_forward_filled else [])]
+
+    # first and last depend on the row order within a bucket, so order rows as the
+    # per-vault resampler saw them. It sorted a timestamp column with sort_index(),
+    # and resample() stable sorts an unordered DatetimeIndex itself.
+    if not isinstance(df.index, pd.DatetimeIndex) and "timestamp" in df.columns:
+        source = df[["timestamp", *columns]].set_index("timestamp").sort_index()
+    else:
+        source = df[columns].sort_index(kind="mergesort")
+
+    # One aggregation pass for both candle sets
+    bucket_width = pd.Timedelta(frequency)
+    buckets = source.index.floor(bucket_width)
+    aggregations = {}
+    for column in value_columns:
+        aggregations.update({
+            f"{column}_open": (column, "first"),
+            f"{column}_high": (column, "max"),
+            f"{column}_low": (column, "min"),
+            f"{column}_close": (column, "last"),
+        })
+    if has_forward_filled:
+        aggregations["forward_filled"] = ("forward_filled", "max")
+    aggregated = source.groupby([source["pair_id"].to_numpy(), buckets], sort=True).agg(**aggregations)
+
+    # groupby() only yields buckets that have samples, while resample() also
+    # creates the empty buckets in between. Build each vault's full bucket range,
+    # first to last bucket, with vectorised arithmetic instead of a per-vault
+    # date_range(), then reindex so the missing buckets appear as NaN rows.
+    vault_buckets = pd.Series(aggregated.index.get_level_values(1))
+    bounds = vault_buckets.groupby(aggregated.index.get_level_values(0).to_numpy(), sort=True).agg(["min", "max"])
+    # Keep the source timestamp resolution, e.g. milliseconds from parquet
+    unit = np.datetime_data(bounds["min"].to_numpy().dtype)[0]
+    step = bucket_width.to_timedelta64().astype(f"timedelta64[{unit}]")
+    counts = ((bounds["max"] - bounds["min"]) // bucket_width).to_numpy(dtype=np.int64) + 1
+    # Position of each output row within its own vault's bucket range
+    offsets = np.arange(counts.sum()) - np.repeat(np.cumsum(counts) - counts, counts)
+    full_pair_ids = np.repeat(bounds.index.to_numpy(), counts)
+    full_buckets = np.repeat(bounds["min"].to_numpy(), counts) + offsets * step
+    aggregated = aggregated.reindex(pd.MultiIndex.from_arrays([full_pair_ids, full_buckets]))
+    index = pd.DatetimeIndex(full_buckets, name=source.index.name)
+
+    def build(column: str) -> pd.DataFrame:
+        """Assemble one candle set, with columns in the order the per-vault resampler produced."""
+        candles = pd.DataFrame({
+            "open": aggregated[f"{column}_open"].to_numpy(),
+            "high": aggregated[f"{column}_high"].to_numpy(),
+            "low": aggregated[f"{column}_low"].to_numpy(),
+            "close": aggregated[f"{column}_close"].to_numpy(),
+            # Vault samples carry no volume. resample() summed zeros, also in empty buckets.
+            "volume": np.zeros(len(index), dtype=np.int64),
+        }, index=index)
+        if has_forward_filled:
+            candles["forward_filled"] = aggregated["forward_filled"].to_numpy()
+        candles["timestamp"] = candles.index
+        candles["pair_id"] = full_pair_ids
+        # Mark buckets without a real observation before filling them
+        missing = candles["close"].isna()
+        if has_forward_filled:
+            # Reindexed buckets hold NaN markers. Nullable boolean fills them without the
+            # deprecated object downcast that a plain fillna(False) triggers.
+            candles["forward_filled"] = candles["forward_filled"].astype("boolean").fillna(False).astype(bool) | missing
+        else:
+            candles["forward_filled"] = missing
+        # Fill within each vault only, so one vault's close never leaks into the next
+        candles["close"] = candles["close"].groupby(full_pair_ids, sort=False).ffill()
+        # An empty interval is a flat candle at the last observed close
+        for ohl_column in ("open", "high", "low"):
+            candles[ohl_column] = candles[ohl_column].fillna(candles["close"])
+        candles.attrs["forward_filled_until"] = None
+        return candles
+
+    return build("share_price"), build("total_assets")
 
 
 #: Map our supported candle frequencies to pandas resample offsets.
@@ -667,7 +770,7 @@ def convert_vault_prices_to_vault_state(
     df = raw_prices_df.copy().reset_index(drop=True)
     df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True).dt.tz_convert(None).astype("datetime64[ns]")
     df["address"] = df["address"].str.lower()
-    df["pair_id"] = df["address"].apply(_derive_pair_id_from_address)
+    df["pair_id"] = _derive_pair_ids(df["address"])
     hypercore = df.get("chain", pd.Series(0, index=df.index)).eq(ChainId.hypercore.value)
     freq = _VAULT_STATE_FREQUENCIES[frequency]
     other = df.loc[~hypercore, ["timestamp", "pair_id", "address", *present]].copy()
@@ -696,7 +799,10 @@ def convert_vault_prices_to_vault_state(
     observations.loc[inferred, "provenance"] = "legacy_price_timestamp"
     observations["provenance"] = observations["provenance"].fillna("observed")
     observations["observation_id"] = observations.get("observation_id", pd.Series(None, index=observations.index, dtype=object))
-    observations["observation_id"] = observations["observation_id"].fillna(observations["source_order"].map(lambda n: f"price-row-{n}"))
+    # Format names only for rows lacking an id. Formatting a name for every one
+    # of the 1.5M+ price rows and discarding most of them cost about half a second.
+    missing_ids = observations["observation_id"].isna()
+    observations.loc[missing_ids, "observation_id"] = observations.loc[missing_ids, "source_order"].map(lambda n: f"price-row-{n}")
     # A convenience projection can repeat one receipt on many price rows.
     # Retain its first coherent projection, including a capacity policy cap.
     observations = observations.sort_values("timestamp", kind="stable").drop_duplicates(["vault_address", "observation_id"], keep="first")
@@ -748,7 +854,7 @@ def convert_vault_prices_to_vault_state(
     decisions = decisions.dropna(subset=["timestamp"]).drop_duplicates()
     selected = select_permission_state(observations, decisions, freq)
     selected = selected.rename(columns={"vault_address": "address", "provenance": "permission_provenance", "observation_id": "permission_observation_id"})
-    selected["pair_id"] = selected["address"].apply(_derive_pair_id_from_address)
+    selected["pair_id"] = _derive_pair_ids(selected["address"])
     columns = ["timestamp", "pair_id", "address", *VAULT_STATE_COLUMNS, *POLICY_FIELDS, "permission_observed_at", "permission_provenance", "permission_observation_id", "capacity_observed_at", "evidence_available_at", "source_order"]
     result = pd.concat([other, selected[columns]], ignore_index=True)
     for col in ("deposits_open", "redemption_open"):

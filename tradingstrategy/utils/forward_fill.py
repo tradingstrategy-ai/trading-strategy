@@ -553,8 +553,10 @@ def resample_candles_multiple_pairs(
 ) -> pd.DataFrame:
     """Resample each pair independently and fill empty OHLCV buckets.
 
-    Vault price and TVL conversion uses this for daily candles from sparse
-    observations. Empty buckets have flat OHLC at the last close and zero
+    Suited to sparse observations, like vault share prices. Vault price and TVL
+    conversion uses a grouped equivalent of this function, see
+    :py:func:`tradingstrategy.alternative_data.vault.convert_vault_prices_to_candles`.
+    Empty buckets have flat OHLC at the last close and zero
     volume, rather than repeating the previous bucket's range. Existing
     ``forward_filled`` markers survive aggregation so consumers can distinguish
     synthetic data. Without an explicit end boundary, no rows are added after
