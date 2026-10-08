@@ -700,7 +700,9 @@ def _forward_fill_multiple_pairs_grouped(
         The forward filled candles, or ``None`` when the input needs the per-pair
         loop: buckets that do not divide a day evenly, as ``resample()`` anchors
         those to each pair's first day, extra copy columns, a missing ``close``,
-        a timezone or a falsy pair id the per-pair code rejects.
+        a timezone, missing clocks, a falsy pair id the per-pair code rejects,
+        or column dtypes other than NumPy ``float64`` / ``int64`` values and ``bool``
+        markers, whose resampled dtypes this path does not reproduce.
     """
     try:
         bucket = to_offset(frequency)
@@ -711,11 +713,20 @@ def _forward_fill_multiple_pairs_grouped(
         return None
     if pair_id_column != "pair_id" or not set(copy_columns) <= {"pair_id"}:
         return None
-    if not isinstance(df.index, pd.DatetimeIndex) or df.index.tz is not None or "close" not in df.columns:
+    if len(df) == 0 or "close" not in df.columns:
+        return None
+    if not isinstance(df.index, pd.DatetimeIndex) or df.index.tz is not None or df.index.hasnans:
         return None
     pair_values = df[pair_id_column]
-    if pair_values.isna().any() or not pair_values.astype(bool).all():
+    if pair_values.dtype not in (np.dtype("int64"), np.dtype("float64")) or pair_values.isna().any() or not pair_values.astype(bool).all():
         return None
+    # Only plain NumPy dtypes resample to float64 / bool exactly as written below,
+    # e.g. float32 or nullable columns keep their own dtypes in the per-pair loop
+    for column, _ in _CANDLE_AGGREGATIONS:
+        if column in df.columns:
+            allowed = (np.dtype("bool"),) if column == "forward_filled" else (np.dtype("float64"), np.dtype("int64"))
+            if df[column].dtype not in allowed:
+                return None
 
     forward_fill_until = pd.Timestamp(forward_fill_until)
     aggregations = [(column, how) for column, how in _CANDLE_AGGREGATIONS if column in df.columns]

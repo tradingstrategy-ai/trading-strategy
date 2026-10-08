@@ -1010,6 +1010,11 @@ def _stable_text_hash(text: str) -> int:
     The built-in ``hash()`` of a string is randomised per process
     (``PYTHONHASHSEED``). Synthetic vault ids derived from it differed between
     restarts, grid search worker processes and on-disk indicator caches.
+
+    Switching to this hash changes vault exchange ids and non-hex vault pair ids.
+    No persisted value can depend on the old ids staying stable: without a pinned
+    ``PYTHONHASHSEED``, which our deployments do not set, they already changed
+    on every restart.
     """
     return int.from_bytes(hashlib.blake2b(text.encode("utf-8"), digest_size=8).digest(), "big")
 

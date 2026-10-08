@@ -29,6 +29,7 @@ def test_grouped_forward_fill_matches_per_pair_loop() -> None:
     1. Build unordered candles with gaps, duplicate clocks, NaN prices and millisecond timestamps.
     2. Forward fill daily and hourly candles, with and without forward_filled markers, padded and not padded.
     3. Verify the grouped output equals the per-pair loop, including index name and resolution.
+    4. Verify float32 prices use the per-pair loop, whose dtypes the grouped path does not reproduce.
     """
     # 1. Build unordered candles with gaps, duplicate clocks, NaN prices and millisecond timestamps.
     rng = np.random.default_rng(7)
@@ -43,11 +44,14 @@ def test_grouped_forward_fill_matches_per_pair_loop() -> None:
     candles["timestamp"] = candles["timestamp"].astype("datetime64[ms]")
     candles = candles.set_index("timestamp", drop=False)
     marked = candles.assign(forward_filled=rng.random(len(candles)) < 0.2)
+    first = candles["timestamp"].min()
     last = candles["timestamp"].max()
 
     for frequency in ("1d", "1h"):
         for source in (candles, marked):
-            for forward_fill_until in (last, last + pd.Timedelta(days=3, minutes=7)):
+            # Before every pair's last sample nothing is padded, at the global last sample
+            # shorter pairs are padded, and an unaligned later time pads every pair
+            for forward_fill_until in (first, last, last + pd.Timedelta(days=3, minutes=7)):
                 # 2. Forward fill daily and hourly candles, with and without forward_filled markers, padded and not padded.
                 grouped = resample_candles_multiple_pairs(source.copy(), frequency, forward_fill_until=forward_fill_until)
                 with warnings.catch_warnings():
@@ -59,3 +63,11 @@ def test_grouped_forward_fill_matches_per_pair_loop() -> None:
                 pd.testing.assert_frame_equal(grouped, expected, check_freq=False)
                 assert grouped.index.dtype == expected.index.dtype
                 assert grouped.attrs["forward_filled_until"] == forward_fill_until
+
+    # 4. Verify float32 prices use the per-pair loop, whose dtypes the grouped path does not reproduce.
+    float32_candles = candles.astype({column: "float32" for column in ("open", "high", "low", "close")})
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        fallback = resample_candles_multiple_pairs(float32_candles.copy(), "1d", forward_fill_until=last)
+        expected = _forward_fill_per_pair(float32_candles.copy(), "1d", last)
+    pd.testing.assert_frame_equal(fallback, expected, check_freq=False)
