@@ -22,8 +22,11 @@ import warnings
 
 from typing import Collection
 
+import numpy as np
 import pandas as pd
 from pandas._libs.tslibs import BaseOffset
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Tick
 from pandas.core.groupby import DataFrameGroupBy
 
 
@@ -599,6 +602,16 @@ def resample_candles_multiple_pairs(
 
     assert pair_id_column in df.columns, f"Trying to break multipair data to individual pairs, but {pair_id_column} is not in the DataFrame columns {df.columns.tolist()}."
 
+    # Live universe construction forward fills every pair's candles up to the
+    # current time. The per-pair loop below calls resample() twice per pair,
+    # which took about 8 seconds for a 520 vault universe. The grouped path
+    # gives identical output for the common case and falls back otherwise.
+    if forward_fill_until is not None:
+        grouped_df = _forward_fill_multiple_pairs_grouped(df, frequency, pair_id_column, copy_columns, forward_fill_until)
+        if grouped_df is not None:
+            grouped_df.attrs["forward_filled_until"] = forward_fill_until
+            return grouped_df
+
     by_pair = df.groupby(pair_id_column)
     segments = []
 
@@ -653,6 +666,111 @@ def resample_candles_multiple_pairs(
     df = pd.concat(segments)
     df.attrs["forward_filled_until"] = forward_fill_until
     return df
+
+
+#: OHLCV aggregations of :py:func:`resample_candles`, in its column order
+_CANDLE_AGGREGATIONS = (("open", "first"), ("high", "max"), ("low", "min"), ("close", "last"), ("volume", "sum"), ("forward_filled", "max"))
+
+
+def _forward_fill_multiple_pairs_grouped(
+    df: pd.DataFrame,
+    frequency: str | BaseOffset,
+    pair_id_column: str,
+    copy_columns: Collection[str],
+    forward_fill_until: pd.Timestamp | datetime.datetime,
+) -> pd.DataFrame | None:
+    """Resample and forward fill all pairs to ``forward_fill_until`` in one grouped pass.
+
+    Produces the same frame as the per-pair loop of
+    :py:func:`resample_candles_multiple_pairs`, which runs
+    :py:func:`resample_candles` and :py:func:`forward_fill_ohlcv_single_pair`
+    for each pair. That loop costs a few milliseconds per pair, about
+    8 seconds for a live universe of 520 HyperCore vaults.
+
+    The output, including its quirks, matches the per-pair loop:
+
+    - every bucket from a pair's first sample to ``forward_fill_until`` exists
+    - OHLC and volume become floats, as the per-pair fill averages them with ``resample().mean()``
+    - an empty bucket before the last sample is marked ``forward_filled`` only when
+      the input already had that marker column, while padded buckets always are
+    - if any pair is padded, the index becomes nanosecond resolution and loses
+      its name, as the padding rows come from an unnamed ``pd.date_range()``
+
+    :return:
+        The forward filled candles, or ``None`` when the input needs the per-pair
+        loop: buckets that do not divide a day evenly, as ``resample()`` anchors
+        those to each pair's first day, extra copy columns, a missing ``close``,
+        a timezone or a falsy pair id the per-pair code rejects.
+    """
+    try:
+        bucket = to_offset(frequency)
+    except ValueError:
+        return None
+    day_nanos = pd.Timedelta(days=1).value
+    if not isinstance(bucket, Tick) or day_nanos % bucket.nanos != 0:
+        return None
+    if pair_id_column != "pair_id" or not set(copy_columns) <= {"pair_id"}:
+        return None
+    if not isinstance(df.index, pd.DatetimeIndex) or df.index.tz is not None or "close" not in df.columns:
+        return None
+    pair_values = df[pair_id_column]
+    if pair_values.isna().any() or not pair_values.astype(bool).all():
+        return None
+
+    forward_fill_until = pd.Timestamp(forward_fill_until)
+    aggregations = [(column, how) for column, how in _CANDLE_AGGREGATIONS if column in df.columns]
+    has_forward_filled = "forward_filled" in df.columns
+    bucket_width = pd.Timedelta(bucket.nanos, unit="ns")
+
+    # resample() stable sorts an unordered index, so first and last pick the
+    # same rows as a stable sort followed by grouping
+    source = df[[pair_id_column, *(column for column, _ in aggregations)]].sort_index(kind="mergesort")
+    buckets = source.index.floor(bucket_width)
+    aggregated = source.groupby([source[pair_id_column].to_numpy(), buckets], sort=True).agg(
+        **{column: (column, how) for column, how in aggregations}
+    )
+
+    # Each pair spans its first bucket to its last bucket, padded on the bucket
+    # grid up to forward_fill_until like pd.date_range(last, forward_fill_until)
+    level_pairs = aggregated.index.get_level_values(0).to_numpy()
+    bounds = pd.Series(aggregated.index.get_level_values(1)).groupby(level_pairs, sort=True).agg(["min", "max"])
+    unit = np.datetime_data(bounds["min"].to_numpy().dtype)[0]
+    last = bounds["max"].to_numpy()
+    padding = np.maximum((forward_fill_until.to_datetime64() - last) // bucket_width.to_timedelta64(), 0).astype(np.int64)
+    counts = ((bounds["max"] - bounds["min"]) // bucket_width).to_numpy(dtype=np.int64) + 1 + padding
+    offsets = np.arange(counts.sum()) - np.repeat(np.cumsum(counts) - counts, counts)
+    full_pair_ids = np.repeat(bounds.index.to_numpy(), counts)
+    step = bucket_width.to_timedelta64().astype(f"timedelta64[{unit}]")
+    full_buckets = np.repeat(bounds["min"].to_numpy(), counts) + offsets * step
+    padded = full_buckets > np.repeat(last, counts)
+    index_name = source.index.name
+    if padded.any():
+        # Padding rows come from an unnamed, nanosecond resolution pd.date_range()
+        full_buckets = full_buckets.astype("datetime64[ns]")
+        index_name = None
+    aggregated = aggregated.reindex(pd.MultiIndex.from_arrays([full_pair_ids, np.repeat(bounds["min"].to_numpy(), counts) + offsets * step]))
+
+    candles = pd.DataFrame(index=pd.DatetimeIndex(full_buckets, name=index_name))
+    for column, _ in aggregations:
+        if column == "forward_filled":
+            # Kept markers survive, and empty or padded buckets are forward filled
+            candles[column] = aggregated[column].astype(float).fillna(1.0).astype(bool).to_numpy()
+        else:
+            candles[column] = aggregated[column].to_numpy(dtype=float)
+    candles[pair_id_column] = full_pair_ids
+    if not has_forward_filled:
+        # The per-pair fill adds the marker after resampling, so only padding is marked
+        candles["forward_filled"] = padded
+
+    # Fill within each pair only, so one pair's close never leaks into the next
+    candles["close"] = candles["close"].groupby(full_pair_ids, sort=False).ffill()
+    for column in ("open", "high", "low"):
+        if column in candles.columns:
+            candles[column] = candles[column].fillna(candles["close"])
+    if "volume" in candles.columns:
+        candles["volume"] = candles["volume"].fillna(0)
+    candles["timestamp"] = candles.index
+    return candles
 
 
 def resample_candles(
