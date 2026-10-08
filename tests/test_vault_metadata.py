@@ -425,3 +425,45 @@ def test_load_vault_metadata_supports_eth_defi_vault_chain_ids() -> None:
     # 3. Assert all entries survive parsing with typed ``ChainId`` values.
     assert len(vaults) == 3
     assert {vault.chain_id for vault in vaults} == {ChainId.tempo, ChainId.robinhood, ChainId.apex}
+
+
+def test_load_vault_metadata_supports_arc_plume_and_world(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Keep Arc, Plume and World Chain vault entries with recognised chain ids.
+
+    1. Build vault JSON entries for Arc, Plume and World Chain.
+    2. Parse the entries through the vault metadata loader.
+    3. Check all three vaults and their metadata survive without parsing warnings.
+    """
+    # 1. Build vault JSON entries for Arc, Plume and World Chain.
+    json_data = {
+        "vaults": [
+            _make_vault_entry(
+                "0x1111111111111111111111111111111111111111",
+                "Arc USDC",
+                chain_id=5042,
+            ),
+            _make_vault_entry(
+                "0x2222222222222222222222222222222222222222",
+                "Plume USDC",
+                chain_id=98866,
+            ),
+            _make_vault_entry(
+                "0x3333333333333333333333333333333333333333",
+                "World Chain USDC",
+                chain_id=480,
+            ),
+        ],
+    }
+
+    # 2. Parse the entries through the vault metadata loader.
+    universe = load_vault_database_with_metadata(json_data)
+    vaults = list(universe.iterate_vaults())
+
+    # 3. Check all three vaults and their metadata survive without parsing warnings.
+    assert len(vaults) == 3
+    assert {vault.chain_id for vault in vaults} == {ChainId.arc, ChainId.plume, ChainId.world}
+    assert {vault.metadata.chain_id for vault in vaults} == {5042, 98866, 480}
+    assert {vault.name for vault in vaults} == {"Arc USDC", "Plume USDC", "World Chain USDC"}
+    assert "Failed to parse vault entry" not in caplog.text

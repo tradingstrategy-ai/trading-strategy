@@ -145,6 +145,15 @@ class ChainId(enum.IntEnum):
     #: Robinhood Chain
     robinhood = 4663
 
+    #: Arc mainnet
+    arc = 5042
+
+    #: Plume mainnet
+    plume = 98866
+
+    #: World Chain mainnet (Worldcoin)
+    world = 480
+
     #: Base
     base = 8453
 
@@ -444,6 +453,34 @@ _CHAIN_DATA_OVERRIDES = {
         "infoURL": "https://robinhood.com/us/en/chain/",
         "svg_icon": None,
         "dataless": True,
+    },
+
+    # Arc is not yet included in the pinned chains registry.
+    ChainId.arc.value: {
+        "name": "Arc",
+        "slug": "arc",
+        "infoURL": "https://arc.io",
+        "explorers": [
+            {
+                "name": "Arc Explorer",
+                "url": "https://explorer.arc.io",
+                "standard": "EIP3091",
+            },
+        ],
+        "svg_icon": None,
+        "dataless": True,
+    },
+
+    ChainId.plume.value: {
+        "name": "Plume",
+        "slug": "plume",
+        "svg_icon": None,
+    },
+
+    ChainId.world.value: {
+        "name": "World Chain",
+        "slug": "world",
+        "svg_icon": None,
     },
 
     #

@@ -78,3 +78,41 @@ def test_new_vault_chain_ids_from_eth_defi() -> None:
     assert ChainId.get_by_slug("tempo") == tempo
     assert ChainId.get_by_slug("robinhood") == robinhood
     assert ChainId.get_by_slug("apex") == apex
+
+
+def test_arc_plume_and_world_chain_metadata() -> None:
+    """Resolve Arc, Plume and World Chain metadata when displaying imported vaults.
+
+    1. Resolve all three chains from the numeric ids supplied by vault exports.
+    2. Check names, slugs and reverse slug lookup.
+    3. Check homepages, explorer links and optional icons.
+    """
+    # 1. Resolve all three chains from the numeric ids supplied by vault exports.
+    arc = ChainId(5042)
+    plume = ChainId(98866)
+    world = ChainId(480)
+    assert arc == ChainId.arc
+    assert plume == ChainId.plume
+    assert world == ChainId.world
+
+    # 2. Check names, slugs and reverse slug lookup.
+    assert arc.get_name() == "Arc"
+    assert plume.get_name() == "Plume"
+    assert world.get_name() == "World Chain"
+    assert arc.get_slug() == "arc"
+    assert plume.get_slug() == "plume"
+    assert world.get_slug() == "world"
+    assert ChainId.get_by_slug("arc") == arc
+    assert ChainId.get_by_slug("plume") == plume
+    assert ChainId.get_by_slug("world") == world
+
+    # 3. Check homepages, explorer links and optional icons.
+    assert arc.get_homepage() == "https://arc.io"
+    assert plume.get_homepage() == "https://plume.org"
+    assert world.get_homepage() == "https://world.org/world-chain"
+    assert arc.get_address_link("0x123") == "https://explorer.arc.io/address/0x123"
+    assert plume.get_tx_link("0x456") == "https://explorer.plume.org/tx/0x456"
+    assert world.get_address_link("0x789") == "https://worldscan.org/address/0x789"
+    assert arc.get_svg_icon_link() is None
+    assert plume.get_svg_icon_link() is None
+    assert world.get_svg_icon_link() is None
