@@ -73,6 +73,22 @@ def select_permission_state(
     :param frequency: Optional Pandas decision frequency such as ``4h``.
     :param legacy_max_age: Maximum carry-forward age of an inferred backup flag, measured from its original price clock.
     :return: Decision frame plus snapshot values, provenance and original clocks.
+
+    Performance and limitations:
+
+    - All uncertainty boundaries of a vault are evaluated at once with numpy,
+      see :py:func:`_uncertainty_gaps`, so the boundary count adds little cost.
+    - Vaults are still processed one at a time, with a few as-of joins and
+      pandas assignments each. This costs roughly 30 milliseconds per vault,
+      about 16 seconds for the 520 HyperCore vaults of a live Hyper AI universe.
+      That is insignificant for daily or multi-day decision cycles, but grows
+      with the vault count and with frequent universe rebuilds.
+    - The per-vault loop is kept because the output dtypes depend on it: each
+      vault's columns take the dtypes pandas assignment gives that vault's data,
+      e.g. ``source_order`` as integer, float or object, and ``None`` versus
+      ``NaN`` in object columns, and :py:func:`pandas.concat` unifies them.
+      The result feeds deposit gating and recorded live strategy inputs, so a
+      whole-frame implementation needs an explicit output dtype contract first.
     """
     output = decisions.reset_index(drop=True).copy()
     output["_decision_order"] = range(len(output))
