@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime
+import hashlib
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -1003,20 +1004,36 @@ def _derive_pair_id(vault: Vault) -> int:
     return _derive_pair_id_from_address(vault.vault_address)
 
 
+def _stable_text_hash(text: str) -> int:
+    """Hash text to a non-negative integer that is the same in every Python process.
+
+    The built-in ``hash()`` of a string is randomised per process
+    (``PYTHONHASHSEED``). Synthetic vault ids derived from it differed between
+    restarts, grid search worker processes and on-disk indicator caches.
+
+    Switching to this hash changes vault exchange ids and non-hex vault pair ids.
+    No persisted value can depend on the old ids staying stable: without a pinned
+    ``PYTHONHASHSEED``, which our deployments do not set, they already changed
+    on every restart.
+    """
+    return int.from_bytes(hashlib.blake2b(text.encode("utf-8"), digest_size=8).digest(), "big")
+
+
 def _derive_pair_id_from_address(address: NonChecksummedAddress) -> int:
-    """Derive a pair id from the vault address."""
+    """Derive a pair id from the vault address, identically in every process."""
     try:
         id = SPECIAL_PAIR_ID_RANGE + int(address, 16) % (2**24)
     except ValueError:
-        # Non-hex addresses (e.g. "vlt:2zqo...") — fall back to hash
-        id = SPECIAL_PAIR_ID_RANGE + abs(hash(address)) % (2**24)
+        # Non-hex addresses, e.g. GRVT "vlt:2zqo...", Lighter "lighter-pool-..." or
+        # Hibachi "hibachi-vault-...", use a stable hash instead of the per-process hash()
+        id = SPECIAL_PAIR_ID_RANGE + _stable_text_hash(address) % (2**24)
     assert id < _js_max_safe_int
     return id
 
 
 def _derive_exchange_id(vault: Vault) -> int:
-    """Derive a exchange id from the vault address."""
-    id = SPECIAL_PAIR_ID_RANGE + abs(hash(vault.protocol_slug)) % (2**24)
+    """Derive an exchange id from the vault protocol, identically in every process."""
+    id = SPECIAL_PAIR_ID_RANGE + _stable_text_hash(vault.protocol_slug) % (2**24)
     assert id < _js_max_safe_int
     return id
 
