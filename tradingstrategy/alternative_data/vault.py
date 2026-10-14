@@ -1119,9 +1119,17 @@ def load_vault_database_with_metadata(
             )
             vaults.append(vault)
 
-        except Exception as e:
-            # Skip entries that fail to parse
-            logger.warning("Failed to parse vault entry: %s", e)
+        except (KeyError, TypeError, ValueError, AttributeError) as e:
+            # Skip only malformed entries, such as an unknown chain id or a
+            # wrongly typed field. Environment failures must propagate: an
+            # ImportError or OSError from the lazy eth_defi import (e.g. a
+            # missing native libcairo) used to drop every vault silently.
+            logger.warning(
+                "Failed to parse vault entry %s-%s: %s",
+                vault_entry.get("chain_id") if isinstance(vault_entry, dict) else None,
+                vault_entry.get("address") if isinstance(vault_entry, dict) else None,
+                e,
+            )
             continue
 
     return VaultUniverse(vaults)
