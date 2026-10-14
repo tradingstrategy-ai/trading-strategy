@@ -467,3 +467,66 @@ def test_load_vault_metadata_supports_arc_plume_and_world(
     assert {vault.metadata.chain_id for vault in vaults} == {5042, 98866, 480}
     assert {vault.name for vault in vaults} == {"Arc USDC", "Plume USDC", "World Chain USDC"}
     assert "Failed to parse vault entry" not in caplog.text
+
+
+def test_load_vault_metadata_skips_malformed_entries() -> None:
+    """Malformed vault entries are skipped while valid entries load.
+
+    The vault JSON can contain chains this client does not know yet or
+    wrongly typed fields. One bad entry must not prevent loading the rest.
+
+    1. Build entries with a valid vault, an unknown chain id and a non-string address.
+    2. Load the entries via ``load_vault_database_with_metadata()``.
+    3. Assert only the valid vault survives.
+    """
+    # 1. Build entries with a valid vault, an unknown chain id and a non-string address.
+    json_data = {
+        "vaults": [
+            _make_vault_entry("0x1111111111111111111111111111111111111111", "Valid vault"),
+            _make_vault_entry("0x2222222222222222222222222222222222222222", "Unknown chain", chain_id=987_654_321),
+            _make_vault_entry(12345, "Bad address"),
+        ],
+    }
+
+    # 2. Load the entries via load_vault_database_with_metadata().
+    universe = load_vault_database_with_metadata(json_data)
+
+    # 3. Assert only the valid vault survives.
+    assert [v.vault_address for v in universe.iterate_vaults()] == ["0x1111111111111111111111111111111111111111"]
+
+
+def test_load_vault_metadata_propagates_environment_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An environment failure while parsing must raise, not drop every vault.
+
+    ``_parse_period_metrics()`` lazily imports ``eth_defi.research.vault_metrics``,
+    which can pull in native libraries. When eth_defi 2026-10-06 added a
+    module-level CairoSVG import, a missing libcairo raised ``OSError`` for each
+    entry and the loader skipped all vaults with a warning.
+
+    1. Mock ``_parse_period_metrics()`` to raise ``OSError``, because reproducing
+       a missing native library would require uninstalling libcairo.
+    2. Load an entry with period results.
+    3. Assert the ``OSError`` propagates.
+    """
+    import tradingstrategy.alternative_data.vault as vault_module
+
+    # 1. Mock _parse_period_metrics() to raise OSError.
+    def _raise_missing_library(pm_dict: dict):
+        raise OSError('no library called "cairo-2" was found')
+
+    monkeypatch.setattr(vault_module, "_parse_period_metrics", _raise_missing_library)
+
+    # 2. Load an entry with period results.
+    json_data = {
+        "vaults": [
+            _make_vault_entry(
+                "0x1111111111111111111111111111111111111111",
+                "Vault with metrics",
+                period_results=[{"period": "1M"}],
+            ),
+        ],
+    }
+
+    # 3. Assert the OSError propagates.
+    with pytest.raises(OSError, match="cairo-2"):
+        load_vault_database_with_metadata(json_data)
