@@ -89,6 +89,9 @@ class ExchangeType(str, enum.Enum):
     #: Derive exchange (off-chain exchange account)
     derive = "derive"
 
+    #: Lighter exchange (zk-rollup perpetuals DEX with Safe-owned master and sub-accounts)
+    lighter = "lighter"
+
     # Uniswap v2 style exchange (same as above `uniswap_v2`)
     # NOTE: Do not use this member as it is deprecated and only kept for backward 
     # compatibility, it will be removed in the future

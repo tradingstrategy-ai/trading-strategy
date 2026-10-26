@@ -1,5 +1,6 @@
 # Current
 
+- Add `ExchangeType.lighter` for Lighter exchange-account pairs, so they are no longer typed as Derive (2026-10-26)
 - Fix `load_vault_database_with_metadata()` silently dropping every vault when the environment is broken: only malformed entries (unknown chain id, wrongly typed field) are skipped, while `ImportError` and `OSError`, such as a missing native libcairo behind the lazy eth_defi import, now propagate. The warning names the skipped vault (2026-10-14)
 - Forward fill multi-pair candles to `forward_fill_until` in one grouped pass with unchanged output, for bucket widths that divide a day. Derive synthetic vault exchange ids and non-hex vault pair ids with a stable hash, so they are identical in every process (2026-10-08)
 - Speed up vault price history conversion for live universes about tenfold with unchanged output: evaluate HyperCore uncertainty boundaries per vault with numpy, build vault price and TVL candles in one grouped pass, and derive pair ids once per address. `convert_vault_prices_to_candles()` no longer writes scratch OHLC and volume columns into the caller's frame; it still adds `pair_id` (2026-10-08)
