@@ -4,8 +4,6 @@ import logging
 import pytest
 from eth_typing import HexAddress
 from web3 import EthereumTesterProvider, Web3
-from web3.middleware import attrdict_middleware
-from web3.providers.eth_tester.middleware import default_transaction_fields_middleware, ethereum_tester_middleware
 
 from eth_defi.chain import install_chain_middleware
 from eth_defi.event_reader.fast_json_rpc import patch_web3
@@ -31,13 +29,6 @@ def tester_provider():
     # https://web3py.readthedocs.io/en/stable/examples.html#contract-unit-tests-in-python
     provider = EthereumTesterProvider()
 
-    # Web3 6.0
-    # TypeError: 'AttributeDict' object does not support item assignment
-    provider.middlewares = (
-    #    attrdict_middleware,
-        default_transaction_fields_middleware,
-        ethereum_tester_middleware,
-    )
     return provider
 
 

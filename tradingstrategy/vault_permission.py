@@ -3,6 +3,12 @@
 This selector follows the separate eth-defi permission sidecar contract.
 Publication and repeated price projections never refresh an existing snapshot.
 Clockless recovered snapshots retain recorded policy inputs and inferred price clocks.
+
+This module selects evidence; it does not decide whether a strategy may deposit.
+Legacy sidecar projection in :mod:`tradingstrategy.alternative_data.vault` delegates
+Hyperliquid protocol classification to eth-defi. The executor's
+``tradeexecutor.strategy.vault_closure`` owns interaction policy and reporting
+outcomes. Keep that dependency one-way: the data client must not import the engine.
 """
 import datetime
 

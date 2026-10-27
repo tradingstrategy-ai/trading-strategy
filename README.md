@@ -121,3 +121,26 @@ Community
 # License
 
 GNU AGPL 3.0. 
+
+## Vault permission sidecars
+
+The vault-state converter preserves explicit permission/capacity projections, including unknown values and original evidence clocks. For older sidecars without those projections it uses the shared eth-defi Hyperliquid classifier; it does not maintain another leader-share threshold or HLP-parent exception. Missing relationship metadata remains uncertain rather than being assumed to identify a normal vault.
+
+Legacy sidecars without permission/capacity projections require
+`eth_defi.hyperliquid.vault.classify_hyperliquid_vault_deposit`, introduced in
+[eth-defi PR #1596](https://github.com/tradingstrategy-ai/web3-ethereum-defi/pull/1596).
+PyPI release 1.2 does not contain this API. Development and CI therefore use the
+Git source pinned in the development dependency group and lockfile (`44f365a`,
+GitHub HEAD checked on 27 October 2026); `poetry install --all-extras` installs
+that source, including the current Web3 7 dependency stack.
+
+The library's version-based dependency allows a parent trade-executor checkout
+to supply its editable `deps/web3-ethereum-defi` Git checkout. That is the normal
+notebook/strategy setup; it must contain the shared classifier. The development
+Git pin is not imposed on that parent project's dependency resolution. Update
+source pins deliberately rather than using a moving branch in the lockfile.
+
+Price-only conversion and sidecars with recorded permission/capacity fields do
+not import or call the classifier. A missing explanatory reason string alone
+does not trigger protocol reclassification. Strategy admission policy belongs
+to the executor's `tradeexecutor.strategy.vault_closure` module.

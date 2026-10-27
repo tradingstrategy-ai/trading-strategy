@@ -816,22 +816,46 @@ def convert_vault_prices_to_vault_state(
         if "source_order" not in sidecar:
             sidecar["source_order"] = range(len(prices), len(prices) + len(sidecar))
         sidecar["vault_address"] = sidecar["vault_address"].str.lower()
-        # Derive permission only from flags in the same response. An explicit
-        # closure is sufficient; otherwise both flags are needed to prove Open.
-        closed = _normalise_bool_like(sidecar["is_closed"])
-        allowed = _normalise_bool_like(sidecar["allow_deposits"])
-        parent = sidecar["relationship_type"].eq("parent")
-        sidecar["deposits_open"] = (~closed & (allowed | parent)).astype("boolean")
-        sidecar["deposit_closed_reason"] = None
-        sidecar.loc[closed.fillna(False), "deposit_closed_reason"] = "Vault is permanently closed"
-        sidecar.loc[~closed.fillna(False) & ~parent & allowed.eq(False).fillna(False), "deposit_closed_reason"] = "Vault deposits disabled by leader"
+        # Authoritative permission/capacity projections need no protocol query
+        # or classifier import. Missing explanatory text alone is not a reason
+        # to reinterpret recorded permission from possibly incomplete raw flags.
+        derive_legacy_fields = "deposits_open" not in sidecar or "max_deposit" not in sidecar
+        if derive_legacy_fields:
+            # Share the exporter/live-pricing classifier, including HLP-parent
+            # exceptions and leader-share limits. Development locks this Git API;
+            # executor consumers supply their editable Git dependency.
+            from eth_defi.hyperliquid.vault import classify_hyperliquid_vault_deposit
+
+            for column in ("is_closed", "allow_deposits", "leader_fraction", "relationship_type"):
+                if column not in sidecar:
+                    sidecar[column] = None
+            closed = _normalise_bool_like(sidecar["is_closed"])
+            allowed = _normalise_bool_like(sidecar["allow_deposits"])
+            fraction = pd.to_numeric(sidecar["leader_fraction"], errors="coerce")
+            statuses = [
+                classify_hyperliquid_vault_deposit(
+                    is_closed=None if pd.isna(c) else bool(c),
+                    # Missing relationship identity cannot safely identify the
+                    # meaning of leader flags; never assume a normal vault.
+                    allow_deposits=None if pd.isna(a) or pd.isna(r) else bool(a),
+                    relationship_type="unknown" if pd.isna(r) else r,
+                    leader_fraction=None if pd.isna(f) else float(f),
+                )
+                for c, a, r, f in zip(closed, allowed, sidecar["relationship_type"], fraction)
+            ]
+        # A producer's explicit projection (including NULL or a deny-only archive
+        # bound) is authoritative. Derive fields only for older sidecar schemas.
+        if "deposits_open" not in sidecar:
+            sidecar["deposits_open"] = pd.array([s.deposits_open for s in statuses], dtype="boolean")
+        else:
+            sidecar["deposits_open"] = _normalise_bool_like(sidecar["deposits_open"])
+        if "deposit_closed_reason" not in sidecar:
+            sidecar["deposit_closed_reason"] = [s.closed_reason for s in statuses] if derive_legacy_fields else None
         # New sidecars record nullable policy caps. Preserve explicit values and
         # NULLs; only older schemas without this column need policy derivation.
         if "max_deposit" not in sidecar:
-            fraction = pd.to_numeric(sidecar["leader_fraction"], errors="coerce")
-            low_share = fraction.lt(0.055) & sidecar["relationship_type"].fillna("normal").eq("normal")
-            sidecar["max_deposit"] = float("nan")
-            sidecar.loc[low_share | sidecar["deposits_open"].eq(False).fillna(False), "max_deposit"] = 0.0
+            caps = pd.Series([status.max_deposit for status in statuses], index=sidecar.index, dtype="float64")
+            sidecar["max_deposit"] = caps.mask(sidecar["deposits_open"].eq(False).fillna(False), 0.0)
         # Exact sidecar evidence takes precedence over a convenience projection
         # of the same receipt, whose capacity fields may have been cleaned.
         observations = pd.concat([observations, sidecar], ignore_index=True)
