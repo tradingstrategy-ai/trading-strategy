@@ -1,6 +1,5 @@
 import pytest
-from web3.middleware import gas_price_strategy_middleware, buffered_gas_estimate_middleware
-from web3.providers.eth_tester.middleware import default_transaction_fields_middleware, ethereum_tester_middleware
+from web3.middleware import GasPriceStrategyMiddleware, BufferedGasEstimateMiddleware
 
 from eth_defi.token import fetch_erc20_details, create_token
 from eth_defi.uniswap_v2.deployment import UniswapV2Deployment, deploy_uniswap_v2_like, deploy_trading_pair
@@ -15,11 +14,6 @@ from tradingstrategy.testing.uniswap_v2_mock_client import UniswapV2MockClient
 @pytest.fixture
 def tester_provider():
     provider = EthereumTesterProvider()
-    # Remove web3 6.0 AttributedDict middleware
-    provider.middlewares = (
-        default_transaction_fields_middleware,
-        ethereum_tester_middleware,
-    )
     return provider
 
 
@@ -32,10 +26,10 @@ def eth_tester(tester_provider):
 def web3(tester_provider):
     """Set up a local unit testing blockchain."""
     web3 = Web3(tester_provider)
-    # # Remove web3 6.0 AttributedDict middleware
+    # Keep mutable RPC dictionaries for the mock client.
     web3.middleware_onion.clear()
-    web3.middleware_onion.add(gas_price_strategy_middleware)
-    web3.middleware_onion.add(buffered_gas_estimate_middleware)
+    web3.middleware_onion.add(GasPriceStrategyMiddleware)
+    web3.middleware_onion.add(BufferedGasEstimateMiddleware)
     return web3
 
 

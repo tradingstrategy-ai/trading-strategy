@@ -73,10 +73,16 @@ orjson = "^3.10.11"
 typer = {version = "^0.7.0", optional = true}
 
 [tool.poetry.dev-dependencies]
+# Vault permission tests require Git APIs not yet in PyPI 1.2. Keep this source
+# pin in the development group so executor consumers can supply their editable
+# deps/web3-ethereum-defi checkout. The lock also installs this source in CI.
+web3-ethereum-defi = {git = "https://github.com/tradingstrategy-ai/web3-ethereum-defi.git", rev = "44f365a21897a6694e73070cb1327dc9fb50f737", extras = ["data", "test"]}
 coloredlogs = "^15.0.1"
 ipdb = "^0.13.9"
 memory-profiler = "^0.60.0"
 poetry-core = "^1.1.0"
+# Web3 7 uses eth-account 0.13; older eth-tester imports its removed internals.
+eth-tester = {version = ">=0.13.0b1", extras = ["py-evm"]}
 pytest = "^8.0"
 pytest-asyncio = "^0.19.0"
 pytest-xdist = "^3.3.1"

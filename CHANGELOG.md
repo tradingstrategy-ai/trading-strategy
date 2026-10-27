@@ -1,5 +1,7 @@
 # Current
 
+- Use Git-sourced eth-defi in the development/CI lock while preserving editable executor dependency resolution; skip protocol classification for authoritative permission/capacity projections and update Web3 7 test fixtures (2026-10-27).
+
 - Reuse the eth-defi Hyperliquid permission classifier for legacy vault sidecars, preserving explicit permission projections, null capacities and original evidence clocks; handle sparse legacy schemas without inventing relationship identity instead of duplicating parent-vault and leader-share rules (2026-10-27).
 
 - Add `ExchangeType.lighter` for Lighter exchange-account pairs, so they are no longer typed as Derive (2026-10-26)

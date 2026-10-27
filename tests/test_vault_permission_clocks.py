@@ -1,5 +1,6 @@
 """Regression coverage for HyperCore permission clocks and independent sidecars."""
 from pathlib import Path
+import sys
 
 import pandas as pd
 import pytest
@@ -476,3 +477,23 @@ def test_sidecar_explicit_projection_survives_missing_raw_flags(explicit: bool |
     receipt["allow_deposits"] = False
     row = convert_vault_prices_to_vault_state(prices, permission_history_df=pd.DataFrame([receipt])).iloc[-1]
     assert pd.isna(row.deposits_open)
+
+
+@pytest.mark.parametrize("cap", [None, 123.0])
+def test_projected_sidecar_does_not_import_protocol_classifier(monkeypatch: pytest.MonkeyPatch, cap: float | None) -> None:
+    """Recorded permission and capacity do not need the optional protocol classifier.
+
+    1. Block classifier imports and supply complete permission/capacity projections.
+    2. Verify projected values survive even without a derived reason string.
+    """
+    # 1. The module sentinel simulates an installation without the Git-only API.
+    # Raw flags intentionally disagree: they must not replace recorded projections.
+    monkeypatch.setitem(sys.modules, "eth_defi.hyperliquid.vault", None)
+    prices = pd.DataFrame([_price("2026-10-01", None)])
+    sidecar = pd.DataFrame([_receipt("2026-10-01", False, False, "projected",
+        deposits_open=True, max_deposit=cap)])
+    # 2. No missing explanatory text warrants a protocol reinterpretation.
+    row = convert_vault_prices_to_vault_state(prices, permission_history_df=sidecar).iloc[-1]
+    assert bool(row.deposits_open)
+    assert pd.isna(row.max_deposit) if cap is None else row.max_deposit == pytest.approx(cap)
+    assert pd.isna(row.deposit_closed_reason)
