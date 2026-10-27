@@ -423,3 +423,28 @@ def test_new_policy_snapshots_clear_legacy_caps_and_keep_nulls(frequency: str) -
         else:
             assert selected.leader_fraction == pytest.approx(receipt.leader_fraction)
             assert bool(selected.deposits_open)
+
+
+@pytest.mark.parametrize('closed,allowed,relationship,fraction,expected,cap', [
+    (False, True, 'normal', 0.05, True, 0.0),
+    (False, True, 'normal', 0.06, True, None),
+    (False, False, 'normal', 0.06, False, 0.0),
+    (True, True, 'parent', 0.01, False, 0.0),
+    (False, False, 'parent', 0.01, True, None),
+    (None, True, 'normal', 0.01, None, None),
+    (None, False, 'normal', 0.01, False, 0.0),
+])
+def test_sidecar_protocol_permission_and_policy(closed, allowed, relationship, fraction, expected, cap):
+    """Legacy sidecars share exporter rules; low shares never turn Open into Closed."""
+    prices = pd.DataFrame([_price('2026-10-01', None)])
+    sidecar = pd.DataFrame([_receipt('2026-10-01', closed, allowed, 'receipt',
+                                   relationship_type=relationship, leader_fraction=fraction)])
+    row = convert_vault_prices_to_vault_state(prices, permission_history_df=sidecar).iloc[-1]
+    if expected is None:
+        assert pd.isna(row['deposits_open'])
+    else:
+        assert bool(row['deposits_open']) is expected
+    if cap is None:
+        assert pd.isna(row['max_deposit'])
+    else:
+        assert row['max_deposit'] == cap
