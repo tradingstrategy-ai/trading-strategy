@@ -820,29 +820,44 @@ def convert_vault_prices_to_vault_state(
         # live pricing. Do not maintain a second leader-share threshold or HLP
         # exception here. This layer only projects responses and preserves clocks;
         # tradeexecutor.strategy.vault_closure applies strategy admission policy.
-        from eth_defi.hyperliquid.vault import classify_hyperliquid_vault_deposit
+        # Keep the optional protocol dependency lazy for price-only clients.
+        # The classifier was added by eth-defi #1596 (5c68c7538, 2026-09-24);
+        # old installations must upgrade instead of silently using duplicate rules.
+        try:
+            from eth_defi.hyperliquid.vault import classify_hyperliquid_vault_deposit
+        except ImportError as exc:
+            raise ImportError("Hyperliquid permission sidecars require eth-defi with classify_hyperliquid_vault_deposit (PR #1596 or newer)") from exc
 
+        for column in ("is_closed", "allow_deposits", "leader_fraction", "relationship_type"):
+            if column not in sidecar:
+                sidecar[column] = None
         closed = _normalise_bool_like(sidecar["is_closed"])
         allowed = _normalise_bool_like(sidecar["allow_deposits"])
         fraction = pd.to_numeric(sidecar["leader_fraction"], errors="coerce")
         statuses = [
             classify_hyperliquid_vault_deposit(
                 is_closed=None if pd.isna(c) else bool(c),
-                allow_deposits=None if pd.isna(a) else bool(a),
-                relationship_type="normal" if pd.isna(r) else r,
+                # Without relationship identity we cannot interpret leader flags
+                # safely. Preserve uncertainty instead of assuming a normal vault.
+                allow_deposits=None if pd.isna(a) or pd.isna(r) else bool(a),
+                relationship_type="unknown" if pd.isna(r) else r,
                 leader_fraction=None if pd.isna(f) else float(f),
             )
             for c, a, r, f in zip(closed, allowed, sidecar["relationship_type"], fraction)
         ]
-        sidecar["deposits_open"] = pd.array([s.deposits_open for s in statuses], dtype="boolean")
-        sidecar["deposit_closed_reason"] = [s.closed_reason for s in statuses]
+        # A producer's explicit projection (including NULL or a deny-only archive
+        # bound) is authoritative. Derive fields only for older sidecar schemas.
+        if "deposits_open" not in sidecar:
+            sidecar["deposits_open"] = pd.array([s.deposits_open for s in statuses], dtype="boolean")
+        else:
+            sidecar["deposits_open"] = _normalise_bool_like(sidecar["deposits_open"])
+        if "deposit_closed_reason" not in sidecar:
+            sidecar["deposit_closed_reason"] = [s.closed_reason for s in statuses]
         # New sidecars record nullable policy caps. Preserve explicit values and
         # NULLs; only older schemas without this column need policy derivation.
         if "max_deposit" not in sidecar:
-            sidecar["max_deposit"] = [
-                0.0 if s.deposits_open is False else float(s.max_deposit) if s.max_deposit is not None else float("nan")
-                for s in statuses
-            ]
+            caps = pd.Series([status.max_deposit for status in statuses], index=sidecar.index, dtype="float64")
+            sidecar["max_deposit"] = caps.mask(sidecar["deposits_open"].eq(False).fillna(False), 0.0)
         # Exact sidecar evidence takes precedence over a convenience projection
         # of the same receipt, whose capacity fields may have been cleaned.
         observations = pd.concat([observations, sidecar], ignore_index=True)

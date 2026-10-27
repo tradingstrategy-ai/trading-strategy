@@ -121,3 +121,9 @@ Community
 # License
 
 GNU AGPL 3.0. 
+
+## Vault permission sidecars
+
+The vault-state converter preserves explicit permission/capacity projections, including unknown values and original evidence clocks. For older sidecars without those projections it uses the shared eth-defi Hyperliquid classifier; it does not maintain another leader-share threshold or HLP-parent exception. Missing relationship metadata remains uncertain rather than being assumed to identify a normal vault.
+
+This optional path requires `eth_defi.hyperliquid.vault.classify_hyperliquid_vault_deposit`, introduced in [eth-defi PR #1596](https://github.com/tradingstrategy-ai/web3-ethereum-defi/pull/1596), commit `5c68c7538` (24 September 2026). The broad package dependency floor alone does not guarantee this API. Use an eth-defi revision containing it; older installations receive an explicit dependency error. Price-only conversion keeps the import lazy. Strategy admission policy belongs to the executor's `tradeexecutor.strategy.vault_closure` module.

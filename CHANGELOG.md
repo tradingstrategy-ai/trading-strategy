@@ -1,6 +1,6 @@
 # Current
 
-- Reuse the eth-defi Hyperliquid permission classifier for legacy vault sidecars, preserving explicit null capacities and original evidence clocks instead of duplicating parent-vault and leader-share rules (2026-10-27).
+- Reuse the eth-defi Hyperliquid permission classifier for legacy vault sidecars, preserving explicit permission projections, null capacities and original evidence clocks; handle sparse legacy schemas without inventing relationship identity instead of duplicating parent-vault and leader-share rules (2026-10-27).
 
 - Add `ExchangeType.lighter` for Lighter exchange-account pairs, so they are no longer typed as Derive (2026-10-26)
 - Fix `load_vault_database_with_metadata()` silently dropping every vault when the environment is broken: only malformed entries (unknown chain id, wrongly typed field) are skipped, while `ImportError` and `OSError`, such as a missing native libcairo behind the lazy eth_defi import, now propagate. The warning names the skipped vault (2026-10-14)

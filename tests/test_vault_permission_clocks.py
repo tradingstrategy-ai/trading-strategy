@@ -435,10 +435,16 @@ def test_new_policy_snapshots_clear_legacy_caps_and_keep_nulls(frequency: str) -
     (None, False, 'normal', 0.01, False, 0.0),
 ])
 def test_sidecar_protocol_permission_and_policy(closed, allowed, relationship, fraction, expected, cap):
-    """Legacy sidecars share exporter rules; low shares never turn Open into Closed."""
+    """Legacy sidecars share exporter rules; low shares do not mean Closed.
+
+    1. Supply a captured native response with relationship and share metadata.
+    2. Verify permission and optional policy capacity independently.
+    """
+    # 1. Captured response metadata avoids network acquisition.
     prices = pd.DataFrame([_price('2026-10-01', None)])
     sidecar = pd.DataFrame([_receipt('2026-10-01', closed, allowed, 'receipt',
                                    relationship_type=relationship, leader_fraction=fraction)])
+    # 2. Classification uses the same protocol function as the exporter.
     row = convert_vault_prices_to_vault_state(prices, permission_history_df=sidecar).iloc[-1]
     if expected is None:
         assert pd.isna(row['deposits_open'])
@@ -447,4 +453,26 @@ def test_sidecar_protocol_permission_and_policy(closed, allowed, relationship, f
     if cap is None:
         assert pd.isna(row['max_deposit'])
     else:
-        assert row['max_deposit'] == cap
+        assert row['max_deposit'] == pytest.approx(cap)
+
+
+@pytest.mark.parametrize("explicit", [False, None])
+def test_sidecar_explicit_projection_survives_missing_raw_flags(explicit: bool | None) -> None:
+    """Preserve authoritative projections from incomplete older sidecar schemas.
+
+    1. Provide an explicit denied/unknown projection without raw response fields.
+    2. Verify conversion keeps it and does not invent a normal-vault identity.
+    """
+    # 1. No raw flag, share or relationship field is available in this archive.
+    prices = pd.DataFrame([_price("2026-10-01", True)])
+    receipt = _receipt("2026-10-01", None, None, "sparse", deposits_open=explicit)
+    for name in ("is_closed", "allow_deposits", "leader_fraction", "relationship_type"):
+        receipt.pop(name)
+    # 2. Explicit NULL and false are both meaningful; neither becomes open.
+    row = convert_vault_prices_to_vault_state(prices, permission_history_df=pd.DataFrame([receipt])).iloc[-1]
+    assert pd.isna(row.deposits_open) if explicit is None else not bool(row.deposits_open)
+    receipt.pop("deposits_open")
+    receipt["is_closed"] = False
+    receipt["allow_deposits"] = False
+    row = convert_vault_prices_to_vault_state(prices, permission_history_df=pd.DataFrame([receipt])).iloc[-1]
+    assert pd.isna(row.deposits_open)
