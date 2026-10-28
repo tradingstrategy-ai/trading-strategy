@@ -3,5 +3,8 @@
 - :py:mod:`tradingstrategy.coingecko` module contains Coingecko data cross referencing
 
 - See also :py:mod:`tradingstrategy.binance` for Binance feed.
+
+- :py:mod:`tradingstrategy.alternative_data.fxmacrodata` fetches official
+  macro release-calendar rows for event-aware strategy research.
 """
 
