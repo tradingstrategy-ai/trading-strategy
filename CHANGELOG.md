@@ -1,5 +1,7 @@
 # Current
 
+- Fix `download_with_tqdm_progress_bar()` retries: a broken download stream is retried with a new request instead of reading on from the broken response, which saved only the tail of the body and made the vault metadata JSON fail with "Extra data" (2026-10-28).
+
 - Use Git-sourced eth-defi in the development/CI lock while preserving editable executor dependency resolution; skip protocol classification for authoritative permission/capacity projections and update Web3 7 test fixtures (2026-10-27).
 
 - Reuse the eth-defi Hyperliquid permission classifier for legacy vault sidecars, preserving explicit permission projections, null capacities and original evidence clocks; handle sparse legacy schemas without inventing relationship identity instead of duplicating parent-vault and leader-share rules (2026-10-27).

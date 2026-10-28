@@ -40,25 +40,28 @@ def download_with_tqdm_progress_bar(
     # https://stackoverflow.com/questions/37573483/progress-bar-while-download-file-over-http-with-requests
     # https://stackoverflow.com/questions/42212810/tqdm-in-jupyter-notebook-prints-new-progress-bars-repeatedly
 
-    r = session.get(url, stream=True, allow_redirects=True, params=params, timeout=timeout)
-    if r.status_code != 200:
-        try:
-            r.raise_for_status()  # Will only raise for 4xx codes, so...
-            raise RuntimeError(f"Request to {url} returned status code {r.status_code}")
-        except Exception as e:
-            # Add more context information
-            auth_key = session.headers.get("Authorization", "")[0:12]
-            raise RuntimeError(f"Failed to do an API call, using API key {auth_key}...") from e
-
-    file_size = int(r.headers.get('Content-Length', 0))
-
-    desc = human_readable_hint or ""
-
-    # Add warning about missing Content-Length header
-    desc += " (Unknown total file size)" if file_size == 0 else ""
-
     attempt = 0
-    while attempt < attempts:
+    while True:
+        # A broken stream cannot be resumed: each attempt makes a new request
+        # and rewrites the file. Retrying on the old response read only the
+        # rest of the broken body and saved that fragment as the whole file.
+        r = session.get(url, stream=True, allow_redirects=True, params=params, timeout=timeout)
+        if r.status_code != 200:
+            try:
+                r.raise_for_status()  # Will only raise for 4xx codes, so...
+                raise RuntimeError(f"Request to {url} returned status code {r.status_code}")
+            except Exception as e:
+                # Add more context information
+                auth_key = session.headers.get("Authorization", "")[0:12]
+                raise RuntimeError(f"Failed to do an API call, using API key {auth_key}...") from e
+
+        file_size = int(r.headers.get('Content-Length', 0))
+
+        desc = human_readable_hint or ""
+
+        # Add warning about missing Content-Length header
+        desc += " (Unknown total file size)" if file_size == 0 else ""
+
         try:
             r.raw.read = functools.partial(r.raw.read, decode_content=True)  # Decompress if needed
             with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc) as r_raw:
@@ -70,13 +73,14 @@ def download_with_tqdm_progress_bar(
             # ProtocolError: ('Connection broken: IncompleteRead(20834 bytes read)', IncompleteRead(20834 bytes read))
             attempt += 1
             logger.warning(
-                "download_with_tqdm_progress_bar(): Downloading %s. Retry %d / %d. Got error: %s",
+                "download_with_tqdm_progress_bar(): Downloading %s. Attempt %d / %d failed. Got error: %s",
                 path,
-                attempt + 1,
+                attempt,
                 attempts,
                 str(e),
                 exc_info=True,
             )
+            r.close()
             if attempt >= attempts:
                 raise
 
