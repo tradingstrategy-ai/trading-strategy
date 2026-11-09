@@ -775,7 +775,10 @@ def convert_vault_prices_to_vault_state(
     freq = _VAULT_STATE_FREQUENCIES[frequency]
     other = df.loc[~hypercore, ["timestamp", "pair_id", "address", *present]].copy()
     other = other.sort_values("timestamp", kind="stable")
-    other["timestamp"] = other["timestamp"].dt.floor(freq)
+    # D2 availability is usable at the next decision boundary, never earlier.
+    d2 = df.loc[~hypercore, "protocol"].fillna("").str.lower().isin(("d2", "d2-finance", "d2 finance")) if "protocol" in df else pd.Series(False, index=other.index)
+    other.loc[~d2, "timestamp"] = other.loc[~d2, "timestamp"].dt.floor(freq)
+    other.loc[d2, "timestamp"] = other.loc[d2, "timestamp"].dt.ceil(freq)
     other = other.drop_duplicates(["pair_id", "timestamp"], keep="last")
     if not hypercore.any() and (permission_history_df is None or permission_history_df.empty):
         for col in ("deposits_open", "redemption_open"):
