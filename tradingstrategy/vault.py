@@ -93,39 +93,51 @@ def get_vault_page(vault_address: str) -> str:
 
 @dataclass(slots=True, frozen=True)
 class VaultProtocolRules:
-    """Protocol defaults and loaded fees; amounts are fractions, delays are seconds.
+    """Let pricing, allocation and execution share one interpretation of vault terms.
 
-    Window capability does not establish current availability. Protocol
-    interfaces remain authoritative for live claims and request settlement.
+    A consumer resolves these values from metadata and its supported protocol
+    adapters. Keeping them on metadata avoids each strategy inferring its own
+    fee or settlement policy. Fee rates are fractions of transaction value;
+    delays are seconds from a request, not observed claim times.
+
+    Window flags identify operations that may need to wait for an opening;
+    callers still need availability observations. Live settlement must use the
+    protocol adapter's claim checks rather than these simulation estimates.
     """
 
-    #: Loaded entry charge; None means unknown and never implies zero.
+    #: Keep unknown entry costs as None so admission cannot mistake missing data for free entry.
     deposit_fee: float | None = None
-    #: Loaded exit charge; kept separate from manager/performance fees.
+    #: Charge a redemption independently of ongoing manager fees, which may already be in NAV.
     redemption_fee: float | None = None
-    #: Whether the resolving consumer can model the entry fee.
+    #: Require an implemented fee model before a known entry rate can be used for trading.
     deposit_fee_supported: bool = False
-    #: Whether the resolving consumer can model the exit fee.
+    #: Track exit support separately so a missing entry rate does not erase known exit terms.
     redemption_fee_supported: bool = False
-    #: Economic terms profile, used separately from execution capability.
+    #: Let a strategy select acceptable economic terms even when the executor supports more profiles.
     fee_profile: str | None = None
-    #: Immediate versus queued deposit lifecycle, including historical event gates.
+    #: Reserve deposited cash until settlement when shares are not issued immediately.
     deposit_queued: bool = False
-    #: Immediate versus queued redemption lifecycle.
+    #: Keep redemption proceeds unavailable for new trades until the request settles.
     redemption_queued: bool = False
-    #: Minimum deposit delay; zero for immediate, None for global timing default.
+    #: Earliest deposit completion in seconds; None delegates timing to the settlement
+    #: hour or consumer fallback. The queued flag determines whether a request is needed.
     deposit_delay_seconds: float | None = None
-    #: Minimum redemption delay; zero for immediate, None for global timing default.
+    #: Earliest redemption completion in seconds, separate from deposits because the
+    #: two directions can have different waits. None delegates to the hour or fallback.
     redemption_delay_seconds: float | None = None
-    #: Existing next-day UTC settlement hour for Ostium-style requests.
+    #: Preserve next-day scheduling for protocols modelled by a UTC hour rather than
+    #: an elapsed duration; used only when the queued operation has no delay estimate.
     settlement_hour_utc: int | None = None
-    #: Whether deposits also require a historical settlement event.
+    #: Prevent an elapsed delay alone from issuing shares when settlement needs an event.
     deposit_requires_settlement_event: bool = False
-    #: Whether closed deposits can represent a temporary protocol window.
+    #: Allow allocation to park intended deposits during a protocol window closure;
+    #: capacity and permission refusals still need to be distinguished from windows.
     deposit_windowed: bool = False
-    #: Whether redemptions are subject to protocol windows.
+    #: Distinguish scheduled redemption windows from permanently unavailable exits;
+    #: the flag alone does not establish whether redemption is currently open.
     redemption_windowed: bool = False
-    #: Named source of default rules; individual fee amounts come from metadata.
+    #: Identify the protocol behind derived defaults when diagnosing a resolved rule;
+    #: this label does not replace the published metadata as the source of fee rates.
     provenance: str = "metadata"
 
 
@@ -646,10 +658,9 @@ class VaultMetadata:
     #: When this individual vault JSON entry was generated.
     generated_at: datetime.datetime | None = None
 
-    #: Resolved protocol capabilities derived from published fees/features by a consumer.
-    #:
-    #: Optional because raw dataset loaders need not choose execution defaults.
-    #: Simulation delays are labelled approximations, not observed claimability.
+    #: Carry a consumer's derived rules through pair conversion so downstream code
+    #: can reuse the same fee and timing decisions. Raw loaders leave this unset:
+    #: loading published data should not choose an executor's simulation defaults.
     vault_protocol_rules: VaultProtocolRules | None = None
 
     def __post_init__(self):

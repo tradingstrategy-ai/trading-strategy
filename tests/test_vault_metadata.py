@@ -534,7 +534,10 @@ def test_load_vault_metadata_propagates_environment_failure(monkeypatch: pytest.
 
 
 def test_derived_protocol_rules_travel_with_vault_metadata() -> None:
-    """Carry consumer-resolved capabilities through normal DEXPair conversion.
+    """Prevent pair conversion from discarding rules that consumers already resolved.
+
+    No executor is needed here: attach a representative immutable rule object
+    and check that conversion preserves it instead of rebuilding raw metadata.
 
     1. Attach typed rules to metadata whose optional field initially has no value.
     2. Export the vault through the ordinary trading-pair conversion.
