@@ -92,6 +92,56 @@ def get_vault_page(vault_address: str) -> str:
 
 
 @dataclass(slots=True, frozen=True)
+class VaultProtocolRules:
+    """Let pricing, allocation and execution share one interpretation of vault terms.
+
+    A consumer resolves these values from metadata and its supported protocol
+    adapters. Keeping them on metadata avoids each strategy inferring its own
+    fee or settlement policy. Fee rates are fractions of transaction value;
+    delays are seconds from a request, not observed claim times.
+
+    Window flags identify operations that may need to wait for an opening;
+    callers still need availability observations. Live settlement must use the
+    protocol adapter's claim checks rather than these simulation estimates.
+    """
+
+    #: Keep unknown entry costs as None so admission cannot mistake missing data for free entry.
+    deposit_fee: float | None = None
+    #: Charge a redemption independently of ongoing manager fees, which may already be in NAV.
+    redemption_fee: float | None = None
+    #: Require an implemented fee model before a known entry rate can be used for trading.
+    deposit_fee_supported: bool = False
+    #: Track exit support separately so a missing entry rate does not erase known exit terms.
+    redemption_fee_supported: bool = False
+    #: Let a strategy select acceptable economic terms even when the executor supports more profiles.
+    fee_profile: str | None = None
+    #: Reserve deposited cash until settlement when shares are not issued immediately.
+    deposit_queued: bool = False
+    #: Keep redemption proceeds unavailable for new trades until the request settles.
+    redemption_queued: bool = False
+    #: Earliest deposit completion in seconds; None delegates timing to the settlement
+    #: hour or consumer fallback. The queued flag determines whether a request is needed.
+    deposit_delay_seconds: float | None = None
+    #: Earliest redemption completion in seconds, separate from deposits because the
+    #: two directions can have different waits. None delegates to the hour or fallback.
+    redemption_delay_seconds: float | None = None
+    #: Preserve next-day scheduling for protocols modelled by a UTC hour rather than
+    #: an elapsed duration; used only when the queued operation has no delay estimate.
+    settlement_hour_utc: int | None = None
+    #: Prevent an elapsed delay alone from issuing shares when settlement needs an event.
+    deposit_requires_settlement_event: bool = False
+    #: Allow allocation to park intended deposits during a protocol window closure;
+    #: capacity and permission refusals still need to be distinguished from windows.
+    deposit_windowed: bool = False
+    #: Distinguish scheduled redemption windows from permanently unavailable exits;
+    #: the flag alone does not establish whether redemption is currently open.
+    redemption_windowed: bool = False
+    #: Identify the protocol behind derived defaults when diagnosing a resolved rule;
+    #: this label does not replace the published metadata as the source of fee rates.
+    provenance: str = "metadata"
+
+
+@dataclass(slots=True, frozen=True)
 class VaultMetadata:
     """Used in pair dataframe for vault specific data.
 
@@ -607,6 +657,11 @@ class VaultMetadata:
 
     #: When this individual vault JSON entry was generated.
     generated_at: datetime.datetime | None = None
+
+    #: Carry a consumer's derived rules through pair conversion so downstream code
+    #: can reuse the same fee and timing decisions. Raw loaders leave this unset:
+    #: loading published data should not choose an executor's simulation defaults.
+    vault_protocol_rules: VaultProtocolRules | None = None
 
     def __post_init__(self):
         assert type(self.features) == list

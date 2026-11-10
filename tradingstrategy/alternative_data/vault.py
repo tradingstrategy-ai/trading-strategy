@@ -427,7 +427,7 @@ def read_vault_price_history_parquet(
         # schema, so callers can opt in to them without breaking on older files (e.g. the daily
         # price bundle). Any other missing requested column is kept so the read still fails fast
         # on a genuine schema mismatch (e.g. a misspelled `share_price`).
-        optional_columns = set(VAULT_STATE_COLUMNS) | set(VAULT_STATE_METADATA_COLUMNS)
+        optional_columns = {"protocol"} | set(VAULT_STATE_COLUMNS) | set(VAULT_STATE_METADATA_COLUMNS)
         requested_columns = [c for c in requested_columns if c in schema_names or c not in optional_columns]
         required_columns = {timestamp_column}
         if vault_pairs_df is not None:
@@ -746,8 +746,8 @@ def convert_vault_prices_to_vault_state(
 ) -> pd.DataFrame | None:
     """Select coherent vault state without refreshing original observation clocks.
 
-    Other chains retain their legacy last-whole-row, floored-bucket behaviour.
-    HyperCore receipts become available at the next decision boundary. Genuine
+    D2 and HyperCore state becomes available at the next decision boundary.
+    Other protocols retain their legacy last-whole-row, floored-bucket behaviour. Genuine
     responses, including unknowns, beat inferred legacy price flags. Independent
     sidecar observations can change state after the newest price without creating
     synthetic price or TVL rows. Publication and ``written_at`` never refresh
@@ -775,7 +775,18 @@ def convert_vault_prices_to_vault_state(
     freq = _VAULT_STATE_FREQUENCIES[frequency]
     other = df.loc[~hypercore, ["timestamp", "pair_id", "address", *present]].copy()
     other = other.sort_values("timestamp", kind="stable")
-    other["timestamp"] = other["timestamp"].dt.floor(freq)
+    # A D2 phase sampled during a day was not known at that day's opening decision.
+    # Ceil to the next boundary to avoid look-ahead; exact-boundary samples stay put.
+    if "protocol" in df:
+        d2 = df.loc[~hypercore, "protocol"].fillna("").str.lower().isin(
+            ("d2", "d2-finance", "d2 finance")
+        )
+    else:
+        # Older bundles cannot identify D2 rows; preserve their existing bucketing
+        # rather than inferring a protocol from an address or changing every vault.
+        d2 = pd.Series(False, index=other.index)
+    other.loc[~d2, "timestamp"] = other.loc[~d2, "timestamp"].dt.floor(freq)
+    other.loc[d2, "timestamp"] = other.loc[d2, "timestamp"].dt.ceil(freq)
     other = other.drop_duplicates(["pair_id", "timestamp"], keep="last")
     if not hypercore.any() and (permission_history_df is None or permission_history_df.empty):
         for col in ("deposits_open", "redemption_open"):
