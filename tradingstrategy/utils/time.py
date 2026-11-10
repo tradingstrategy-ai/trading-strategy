@@ -99,7 +99,9 @@ def generate_monthly_timestamps(start: datetime.datetime, end: datetime.datetime
             current_date = current_date.replace(month=current_date.month + 1)
 
         if current_date > end:
-            timestamps.append(int(end.timestamp()))
+            end_timestamp = int(end.timestamp())
+            if timestamps[-1] != end_timestamp:
+                timestamps.append(end_timestamp)
             break
 
     return timestamps
