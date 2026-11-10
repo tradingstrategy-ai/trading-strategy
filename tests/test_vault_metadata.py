@@ -1,6 +1,7 @@
 """Integration tests for vault metadata loading."""
 
 import os
+from dataclasses import replace
 
 from pathlib import Path
 from unittest.mock import Mock
@@ -12,7 +13,7 @@ from tradingstrategy.chain import ChainId
 from tradingstrategy.alternative_data.vault import convert_vaults_to_trading_pairs, load_vault_database_with_metadata
 from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.pair import PandasPairUniverse
-from tradingstrategy.vault import Vault, VaultDepositPermission, VaultDepositStatus, VaultMetadata, VaultRedemptionStatus, VaultUniverse
+from tradingstrategy.vault import VaultProtocolRules, Vault, VaultDepositPermission, VaultDepositStatus, VaultMetadata, VaultRedemptionStatus, VaultUniverse
 from tradingstrategy.vault_data_client import VaultDataClient, VAULT_PRO_API_KEY_ENV_VAR
 
 
@@ -530,3 +531,17 @@ def test_load_vault_metadata_propagates_environment_failure(monkeypatch: pytest.
     # 3. Assert the OSError propagates.
     with pytest.raises(OSError, match="cairo-2"):
         load_vault_database_with_metadata(json_data)
+
+
+def test_derived_protocol_rules_travel_with_vault_metadata() -> None:
+    """Optional consumer-resolved capabilities survive normal DEXPair conversion."""
+    metadata = VaultMetadata(vault_name="Test", protocol_name="test", protocol_slug="test", features=[])
+    assert metadata.vault_protocol_rules is None
+    rules = VaultProtocolRules(redemption_fee=0.005, redemption_fee_supported=True,
+                               redemption_queued=True, redemption_delay_seconds=604800)
+    vault = replace(_make_vault(42161, "0xaf88d065e77c8cc2239327c5edb3a432268e5831"),
+                    metadata=replace(metadata, vault_protocol_rules=rules))
+    exchanges, pairs = convert_vaults_to_trading_pairs([vault])
+    universe = PandasPairUniverse(pairs, exchange_universe=ExchangeUniverse({e.exchange_id: e for e in exchanges}))
+    pair = next(universe.iterate_pairs())
+    assert pair.get_vault_metadata().vault_protocol_rules is rules
