@@ -534,14 +534,22 @@ def test_load_vault_metadata_propagates_environment_failure(monkeypatch: pytest.
 
 
 def test_derived_protocol_rules_travel_with_vault_metadata() -> None:
-    """Optional consumer-resolved capabilities survive normal DEXPair conversion."""
+    """Carry consumer-resolved capabilities through normal DEXPair conversion.
+
+    1. Attach typed rules to metadata whose optional field initially has no value.
+    2. Export the vault through the ordinary trading-pair conversion.
+    3. Check the DEXPair accessor retains the enriched metadata.
+    """
+    # 1. Attach typed rules to metadata whose optional field initially has no value.
     metadata = VaultMetadata(vault_name="Test", protocol_name="test", protocol_slug="test", features=[])
     assert metadata.vault_protocol_rules is None
     rules = VaultProtocolRules(redemption_fee=0.005, redemption_fee_supported=True,
                                redemption_queued=True, redemption_delay_seconds=604800)
     vault = replace(_make_vault(42161, "0xaf88d065e77c8cc2239327c5edb3a432268e5831"),
                     metadata=replace(metadata, vault_protocol_rules=rules))
+    # 2. Export the vault through the ordinary trading-pair conversion.
     exchanges, pairs = convert_vaults_to_trading_pairs([vault])
     universe = PandasPairUniverse(pairs, exchange_universe=ExchangeUniverse({e.exchange_id: e for e in exchanges}))
     pair = next(universe.iterate_pairs())
+    # 3. Check the DEXPair accessor retains the enriched metadata.
     assert pair.get_vault_metadata().vault_protocol_rules is rules
