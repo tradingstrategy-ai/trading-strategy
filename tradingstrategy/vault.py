@@ -139,6 +139,17 @@ class VaultProtocolRules:
     #: Identify the protocol behind derived defaults when diagnosing a resolved rule;
     #: this label does not replace the published metadata as the source of fee rates.
     provenance: str = "metadata"
+    #: Whether the protocol's deposit manager adapter reports when the share
+    #: owner's deposit lock ends.
+    #: Simulations can advance the local chain to that time before requesting
+    #: withdrawal. Without this flag, a reported delay may instead describe when
+    #: an already submitted withdrawal will settle, so it cannot be used this way.
+    redemption_delay_is_deposit_lock: bool = False
+    #: Limit, in seconds, on the requested wait between deposit and withdrawal.
+    #: A local chain copy does not receive new oracle prices; a long wait can make
+    #: those prices expire. None leaves the requested wait unchanged. This limit
+    #: does not control live strategy cycles or historical settlement estimates.
+    simulation_max_holding_seconds: int | None = None
 
 
 @dataclass(slots=True, frozen=True)

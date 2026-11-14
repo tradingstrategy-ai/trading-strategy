@@ -534,10 +534,11 @@ def test_load_vault_metadata_propagates_environment_failure(monkeypatch: pytest.
 
 
 def test_derived_protocol_rules_travel_with_vault_metadata() -> None:
-    """Prevent pair conversion from discarding rules that consumers already resolved.
+    """Preserve withdrawal timing rules when vaults become trading pairs.
 
-    No executor is needed here: attach a representative immutable rule object
-    and check that conversion preserves it instead of rebuilding raw metadata.
+    Losing these rules would make downstream simulations ignore deposit locks
+    or wait until oracle prices expire. Supply resolved rules directly because
+    this test checks their transport, not how the executor chooses them.
 
     1. Attach typed rules to metadata whose optional field initially has no value.
     2. Export the vault through the ordinary trading-pair conversion.
@@ -546,8 +547,11 @@ def test_derived_protocol_rules_travel_with_vault_metadata() -> None:
     # 1. Attach typed rules to metadata whose optional field initially has no value.
     metadata = VaultMetadata(vault_name="Test", protocol_name="test", protocol_slug="test", features=[])
     assert metadata.vault_protocol_rules is None
+    assert not VaultProtocolRules().redemption_delay_is_deposit_lock
+    assert VaultProtocolRules().simulation_max_holding_seconds is None
     rules = VaultProtocolRules(redemption_fee=0.005, redemption_fee_supported=True,
-                               redemption_queued=True, redemption_delay_seconds=604800)
+                               redemption_queued=True, redemption_delay_seconds=604800,
+                               redemption_delay_is_deposit_lock=True, simulation_max_holding_seconds=1800)
     vault = replace(_make_vault(42161, "0xaf88d065e77c8cc2239327c5edb3a432268e5831"),
                     metadata=replace(metadata, vault_protocol_rules=rules))
     # 2. Export the vault through the ordinary trading-pair conversion.
