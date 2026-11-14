@@ -139,6 +139,14 @@ class VaultProtocolRules:
     #: Identify the protocol behind derived defaults when diagnosing a resolved rule;
     #: this label does not replace the published metadata as the source of fee rates.
     provenance: str = "metadata"
+    #: Whether the manager's owner-specific redemption delay is a deposit lock.
+    #: Fork tests may wait out this lock before requesting withdrawal; a generic
+    #: settlement schedule must not be treated as a share unlock time.
+    redemption_delay_is_deposit_lock: bool = False
+    #: Maximum artificial holding interval on a disposable fork, e.g. to retain
+    #: oracle freshness. None leaves the requested interval unchanged. This is
+    #: not a live strategy cycle or a historical settlement estimate.
+    simulation_max_holding_seconds: int | None = None
 
 
 @dataclass(slots=True, frozen=True)

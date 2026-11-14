@@ -1,5 +1,7 @@
 # Current
 
+- Add optional deposit-lock and fork holding-interval capabilities to `VaultProtocolRules`, allowing consumers to use populated metadata instead of protocol checks (2026-11-14).
+
 - Fix `download_with_tqdm_progress_bar()` retries: a broken download stream is retried with a new request instead of reading on from the broken response, which saved only the tail of the body and made the vault metadata JSON fail with "Extra data" (2026-10-28).
 
 - Use Git-sourced eth-defi in the development/CI lock while preserving editable executor dependency resolution; skip protocol classification for authoritative permission/capacity projections and update Web3 7 test fixtures (2026-10-27).
