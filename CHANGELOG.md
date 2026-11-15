@@ -1,5 +1,7 @@
 # Current
 
+- Preserve the `unsupported_protocol` vault permission status instead of treating it as unknown (2026-11-15).
+
 - Clarify vault timing metadata and its regression test, and add contributor guidance for contextual, plain-language comments and docstrings (2026-11-14).
 
 - Add optional deposit-lock and fork holding-interval capabilities to `VaultProtocolRules`, allowing consumers to use populated metadata instead of protocol checks (2026-11-14).

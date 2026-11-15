@@ -64,7 +64,7 @@ class VaultRedemptionStatus(str, Enum):
 
 
 class VaultDepositPermission(str, Enum):
-    """Whether a depositor needs prior identity approval."""
+    """Deposit identity policy or an explicit unsupported-integration status."""
 
     #: Deposits need no prior identity approval.
     permissionless = "permissionless"
@@ -74,6 +74,16 @@ class VaultDepositPermission(str, Enum):
 
     #: The producer could not determine deposit permission.
     unknown = "unknown"
+
+    #: Unsupported integration: exclude from investable universes and reject new
+    #: deposits at least as strictly as ``whitelisted``; historical closure
+    #: exceptions cannot override unsupported status. Preserve the
+    #: distinct status; it does not assert an on-chain whitelist or temporary closure.
+    #: Keep existing holdings visible for valuation and independently checked recovery.
+    #: Introduced for VaultMorpho: source inspection and successful fork trades did
+    #: not establish a maintained protocol integration. Case and decision:
+    #: https://github.com/tradingstrategy-ai/web3-ethereum-defi/pull/1782
+    unsupported_protocol = "unsupported_protocol"
 
 
 def get_vault_page(vault_address: str) -> str:
