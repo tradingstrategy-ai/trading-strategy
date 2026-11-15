@@ -560,3 +560,12 @@ def test_derived_protocol_rules_travel_with_vault_metadata() -> None:
     pair = next(universe.iterate_pairs())
     # 3. Check the DEXPair accessor retains the enriched metadata.
     assert pair.get_vault_metadata().vault_protocol_rules is rules
+
+
+def test_unsupported_protocol_permission_survives_metadata_loading() -> None:
+    """Do not downgrade explicit unsupported status to unknown during parsing."""
+    address = '0x1111111111111111111111111111111111111111'
+    data = {'vaults': [_make_vault_entry(address, 'Unsupported vault', deposit_permission='unsupported_protocol', whitelist={'status':'unsupported_protocol','notes':None})]}
+    universe = load_vault_database_with_metadata(data)
+    vault = next(universe.iterate_vaults())
+    assert vault.metadata.deposit_permission is VaultDepositPermission.unsupported_protocol

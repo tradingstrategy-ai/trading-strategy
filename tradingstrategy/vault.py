@@ -75,6 +75,9 @@ class VaultDepositPermission(str, Enum):
     #: The producer could not determine deposit permission.
     unknown = "unknown"
 
+    #: Protocol integration is unsupported; exclude from new investment.
+    unsupported_protocol = "unsupported_protocol"
+
 
 def get_vault_page(vault_address: str) -> str:
     """Get the Trading Strategy vault page URL by contract address.
