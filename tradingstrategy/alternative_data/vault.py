@@ -48,6 +48,9 @@ DEFAULT_VAULT_PRICE_BUNDLE = Path(__file__).parent / ".." / "data_bundles" / "va
 #: consumer decides whether missing / unknown values are allowed.
 VAULT_STATE_COLUMNS = STATE_FIELDS.copy()
 
+#: Sparse deposit settlement observations, distinct from persistent admission state.
+VAULT_SETTLEMENT_COLUMNS = ["vault_settlement_at"]
+
 #: Optional original observation clocks and provenance, projected with the whole state.
 VAULT_STATE_METADATA_COLUMNS = [
     "permission_observed_at", "permission_provenance", "permission_observation_id",
@@ -427,7 +430,7 @@ def read_vault_price_history_parquet(
         # schema, so callers can opt in to them without breaking on older files (e.g. the daily
         # price bundle). Any other missing requested column is kept so the read still fails fast
         # on a genuine schema mismatch (e.g. a misspelled `share_price`).
-        optional_columns = {"protocol"} | set(VAULT_STATE_COLUMNS) | set(VAULT_STATE_METADATA_COLUMNS)
+        optional_columns = {"protocol"} | set(VAULT_STATE_COLUMNS) | set(VAULT_STATE_METADATA_COLUMNS) | set(VAULT_SETTLEMENT_COLUMNS)
         requested_columns = [c for c in requested_columns if c in schema_names or c not in optional_columns]
         required_columns = {timestamp_column}
         if vault_pairs_df is not None:
@@ -764,7 +767,7 @@ def convert_vault_prices_to_vault_state(
     assert frequency in _VAULT_STATE_FREQUENCIES, f"Got {frequency}"
     if "timestamp" not in raw_prices_df and raw_prices_df.index.name == "timestamp":
         raw_prices_df = raw_prices_df.reset_index()
-    present = [c for c in VAULT_STATE_COLUMNS if c in raw_prices_df]
+    present = [c for c in [*VAULT_STATE_COLUMNS, *VAULT_SETTLEMENT_COLUMNS] if c in raw_prices_df]
     if not present and permission_history_df is None:
         return None
     df = raw_prices_df.copy().reset_index(drop=True)
@@ -1030,6 +1033,11 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
         deposit_fee=entry.get("deposit_fee"),
         withdrawal_fee=entry.get("withdraw_fee"),
         lockup_days=entry.get("lockup"),
+        estimated_settlement=(
+            datetime.timedelta(seconds=entry["estimated_settlement"])
+            if isinstance(entry.get("estimated_settlement"), (int, float)) and entry["estimated_settlement"] > 0
+            else None
+        ),
         risk_level=entry.get("risk"),
         notes=entry.get("notes"),
         deposit_status=deposit_status,

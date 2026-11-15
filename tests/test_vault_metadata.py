@@ -1,5 +1,6 @@
 """Integration tests for vault metadata loading."""
 
+import datetime
 import os
 from dataclasses import replace
 
@@ -15,6 +16,19 @@ from tradingstrategy.exchange import ExchangeUniverse
 from tradingstrategy.pair import PandasPairUniverse
 from tradingstrategy.vault import VaultProtocolRules, Vault, VaultDepositPermission, VaultDepositStatus, VaultMetadata, VaultRedemptionStatus, VaultUniverse
 from tradingstrategy.vault_data_client import VaultDataClient, VAULT_PRO_API_KEY_ENV_VAR
+
+
+def test_vault_metadata_parses_estimated_settlement_seconds() -> None:
+    """Retain producer timing data through the normal metadata loader.
+
+    1. Load published settlement seconds alongside ordinary vault metadata.
+    2. Check the loader exposes the typed duration used by executor translation.
+    """
+    # 1. Load published settlement seconds alongside ordinary vault metadata.
+    vaults = load_vault_database_with_metadata({"vaults": [_make_vault_entry(
+        "0x0000000000000000000000000000000000000001", "Lagoon USDC", estimated_settlement=86400)]})
+    # 2. Check the loader exposes the typed duration used by executor translation.
+    assert next(iter(vaults.export_all_vaults())).metadata.estimated_settlement == datetime.timedelta(days=1)
 
 
 def _make_vault(chain_id, denomination_token_address, denomination_token_symbol="USDC", name="TestVault", vault_address=None):
