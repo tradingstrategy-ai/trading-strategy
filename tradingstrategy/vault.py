@@ -160,6 +160,11 @@ class VaultProtocolRules:
     #: those prices expire. None leaves the requested wait unchanged. This limit
     #: does not control live strategy cycles or historical settlement estimates.
     simulation_max_holding_seconds: int | None = None
+    #: Optional maximum public redemption-recovery penalty, in basis points.
+    #: None disables recovery. This is an execution authorisation, not a normal
+    #: withdrawal fee, historical settlement delay or permission classification.
+    #: Adapters must check the live rate and retain mined fee/share evidence.
+    redemption_recovery_max_fee_bps: int | None = None
 
 
 @dataclass(slots=True, frozen=True)
