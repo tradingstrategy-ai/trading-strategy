@@ -31,6 +31,30 @@ def test_vault_metadata_parses_estimated_settlement_seconds() -> None:
     assert next(iter(vaults.export_all_vaults())).metadata.estimated_settlement == datetime.timedelta(days=1)
 
 
+def test_vault_metadata_converts_published_lockup_seconds_to_days() -> None:
+    """Convert published lockups without mistaking sub-day durations for days.
+
+    1. Load rows with long, short, zero, unknown and malformed lockups.
+    2. Verify that the loader preserves each row and exposes durations in days.
+    """
+    # 1. Load representative values from the published JSON schema.
+    cases = (
+        ("30-day estimate", {"lockup": 2_592_000.0}, 30.0),
+        ("5-minute estimate", {"lockup": 300}, 300 / 86_400),
+        ("No lockup", {"lockup": 0.0}, 0.0),
+        ("Unknown lockup", {"lockup": None}, None),
+        ("Missing lockup", {}, None),
+        ("Invalid lockup", {"lockup": "unknown"}, None),
+    )
+    rows = [_make_vault_entry(f"0x{index:040x}", name, **fields) for index, (name, fields, _) in enumerate(cases, start=1)]
+    vaults = load_vault_database_with_metadata({"vaults": rows})
+
+    # 2. Verify the units and keep otherwise usable rows with unknown durations.
+    assert {vault.name: vault.metadata.lockup_days for vault in vaults.iterate_vaults()} == {
+        name: expected for name, _, expected in cases
+    }
+
+
 def _make_vault(chain_id, denomination_token_address, denomination_token_symbol="USDC", name="TestVault", vault_address=None):
     """Build a minimal Vault for unit testing."""
     addr = vault_address or f"0x{chain_id:040x}"
