@@ -13,6 +13,7 @@ To repackage the vault bundle:
 import datetime
 import logging
 from enum import Enum
+from math import inf
 from pathlib import Path
 from typing import Iterable
 
@@ -1004,6 +1005,15 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
     else:
         vault_display_flags = other_data.get("vault_display_flags")
 
+    # The vault metrics export serialises timedelta values as seconds.
+    # Convert at the JSON boundary so VaultMetadata always exposes days.
+    lockup_seconds = entry.get("lockup")
+    lockup_days = (
+        lockup_seconds / 86_400
+        if isinstance(lockup_seconds, (int, float)) and not isinstance(lockup_seconds, bool) and 0 <= lockup_seconds < inf
+        else None
+    )
+
     return VaultMetadata(
         vault_name=entry.get("name"),
         protocol_name=entry.get("protocol"),
@@ -1032,7 +1042,7 @@ def _parse_vault_metadata(entry: dict) -> VaultMetadata:
         last_updated_at=_parse_datetime(entry.get("lifetime_end")),
         deposit_fee=entry.get("deposit_fee"),
         withdrawal_fee=entry.get("withdraw_fee"),
-        lockup_days=entry.get("lockup"),
+        lockup_days=lockup_days,
         estimated_settlement=(
             datetime.timedelta(seconds=entry["estimated_settlement"])
             if isinstance(entry.get("estimated_settlement"), (int, float)) and entry["estimated_settlement"] > 0
